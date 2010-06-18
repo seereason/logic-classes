@@ -1,0 +1,21 @@
+Name:             Logic
+Version:          0.0.1
+License:          BSD3
+Author:           SeeReason Partners <partners@seereason.com>
+Maintainer:       SeeReason Partners <partners@seereason.com>
+Synopsis:         Library for unifying various treatments of first order logic
+Description:      Library for unifying various treatments of first order logic
+Build-Type:       Custom
+Category:         Math
+Cabal-version:    >= 1.2
+
+Library
+ GHC-options: -threaded -Wall -Werror -O2
+ Exposed-Modules:  Logic.AtomicFunction,
+                   Logic.AtomicPredicate,
+                   Logic.AtomicWord,
+                   Logic.Basic,
+                   Logic.Classes,
+                   Logic.FOL
+ Build-Depends:    base, containers, fgl, happstack-data, happstack-facebook,
+                   happstack-ixset, happstack-state, syb-with-class, text
