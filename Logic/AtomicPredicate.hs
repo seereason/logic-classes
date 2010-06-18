@@ -16,7 +16,7 @@ import Logic.Basic (Belief(..), LinguisticHint(..), NounPhraseFragment(..), Subj
 -- one of these using PredApp: let x = Users in PredApp x [Var (V
 -- "x")].  This is a formula with one free variable, which we are
 -- calling a Predicate.
-data AtomicPredicate u pred w
+data AtomicPredicate u w pred
     = Description LinguisticHint [NounPhraseFragment] -- ^ Is the term an element of the described set?
     | Reference SubjectId -- ^ Is the term a member of the subject set?
     | Somebody u -- ^ Is the term a particular user?
@@ -32,6 +32,6 @@ data AtomicPredicate u pred w
     | Singleton -- ^ I'm not sure this is a meaningful predicate in first order logic.
     deriving (Eq,Ord,Show,Read,Data,Typeable)
 
-instance Version (AtomicPredicate u pred w)
+instance Version (AtomicPredicate u w pred)
 $(deriveSerialize ''AtomicPredicate)
 $(deriveNewData [''AtomicPredicate])

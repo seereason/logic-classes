@@ -50,12 +50,12 @@ import Logic.Classes
 
 -- * Types
 
-type AtomicPredicate' = AtomicPredicate Facebook.User Predicate AtomicWord
+type AtomicPredicate' f = AtomicPredicate Facebook.User AtomicWord f
 type AtomicFunction' = AtomicFunction AtomicWord
     
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula
-    = PredApp AtomicPredicate' [Term] -- ^ Predicate application.  The terms are the free variables.
+    = PredApp (AtomicPredicate' Formula) [Term] -- ^ Predicate application.  The terms are the free variables.
     | (:~:) Formula                   -- ^ Negation
     | BinOp Formula BinOp Formula     -- ^ Binary connective application
     | InfixPred Term InfixPred Term   -- ^ Infix predicate application (equalities, inequalities)
@@ -187,7 +187,7 @@ foldFormula ::
                 -> (Quant -> [V] -> Formula -> r)
                 -> (Formula -> BinOp -> Formula -> r)
                 -> (Term -> InfixPred -> Term -> r)
-                -> (AtomicPredicate' -> [Term] -> r)
+                -> (AtomicPredicate' Formula -> [Term] -> r)
                 -> Formula
                 -> r
 foldFormula kneg kquant kbinop kinfix kpredapp f =
@@ -219,7 +219,7 @@ foldF ::
          -> (Quant -> [V] -> Formula -> r) -- ^ Handle quantification
          -> (Formula -> BinOp -> Formula -> r) -- ^ Handle binary op
          -> (Term -> InfixPred -> Term -> r) -- ^ Handle equality/inequality
-         -> (AtomicPredicate' -> [Term] -> r) -- ^ Handle predicate symbol application
+         -> (AtomicPredicate' Formula -> [Term] -> r) -- ^ Handle predicate symbol application
          -> (Formula -> r) -- ^ Handle formula
          
 foldF kneg kquant kbinop kinfix kpredapp f = foldFormula kneg kquant kbinop kinfix kpredapp (unwrapF f)
