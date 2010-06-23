@@ -1,0 +1,76 @@
+Source: haskell-logic
+Priority: optional
+Section: misc
+Maintainer: David Fox <dsf@seereason.com>
+Build-Depends: debhelper (>= 7.0),
+               haskell-devscripts (>= 0.6.15+nmu7),
+               hscolour,
+               cdbs,
+               ghc6 (>= 6.8),
+               ghc6-prof,
+               libghc6-hunit-prof,
+               libghc6-fgl-prof,
+               libghc6-happstack-data-prof,
+               libghc6-happstack-state-prof,
+               libghc6-logic-tptp-prof,
+               libghc6-mtl-prof,
+               libghc6-syb-with-class-prof,
+               libghc6-text-prof
+Build-Depends-Indep: ghc6-doc,
+                     haddock,
+                     libghc6-hunit-doc,
+                     libghc6-fgl-doc,
+                     libghc6-happstack-data-doc,
+                     libghc6-happstack-state-doc,
+                     libghc6-logic-tptp-doc,
+                     libghc6-mtl-doc,
+                     libghc6-syb-with-class-doc,
+                     libghc6-text-doc
+Standards-Version: 3.8.1
+
+Package: libghc6-logic-dev
+Architecture: any
+Section: haskell
+Depends: ${haskell:Depends},
+         ${misc:Depends}
+Description: Library for unifying various treatments of first order logic
+ Library for unifying various treatments of first order logic
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the normal library files.
+
+Package: libghc6-logic-prof
+Architecture: any
+Section: haskell
+Depends: ${haskell:Depends},
+         ${misc:Depends},
+         libghc6-logic-dev
+Description: Library for unifying various treatments of first order logic
+ Library for unifying various treatments of first order logic
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the libraries compiled with profiling enabled.
+
+Package: libghc6-logic-doc
+Architecture: all
+Section: doc
+Depends: ${haskell:Depends},
+         ${misc:Depends},
+         ghc6-doc
+Description: Library for unifying various treatments of first order logic
+ Library for unifying various treatments of first order logic
+ .
+  Author: SeeReason Partners <partners@seereason.com>
+  Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
+ .
+ This package contains the documentation files.
+
+Package: tests
+Architecture: any
+Section: misc
+Depends: ${shlibs:Depends}, ${haskell:Depends}, ${misc:Depends}
+Description:  An executable built with the Logic-0.0.1 library.
