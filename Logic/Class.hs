@@ -16,9 +16,11 @@ module Logic.Class
     , convert
     , convertFOL
     , convertTerm
+    , toPropositional
     , normalize
     ) where
 
+import Control.Applicative (Applicative, (<$>), (<*>), pure)
 import Data.Data (Data)
 import Data.Function (on)
 import Data.List (isPrefixOf, intercalate)
@@ -361,7 +363,7 @@ convert convertV convertP convertF formula =
       i t1 op t2 = infixPred (convertTerm' t1) op (convertTerm' t2)
       p x ts = pApp (convertP x) (map convertTerm' ts)
 
--- |Convert any instance of a propositional logic expression to any other.
+-- |Convert any instance of a first order logic expression to any other.
 convertFOL :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
            (FirstOrderLogic formula1 term1 v1 p1 f1,
             FirstOrderLogic formula2 term2 v2 p2 f2) =>
@@ -388,6 +390,22 @@ convertTerm convertV convertF term =
       v = var . convertV
       fn x ts = fApp (convertF x) (map convertTerm' ts)
 
+-- |Try to convert a first order logic formula to propositional.  This will
+-- return Nothing if there are any 
+toPropositional :: forall m formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
+                   (Monad m, Applicative m, FirstOrderLogic formula1 term1 v1 p1 f1,
+                    PropositionalLogic formula2 term2 v2 p2 f2) =>
+                   (v1 -> v2) -> (p1 -> p2) -> (f1 -> f2) -> formula1 -> m formula2
+toPropositional convertV convertP convertF formula =
+    foldF n q b i p formula
+    where
+      convert' = toPropositional convertV convertP convertF
+      convertTerm' = convertTerm convertV convertF
+      n f = (.~.) <$> convert' f
+      q _ _ _ = fail "Quantifier encountered while converting to PropositionalLogic"
+      b f1 op f2 = binOp <$> convert' f1 <*> pure op <*> convert' f2
+      i t1 op t2 = pure $ infixPred (convertTerm' t1) op (convertTerm' t2)
+      p x ts = pure $ pApp (convertP x) (map convertTerm' ts)
 
 instance Version InfixPred
 instance Version BinOp
