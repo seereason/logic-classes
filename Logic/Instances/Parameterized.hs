@@ -19,7 +19,7 @@ import Data.String (IsString)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
-import Logic.Class (Formulae(..), Quant(..), BinOp(..), InfixPred(..))
+import Logic.Class (FirstOrderLogic(..), Quant(..), PropositionalLogic(..), BinOp(..), InfixPred(..))
     
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula p f
@@ -49,9 +49,7 @@ data Term f
 newtype V = V String
     deriving (Eq,Ord,Show,Data,Typeable,Read,Monoid,IsString)
 
-instance (IsString f, Show p, Show f) => Formulae (Formula p f) (Term f) V p f where
-    for_all vars x = Quant All vars x
-    exists vars x = Quant Exists vars x
+instance (IsString f, Show p, Show f) => PropositionalLogic (Formula p f) (Term f) V p f where
     x .<=>. y = BinOp  x (:<=>:) y
     x .=>.  y = BinOp  x (:=>:)  y
     x .|.   y = BinOp  x (:|:)   y
@@ -63,9 +61,29 @@ instance (IsString f, Show p, Show f) => Formulae (Formula p f) (Term f) V p f w
     pApp x args = PredApp x args
     var = Var
     fApp x args = FunApp x args
-    foldF = foldFormula
+    foldF0 = foldFormula0
     foldT = foldTerm
     toString (V s) = s
+
+foldFormula0 ::
+                  (Formula p f -> r)
+               -> (Formula p f -> BinOp -> Formula p f -> r)
+               -> (Term f -> InfixPred -> Term f -> r)
+               -> (p -> [Term f] -> r)
+               -> Formula p f
+               -> r
+foldFormula0 kneg kbinop kinfix kpredapp f =
+    case f of
+      (:~:) x -> kneg x
+      BinOp x y z -> kbinop x y z
+      InfixPred x y z -> kinfix x y z
+      PredApp x y -> kpredapp x y
+      Quant _ _ _ -> error "foldFormula0: Quantifiers should not be present, use foldFormula"
+
+instance PropositionalLogic (Formula p f) (Term f) V p f => FirstOrderLogic (Formula p f) (Term f) V p f where
+    for_all vars x = Quant All vars x
+    exists vars x = Quant Exists vars x
+    foldF = foldFormula
 
 instance (IsString f, Show p, Show f) => Show (Formula p f) where
     show = showForm

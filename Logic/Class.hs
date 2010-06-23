@@ -2,7 +2,8 @@
              GeneralizedNewtypeDeriving, MultiParamTypeClasses, TemplateHaskell, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-orphans -Wall -Werror #-}
 module Logic.Class
-    ( Formulae(..)
+    ( FirstOrderLogic(..)
+    , PropositionalLogic(..)
     , Quant(..)
     , BinOp(..)
     , InfixPred(..)
@@ -25,20 +26,20 @@ import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
 
--- |Formulae is a multi-parameter type class for representing first
--- order logic datatypes.  It is intended that we will be able to
--- write instances for various different implementations to allow
--- these systems to interoperate.  The class is patterned on the type
--- in the Logic-TPTP package.
+-- |PropositionalLogic is a multi-parameter type class for
+-- representing order zero logic datatypes.  It is intended that we
+-- will be able to write instances for various different
+-- implementations to allow these systems to interoperate.  The class
+-- is patterned on the type in the Logic-TPTP package.
 -- 
 -- The functional dependencies are necessary here so we can write
 -- functions that don't fix all of the type parameters.  For example,
 -- without them the univquant_free_vars function gives the error
 -- 
---    No instance for (Formulae Formula t V p f)
+--    No instance for (PropositionalLogic Formula t V p f)
 -- 
 -- because the function doesn't mention the Term type.
-class (Ord v, IsString v, IsString f, Show v, Show p, Show f) => Formulae formula term v p f
+class (Ord v, IsString v, IsString f, Show v, Show p, Show f) => PropositionalLogic formula term v p f
                        | formula -> term
                        , formula -> v
                        , formula -> p
@@ -49,13 +50,6 @@ class (Ord v, IsString v, IsString f, Show v, Show p, Show f) => Formulae formul
                        , v -> term
                        , v -> p
                        , v -> f where
-    for_all :: [v] -> formula -> formula         -- ^ Universal quantification
-    (∀) :: v -> formula -> formula
-    (∀) v f = for_all [v] f
-    exists ::  [v] -> formula -> formula         -- ^ Existential quantification
-    (∃) :: v -> formula -> formula
-    (∃) v f = exists [v] f
-
     (.<=>.) :: formula -> formula -> formula -- ^ Equivalence
     (.=>.) :: formula -> formula -> formula  -- ^ Implication
     (.<=.) :: formula -> formula -> formula  -- ^ Reverse implication
@@ -77,22 +71,18 @@ class (Ord v, IsString v, IsString f, Show v, Show p, Show f) => Formulae formul
     var :: v -> term                                   -- ^ Variable
     fApp :: f -> [term] -> term                      -- ^ Function symbol application (constants are encoded as nullary functions)
 
-    foldF :: (formula -> r)                         -- ^ Negation
-          -> (Quant -> [v] -> formula -> r)         -- ^ Quantification
-          -> (formula -> BinOp -> formula -> r) -- ^ Binary Operator
-          -> (term -> InfixPred -> term -> r)       -- ^ Infix Predicate
-          -> (p -> [term] -> r)                       -- ^ Atomic predicate application
-          -> (formula)
-          -> r                                           -- ^ Fold over the value of a formula
+    foldF0 :: (formula -> r)                         -- ^ Negation
+           -> (formula -> BinOp -> formula -> r)    -- ^ Binary Operator
+           -> (term -> InfixPred -> term -> r)       -- ^ Infix Predicate
+           -> (p -> [term] -> r)                       -- ^ Atomic predicate application
+           -> (formula)
+           -> r                                           -- ^ Fold over the value of a formula
     foldT :: (v -> r)                                   -- ^ Variable
           -> (f -> [term] -> r)                       -- ^ Atomic function application
           -> term
           -> r                                           -- ^ Fold over the value of a term
     toString :: v -> String                     -- ^ Convert a v back into a string
     -- Helper functions for building folds: foldF (.~.) quant binOp infixPred pApp is a no-op
-    quant :: Quant -> [v] -> formula -> formula
-    quant All vs f = for_all vs f
-    quant Exists vs f = exists vs f
     binOp :: formula -> BinOp -> formula -> formula
     binOp f1 (:<=>:) f2 = f1 .<=>. f2
     binOp f1 (:=>:) f2 = f1 .=>. f2
@@ -105,6 +95,50 @@ class (Ord v, IsString v, IsString f, Show v, Show p, Show f) => Formulae formul
     infixPred :: term -> InfixPred -> term -> formula
     infixPred t1 (:=:) t2 = t1 .=. t2
     infixPred t1 (:!=:) t2 = t1 .!=. t2
+    showForm0 :: formula -> String
+    showForm0 formula =
+        foldF0 n b i a formula
+        where
+          n f = "(.~.) " ++ parenForm f
+          b f1 op f2 = parenForm f1 ++ " " ++ showFormOp op ++ " " ++ parenForm f2
+          i t1 op t2 = parenTerm t1 ++ " " ++ showTermOp op ++ " " ++ parenTerm t2
+          a p ts = "pApp (" ++ show p ++ ") [" ++ intercalate "," (map showTerm ts) ++ "]"
+          parenForm x = "(" ++ showForm0 x ++ ")"
+          parenTerm x = "(" ++ showTerm x ++ ")"
+          showFormOp (:<=>:) = ".<=>."
+          showFormOp (:=>:) = ".=>."
+          showFormOp (:&:) = ".&."
+          showFormOp (:|:) = ".|."
+          showTermOp (:=:) = ".=."
+          showTermOp (:!=:) = ".!=."
+    showTerm :: term -> String
+    showTerm term =
+              foldT v f term
+              where
+                v v' = "var " ++ show (toString v')
+                f fn ts = "fApp (" ++ show fn ++ ") [" ++ intercalate "," (map showTerm ts) ++ "]"
+
+-- |Now we can add quantifiers to get a FirstOrderLogic type class.
+-- We need a new Fold function here which adds a parameter to handle
+-- quantifier.  We also override the default showForm method.
+class PropositionalLogic formula term v p f => FirstOrderLogic formula term v p f where
+    for_all :: [v] -> formula -> formula         -- ^ Universal quantification
+    (∀) :: v -> formula -> formula
+    (∀) v f = for_all [v] f
+    exists ::  [v] -> formula -> formula         -- ^ Existential quantification
+    (∃) :: v -> formula -> formula
+    (∃) v f = exists [v] f
+    foldF :: (formula -> r)                         -- ^ Negation
+          -> (Quant -> [v] -> formula -> r)         -- ^ Quantification
+          -> (formula -> BinOp -> formula -> r) -- ^ Binary Operator
+          -> (term -> InfixPred -> term -> r)       -- ^ Infix Predicate
+          -> (p -> [term] -> r)                       -- ^ Atomic predicate application
+          -> (formula)
+          -> r                                           -- ^ Fold over the value of a formula
+    -- Helper functions for building folds: foldF (.~.) quant binOp infixPred pApp is a no-op
+    quant :: Quant -> [v] -> formula -> formula
+    quant All vs f = for_all vs f
+    quant Exists vs f = exists vs f
     showForm :: formula -> String
     showForm formula =
         foldF n q b i a formula
@@ -123,12 +157,6 @@ class (Ord v, IsString v, IsString f, Show v, Show p, Show f) => Formulae formul
           showFormOp (:|:) = ".|."
           showTermOp (:=:) = ".=."
           showTermOp (:!=:) = ".!=."
-    showTerm :: term -> String
-    showTerm term =
-              foldT v f term
-              where
-                v v' = "var " ++ show (toString v')
-                f fn ts = "fApp (" ++ show fn ++ ") [" ++ intercalate "," (map showTerm ts) ++ "]"
 
 infixl 2  .<=>. ,  .=>. ,  .<~>.
 infixl 3  .|.
@@ -202,8 +230,8 @@ class FreeVars a where
     -- | Obtain the free variables from a formula or term
     freeVars :: a -> Set V
 -}
-             
-freeVars :: Formulae formula term v p f => formula -> S.Set v
+
+freeVars :: FirstOrderLogic formula term v p f => formula -> S.Set v
 freeVars =
     foldF freeVars   
           (\_ vars x -> S.difference (freeVars x) (S.fromList vars))                    
@@ -211,12 +239,12 @@ freeVars =
           (\x _ y -> (mappend `on` freeVarsOfTerm) x y)
           (\_ args -> S.unions (fmap freeVarsOfTerm args))
 
-freeVarsOfTerm :: Formulae formula term v p f => term -> S.Set v
+freeVarsOfTerm :: FirstOrderLogic formula term v p f => term -> S.Set v
 freeVarsOfTerm =
     foldT S.singleton (\ _ args -> S.unions (fmap freeVarsOfTerm args))
 
 -- | Universally quantify all free variables in the formula (Name comes from TPTP)
-univquant_free_vars :: Formulae formula term v p f => formula -> formula
+univquant_free_vars :: FirstOrderLogic formula term v p f => formula -> formula
 univquant_free_vars cnf' =
     if S.null free then cnf' else for_all (S.toList free) cnf'
     where free = freeVars cnf'
@@ -224,7 +252,7 @@ univquant_free_vars cnf' =
 -- * Substituting variables
 
 -- |Substitute new for each occurrence of old in a formula.
-substitute' :: Formulae formula term v p f => v -> v -> formula -> formula
+substitute' :: FirstOrderLogic formula term v p f => v -> v -> formula -> formula
 substitute' new old formula =
     sf formula
     where
@@ -256,13 +284,13 @@ substitute' new old formula =
       sv v = if v == old then new else v
 
 -- |Substitute V for the (single) free variable in the formula.
-substitute :: Formulae formula term v p f => v -> formula -> formula
+substitute :: FirstOrderLogic formula term v p f => v -> formula -> formula
 substitute new f =
     case S.toList (freeVars f) of
       [old] -> substitute' new old f
       _ -> error "subtitute: formula must have exactly one free variable"
 
-substituteTerm :: (Eq term, Formulae formula term v p f) => (term, term) -> formula -> formula
+substituteTerm :: (Eq term, FirstOrderLogic formula term v p f) => (term, term) -> formula -> formula
 substituteTerm pair@(new, old) formula =
     foldF n q b i a formula
     where
@@ -278,11 +306,11 @@ substituteTerm pair@(new, old) formula =
       a p ts = pApp p (map st ts)
       st t = if t == old then new else t
 
-substituteTerms :: (Eq term, Formulae formula term v p f) => [(term, term)] -> formula -> formula
+substituteTerms :: (Eq term, FirstOrderLogic formula term v p f) => [(term, term)] -> formula -> formula
 substituteTerms pairs formula = foldr substituteTerm formula pairs
 
 -- |This is an example of a fold, though maybe handy.
-normalize :: Formulae formula term v p f => formula -> formula
+normalize :: FirstOrderLogic formula term v p f => formula -> formula
 normalize formula =
     foldF n q b i a formula
     where

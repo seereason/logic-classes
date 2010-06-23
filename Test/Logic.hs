@@ -11,7 +11,7 @@ import Test.HUnit
 
 tests = precTests ++ cnfTests
 
-formCase :: Formulae (Formula AtomicWord AtomicWord) (Term AtomicWord) V AtomicWord AtomicWord =>
+formCase :: FirstOrderLogic (Formula AtomicWord AtomicWord) (Term AtomicWord) V AtomicWord AtomicWord =>
             String -> Formula AtomicWord AtomicWord -> Formula AtomicWord AtomicWord -> Test
 formCase s expected input = TestCase (assertEqual s expected input)
 

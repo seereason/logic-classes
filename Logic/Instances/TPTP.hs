@@ -19,9 +19,7 @@ data AtomicFunction
 instance IsString AtomicFunction where
     fromString s = Atom (fromString s)
 
-instance Logic.Formulae TPTP.Formula TPTP.Term TPTP.V TPTP.AtomicWord AtomicFunction where
-    for_all vars x = TPTP.for_all vars x
-    exists vars x = TPTP.exists vars x
+instance Logic.PropositionalLogic TPTP.Formula TPTP.Term TPTP.V TPTP.AtomicWord AtomicFunction where
     x .<=>. y = x TPTP..<=>. y
     x .=>.  y = x TPTP..=>. y
     x .<=.  y = x TPTP..<=. y
@@ -45,10 +43,9 @@ instance Logic.Formulae TPTP.Formula TPTP.Term TPTP.V TPTP.AtomicWord AtomicFunc
     -- building wrappers around some of the functions so that when
     -- the wrappers are passed TPTP types they turn them into Logic
     -- values to pass to the argument functions.
-    foldF n q b i p formula =
+    foldF0 n b i p formula =
         TPTP.foldF n q' b' i' p (unwrapF' formula)
-        where q' TPTP.All = q Logic.All
-              q' TPTP.Exists = q Logic.Exists
+        where q' = error "TPTP Formula with quantifier passed to foldF0"
               b' f1 (TPTP.:<=>:) f2 = b f1 (Logic.:<=>:) f2
               b' f1 (TPTP.:<=:) f2 = b f2 (Logic.:=>:) f1
               b' f1 (TPTP.:=>:) f2 = b f1 (Logic.:=>:) f2
@@ -72,6 +69,31 @@ instance Logic.Formulae TPTP.Formula TPTP.Term TPTP.V TPTP.AtomicWord AtomicFunc
               double n = fa (NumberLit n) []
               unwrapT' (TPTP.T x) = TPTP.T x -- copoint x
     toString (TPTP.V s) = s
+
+instance Logic.FirstOrderLogic TPTP.Formula TPTP.Term TPTP.V TPTP.AtomicWord AtomicFunction where
+    for_all vars x = TPTP.for_all vars x
+    exists vars x = TPTP.exists vars x
+    -- Use the TPTP fold to implement the Logic fold.  This means
+    -- building wrappers around some of the functions so that when
+    -- the wrappers are passed TPTP types they turn them into Logic
+    -- values to pass to the argument functions.
+    foldF n q b i p formula =
+        TPTP.foldF n q' b' i' p (unwrapF' formula)
+        where q' TPTP.All = q Logic.All
+              q' TPTP.Exists = q Logic.Exists
+              b' f1 (TPTP.:<=>:) f2 = b f1 (Logic.:<=>:) f2
+              b' f1 (TPTP.:<=:) f2 = b f2 (Logic.:=>:) f1
+              b' f1 (TPTP.:=>:) f2 = b f1 (Logic.:=>:) f2
+              b' f1 (TPTP.:&:) f2 = b f1 (Logic.:&:) f2
+              -- The :~&: operator is not present in the Logic BinOp type,
+              -- so we need to somehow use the equivalent ~(a&b)
+              b' f1 (TPTP.:~&:) f2 = TPTP.foldF n q' b' i' p ((TPTP..~.) ((TPTP..&.) f1 f2))
+              b' f1 (TPTP.:|:) f2 = b f1 (Logic.:|:) f2
+              b' f1 (TPTP.:~|:) f2 = TPTP.foldF n q' b' i' p ((TPTP..~.) ((TPTP..|.) f1 f2))
+              b' f1 (TPTP.:<~>:) f2 = TPTP.foldF n q' b' i' p ((TPTP..|.) ((TPTP..&.) ((TPTP..~.) f1) f2) ((TPTP..&.) f1 ((TPTP..~.) f2)))
+              i' t1 (TPTP.:=:) t2 = i t1 (Logic.:=:) t2
+              i' _t1 (TPTP.:!=:) _t2 = undefined
+              unwrapF' (TPTP.F x) = TPTP.F x -- copoint x
 
 {-
 -- Formulae whose subexpressions are wrapped in the given type constructor @c@.
@@ -119,7 +141,7 @@ unwrapT (TPTP.T x) = TPTP.copoint x
 
 -- toTPTP :: Logic.Formulae formula term v p f -> TPTPFormula
 -- |Convert any instance of Formulae into Formula
-toTPTP :: Logic.Formulae formula term v p f => formula -> TPTP.Formula
+toTPTP :: Logic.FirstOrderLogic formula term v p f => formula -> TPTP.Formula
 toTPTP formula = 
     Logic.foldF n q b i p formula
     where
