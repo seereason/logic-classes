@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
-             GeneralizedNewtypeDeriving, MultiParamTypeClasses, TemplateHaskell, UndecidableInstances #-}
-{-# OPTIONS -fno-warn-orphans -Wall -Werror #-}
+             GeneralizedNewtypeDeriving, MultiParamTypeClasses, RankNTypes, TemplateHaskell, UndecidableInstances #-}
+{-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
 module Logic.Class
     ( FirstOrderLogic(..)
     , PropositionalLogic(..)
@@ -13,6 +13,9 @@ module Logic.Class
     , substitute
     , substituteTerm
     , substituteTerms
+    , convert
+    , convertFOL
+    , convertTerm
     , normalize
     ) where
 
@@ -326,6 +329,65 @@ normalize formula =
       i = infixPred
       a = pApp
       associative op = op == (:&:) || op == (:|:)
+
+{-
+convert :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2. (FirstOrderLogic formula1 term1 v1 p1 f1, FirstOrderLogic formula2 term2 v2 p2 f2) =>
+           formula1 -> formula2
+convert formula =
+    foldF n q b i p formula
+    where
+      n :: formula1 -> formula2
+      n f = (.~.) (convert f)
+      q :: Quant -> [v1] -> formula1 -> formula2
+      q x vs f = quant x vs (convert f)
+      b :: formula1 -> BinOp -> formula1 -> formula2
+      b f1 op f2 = binOp (convert f1 :: formula2) op (convert f2 :: formula2)
+      i = infixPred
+      p = pApp
+-}
+
+-- |Convert any instance of a propositional logic expression to any other.
+convert :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
+           (PropositionalLogic formula1 term1 v1 p1 f1,
+            PropositionalLogic formula2 term2 v2 p2 f2) =>
+           (v1 -> v2) -> (p1 -> p2) -> (f1 -> f2) -> formula1 -> formula2
+convert convertV convertP convertF formula =
+    foldF0 n b i p formula
+    where
+      convert' = convert convertV convertP convertF
+      convertTerm' = convertTerm convertV convertF
+      n f = (.~.) (convert' f)
+      b f1 op f2 = binOp (convert' f1) op (convert' f2)
+      i t1 op t2 = infixPred (convertTerm' t1) op (convertTerm' t2)
+      p x ts = pApp (convertP x) (map convertTerm' ts)
+
+-- |Convert any instance of a propositional logic expression to any other.
+convertFOL :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
+           (FirstOrderLogic formula1 term1 v1 p1 f1,
+            FirstOrderLogic formula2 term2 v2 p2 f2) =>
+           (v1 -> v2) -> (p1 -> p2) -> (f1 -> f2) -> formula1 -> formula2
+convertFOL convertV convertP convertF formula =
+    foldF n q b i p formula
+    where
+      convert' = convertFOL convertV convertP convertF
+      convertTerm' = convertTerm convertV convertF
+      n f = (.~.) (convert' f)
+      q x vs f = quant x (map convertV vs) (convert' f)
+      b f1 op f2 = binOp (convert' f1) op (convert' f2)
+      i t1 op t2 = infixPred (convertTerm' t1) op (convertTerm' t2)
+      p x ts = pApp (convertP x) (map convertTerm' ts)
+
+convertTerm :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
+               (PropositionalLogic formula1 term1 v1 p1 f1,
+                PropositionalLogic formula2 term2 v2 p2 f2) =>
+               (v1 -> v2) -> (f1 -> f2) -> term1 -> term2
+convertTerm convertV convertF term =
+    foldT v fn term
+    where
+      convertTerm' = convertTerm convertV convertF
+      v = var . convertV
+      fn x ts = fApp (convertF x) (map convertTerm' ts)
+
 
 instance Version InfixPred
 instance Version BinOp
