@@ -11,11 +11,15 @@ Cabal-version:    >= 1.2
 
 Library
  GHC-options: -threaded -Wall -Werror -O2
- Exposed-Modules:  Logic.AtomicFunction,
-                   Logic.AtomicPredicate,
-                   Logic.AtomicWord,
-                   Logic.Basic,
-                   Logic.Classes,
-                   Logic.FOL
- Build-Depends:    base, containers, fgl, happstack-data, happstack-facebook,
-                   happstack-ixset, happstack-state, syb-with-class, text
+ Exposed-Modules:  Logic.AtomicWord,
+                   Logic.Class,
+                   Logic.CNF,
+                   Logic.Instances.Parameterized,
+                   Logic.Instances.TPTP
+ Build-Depends:    base, containers, fgl, happstack-data,
+                   happstack-state, mtl, syb-with-class, text, logic-TPTP
+
+Executable tests
+ Main-Is: Test/Test.hs
+ Build-Depends:
+  HUnit

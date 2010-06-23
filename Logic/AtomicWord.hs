@@ -16,7 +16,7 @@ import Happstack.State (Version, deriveSerialize)
 -- identifiers (they are output in single quotes unless they are
 -- /lower_word/s).
 newtype AtomicWord = AtomicWord T.Text
-    deriving (Eq,Ord,Show,Data,Typeable,Read,Monoid,IsString)
+    deriving (Eq,Ord,Data,Typeable,Read,Show,Monoid,IsString)
 
 instance Version AtomicWord
 $(deriveSerialize ''AtomicWord)
