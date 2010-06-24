@@ -1,19 +1,21 @@
 {-# LANGUAGE FlexibleContexts, OverloadedStrings #-}
 module Test.Logic (tests) where
 
+import Data.Maybe (fromJust)
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 import Logic.AtomicWord
-import Logic.Class
 import Logic.CNF
 import Logic.Instances.Parameterized
 import Logic.Instances.PropLogic
+import Logic.Predicate
+import Logic.Propositional
 import PropLogic
 import Test.HUnit
 
 tests = precTests ++ cnfTests
 
-formCase :: FirstOrderLogic (Formula AtomicWord AtomicWord) (AtomicFormula (Term AtomicWord) V AtomicWord AtomicWord) (Term AtomicWord) V AtomicWord AtomicWord =>
+formCase :: PredicateLogic (Formula AtomicWord AtomicWord) (AtomicFormula (Term AtomicWord) V AtomicWord AtomicWord) (Term AtomicWord) V AtomicWord AtomicWord =>
             String -> Formula AtomicWord AtomicWord -> Formula AtomicWord AtomicWord -> Test
 formCase s expected input = TestCase (assertEqual s expected input)
 
@@ -162,17 +164,19 @@ test9 = formCase "cnf test 9"
 
 test9a = TestCase 
            (assertEqual "convert to PropLogic"
-                  (Just (CJ [DJ [N (A (q [x,y])),N (A (f [skZ [z,y,x],x])), A (f [skZ [z,y,x],y])],
-                             DJ [N (A (q [x,y])),N (A (f [skZ [z,y,x],y])), A (f [skZ [z,y,x],x])],
-                             DJ [CJ [DJ [A (f [skZ [z,y,x],x]), A (f [skZ [z,y,x],y])],
-                                     DJ [N (A (f [skZ [z,y,x],y])), A (f [skZ [z,y,x],y])],
-                                     DJ [A (f [skZ [z,y,x],x]), N (A (f [skZ [z,y,x],x]))],
-                                     DJ [N (A (f [skZ [z,y,x],y])), N (A (f [skZ [z,y,x],x]))]], A (q [x,y])]]))
+                  (Just (CJ [DJ [N (A (q' [x,y])), N (A (f' [skZ [z,y,x],x])), A (f' [skZ [z,y,x],y])],
+                             DJ [N (A (q' [x,y])), N (A (f' [skZ [z,y,x],y])), A (f' [skZ [z,y,x],x])],
+                             DJ [CJ [DJ [A (f' [skZ [z,y,x],x]), A (f' [skZ [z,y,x],y])],
+                                     DJ [N (A (f' [skZ [z,y,x],y])), A (f' [skZ [z,y,x],y])],
+                                     DJ [A (f' [skZ [z,y,x],x]), N (A (f' [skZ [z,y,x],x]))],
+                                     DJ [N (A (f' [skZ [z,y,x],y])), N (A (f' [skZ [z,y,x],x]))]], A (q' [x,y])]]))
                   ((toPropositional convertA (cnf ((∀)x' ((∀)y' (q [x, y] .<=>. (∀)z' (f [z, x] .<=>. f [z, y])))))) >>= return . flatten :: Maybe (PropForm (AtomicFormula (Term AtomicWord) V AtomicWord AtomicWord))))
     where
       f = pApp "f"
       q = pApp "q"
-      skZ = fApp (AtomicWord "z")
+      f' = PredApp' (AtomicWord "f")
+      q' = PredApp' (AtomicWord "q")
+      skZ = FunApp (AtomicWord "z")
       (x', y', z') = (V "x", V "y", V "z")
       (x, y, z) = (var x', var y', var z')
       convertA = Just

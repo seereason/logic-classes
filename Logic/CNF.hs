@@ -9,12 +9,13 @@ module Logic.CNF
 
 import Debug.Trace
 import Data.String
-import Logic.Class
+import Logic.Predicate
+import Logic.Propositional
 
-cnf :: (Eq formula, Eq term, FirstOrderLogic formula atom term v p f, Show formula) => formula -> formula
+cnf :: (Eq formula, Eq term, PredicateLogic formula atom term v p f, Show formula) => formula -> formula
 cnf = distributeDisjuncts . skolemize [] . moveQuantifiersOut . moveNegationsIn . simplify
 
-cnf' :: (Eq formula, Eq term, FirstOrderLogic formula atom term v p f, Show formula) => formula -> formula
+cnf' :: (Eq formula, Eq term, PredicateLogic formula atom term v p f, Show formula) => formula -> formula
 cnf' = t6 . distributeDisjuncts . t5 . skolemize [] . t4 . moveQuantifiersOut . t3 . moveNegationsIn . t2 . simplify . t1
     where
       t1 x = trace ("input:               " ++ show x) x
@@ -24,7 +25,7 @@ cnf' = t6 . distributeDisjuncts . t5 . skolemize [] . t4 . moveQuantifiersOut . 
       t5 x = trace ("skolmize:            " ++ show x) x
       t6 x = trace ("distributeDisjuncts: " ++ show x) x
 
-skolemize :: (Eq formula, Eq term, FirstOrderLogic formula atom term v p f) => [v] -> formula -> formula
+skolemize :: (Eq formula, Eq term, PredicateLogic formula atom term v p f) => [v] -> formula -> formula
 skolemize uq =
     foldF n q b i a
     where
@@ -37,7 +38,7 @@ skolemize uq =
       i = infixPred
       a = pApp
 
-skolemFunction :: (IsString f, FirstOrderLogic formula atom term v p f) => [v] -> v -> term
+skolemFunction :: (IsString f, PredicateLogic formula atom term v p f) => [v] -> v -> term
 skolemFunction uq v = fApp (fromString (toString v)) (map var uq)
 
 {-
@@ -73,13 +74,13 @@ P <=> Q 	(P => Q) & (Q => P)
 P => Q  	~P | Q
 -}
 
-simplify :: FirstOrderLogic formula atom term v p f => formula -> formula
+simplify :: PredicateLogic formula atom term v p f => formula -> formula
 simplify =
     foldF n q b i a
     where
       q All vs f = for_all vs (simplify f)
       q Exists vs f = exists vs (simplify f)
-      b :: FirstOrderLogic formula atom term v p f => formula -> BinOp -> formula -> formula
+      b :: PredicateLogic formula atom term v p f => formula -> BinOp -> formula -> formula
       b f1 (:&:) f2 = simplify f1 .&. simplify f2
       b f1 (:|:) f2 = simplify f1 .|. simplify f2
       b f1 (:=>:) f2 = ((.~.) (simplify f1)) .|. simplify f2
@@ -112,7 +113,7 @@ Formula	Rewrites to
 ~~P 	P
 -}
 
-moveNegationsIn :: FirstOrderLogic formula atom term v p f => formula -> formula
+moveNegationsIn :: PredicateLogic formula atom term v p f => formula -> formula
 moveNegationsIn =
     foldF n q b i a
     where
@@ -127,7 +128,7 @@ moveNegationsIn =
       i = infixPred
       a p ts = pApp p ts
       -- Helper function for moveNegationsIn, for already negated formulae
-      doNegation :: FirstOrderLogic formula atom term v p f => formula -> formula
+      doNegation :: PredicateLogic formula atom term v p f => formula -> formula
       doNegation =
           foldF n' q' b' i' a'
           where
@@ -153,7 +154,7 @@ Q | ∀X P 	∀X (Q | P)
 Q | ∃XP 	∃X (Q | P)
 -}
 
-moveQuantifiersOut :: (FirstOrderLogic formula atom term v p f, Show formula) => formula -> formula
+moveQuantifiersOut :: (PredicateLogic formula atom term v p f, Show formula) => formula -> formula
 moveQuantifiersOut formula =
     {- tr $ -} foldF n q b i a formula
     where
@@ -166,7 +167,7 @@ moveQuantifiersOut formula =
       i t1 op t2 = infixPred t1 op t2
       a p ts = pApp p ts
       -- We found :&: or :|: above, look for quantifiers to move out, first examine f1
-      doLHS :: (FirstOrderLogic formula atom term v p f, Show formula) => formula -> BinOp -> formula -> formula
+      doLHS :: (PredicateLogic formula atom term v p f, Show formula) => formula -> BinOp -> formula -> formula
       doLHS f1 op f2 =
           foldF n' q' b' i' a' f1
           where
@@ -177,7 +178,7 @@ moveQuantifiersOut formula =
             i' _ _ _ = doRHS f1 op f2
             a' _ _ = doRHS f1 op f2
       -- We reached a point where f1 was not a quantifier, try f2
-      doRHS :: (FirstOrderLogic formula atom term v p f, Show formula) => formula -> BinOp -> formula -> formula
+      doRHS :: (PredicateLogic formula atom term v p f, Show formula) => formula -> BinOp -> formula -> formula
       doRHS f1 op f2 =
           foldF n' q' b' i' a' f2
           where
@@ -187,7 +188,7 @@ moveQuantifiersOut formula =
             b' _ _ _ = doBinOp f1 op f2
             i' _ _ _ = doBinOp f1 op f2
             a' _ _ = doBinOp f1 op f2
-      doBinOp :: (FirstOrderLogic formula atom term v p f, Show formula) => formula -> BinOp -> formula -> formula
+      doBinOp :: (PredicateLogic formula atom term v p f, Show formula) => formula -> BinOp -> formula -> formula
       doBinOp f1 (:&:) f2 = f1 .&. f2
       doBinOp f1 (:|:) f2 = f1 .|. f2
       doBinOp _ op _ = error $ "moveQuantifierOut: unexpected BinOp " ++ show op
@@ -219,7 +220,7 @@ P | (Q & R) 	(P | Q) & (P | R)
 -}            
 
 -- a|(b&c) -> (a|b)&(a|c)
-distributeDisjuncts :: (Eq formula, FirstOrderLogic formula atom term v p f) => formula -> formula
+distributeDisjuncts :: (Eq formula, PredicateLogic formula atom term v p f) => formula -> formula
 distributeDisjuncts =
     foldF n q b i a
     where

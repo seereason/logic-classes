@@ -3,7 +3,7 @@
 module Logic.Instances.PropLogic where
 
 import PropLogic
-import Logic.Class
+import Logic.Propositional
 
 instance Show a => PropositionalLogic (PropForm a) a where
     x .<=>. y = EJ [x, y]

@@ -20,7 +20,8 @@ import Data.String (IsString)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
-import Logic.Class (FirstOrderLogic(..), Quant(..), PropositionalLogic(..), BinOp(..), InfixPred(..))
+import Logic.Propositional (PropositionalLogic(..), BinOp(..))
+import Logic.Predicate (PredicateLogic(..), Quant(..), InfixPred(..))
     
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula p f
@@ -95,7 +96,7 @@ foldFormula0 kneg kbinop kinfix kpredapp f =
 -}
 
 instance (PropositionalLogic (Formula p f) (AtomicFormula (Term f) V p f), Show p, Show f, IsString f) =>
-         FirstOrderLogic (Formula p f) (AtomicFormula (Term f) V p f) (Term f) V p f where
+          PredicateLogic (Formula p f) (AtomicFormula (Term f) V p f) (Term f) V p f where
     for_all vars x = Quant All vars x
     exists vars x = Quant Exists vars x
     foldF = foldFormula

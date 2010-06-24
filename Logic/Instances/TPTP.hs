@@ -6,7 +6,8 @@ import Control.Monad.Identity (Identity(..))
 -- import Codec.TPTP hiding (toTPTP)
 import qualified Codec.TPTP as TPTP -- hiding (toTPTP)
 import Data.String (IsString(fromString))
-import qualified Logic.Class as Logic
+import qualified Logic.Propositional as Logic
+import qualified Logic.Predicate as Logic
 
 -- |TPTP's Term type has two extra constructors that can be represented
 -- using this augmented atomic function application type.
@@ -61,7 +62,7 @@ instance Logic.PropositionalLogic TPTP.Formula Atom where
               p' p ts = a (PredApp' p ts)
               unwrapF' (TPTP.F x) = TPTP.F x -- copoint x
 
-instance Logic.FirstOrderLogic TPTP.Formula Atom TPTP.Term TPTP.V TPTP.AtomicWord AtomicFunction where
+instance Logic.PredicateLogic TPTP.Formula Atom TPTP.Term TPTP.V TPTP.AtomicWord AtomicFunction where
     for_all vars x = TPTP.for_all vars x
     exists vars x = TPTP.exists vars x
     -- Use the TPTP fold to implement the Logic fold.  This means
@@ -150,7 +151,7 @@ unwrapT (TPTP.T x) = TPTP.copoint x
 
 -- toTPTP :: Logic.Formulae formula term v p f -> TPTPFormula
 -- |Convert any instance of Formulae into Formula
-toTPTP :: Logic.FirstOrderLogic formula atom term v p f => formula -> TPTP.Formula
+toTPTP :: Logic.PredicateLogic formula atom term v p f => formula -> TPTP.Formula
 toTPTP formula = 
     Logic.foldF n q b i p formula
     where
