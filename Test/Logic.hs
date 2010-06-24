@@ -9,7 +9,6 @@ import Logic.CNF
 import Logic.Instances.Parameterized
 import Logic.Instances.PropLogic
 import Logic.Predicate
-import Logic.Propositional
 import PropLogic
 import Test.HUnit
 

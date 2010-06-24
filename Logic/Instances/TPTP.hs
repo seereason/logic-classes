@@ -6,7 +6,6 @@ import Control.Monad.Identity (Identity(..))
 -- import Codec.TPTP hiding (toTPTP)
 import qualified Codec.TPTP as TPTP -- hiding (toTPTP)
 import Data.String (IsString(fromString))
-import qualified Logic.Propositional as Logic
 import qualified Logic.Predicate as Logic
 
 -- |TPTP's Term type has two extra constructors that can be represented

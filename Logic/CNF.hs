@@ -10,7 +10,6 @@ module Logic.CNF
 import Debug.Trace
 import Data.String
 import Logic.Predicate
-import Logic.Propositional
 
 cnf :: (Eq formula, Eq term, PredicateLogic formula atom term v p f, Show formula) => formula -> formula
 cnf = distributeDisjuncts . skolemize [] . moveQuantifiersOut . moveNegationsIn . simplify

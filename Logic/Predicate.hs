@@ -15,6 +15,7 @@ module Logic.Predicate
     , convertTerm
     , toPropositional
     , normalize
+    , module Logic.Propositional
     ) where
 
 import Control.Applicative (Applicative, (<$>), (<*>), pure)
