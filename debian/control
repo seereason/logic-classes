@@ -68,9 +68,3 @@ Description: Library for unifying various treatments of first order logic
   Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
  .
  This package contains the documentation files.
-
-Package: tests
-Architecture: any
-Section: misc
-Depends: ${shlibs:Depends}, ${haskell:Depends}, ${misc:Depends}
-Description:  An executable built with the Logic-0.0.1 library.
