@@ -59,7 +59,7 @@ newtype V = V String
 data AtomicFormula term v p f
     = InfixPred' term InfixPred term
     | PredApp' p [term]
-      deriving (Show, Eq)
+      deriving (Show, Eq, Ord)
 
 instance (IsString f, Show p, Show f) => PropositionalLogic (Formula p f) (AtomicFormula (Term f) V p f) where
     x .<=>. y = BinOp  x (:<=>:) y
