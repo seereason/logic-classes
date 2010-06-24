@@ -225,12 +225,12 @@ distributeDisjuncts =
     foldF n q b i a
     where
       n = (.~.)
-      q All vs x = for_all vs x
-      q Exists vs x = exists vs x
-      b f1 (:|:) f2 = doRHS f1 f2
+      q All vs x = for_all vs (distributeDisjuncts x)
+      q Exists vs x = exists vs (distributeDisjuncts x)
+      b f1 (:|:) f2 = doRHS (distributeDisjuncts f1) (distributeDisjuncts f2)
       b f1 (:&:) f2 = distributeDisjuncts f1 .&. distributeDisjuncts f2
-      b f1 op f2 = binOp f1 op f2
-      i  = infixPred
+      b f1 op f2 = binOp (distributeDisjuncts f1) op (distributeDisjuncts f2)
+      i = infixPred
       a = pApp
       -- Helper function once we've seen a disjunction.  Note that it does not call itself.
       doRHS f1 f2 =

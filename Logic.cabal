@@ -4,7 +4,10 @@ License:          BSD3
 Author:           SeeReason Partners <partners@seereason.com>
 Maintainer:       SeeReason Partners <partners@seereason.com>
 Synopsis:         Library for unifying various treatments of first order logic
-Description:      Library for unifying various treatments of first order logic
+Description:      Library for unifying various treatments of propositional (zeroth order)
+                  and predicate (first order) logic.  Includes polymorphic functions to
+                  convert between different instances, for doing variable substitution and
+                  free variable gathering, and for conversion to CNF.
 Build-Type:       Custom
 Category:         Math
 Cabal-version:    >= 1.2

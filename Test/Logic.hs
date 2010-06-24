@@ -139,20 +139,13 @@ test8 = formCase "cnf test 8"
       b = var (V "b")
 
 test9 = formCase "cnf test 9"
-                 
-               {- (((.~.) (q a b)) .|. ((.~.) (f c a)) .|. f c b .&.
-                   ((.~.) (q a b)) .|. ((.~.) (f c b)) .|. f c a .&.
-                   f (sk1 a b) b .|. f (sk1 a b) a .|. q b a .&.
-                   f (sk1 a b) b .|. ((.~.) (f (sk1 a b) b)) .|. q b a .&.
-                   ((.~.) (f (sk1 a b) a)) .|. f (sk1 a b) a .|. q b a .&.
-                   ((.~.) (f (sk1 a b) a)) .|. ((.~.) (f (sk1 a b) b)) .|. q b a) -}
 
-                  (((((.~.) (q [x,y])) .|. (((.~.) (f[skZ [z,y,x], x])) .|. (f[skZ [z,y,x],y]))) .&.
-                    (((.~.) (q [x,y])) .|. (((.~.) (f[skZ [z,y,x],y])) .|. (f[skZ [z,y,x],x])))) .&.
-                   (((((f[skZ [z,y,x],x]) .|. (f[skZ [z,y,x],y])) .&. -- WRONG - all conjuncts should be outside the disjuncts
-                      (((.~.) (f[skZ [z,y,x],y])) .|. (f[skZ [z,y,x],y]))) .&.
-                     (((f[skZ [z,y,x],x]) .|. ((.~.) (f[skZ [z,y,x],x]))) .&.
-                      (((.~.) (f[skZ [z,y,x],y])) .|. ((.~.) (f[skZ [z,y,x],x]))))) .|. (q [x,y])))
+                  (((((.~.) (q [x,y])) .|. (((.~.) (f [skZ [z,y,x],x])) .|. (f [skZ [z,y,x],y]))) .&.
+                    (((.~.) (q [x,y])) .|. (((.~.) (f [skZ [z,y,x],y])) .|. (f [skZ [z,y,x],x])))) .&.
+                   (((((f [skZ [z,y,x],x]) .|. (f [skZ [z,y,x],y])) .|. (q [x,y])) .&.
+                     ((((.~.) (f [skZ [z,y,x],y])) .|. (f [skZ [z,y,x],y])) .|. (q [x,y]))) .&.
+                    ((((f [skZ [z,y,x],x]) .|. ((.~.) (f [skZ [z,y,x],x]))) .|. (q [x,y])) .&.
+                     ((((.~.) (f [skZ [z,y,x],y])) .|. ((.~.) (f [skZ [z,y,x],x]))) .|. (q [x,y])))))
 
                   (cnf ((∀)x' ((∀)y' (q [x, y] .<=>. (∀)z' (f [z, x] .<=>. f [z, y])))))
     where
@@ -164,12 +157,12 @@ test9 = formCase "cnf test 9"
 
 test9a = TestCase 
            (assertEqual "convert to PropLogic"
-                  (Just (CJ [DJ [N (A (q' [x,y])), N (A (f' [skZ [z,y,x],x])), A (f' [skZ [z,y,x],y])],
-                             DJ [N (A (q' [x,y])), N (A (f' [skZ [z,y,x],y])), A (f' [skZ [z,y,x],x])],
-                             DJ [CJ [DJ [A (f' [skZ [z,y,x],x]), A (f' [skZ [z,y,x],y])],
-                                     DJ [N (A (f' [skZ [z,y,x],y])), A (f' [skZ [z,y,x],y])],
-                                     DJ [A (f' [skZ [z,y,x],x]), N (A (f' [skZ [z,y,x],x]))],
-                                     DJ [N (A (f' [skZ [z,y,x],y])), N (A (f' [skZ [z,y,x],x]))]], A (q' [x,y])]]))
+                  (Just (CJ [DJ [N (A (q' [x,y])),N (A (f' [skZ [z,y,x],x])),A (f' [skZ [z,y,x],y])],
+                             DJ [N (A (q' [x,y])),N (A (f' [skZ [z,y,x],y])),A (f' [skZ [z,y,x],x])],
+                             DJ [A (f' [skZ [z,y,x],x]),A (f' [skZ [z,y,x],y]),A (q' [x,y])],
+                             DJ [N (A (f' [skZ [z,y,x],y])),A (f' [skZ [z,y,x],y]),A (q' [x,y])],
+                             DJ [A (f' [skZ [z,y,x],x]),N (A (f' [skZ [z,y,x],x])),A (q' [x,y])],
+                             DJ [N (A (f' [skZ [z,y,x],y])),N (A (f' [skZ [z,y,x],x])),A (q' [x,y])]]))
                   ((toPropositional convertA (cnf ((∀)x' ((∀)y' (q [x, y] .<=>. (∀)z' (f [z, x] .<=>. f [z, y])))))) >>= return . flatten :: Maybe (PropForm (AtomicFormula (Term AtomicWord) V AtomicWord AtomicWord))))
     where
       f = pApp "f"
@@ -220,8 +213,7 @@ test11 = formCase "cnf test 11"
       skY = fApp (AtomicWord "y")
 
 test12 = formCase "cnf test 12"
-               -- ((p.|.r.|.s).&.(p.|.r.|.t).&.((.~.)q.|.r.|.s).&.((.~.)q.|.r.|.t))
-                  (((p.|.(r.|.s)).&.(p.|.(r.|.t))).&.((((.~.) q).|.(r.|.s)).&.(((.~.) q).|.(r.|.t))))
+                  (((p.|.(r.|.s)).&.(((.~.) q).|.(r.|.s))).&.((p.|.(r.|.t)).&.(((.~.) q).|.(r.|.t))))
                   (cnf ((p .=>. q) .=>. (((.~.) r) .=>. (s .&. t))))
     where
       [p, q, r, s, t] = map (\ s -> pApp s []) ["p", "q", "r", "s", "t"]

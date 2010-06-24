@@ -14,10 +14,11 @@ import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
 
 -- |PropositionalLogic is a multi-parameter type class for
--- representing order zero logic datatypes.  It is intended that we
--- will be able to write instances for various different
--- implementations to allow these systems to interoperate.  The class
--- is patterned on the type in the Logic-TPTP package.
+-- representing instance of propositional (aka zeroth order) logic
+-- datatypes.  It is intended that we will be able to write instances
+-- for various different implementations to allow these systems to
+-- interoperate.  The operator names were adopted from the Logic-TPTP
+-- package.
 class Show atom => PropositionalLogic formula atom | formula -> atom where
     (.<=>.) :: formula -> formula -> formula -- ^ Equivalence
     (.=>.) :: formula -> formula -> formula  -- ^ Implication
@@ -108,7 +109,7 @@ convertProp convertA formula =
       convert' = convertProp convertA
       n f = (.~.) (convert' f)
       b f1 op f2 = binOp (convert' f1) op (convert' f2)
-      a = undefined -- convertA
+      a = atomic . convertA
 
 instance Version BinOp
 
