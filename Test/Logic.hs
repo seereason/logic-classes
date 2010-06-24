@@ -71,7 +71,7 @@ z = V "z"
 test1 =
     formCase "cnf test 1"
               ((((.~.) (taller y' xy')) .|. (wise y')) .&. ((.~.) (wise xy') .|. (wise y')))
-              (cnf ((∀) y ((∀) x (taller y' x' .|. wise x') .=>. wise y')))
+              (cnf (for_all [y] (for_all [x] (taller y' x' .|. wise x') .=>. wise y')))
         where
           (x, y) = (V "x", V "y")
           (x', y') = (var x, var y)
@@ -81,22 +81,22 @@ test1 =
 
 test2 = formCase "cnf test 2"
                   (((.~.) (pApp "s" [var "x"])) .|. ((.~.) (pApp "q" [var "x"])))
-                  (cnf ((.~.) ((∃) "x" (pApp "s" [var "x"] .&. pApp "q" [var "x"]))))
+                  (cnf ((.~.) (exists ["x"] (pApp "s" [var "x"] .&. pApp "q" [var "x"]))))
 test3 = formCase "cnf test 3"
                   (((.~.) (p [x])) .|. ((q [x]) .|. (r [x])))
-                  (cnf ((∀) x (p [x] .=>. (q [x] .|. r [x]))))
+                  (cnf (for_all [x] (p [x] .=>. (q [x] .|. r [x]))))
 
 test4 = formCase "cnf test 4"
                   (p [x] .&. ((.~.) (q [x])))
-                  (cnf ((.~.) ((∃)x (p [x] .=>. (∃)x (q [x])))))
+                  (cnf ((.~.) (exists [x] (p [x] .=>. exists [x] (q [x])))))
 
 test5 = formCase "cnf test 5"
                   ((((.~.) (q [x])) .|. s [x]) .&. (((.~.) (r [x])) .|. s [x]))
-                  (cnf ((∀) x (q [x] .|. r [x] .=>. s [x])))
+                  (cnf (for_all [x] (q [x] .|. r [x] .=>. s [x])))
 
 test6 = formCase "cnf test 6"
                   ((.~.) p .|. f skX)
-                  (cnf ((∃) x (p .=>. f x)))
+                  (cnf (exists [x] (p .=>. f x)))
     where
       skX = V "x"
       f x = pApp "f" [var x]
@@ -110,7 +110,7 @@ test7 = formCase "cnf test 7"
                   ((((.~.) p) .|. (f x)) .&. (((.~.) (f x)) .|. p))
                   -- (((p []) .|. (p [])) .&. ((((.~.) (f [x])) .|. ((.~.) (f [x]))) .|. (p [])))
                   -- p
-                  (cnf ((∃) x (p .<=>. f x)))
+                  (cnf (exists [x] (p .<=>. f x)))
     where
       skX = V "skX"
       f x = pApp "f" [var x]
@@ -126,7 +126,7 @@ test8 = formCase "cnf test 8"
                     (((.~.) (f [x, yOfZ])) .|. ((.~.) (f [x, x])))) .&.
                    ((((.~.) (f [x, z])) .|. (f [x, x])) .|. (f [x, yOfZ])))
 
-                  (cnf ((∀)z' ((∃)y' ((∀)x' (f [x, y] .<=>. (f [x, z] .&. ((.~.) (f [x, x]))))))))
+                  (cnf (for_all [z'] (exists [y'] (for_all [x'] (f [x, y] .<=>. (f [x, z] .&. ((.~.) (f [x, x]))))))))
     where
       (x', y', z') = (V "x", V "y", V "z")
       (x, y, z) = (var x', var y', var z')
@@ -146,7 +146,7 @@ test9 = formCase "cnf test 9"
                     ((((f [skZ [z,y,x],x]) .|. ((.~.) (f [skZ [z,y,x],x]))) .|. (q [x,y])) .&.
                      ((((.~.) (f [skZ [z,y,x],y])) .|. ((.~.) (f [skZ [z,y,x],x]))) .|. (q [x,y])))))
 
-                  (cnf ((∀)x' ((∀)y' (q [x, y] .<=>. (∀)z' (f [z, x] .<=>. f [z, y])))))
+                  (cnf (for_all [x'] (for_all [y'] (q [x, y] .<=>. for_all [z'] (f [z, x] .<=>. f [z, y])))))
     where
       f = pApp "f"
       q = pApp "q"
@@ -162,7 +162,7 @@ test9a = TestCase
                              DJ [N (A (f' [skZ [z,y,x],y])),A (f' [skZ [z,y,x],y]),A (q' [x,y])],
                              DJ [A (f' [skZ [z,y,x],x]),N (A (f' [skZ [z,y,x],x])),A (q' [x,y])],
                              DJ [N (A (f' [skZ [z,y,x],y])),N (A (f' [skZ [z,y,x],x])),A (q' [x,y])]]))
-                  ((toPropositional convertA (cnf ((∀)x' ((∀)y' (q [x, y] .<=>. (∀)z' (f [z, x] .<=>. f [z, y])))))) >>= return . flatten :: Maybe (PropForm (AtomicFormula (Term AtomicWord) V AtomicWord AtomicWord))))
+                  ((toPropositional convertA (cnf (for_all [x'] (for_all [y'] (q [x, y] .<=>. for_all [z'] (f [z, x] .<=>. f [z, y])))))) >>= return . flatten :: Maybe (PropForm (AtomicFormula (Term AtomicWord) V AtomicWord AtomicWord))))
     where
       f = pApp "f"
       q = pApp "q"
@@ -176,7 +176,7 @@ test9a = TestCase
 test10 = formCase "cnf test 10"
                   -- ((.~.) (p [a, sk1 a]) .|. r [sk1 a] .&. q [sk1 a, b, sk2 b a] .|. r [sk1 a])
                   (((q [skY [x],x,t]) .|. (p [x,skY [x]])) .&. (((.~.) (r [skY [x]])) .|. (p [x,skY [x]])))
-                  (cnf ((∀)x' ((∃)y' ((p [x, y] .<=. (∀)x' ((∃)t' (q [y, x, t]) .=>. r [y]))))))
+                  (cnf (for_all [x'] (exists [y'] ((p [x, y] .<=. for_all [x'] (exists [t'] (q [y, x, t]) .=>. r [y]))))))
     where
       a = var (V "a")
       b = var (V "b")
@@ -198,7 +198,7 @@ test10 = formCase "cnf test 10"
 test11 = formCase "cnf test 11"
                   -- This one didn't come with a solution - here's ours
                   ((((.~.) (p [x,z])) .|. ((.~.) (q [x,skY [z,x]]))) .&. (((.~.) (p [x,z])) .|. (r [skY [z,x],z])))
-                  (cnf ((∀)x' ((∀)z' (p [x, z] .=>. (∃)y' ((.~.) (q [x, y] .|. ((.~.) (r [y, z]))))))))
+                  (cnf (for_all [x'] (for_all [z'] (p [x, z] .=>. exists [y'] ((.~.) (q [x, y] .|. ((.~.) (r [y, z]))))))))
     where
       x' = V "x"
       y' = V "y"

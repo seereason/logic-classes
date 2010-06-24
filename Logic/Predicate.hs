@@ -55,11 +55,7 @@ class (PropositionalLogic formula atom, Show v, Show p, Show f, Ord v, IsString 
                        , v -> p
                        , v -> f where
     for_all :: [v] -> formula -> formula         -- ^ Universal quantification
-    (∀) :: v -> formula -> formula
-    (∀) v f = for_all [v] f
     exists ::  [v] -> formula -> formula         -- ^ Existential quantification
-    (∃) :: v -> formula -> formula
-    (∃) v f = exists [v] f
     foldF :: (formula -> r)                         -- ^ Negation
           -> (Quant -> [v] -> formula -> r)         -- ^ Quantification
           -> (formula -> BinOp -> formula -> r) -- ^ Binary Operator
