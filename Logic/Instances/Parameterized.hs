@@ -7,6 +7,7 @@
 -- with some constructors like :~&: omitted.
 module Logic.Instances.Parameterized
     ( Formula(..)
+    , AtomicFormula(..)
     , Predicate
     , Proposition
     , Term(..)
@@ -49,22 +50,34 @@ data Term f
 newtype V = V String
     deriving (Eq,Ord,Show,Data,Typeable,Read,Monoid,IsString)
 
-instance (IsString f, Show p, Show f) => PropositionalLogic (Formula p f) (Term f) V p f where
+-- |There is no atomic formula type in this data type, but we need one
+-- to use as a parameter to the PropositionalLogic class.  The formulas
+-- that are not generated from other formulas include those built using
+-- the InfixPred and PredApp constructors, so we create a new type here
+-- to represent the parameters to those two types.
+data AtomicFormula term v p f
+    = InfixPred' term InfixPred term
+    | PredApp' p [term]
+      deriving (Show, Eq)
+
+instance (IsString f, Show p, Show f) => PropositionalLogic (Formula p f) (AtomicFormula (Term f) V p f) where
     x .<=>. y = BinOp  x (:<=>:) y
     x .=>.  y = BinOp  x (:=>:)  y
     x .|.   y = BinOp  x (:|:)   y
     x .&.   y = BinOp  x (:&:)   y
     (.~.) x   = (:~:) x
-    -- * Formula Builders
-    x .=. y   = InfixPred x (:=:) y
-    x .!=. y  = InfixPred x (:!=:) y
-    pApp x args = PredApp x args
-    var = Var
-    fApp x args = FunApp x args
-    foldF0 = foldFormula0
-    foldT = foldTerm
-    toString (V s) = s
+    atomic (InfixPred' t1 (:=:) t2) = t1 .=. t2
+    atomic (InfixPred' t1 (:!=:) t2) = t1 .!=. t2
+    atomic (PredApp' p ts) = pApp p ts
+    foldF0 n b a formula =
+        case formula of
+          (:~:) x -> n x
+          Quant _ _ _ -> error "foldF0: quantifiers should not be present"
+          BinOp f1 op f2 -> b f1 op f2
+          InfixPred t1 op t2 -> a (InfixPred' t1 op t2)
+          PredApp p ts -> a (PredApp' p ts)
 
+{-
 foldFormula0 ::
                   (Formula p f -> r)
                -> (Formula p f -> BinOp -> Formula p f -> r)
@@ -79,11 +92,20 @@ foldFormula0 kneg kbinop kinfix kpredapp f =
       InfixPred x y z -> kinfix x y z
       PredApp x y -> kpredapp x y
       Quant _ _ _ -> error "foldFormula0: Quantifiers should not be present, use foldFormula"
+-}
 
-instance PropositionalLogic (Formula p f) (Term f) V p f => FirstOrderLogic (Formula p f) (Term f) V p f where
+instance (PropositionalLogic (Formula p f) (AtomicFormula (Term f) V p f), Show p, Show f, IsString f) =>
+         FirstOrderLogic (Formula p f) (AtomicFormula (Term f) V p f) (Term f) V p f where
     for_all vars x = Quant All vars x
     exists vars x = Quant Exists vars x
     foldF = foldFormula
+    foldT = foldTerm
+    pApp x args = PredApp x args
+    var = Var
+    fApp x args = FunApp x args
+    toString (V s) = s
+    x .=. y = InfixPred x (:=:) y
+    x .!=. y = InfixPred x (:!=:) y
 
 instance (IsString f, Show p, Show f) => Show (Formula p f) where
     show = showForm

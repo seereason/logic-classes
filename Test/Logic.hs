@@ -7,11 +7,13 @@ import Logic.AtomicWord
 import Logic.Class
 import Logic.CNF
 import Logic.Instances.Parameterized
+import Logic.Instances.PropLogic
+import PropLogic
 import Test.HUnit
 
 tests = precTests ++ cnfTests
 
-formCase :: FirstOrderLogic (Formula AtomicWord AtomicWord) (Term AtomicWord) V AtomicWord AtomicWord =>
+formCase :: FirstOrderLogic (Formula AtomicWord AtomicWord) (AtomicFormula (Term AtomicWord) V AtomicWord AtomicWord) (Term AtomicWord) V AtomicWord AtomicWord =>
             String -> Formula AtomicWord AtomicWord -> Formula AtomicWord AtomicWord -> Test
 formCase s expected input = TestCase (assertEqual s expected input)
 
@@ -49,7 +51,7 @@ precTests =
       b = pApp ("b") []
       c = pApp ("c") []
 
-cnfTests = [test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12]
+cnfTests = [test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test9a]
 
 p vs = pApp "p" (map var vs)
 q vs = pApp "q" (map var vs)
@@ -145,26 +147,35 @@ test9 = formCase "cnf test 9"
 
                   (((((.~.) (q [x,y])) .|. (((.~.) (f[skZ [z,y,x], x])) .|. (f[skZ [z,y,x],y]))) .&.
                     (((.~.) (q [x,y])) .|. (((.~.) (f[skZ [z,y,x],y])) .|. (f[skZ [z,y,x],x])))) .&.
-                   (((((f[skZ [z,y,x],x]) .|. (f[skZ [z,y,x],y])) .&.
+                   (((((f[skZ [z,y,x],x]) .|. (f[skZ [z,y,x],y])) .&. -- WRONG - all conjuncts should be outside the disjuncts
                       (((.~.) (f[skZ [z,y,x],y])) .|. (f[skZ [z,y,x],y]))) .&.
                      (((f[skZ [z,y,x],x]) .|. ((.~.) (f[skZ [z,y,x],x]))) .&.
                       (((.~.) (f[skZ [z,y,x],y])) .|. ((.~.) (f[skZ [z,y,x],x]))))) .|. (q [x,y])))
 
                   (cnf ((∀)x' ((∀)y' (q [x, y] .<=>. (∀)z' (f [z, x] .<=>. f [z, y])))))
     where
-      a = var (V "a")
-      b = var (V "b")
-      c = var (V "c")
       f = pApp "f"
       q = pApp "q"
-      sk1 a b = fApp "sk1" [a, b]
       skZ = fApp (AtomicWord "z")
-      x' = V "x"
-      y' = V "y"
-      z' = V "z"
-      x = var x'
-      y = var y'
-      z = var z'
+      (x', y', z') = (V "x", V "y", V "z")
+      (x, y, z) = (var x', var y', var z')
+
+test9a = TestCase 
+           (assertEqual "convert to PropLogic"
+                  (Just (CJ [DJ [N (A (q [x,y])),N (A (f [skZ [z,y,x],x])), A (f [skZ [z,y,x],y])],
+                             DJ [N (A (q [x,y])),N (A (f [skZ [z,y,x],y])), A (f [skZ [z,y,x],x])],
+                             DJ [CJ [DJ [A (f [skZ [z,y,x],x]), A (f [skZ [z,y,x],y])],
+                                     DJ [N (A (f [skZ [z,y,x],y])), A (f [skZ [z,y,x],y])],
+                                     DJ [A (f [skZ [z,y,x],x]), N (A (f [skZ [z,y,x],x]))],
+                                     DJ [N (A (f [skZ [z,y,x],y])), N (A (f [skZ [z,y,x],x]))]], A (q [x,y])]]))
+                  ((toPropositional convertA (cnf ((∀)x' ((∀)y' (q [x, y] .<=>. (∀)z' (f [z, x] .<=>. f [z, y])))))) >>= return . flatten :: Maybe (PropForm (AtomicFormula (Term AtomicWord) V AtomicWord AtomicWord))))
+    where
+      f = pApp "f"
+      q = pApp "q"
+      skZ = fApp (AtomicWord "z")
+      (x', y', z') = (V "x", V "y", V "z")
+      (x, y, z) = (var x', var y', var z')
+      convertA = Just
 
 test10 = formCase "cnf test 10"
                   -- ((.~.) (p [a, sk1 a]) .|. r [sk1 a] .&. q [sk1 a, b, sk2 b a] .|. r [sk1 a])

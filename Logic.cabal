@@ -15,9 +15,10 @@ Library
                    Logic.Class,
                    Logic.CNF,
                    Logic.Instances.Parameterized,
+                   Logic.Instances.PropLogic,
                    Logic.Instances.TPTP
  Build-Depends:    base, containers, fgl, happstack-data,
-                   happstack-state, mtl, syb-with-class, text, logic-TPTP
+                   happstack-state, mtl, syb-with-class, text, logic-TPTP, PropLogic
 
 Executable tests
  Main-Is: Test/Test.hs
