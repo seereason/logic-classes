@@ -20,12 +20,12 @@ Build-Depends-Indep: ghc6-doc,
                      haddock,
                      libghc6-hunit-doc,
                      libghc6-fgl-doc,
-                     libghc6-happstack-data-doc,
-                     libghc6-happstack-state-doc,
+                     haskell-happstack-data-doc,
+                     haskell-happstack-state-doc,
                      libghc6-logic-tptp-doc,
                      libghc6-mtl-doc,
                      libghc6-syb-with-class-doc,
-                     libghc6-text-doc
+                     haskell-text-doc
 Standards-Version: 3.8.1
 
 Package: libghc6-logic-dev
