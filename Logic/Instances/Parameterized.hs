@@ -21,7 +21,7 @@ import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
 import Logic.Propositional (PropositionalLogic(..), BinOp(..))
-import Logic.Predicate (PredicateLogic(..), Quant(..), InfixPred(..))
+import Logic.Predicate (PredicateLogic(..), Quant(..), InfixPred(..), showForm)
     
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula p f
