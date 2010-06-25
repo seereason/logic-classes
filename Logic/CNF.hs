@@ -5,6 +5,7 @@ module Logic.CNF
     , moveNegationsIn
     , skolemize
     , moveQuantifiersOut
+    , distributeDisjuncts
     ) where
 
 import Debug.Trace

@@ -1,3 +1,9 @@
+haskell-logic (0.5) unstable; urgency=low
+
+  * Export distributeDisjuncts
+
+ -- David Fox <dsf@seereason.com>  Fri, 25 Jun 2010 14:13:44 -0700
+
 haskell-logic (0.4) unstable; urgency=low
 
   * Add documentation
