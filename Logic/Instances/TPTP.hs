@@ -5,8 +5,40 @@ module Logic.Instances.TPTP where
 import Control.Monad.Identity (Identity(..))
 -- import Codec.TPTP hiding (toTPTP)
 import qualified Codec.TPTP as TPTP -- hiding (toTPTP)
+import Data.Char (isDigit, ord, chr)
 import Data.String (IsString(fromString))
 import qualified Logic.Predicate as Logic
+
+-- |Generate a series of variable names.  
+instance Enum TPTP.V where
+    succ v =
+        toEnum (if n < cnt then n + 1 else if n == cnt then ord pref + cnt else n + cnt)
+            where n = fromEnum v
+    fromEnum (TPTP.V s) =
+        case break (not . isDigit) (reverse s) of
+          ("", [c]) | ord c >= ord mn && ord c <= ord mx -> ord c - ord mn
+          (n, [c]) | ord c >= ord mn && ord c <= ord mx -> ord c - ord mn + cnt * (read (reverse n) :: Int)
+          _ -> error $ "Invalid variable name: " ++ show s
+    toEnum n =
+        TPTP.V (chr (ord mn + pre) : if suf == 0 then "" else show suf)
+        where (suf, pre) = divMod n cnt
+
+mn = 'x'
+pref = 'x'
+mx = 'z'
+cnt = ord mx - ord mn + 1
+
+{-
+instance Enum TPTP.V where
+    succ v = toEnum (fromEnum v + 8)
+    fromEnum (TPTP.V s) =
+        case break (not . isDigit) (reverse s) of
+          (n, [c]) | ord c >= ord 't' && ord c <= ord 'z' -> ord c - ord 't' + 8 * (if n == "" then 0 else read (reverse n) :: Int)
+          _ -> error $ "Invalid variable name: " ++ show s
+    toEnum n =
+        TPTP.V (chr (pre + ord 't') : if suf == 0 then "" else show suf)
+        where (suf, pre) = divMod n 8
+-}
 
 -- |TPTP's Term type has two extra constructors that can be represented
 -- using this augmented atomic function application type.

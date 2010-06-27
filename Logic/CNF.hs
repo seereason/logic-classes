@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
 module Logic.CNF
     ( cnf
     , cnf'
@@ -9,13 +10,14 @@ module Logic.CNF
     ) where
 
 import Debug.Trace
+import qualified Data.Set as S
 import Data.String
 import Logic.Predicate
 
-cnf :: (Eq formula, Eq term, PredicateLogic formula atom term v p f, Show formula) => formula -> formula
+cnf :: (PredicateLogic formula atom term v p f, Eq formula, Eq term, Show formula, Enum v) => formula -> formula
 cnf = distributeDisjuncts . skolemize [] . moveQuantifiersOut . moveNegationsIn . simplify
 
-cnf' :: (Eq formula, Eq term, PredicateLogic formula atom term v p f, Show formula) => formula -> formula
+cnf' :: (PredicateLogic formula atom term v p f, Eq formula, Eq term, Show formula, Enum v) => formula -> formula
 cnf' = t6 . distributeDisjuncts . t5 . skolemize [] . t4 . moveQuantifiersOut . t3 . moveNegationsIn . t2 . simplify . t1
     where
       t1 x = trace ("input:               " ++ show x) x
@@ -141,59 +143,83 @@ moveNegationsIn =
             i' t1 op t2 = (.~.) (infixPred t1 op t2)
             a' p ts = (.~.) (pApp p ts)
 
-{-
-Move quantifiers out
-Formula	Rewrites to
-∀X P & Q 	∀X (P & Q)
-∃X P & Q 	∃X (P & Q)
-Q & ∀X P 	∀X (Q & P)
-Q & ∃X P 	∃X (Q & P)
-∀X P | Q 	∀X (P | Q)
-∃X P | Q 	∃X (P | Q)
-Q | ∀X P 	∀X (Q | P)
-Q | ∃XP 	∃X (Q | P)
--}
 
-moveQuantifiersOut :: (PredicateLogic formula atom term v p f, Show formula) => formula -> formula
+-- |Move quantifiers out
+-- 
+-- > Formula	Rewrites to
+-- > ∀X P & Q 	∀X (P & Q)
+-- > ∃X P & Q 	∃X (P & Q)
+-- > Q & ∀X P 	∀X (Q & P)
+-- > Q & ∃X P 	∃X (Q & P)
+-- > ∀X P | Q 	∀X (P | Q)
+-- > ∃X P | Q 	∃X (P | Q)
+-- > Q | ∀X P 	∀X (Q | P)
+-- > Q | ∃XP 	∃X (Q | P)
+-- 
+-- We also need to do some variable renaming here, so that in an
+-- example like @∀X P & Q -> ∀X (P & Q)@ there are no references to X
+-- in Q.  We choose to examine Q and if X appears there, find another
+-- variable which does not appear and change occurrences of X in P to
+-- this new variable.  We could instead modify Q, but that looks
+-- slightly more tedious.
+moveQuantifiersOut :: forall formula atom term v p f. (PredicateLogic formula atom term v p f, Show formula, Enum v) => formula -> formula
 moveQuantifiersOut formula =
-    {- tr $ -} foldF n q b i a formula
+    foldF n q b i a formula
     where
       -- We don't need to do this because we've already moved the
       -- negations inside all the quantifiers
       n = (.~.)
-      q All vs f = for_all vs (moveQuantifiersOut f)
-      q Exists vs f = exists vs (moveQuantifiersOut f)
+      q op vs f = quant op vs (moveQuantifiersOut f)
       b f1 op f2 = doLHS (moveQuantifiersOut f1) op (moveQuantifiersOut f2)
       i t1 op t2 = infixPred t1 op t2
       a p ts = pApp p ts
       -- We found :&: or :|: above, look for quantifiers to move out, first examine f1
-      doLHS :: (PredicateLogic formula atom term v p f, Show formula) => formula -> BinOp -> formula -> formula
+      -- f1=(∀X P), f2=Q
+      doLHS :: formula -> BinOp -> formula -> formula
       doLHS f1 op f2 =
           foldF n' q' b' i' a' f1
           where
             n' _ = doRHS f1 op f2
-            q' All vs f = for_all vs (moveQuantifiersOut (doBinOp f op f2))
-            q' Exists vs f = exists vs (moveQuantifiersOut (doBinOp f op f2))
+            q' qop vs f =
+                let (f', vs') = renameVars vs f f2 in
+                quant qop vs' (moveQuantifiersOut (doBinOp f' op f2))
             b' _ _ _ = doRHS f1 op f2
             i' _ _ _ = doRHS f1 op f2
             a' _ _ = doRHS f1 op f2
       -- We reached a point where f1 was not a quantifier, try f2
-      doRHS :: (PredicateLogic formula atom term v p f, Show formula) => formula -> BinOp -> formula -> formula
+      doRHS :: formula -> BinOp -> formula -> formula
       doRHS f1 op f2 =
           foldF n' q' b' i' a' f2
           where
             n' _ = doBinOp f1 op f2
-            q' All vs f = for_all vs (moveQuantifiersOut (doBinOp f1 op f))
-            q' Exists vs f = exists vs (moveQuantifiersOut (doBinOp f1 op f))
+            q' qop vs f =
+                let (f', vs') = renameVars vs f f1 in
+                quant qop vs' (moveQuantifiersOut (doBinOp f1 op f'))
             b' _ _ _ = doBinOp f1 op f2
             i' _ _ _ = doBinOp f1 op f2
             a' _ _ = doBinOp f1 op f2
-      doBinOp :: (PredicateLogic formula atom term v p f, Show formula) => formula -> BinOp -> formula -> formula
+      -- doBinOp :: formula -> BinOp -> formula -> formula
       doBinOp f1 (:&:) f2 = f1 .&. f2
       doBinOp f1 (:|:) f2 = f1 .|. f2
       doBinOp _ op _ = error $ "moveQuantifierOut: unexpected BinOp " ++ show op
-      -- tr x = trace ("moveQuantifiersOut:\n formula=" ++ show formula ++ "\n  result=" ++ show x) x
-          
+      -- The variables in vs were quantified in f, now we want to wrap
+      -- the same quantifier around f2, so we must first rename those
+      -- variables in f so they don't collide with any variables in f2.
+            -- vs=[x], f=P, f2=Q -> (y, P(y))
+      renameVars :: [v] -> formula -> formula -> (formula, [v])
+      renameVars vs f f2 =
+          (foldr doPair f prs, (map snd prs))
+          where
+            doPair :: (v, v) -> formula -> formula
+            doPair (old, new) f' = substitute' new old f'
+            -- choose the new names
+            prs :: [(v, v)]
+            prs = fst $ foldr (\ old (ps, dnu) ->
+                                   let new = rename old dnu in
+                                   (((old, new) : ps), S.insert new dnu)) 
+                              ([], allVars f2) vs
+            rename v s = if S.member v s then rename (succ v) s else v
+
 {-
 distdisjuncts (a :\/ (b :& c)) 
  | a == b    = distdisjuncts a

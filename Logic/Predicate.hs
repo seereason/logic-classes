@@ -17,6 +17,8 @@ module Logic.Predicate
     , infixPred
     , showForm
     , freeVars
+    , quantVars
+    , allVars
     , univquant_free_vars
     , substitute'
     , substitute
@@ -47,7 +49,8 @@ import Logic.Propositional
 -- example, without them the univquant_free_vars function gives the
 -- error @No instance for (PropositionalLogic Formula t V p f)@
 -- because the function doesn't mention the Term type.
-class (PropositionalLogic formula atom, Show v, Show p, Show f, Ord v, IsString v, IsString f) => PredicateLogic formula atom term v p f
+class (PropositionalLogic formula atom, Show v, Show p, Show f, Ord v, Enum v, IsString v, IsString f) =>
+      PredicateLogic formula atom term v p f
                        | formula -> atom
                        , formula -> term
                        , formula -> v
@@ -171,6 +174,26 @@ freeVars =
     where
       freeVarsOfTerm = foldT S.singleton (\ _ args -> S.unions (fmap freeVarsOfTerm args))
 
+-- |Find the variables that are quantified in a formula
+quantVars :: PredicateLogic formula atom term v p f => formula -> S.Set v
+quantVars =
+    foldF quantVars   
+          (\ _ vars x -> S.union (S.fromList vars) (quantVars x))
+          (\ x _ y -> (mappend `on` quantVars) x y)
+          (\ _ _ _ -> S.empty)
+          (\ _ _ -> S.empty)
+
+-- |Find the free and quantified variables in a formula.
+allVars :: PredicateLogic formula atom term v p f => formula -> S.Set v
+allVars =
+    foldF freeVars   
+          (\_ vars x -> S.union (allVars x) (S.fromList vars))
+          (\x _ y -> (mappend `on` allVars) x y)
+          (\x _ y -> (mappend `on` allVarsOfTerm) x y)
+          (\_ args -> S.unions (fmap allVarsOfTerm args))
+    where
+      allVarsOfTerm = foldT S.singleton (\ _ args -> S.unions (fmap allVarsOfTerm args))
+
 -- | Universally quantify all free variables in the formula (Name comes from TPTP)
 univquant_free_vars :: PredicateLogic formula atom term v p f => formula -> formula
 univquant_free_vars cnf' =
@@ -179,40 +202,24 @@ univquant_free_vars cnf' =
 
 -- * Substituting variables
 
--- |Substitute new for each occurrence of old in a formula.
-substitute' :: PredicateLogic formula atom term v p f => v -> v -> formula -> formula
+-- |Substitute new for each free occurrence of old in a formula.
+substitute' :: (PredicateLogic formula atom term v p f, Show formula) => v -> v -> formula -> formula
 substitute' new old formula =
-    sf formula
+    foldF (\ f' -> (.~.) (sf f'))
+              -- If the old variable appears in a quantifier
+              -- we can stop doing the substitution.
+              (\ q vs f' -> quant q vs (if elem old vs then f' else sf f'))
+              (\ f1 op f2 -> binOp (sf f1) op (sf f2))
+              (\ t1 op t2 -> infixPred (st t1) op (st t2))
+              (\ p ts -> pApp p (map st ts))
+              formula
     where
-      sf f =
-          foldF (\ f' -> (.~.) (sf f'))
-                (\ q vs f' -> 
-                     (case q of
-                        All -> for_all
-                        Exists -> exists) (map sv vs) (sf f'))
-                (\ f1 op f2 ->
-                      (case op of
-                         (:<=>:) -> (.<=>.)
-                         (:=>:) -> (.=>.)
-                         -- (:<=:) -> (.<=.)
-                         (:|:) -> (.|.)
-                         (:&:) -> (.&.)
-                         -- (:<~>:) -> (.<~>.)
-                         -- (:~|:) -> (.~|.)
-                         -- (:~&:) -> (.~&.)
-                      ) (sf f1) (sf f2))
-                 (\ t1 op t2 ->
-                      (case op of
-                         (:=:) -> (.=.)
-                         (:!=:) -> (.!=.)) (st t1) (st t2))
-                 (\ p ts ->
-                      pApp p (map st ts))
-                 f
+      sf = substitute' new old
       st t = foldT (var . sv) (\ func ts -> fApp func (map st ts)) t
       sv v = if v == old then new else v
 
 -- |Substitute V for the (single) free variable in the formula.
-substitute :: PredicateLogic formula atom term v p f => v -> formula -> formula
+substitute :: (PredicateLogic formula atom term v p f, Show formula) => v -> formula -> formula
 substitute new f =
     case S.toList (freeVars f) of
       [old] -> substitute' new old f

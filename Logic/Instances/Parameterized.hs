@@ -14,6 +14,7 @@ module Logic.Instances.Parameterized
     , V(..)
     ) where
 
+import Data.Char (isDigit, ord, chr)
 import Data.Data (Data)
 import Data.Monoid (Monoid(..))
 import Data.String (IsString)
@@ -50,6 +51,27 @@ data Term f
 -- | Variable names
 newtype V = V String
     deriving (Eq,Ord,Show,Data,Typeable,Read,Monoid,IsString)
+
+-- |Generate a series of variable names.  We *only* recognize variable
+-- names which begin with one of the letters t thru z followed by zero
+-- or more digits.
+instance Enum V where
+    succ v =
+        toEnum (if n < cnt then n + 1 else if n == cnt then ord pref + cnt else n + cnt)
+            where n = fromEnum v
+    fromEnum (V s) =
+        case break (not . isDigit) (reverse s) of
+          ("", [c]) | ord c >= ord mn && ord c <= ord mx -> ord c - ord mn
+          (n, [c]) | ord c >= ord mn && ord c <= ord mx -> ord c - ord mn + cnt * (read (reverse n) :: Int)
+          _ -> error $ "Invalid variable name: " ++ show s
+    toEnum n =
+        V (chr (ord mn + pre) : if suf == 0 then "" else show suf)
+        where (suf, pre) = divMod n cnt
+
+mn = 'x'
+pref = 'x'
+mx = 'z'
+cnt = ord mx - ord mn + 1
 
 -- |There is no atomic formula type in this data type, but we need one
 -- to use as a parameter to the PropositionalLogic class.  The formulas

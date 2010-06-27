@@ -38,29 +38,35 @@ precTests =
                ((a .&. b) .&. c) -- infixl, with infixr we get (a .&. (b .&. c))
                (a .&. b .&. c)
     , TestCase (assertEqual "Find a free variable"
-                (freeVars (for_all ["x"] (var "x" .=. var "y") :: Formula AtomicWord AtomicWord))
-                (Set.singleton "y"))
+                (freeVars (for_all [x'] (x .=. y) :: Formula AtomicWord AtomicWord))
+                (Set.singleton y'))
     , TestCase (assertEqual "Substitute a variable"
                 (map (substitute "z")
-                         [ for_all ["x"] (var "x" .=. var "y") :: Formula AtomicWord AtomicWord
-                         , for_all ["y"] (var "x" .=. var "y") :: Formula AtomicWord AtomicWord ])
-                [ for_all ["x"] (var "x" .=. var "z") :: Formula AtomicWord AtomicWord
-                , for_all ["y"] (var "z" .=. var "y") :: Formula AtomicWord AtomicWord ])
+                         [ for_all [x'] (x .=. y) :: Formula AtomicWord AtomicWord
+                         , for_all [y'] (x .=. y) :: Formula AtomicWord AtomicWord ])
+                [ for_all [x'] (x .=. z) :: Formula AtomicWord AtomicWord
+                , for_all [y'] (z .=. y) :: Formula AtomicWord AtomicWord ])
     ]
     where
       a = pApp ("a") []
       b = pApp ("b") []
       c = pApp ("c") []
 
-cnfTests = [test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test9a]
+cnfTests = [test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test9a,
+            moveQuantifiersOut1]
 
-p vs = pApp "p" (map var vs)
-q vs = pApp "q" (map var vs)
-r vs = pApp "r" (map var vs)
-s vs = pApp "s" (map var vs)
-x = V "x"
-y = V "y"
-z = V "z"
+p vs = pApp "p" vs
+q vs = pApp "q" vs
+r vs = pApp "r" vs
+s vs = pApp "s" vs
+x' = V "x"
+x1' = V "x1"
+y' = V "y"
+z' = V "z"
+x = var x'
+x1 = var x1'
+y = var y'
+z = var z'
 
 -- Test cases from http://www.cs.miami.edu/~geoff/Courses/CS63S-09S/Content/FOFToCNF.shtml
 -- 
@@ -70,36 +76,34 @@ z = V "z"
 
 test1 =
     formCase "cnf test 1"
-              ((((.~.) (taller y' xy')) .|. (wise y')) .&. ((.~.) (wise xy') .|. (wise y')))
-              (cnf (for_all [y] (for_all [x] (taller y' x' .|. wise x') .=>. wise y')))
+              ((((.~.) (taller y xy)) .|. (wise y)) .&. ((.~.) (wise xy) .|. (wise y)))
+              (cnf (for_all [y'] (for_all [x'] (taller y x .|. wise x) .=>. wise y)))
         where
-          (x, y) = (V "x", V "y")
-          (x', y') = (var x, var y)
-          xy' = fApp (fromString "x") [y']
+          xy = fApp (fromString "x") [y]
           taller a b = pApp "taller" [a, b]
           wise a = pApp "wise" [a]
 
 test2 = formCase "cnf test 2"
-                  (((.~.) (pApp "s" [var "x"])) .|. ((.~.) (pApp "q" [var "x"])))
-                  (cnf ((.~.) (exists ["x"] (pApp "s" [var "x"] .&. pApp "q" [var "x"]))))
+                  (((.~.) (pApp "s" [x])) .|. ((.~.) (pApp "q" [x])))
+                  (cnf ((.~.) (exists [x'] (pApp "s" [x] .&. pApp "q" [x]))))
 test3 = formCase "cnf test 3"
                   (((.~.) (p [x])) .|. ((q [x]) .|. (r [x])))
-                  (cnf (for_all [x] (p [x] .=>. (q [x] .|. r [x]))))
+                  (cnf (for_all [x'] (p [x] .=>. (q [x] .|. r [x]))))
 
 test4 = formCase "cnf test 4"
-                  (p [x] .&. ((.~.) (q [x])))
-                  (cnf ((.~.) (exists [x] (p [x] .=>. exists [x] (q [x])))))
+                  (p [x] .&. (.~.) (q [y]))
+                  (cnf ((.~.) (exists [x'] (p [x] .=>. exists [x'] (q [x])))))
 
 test5 = formCase "cnf test 5"
                   ((((.~.) (q [x])) .|. s [x]) .&. (((.~.) (r [x])) .|. s [x]))
-                  (cnf (for_all [x] (q [x] .|. r [x] .=>. s [x])))
+                  (cnf (for_all [x'] (q [x] .|. r [x] .=>. s [x])))
 
 test6 = formCase "cnf test 6"
                   ((.~.) p .|. f skX)
-                  (cnf (exists [x] (p .=>. f x)))
+                  (cnf (exists [x'] (p .=>. f x)))
     where
-      skX = V "x"
-      f x = pApp "f" [var x]
+      skX = x
+      f x = pApp "f" [x]
       p = pApp "p" []
 
 test7 = formCase "cnf test 7"
@@ -110,10 +114,10 @@ test7 = formCase "cnf test 7"
                   ((((.~.) p) .|. (f x)) .&. (((.~.) (f x)) .|. p))
                   -- (((p []) .|. (p [])) .&. ((((.~.) (f [x])) .|. ((.~.) (f [x]))) .|. (p [])))
                   -- p
-                  (cnf (exists [x] (p .<=>. f x)))
+                  (cnf (exists [x'] (p .<=>. f x)))
     where
       skX = V "skX"
-      f x = pApp "f" [var x]
+      f x = pApp "f" [x]
       p = pApp "p" []
 
 test8 = formCase "cnf test 8"
@@ -138,14 +142,12 @@ test8 = formCase "cnf test 8"
       b = var (V "b")
 
 test9 = formCase "cnf test 9"
-
-                  (((((.~.) (q [x,y])) .|. (((.~.) (f [skZ [z,y,x],x])) .|. (f [skZ [z,y,x],y]))) .&.
-                    (((.~.) (q [x,y])) .|. (((.~.) (f [skZ [z,y,x],y])) .|. (f [skZ [z,y,x],x])))) .&.
-                   (((((f [skZ [z,y,x],x]) .|. (f [skZ [z,y,x],y])) .|. (q [x,y])) .&.
-                     ((((.~.) (f [skZ [z,y,x],y])) .|. (f [skZ [z,y,x],y])) .|. (q [x,y]))) .&.
-                    ((((f [skZ [z,y,x],x]) .|. ((.~.) (f [skZ [z,y,x],x]))) .|. (q [x,y])) .&.
-                     ((((.~.) (f [skZ [z,y,x],y])) .|. ((.~.) (f [skZ [z,y,x],x]))) .|. (q [x,y])))))
-
+                  (((((.~.) (q [x,y])) .|. (((.~.) (f [x1,x])) .|. (f [x1,y]))) .&.
+                    (((.~.) (q [x,y])) .|. (((.~.) (f [x1,y])) .|. (f [x1,x])))) .&.
+                   (((((f [skZ [x1,y,x],x]) .|. (f [skZ [x1,y,x],y])) .|. (q [x,y])) .&.
+                     ((((.~.) (f [skZ [x1,y,x],y])) .|. (f [skZ [x1,y,x],y])) .|. (q [x,y]))) .&.
+                    ((((f [skZ [x1,y,x],x]) .|. ((.~.) (f [skZ [x1,y,x],x]))) .|. (q [x,y])) .&.
+                     ((((.~.) (f [skZ [x1,y,x],y])) .|. ((.~.) (f [skZ [x1,y,x],x]))) .|. (q [x,y])))))
                   (cnf (for_all [x'] (for_all [y'] (q [x, y] .<=>. for_all [z'] (f [z, x] .<=>. f [z, y])))))
     where
       f = pApp "f"
@@ -156,37 +158,28 @@ test9 = formCase "cnf test 9"
 
 test9a = TestCase 
            (assertEqual "convert to PropLogic"
-                  (Just (CJ [DJ [N (A (q' [x,y])),N (A (f' [skZ [z,y,x],x])),A (f' [skZ [z,y,x],y])],
-                             DJ [N (A (q' [x,y])),N (A (f' [skZ [z,y,x],y])),A (f' [skZ [z,y,x],x])],
-                             DJ [A (f' [skZ [z,y,x],x]),A (f' [skZ [z,y,x],y]),A (q' [x,y])],
-                             DJ [N (A (f' [skZ [z,y,x],y])),A (f' [skZ [z,y,x],y]),A (q' [x,y])],
-                             DJ [A (f' [skZ [z,y,x],x]),N (A (f' [skZ [z,y,x],x])),A (q' [x,y])],
-                             DJ [N (A (f' [skZ [z,y,x],y])),N (A (f' [skZ [z,y,x],x])),A (q' [x,y])]]))
-                  ((toPropositional convertA (cnf (for_all [x'] (for_all [y'] (q [x, y] .<=>. for_all [z'] (f [z, x] .<=>. f [z, y])))))) >>= return . flatten :: Maybe (PropForm (AtomicFormula (Term AtomicWord) V AtomicWord AtomicWord))))
+            (Just (CJ [DJ [N (A (q' [x,y])),N (A (f' [x1,x])),A (f' [x1,y])],
+                       DJ [N (A (q' [x,y])),N (A (f' [x1,y])),A (f' [x1,x])],
+                       DJ [A (f' [skZ [x1,y,x],x]),A (f' [skZ [x1,y,x],y]),A (q' [x,y])],
+                       DJ [N (A (f' [skZ [x1,y,x],y])),A (f' [skZ [x1,y,x],y]),A (q' [x,y])],
+                       DJ [A (f' [skZ [x1,y,x],x]),N (A (f' [skZ [x1,y,x],x])),A (q' [x,y])],
+                       DJ [N (A (f' [skZ [x1,y,x],y])),N (A (f' [skZ [x1,y,x],x])),A (q' [x,y])]]) :: Maybe (PropForm (AtomicFormula (Term AtomicWord) V AtomicWord AtomicWord)))
+            ((toPropositional convertA (cnf (for_all [x'] (for_all [y'] (q [x, y] .<=>. for_all [z'] (f [z, x] .<=>. f [z, y])))))) >>= return . flatten :: Maybe (PropForm (AtomicFormula (Term AtomicWord) V AtomicWord AtomicWord))))
     where
       f = pApp "f"
       q = pApp "q"
       f' = PredApp' (AtomicWord "f")
       q' = PredApp' (AtomicWord "q")
       skZ = FunApp (AtomicWord "z")
-      (x', y', z') = (V "x", V "y", V "z")
-      (x, y, z) = (var x', var y', var z')
       convertA = Just
 
 test10 = formCase "cnf test 10"
-                  -- ((.~.) (p [a, sk1 a]) .|. r [sk1 a] .&. q [sk1 a, b, sk2 b a] .|. r [sk1 a])
-                  (((q [skY [x],x,t]) .|. (p [x,skY [x]])) .&. (((.~.) (r [skY [x]])) .|. (p [x,skY [x]])))
+                  (((q [skY [x],z,t]) .|. (p [x,skY [x]])) .&. (((.~.) (r [skY [x]])) .|. (p [x,skY [x]])))
                   (cnf (for_all [x'] (exists [y'] ((p [x, y] .<=. for_all [x'] (exists [t'] (q [y, x, t]) .=>. r [y]))))))
     where
       a = var (V "a")
       b = var (V "b")
-      x' = V "x"
-      y' = V "y"
-      z' = V "z"
       t' = V "t"
-      x = var x'
-      y = var y'
-      z = var z'
       t = var t'
       p = pApp "p"
       q = pApp "q"
@@ -200,12 +193,6 @@ test11 = formCase "cnf test 11"
                   ((((.~.) (p [x,z])) .|. ((.~.) (q [x,skY [z,x]]))) .&. (((.~.) (p [x,z])) .|. (r [skY [z,x],z])))
                   (cnf (for_all [x'] (for_all [z'] (p [x, z] .=>. exists [y'] ((.~.) (q [x, y] .|. ((.~.) (r [y, z]))))))))
     where
-      x' = V "x"
-      y' = V "y"
-      z' = V "z"
-      x = var x'
-      y = var y'
-      z = var z'
       p = pApp "p"
       q = pApp "q"
       r = pApp "r"
@@ -247,3 +234,8 @@ test2 = TestCase
          -- (runLogicM defaultValue "" (renderSubject (Subject 1)))
          True)
 -}
+
+moveQuantifiersOut1 =
+    formCase "moveQuantifiersOut1"
+             (for_all [y'] (pApp (fromString "p") [y] .&. (pApp (fromString "q") [x])))
+             (moveQuantifiersOut (for_all [x'] (pApp (fromString "p") [x]) .&. (pApp (fromString "q") [x])))
