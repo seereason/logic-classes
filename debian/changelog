@@ -1,3 +1,13 @@
+haskell-logic (0.5.1) unstable; urgency=low
+
+  * Rename variables in the moveQuantifiersOut operation of cnf to
+    avoid collisions later.
+  * Add an Enum instance for the V type so we can find fresh variables,
+    and new functions for finding the quantified variables and all the
+    variables in a formula.
+
+ -- David Fox <dsf@seereason.com>  Sun, 27 Jun 2010 07:00:49 -0700
+
 haskell-logic (0.5) unstable; urgency=low
 
   * Export distributeDisjuncts
