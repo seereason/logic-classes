@@ -4,7 +4,6 @@ module Test.Logic (tests) where
 import Data.Maybe (fromJust)
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
-import Logic.AtomicWord
 import Logic.CNF
 import Logic.Instances.Parameterized
 import Logic.Instances.PropLogic
@@ -15,8 +14,8 @@ import Test.HUnit
 
 tests = precTests ++ cnfTests
 
-formCase :: PredicateLogic (Formula AtomicWord AtomicWord) (Term AtomicWord) V AtomicWord AtomicWord =>
-            String -> Formula AtomicWord AtomicWord -> Formula AtomicWord AtomicWord -> Test
+formCase :: PredicateLogic (Formula String String) (Term String) V String String =>
+            String -> Formula String String -> Formula String String -> Test
 formCase s expected input = TestCase (assertEqual s expected input)
 
 precTests =
@@ -39,14 +38,14 @@ precTests =
                ((a .&. b) .&. c) -- infixl, with infixr we get (a .&. (b .&. c))
                (a .&. b .&. c)
     , TestCase (assertEqual "Find a free variable"
-                (freeVars (for_all [x'] (x .=. y) :: Formula AtomicWord AtomicWord))
+                (freeVars (for_all [x'] (x .=. y) :: Formula String String))
                 (Set.singleton y'))
     , TestCase (assertEqual "Substitute a variable"
                 (map (substitute "z")
-                         [ for_all [x'] (x .=. y) :: Formula AtomicWord AtomicWord
-                         , for_all [y'] (x .=. y) :: Formula AtomicWord AtomicWord ])
-                [ for_all [x'] (x .=. z) :: Formula AtomicWord AtomicWord
-                , for_all [y'] (z .=. y) :: Formula AtomicWord AtomicWord ])
+                         [ for_all [x'] (x .=. y) :: Formula String String
+                         , for_all [y'] (x .=. y) :: Formula String String ])
+                [ for_all [x'] (x .=. z) :: Formula String String
+                , for_all [y'] (z .=. y) :: Formula String String ])
     ]
     where
       a = pApp ("a") []
@@ -135,7 +134,7 @@ test8 = formCase "cnf test 8"
     where
       (x', y', z') = (V "x", V "y", V "z")
       (x, y, z) = (var x', var y', var z')
-      yOfZ = fApp (AtomicWord "y") [z]
+      yOfZ = fApp "y" [z]
       -- yz = fApp "y" ["z"]
       skY b = fApp "y" [b]
       f vs = pApp "f" vs
@@ -153,7 +152,7 @@ test9 = formCase "cnf test 9"
     where
       f = pApp "f"
       q = pApp "q"
-      skZ = fApp (AtomicWord "z")
+      skZ = fApp "z"
       (x', y', z') = (V "x", V "y", V "z")
       (x, y, z) = (var x', var y', var z')
 
@@ -170,13 +169,13 @@ test9a = TestCase
                        DJ [N (A (f [skZ [x1,y,x],y])),A (f [skZ [x1,y,x],y]),A (q [x,y])],
                        DJ [A (f [skZ [x1,y,x],x]),N (A (f [skZ [x1,y,x],x])),A (q [x,y])],
                        DJ [N (A (f [skZ [x1,y,x],y])),N (A (f [skZ [x1,y,x],x])),A (q [x,y])]])
-             :: Maybe (PropForm (Formula AtomicWord AtomicWord)))
+             :: Maybe (PropForm (Formula String String)))
             ((toPropositional convertA (cnf (for_all [x'] (for_all [y'] (q [x, y] .<=>. for_all [z'] (f [z, x] .<=>. f [z, y])))))) >>=
-             return . flatten :: Maybe (PropForm (Formula AtomicWord AtomicWord))))
+             return . flatten :: Maybe (PropForm (Formula String String))))
     where
       f = pApp "f"
       q = pApp "q"
-      skZ = FunApp (AtomicWord "z")
+      skZ = FunApp "z"
       convertA = Just . A
 
 test10 = formCase "cnf test 10"
@@ -190,7 +189,7 @@ test10 = formCase "cnf test 10"
       p = pApp "p"
       q = pApp "q"
       r = pApp "r"
-      skY = fApp (AtomicWord "y")
+      skY = fApp "y"
       sk1 a = fApp ("sk1") [a]
       sk2 a b = fApp ("sk2") [a, b]
 
@@ -202,7 +201,7 @@ test11 = formCase "cnf test 11"
       p = pApp "p"
       q = pApp "q"
       r = pApp "r"
-      skY = fApp (AtomicWord "y")
+      skY = fApp "y"
 
 test12 = formCase "cnf test 12"
                   (((p.|.(r.|.s)).&.(((.~.) q).|.(r.|.s))).&.((p.|.(r.|.t)).&.(((.~.) q).|.(r.|.t))))

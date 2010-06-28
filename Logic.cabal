@@ -14,8 +14,7 @@ Cabal-version:    >= 1.2
 
 Library
  GHC-options: -threaded -Wall -Werror -O2
- Exposed-Modules:  Logic.AtomicWord,
-                   Logic.CNF,
+ Exposed-Modules:  Logic.CNF,
                    Logic.Instances.Parameterized,
                    Logic.Instances.PropLogic,
                    Logic.Instances.TPTP,
