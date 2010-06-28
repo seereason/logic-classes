@@ -11,8 +11,6 @@
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
 module Logic.Propositional
     ( PropositionalLogic(..)
-    , BinOp(..)
-    , binOp
     , showForm0
     , convertProp
     ) where

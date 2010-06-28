@@ -28,7 +28,6 @@ module Logic.Predicate
     , convertPred
     , convertTerm
     , toPropositional
-    , module Logic.Propositional
     ) where
 
 import Control.Applicative (Applicative, (<$>), (<*>), pure)
@@ -41,8 +40,10 @@ import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
 import Logic.Logic
-import Logic.Propositional
+import Logic.Propositional (PropositionalLogic(..))
 
+-- |A class which allows the creation of a skolem function from a
+-- variable.  This is used while converting a formula to CNF.
 class Skolem v f where
     skolem :: v -> f
 
@@ -53,8 +54,7 @@ class Skolem v f where
 -- example, without them the univquant_free_vars function gives the
 -- error @No instance for (PropositionalLogic Formula t V p f)@
 -- because the function doesn't mention the Term type.
-class (Logic formula, Ord v, Enum v, Skolem v f) =>
-      PredicateLogic formula term v p f
+class (Logic formula, Ord v, Enum v) => PredicateLogic formula term v p f
                        | formula -> term
                        , formula -> v
                        , formula -> p
@@ -199,7 +199,7 @@ univquant_free_vars cnf' =
 -- * Substituting variables
 
 -- |Substitute new for each free occurrence of old in a formula.
-substitute' :: (PredicateLogic formula term v p f, Show formula) => v -> v -> formula -> formula
+substitute' :: (PredicateLogic formula term v p f) => v -> v -> formula -> formula
 substitute' new old formula =
     foldF (\ f' -> (.~.) (sf f'))
               -- If the old variable appears in a quantifier
@@ -215,7 +215,7 @@ substitute' new old formula =
       sv v = if v == old then new else v
 
 -- |Substitute V for the (single) free variable in the formula.
-substitute :: (PredicateLogic formula term v p f, Show formula) => v -> formula -> formula
+substitute :: (PredicateLogic formula term v p f) => v -> formula -> formula
 substitute new f =
     case S.toList (freeVars f) of
       [old] -> substitute' new old f

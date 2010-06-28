@@ -5,8 +5,8 @@ module Logic.Instances.TPTP where
 import Control.Monad.Identity (Identity(..))
 import Codec.TPTP
 import Data.Char (isDigit, ord, chr)
-import Data.String (IsString(fromString))
 import qualified Logic.Logic as Logic
+import qualified Logic.Propositional as Logic
 import qualified Logic.Predicate as Logic
 
 -- |Generate a series of variable names.  
@@ -39,9 +39,6 @@ data AtomicFunction
 
 instance Logic.Skolem V AtomicFunction where
     skolem = Skolem
-
-instance IsString AtomicFunction where
-    fromString s = Atom (fromString s)
 
 -- |If this looks confusing, it is because TPTP has the same operators
 -- as Logic, the .&. on the left is the Logic method name and .&. on

@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, MultiParamTypeClasses, OverloadedStrings, TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, TypeSynonymInstances #-}
 module Test.Logic (tests) where
 
 import Data.Maybe (fromJust)
@@ -14,6 +14,9 @@ import Test.HUnit
 
 instance Skolem V String where
     skolem (V s) = "Sk(" ++ s ++ ")"
+
+instance Show (Formula String String) where
+    show = showForm
 
 tests = precTests ++ cnfTests
 

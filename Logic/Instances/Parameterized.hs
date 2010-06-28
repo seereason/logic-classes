@@ -20,9 +20,9 @@ import Data.String (IsString)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
-import Logic.Logic (Logic(..))
-import Logic.Propositional (PropositionalLogic(..), BinOp(..))
-import Logic.Predicate (PredicateLogic(..), Skolem(..), Quant(..), InfixPred(..), showForm)
+import Logic.Logic (Logic(..), BinOp(..))
+import Logic.Propositional (PropositionalLogic(..))
+import Logic.Predicate (PredicateLogic(..), Skolem(..), Quant(..), InfixPred(..))
     
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula p f
@@ -80,7 +80,7 @@ instance Logic (Formula p f) where
     x .&.   y = BinOp  x (:&:)   y
     (.~.) x   = (:~:) x
 
-instance (Logic (Formula p f), IsString f, Show p, Show f, Skolem V f) =>
+instance (Logic (Formula p f), Show p, Show f, Skolem V f) =>
          PropositionalLogic (Formula p f) (Formula p f) where
     atomic (InfixPred t1 (:=:) t2) = t1 .=. t2
     atomic (InfixPred t1 (:!=:) t2) = t1 .!=. t2
@@ -94,7 +94,7 @@ instance (Logic (Formula p f), IsString f, Show p, Show f, Skolem V f) =>
           InfixPred t1 op t2 -> a (InfixPred t1 op t2)
           PredApp p ts -> a (PredApp p ts)
 
-instance (PropositionalLogic (Formula p f) (Formula p f), Show p, Show f, IsString f, Skolem V f) =>
+instance (PropositionalLogic (Formula p f) (Formula p f), Show p, Show f, Skolem V f) =>
           PredicateLogic (Formula p f) (Term f) V p f where
     for_all vars x = Quant All vars x
     exists vars x = Quant Exists vars x
@@ -105,9 +105,6 @@ instance (PropositionalLogic (Formula p f) (Formula p f), Show p, Show f, IsStri
     fApp x args = FunApp x args
     x .=. y = InfixPred x (:=:) y
     x .!=. y = InfixPred x (:!=:) y
-
-instance (IsString f, Show p, Show f, Skolem V f) => Show (Formula p f) where
-    show = showForm
 
 foldFormula ::
                   (Formula p f -> r)

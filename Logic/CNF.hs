@@ -14,20 +14,20 @@ import qualified Data.Set as S
 import Logic.Logic
 import Logic.Predicate
 
-cnf :: (PredicateLogic formula term v p f, Eq formula, Eq term, Show formula, Enum v) => formula -> formula
+cnf :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v) => formula -> formula
 cnf = distributeDisjuncts . skolemize [] . moveQuantifiersOut . moveNegationsIn . simplify
 
-cnf' :: (PredicateLogic formula term v p f, Eq formula, Eq term, Show formula, Enum v) => formula -> formula
+cnf' :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v, Show v, Show p, Show f) => formula -> formula
 cnf' = t6 . distributeDisjuncts . t5 . skolemize [] . t4 . moveQuantifiersOut . t3 . moveNegationsIn . t2 . simplify . t1
     where
-      t1 x = trace ("input:               " ++ show x) x
-      t2 x = trace ("simplified:          " ++ show x) x
-      t3 x = trace ("moveNegationsIn:     " ++ show x) x
-      t4 x = trace ("moveQuantifiersOut:  " ++ show x) x
-      t5 x = trace ("skolmize:            " ++ show x) x
-      t6 x = trace ("distributeDisjuncts: " ++ show x) x
+      t1 x = trace ("input:               " ++ showForm x) x
+      t2 x = trace ("simplified:          " ++ showForm x) x
+      t3 x = trace ("moveNegationsIn:     " ++ showForm x) x
+      t4 x = trace ("moveQuantifiersOut:  " ++ showForm x) x
+      t5 x = trace ("skolmize:            " ++ showForm x) x
+      t6 x = trace ("distributeDisjuncts: " ++ showForm x) x
 
-skolemize :: (Eq formula, Eq term, PredicateLogic formula term v p f) => [v] -> formula -> formula
+skolemize :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term) => [v] -> formula -> formula
 skolemize uq =
     foldF n q b i a
     where
@@ -40,7 +40,7 @@ skolemize uq =
       i = infixPred
       a = pApp
 
-skolemFunction :: (PredicateLogic formula term v p f) => [v] -> v -> term
+skolemFunction :: (PredicateLogic formula term v p f, Skolem v f) => [v] -> v -> term
 skolemFunction uq v = fApp (skolem v) (map var uq)
 
 {-
@@ -162,7 +162,7 @@ moveNegationsIn =
 -- variable which does not appear and change occurrences of X in P to
 -- this new variable.  We could instead modify Q, but that looks
 -- slightly more tedious.
-moveQuantifiersOut :: forall formula term v p f. (PredicateLogic formula term v p f, Show formula, Enum v) => formula -> formula
+moveQuantifiersOut :: forall formula term v p f. (PredicateLogic formula term v p f, Enum v) => formula -> formula
 moveQuantifiersOut formula =
     foldF n q b i a formula
     where
