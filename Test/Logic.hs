@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts, MultiParamTypeClasses, OverloadedStrings, TypeSynonymInstances #-}
 module Test.Logic (tests) where
 
 import Data.Maybe (fromJust)
@@ -11,6 +11,9 @@ import Logic.Logic
 import Logic.Predicate
 import PropLogic
 import Test.HUnit
+
+instance Skolem V String where
+    skolem (V s) = "Sk(" ++ s ++ ")"
 
 tests = precTests ++ cnfTests
 
@@ -79,7 +82,7 @@ test1 =
               ((((.~.) (taller y xy)) .|. (wise y)) .&. ((.~.) (wise xy) .|. (wise y)))
               (cnf (for_all [y'] (for_all [x'] (taller y x .|. wise x) .=>. wise y)))
         where
-          xy = fApp (fromString "x") [y]
+          xy = fApp (fromString "Sk(x)") [y]
           taller a b = pApp "taller" [a, b]
           wise a = pApp "wise" [a]
 
@@ -134,9 +137,9 @@ test8 = formCase "cnf test 8"
     where
       (x', y', z') = (V "x", V "y", V "z")
       (x, y, z) = (var x', var y', var z')
-      yOfZ = fApp "y" [z]
+      yOfZ = fApp "Sk(y)" [z]
       -- yz = fApp "y" ["z"]
-      skY b = fApp "y" [b]
+      skY b = fApp "Sk(y)" [b]
       f vs = pApp "f" vs
       a = var (V "a")
       b = var (V "b")
@@ -152,7 +155,7 @@ test9 = formCase "cnf test 9"
     where
       f = pApp "f"
       q = pApp "q"
-      skZ = fApp "z"
+      skZ = fApp "Sk(z)"
       (x', y', z') = (V "x", V "y", V "z")
       (x, y, z) = (var x', var y', var z')
 
@@ -175,7 +178,7 @@ test9a = TestCase
     where
       f = pApp "f"
       q = pApp "q"
-      skZ = FunApp "z"
+      skZ = FunApp "Sk(z)"
       convertA = Just . A
 
 test10 = formCase "cnf test 10"
@@ -189,9 +192,7 @@ test10 = formCase "cnf test 10"
       p = pApp "p"
       q = pApp "q"
       r = pApp "r"
-      skY = fApp "y"
-      sk1 a = fApp ("sk1") [a]
-      sk2 a b = fApp ("sk2") [a, b]
+      skY = fApp "Sk(y)"
 
 test11 = formCase "cnf test 11"
                   -- This one didn't come with a solution - here's ours
@@ -201,7 +202,7 @@ test11 = formCase "cnf test 11"
       p = pApp "p"
       q = pApp "q"
       r = pApp "r"
-      skY = fApp "y"
+      skY = fApp "Sk(y)"
 
 test12 = formCase "cnf test 12"
                   (((p.|.(r.|.s)).&.(((.~.) q).|.(r.|.s))).&.((p.|.(r.|.t)).&.(((.~.) q).|.(r.|.t))))

@@ -3,6 +3,8 @@ haskell-logic (0.6) unstable; urgency=low
   * Split a Logic class out of PropositionalLogic and make it the ancestor
     of PropositionalLogic and PredicateLogic.  This way we can eliminate
     the horrible atom parameter from the PredicateLogic type.
+  * Add a Skolem v f class to encapsulate conversion of variables to
+    skolem functions.
 
  -- David Fox <dsf@seereason.com>  Mon, 28 Jun 2010 06:34:43 -0700
 

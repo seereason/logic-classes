@@ -34,7 +34,11 @@ data AtomicFunction
     = Atom AtomicWord 
     | StringLit String
     | NumberLit Double
+    | Skolem V
     deriving Show
+
+instance Logic.Skolem V AtomicFunction where
+    skolem = Skolem
 
 instance IsString AtomicFunction where
     fromString s = Atom (fromString s)
@@ -124,4 +128,4 @@ instance Logic.PredicateLogic Formula Term V AtomicWord AtomicFunction where
           Atom w -> fApp w args
           StringLit s -> T {runT = Identity (DistinctObjectTerm s)}
           NumberLit n -> T {runT = Identity (NumberLitTerm n)}
-    toString (V s) = s
+          Skolem (V s) -> fApp (AtomicWord ("Sk(" ++ s ++ ")")) args

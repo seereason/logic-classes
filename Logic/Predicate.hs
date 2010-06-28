@@ -11,6 +11,7 @@
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
 module Logic.Predicate
     ( PredicateLogic(..)
+    , Skolem(..)
     , Quant(..)
     , quant
     , InfixPred(..)
@@ -36,12 +37,14 @@ import Data.Function (on)
 import Data.List (isPrefixOf, intercalate)
 import Data.Monoid (mappend)
 import qualified Data.Set as S
-import Data.String (IsString(..))
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
 import Logic.Logic
 import Logic.Propositional
+
+class Skolem v f where
+    skolem :: v -> f
 
 -- |The 'PropositionalLogic' type class.  Minimal implementation:
 -- @for_all, exists, foldF, foldT, (.=.), (.!=.), pApp, fApp, var,
@@ -50,7 +53,7 @@ import Logic.Propositional
 -- example, without them the univquant_free_vars function gives the
 -- error @No instance for (PropositionalLogic Formula t V p f)@
 -- because the function doesn't mention the Term type.
-class (Logic formula, Show v, Show p, Show f, Ord v, Enum v, IsString v, IsString f) =>
+class (Logic formula, Ord v, Enum v, Skolem v f) =>
       PredicateLogic formula term v p f
                        | formula -> term
                        , formula -> v
@@ -97,8 +100,6 @@ class (Logic formula, Show v, Show p, Show f, Ord v, Enum v, IsString v, IsStrin
     -- (atomic function) is one of the type parameters, this package
     -- is mostly indifferent to its internal structure.
     fApp :: f -> [term] -> term
-    -- | Return the string representation of a variable.  (This won't work for the DIMACS representation.)
-    toString :: v -> String
 
 
 -- | Helper function for building folds.
@@ -114,7 +115,7 @@ infixPred t1 (:=:) t2 = t1 .=. t2
 infixPred t1 (:!=:) t2 = t1 .!=. t2
 
 -- | Display a formula in a format that can be read into the interpreter.
-showForm :: PredicateLogic formula term v p f => 
+showForm :: (PredicateLogic formula term v p f, Show v, Show p, Show f) => 
             formula -> String
 showForm formula =
     foldF n q b i a formula
@@ -136,7 +137,7 @@ showForm formula =
       showTerm term =
           foldT v f term
           where
-            v v' = "var " ++ show (toString v')
+            v v' = "var " ++ show v'
             f fn ts = "fApp (" ++ show fn ++ ") [" ++ intercalate "," (map showTerm ts) ++ "]"
                        
 -- |The 'Quant' and 'InfixPred' types, like the BinOp type in

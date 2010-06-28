@@ -11,7 +11,6 @@ module Logic.CNF
 
 import Debug.Trace
 import qualified Data.Set as S
-import Data.String
 import Logic.Logic
 import Logic.Predicate
 
@@ -41,8 +40,8 @@ skolemize uq =
       i = infixPred
       a = pApp
 
-skolemFunction :: (IsString f, PredicateLogic formula term v p f) => [v] -> v -> term
-skolemFunction uq v = fApp (fromString (toString v)) (map var uq)
+skolemFunction :: (PredicateLogic formula term v p f) => [v] -> v -> term
+skolemFunction uq v = fApp (skolem v) (map var uq)
 
 {-
 1st order formula

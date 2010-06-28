@@ -27,7 +27,7 @@ import Logic.Logic
 -- raise errors in the implementation if a non-atomic formula somehow
 -- appears where an atomic formula is expected (i.e. as an argument to
 -- atomic or to the third argument of foldF0.)
-class (Logic formula, Show atom) => PropositionalLogic formula atom | formula -> atom where
+class Logic formula => PropositionalLogic formula atom | formula -> atom where
     -- | Build an atomic formula from the atom type.
     atomic :: atom -> formula
     -- | A fold function that distributes different sorts of formula
@@ -41,7 +41,7 @@ class (Logic formula, Show atom) => PropositionalLogic formula atom | formula ->
            -> r
 
 -- | Show a formula in a format that can be evaluated 
-showForm0 :: PropositionalLogic formula atom => formula -> String
+showForm0 :: (PropositionalLogic formula atom, Show atom) => formula -> String
 showForm0 formula =
     foldF0 n b a formula
     where
