@@ -1,5 +1,5 @@
 Name:             Logic
-Version:          0.5.1
+Version:          0.6
 License:          BSD3
 Author:           SeeReason Partners <partners@seereason.com>
 Maintainer:       SeeReason Partners <partners@seereason.com>
@@ -19,6 +19,7 @@ Library
                    Logic.Instances.Parameterized,
                    Logic.Instances.PropLogic,
                    Logic.Instances.TPTP,
+                   Logic.Logic,
                    Logic.Predicate,
                    Logic.Propositional
  Build-Depends:    base, containers, fgl, happstack-data,

@@ -1,20 +1,19 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
 {-# OPTIONS -fno-warn-orphans #-}
 module Logic.Instances.PropLogic where
 
 import PropLogic
+import Logic.Logic
 import Logic.Propositional
 
-instance Show a => PropositionalLogic (PropForm a) a where
+instance Logic (PropForm a) where
     x .<=>. y = EJ [x, y]
     x .=>.  y = SJ [x, y]
-    x .<=.  y = SJ [y, x]
     x .|.   y = DJ [x, y]
     x .&.   y = CJ [x, y]
-    x .<~>. y = DJ [CJ [x, (N y)], CJ [(N x), y]]  -- EJ [x, (N y)]?
-    x .~|.  y = N (DJ [x, y])
-    x .~&.  y = N (CJ [x, y])
     (.~.) x   = N x
+
+instance (Logic (PropForm a), Show a) => PropositionalLogic (PropForm a) a where
     atomic = A
     foldF0 n b a formula =
         case formula of
@@ -34,8 +33,9 @@ instance Show a => PropositionalLogic (PropForm a) a where
           CJ [x] -> foldF0 n b a x
           CJ (x0:xs) -> foldF0 n b a (foldl (\ f x -> CJ [f, x]) x0 xs)
           N x -> n x
-          T -> undefined
-          F -> undefined
+          -- Not sure what to do about these - so far not an issue.
+          T -> error "foldF0 method of PropForm: T"
+          F -> error "foldF0 method of PropForm: F"
           A x -> a x
 
 pairs :: [a] -> [(a, a)]

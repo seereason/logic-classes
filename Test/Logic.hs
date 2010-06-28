@@ -8,13 +8,14 @@ import Logic.AtomicWord
 import Logic.CNF
 import Logic.Instances.Parameterized
 import Logic.Instances.PropLogic
+import Logic.Logic
 import Logic.Predicate
 import PropLogic
 import Test.HUnit
 
 tests = precTests ++ cnfTests
 
-formCase :: PredicateLogic (Formula AtomicWord AtomicWord) (AtomicFormula (Term AtomicWord) V AtomicWord AtomicWord) (Term AtomicWord) V AtomicWord AtomicWord =>
+formCase :: PredicateLogic (Formula AtomicWord AtomicWord) (Term AtomicWord) V AtomicWord AtomicWord =>
             String -> Formula AtomicWord AtomicWord -> Formula AtomicWord AtomicWord -> Test
 formCase s expected input = TestCase (assertEqual s expected input)
 
@@ -156,22 +157,27 @@ test9 = formCase "cnf test 9"
       (x', y', z') = (V "x", V "y", V "z")
       (x, y, z) = (var x', var y', var z')
 
+-- |Here is an example of automatic conversion from a PredicateLogic
+-- instance to a PropositionalLogic instance.  The result is PropForm
+-- a where a is the original type, but the a values will always be
+-- "atomic" formulas, never the operators which can be converted into
+-- the corresponding operator of a PropositionalLogic instance.
 test9a = TestCase 
            (assertEqual "convert to PropLogic"
-            (Just (CJ [DJ [N (A (q' [x,y])),N (A (f' [x1,x])),A (f' [x1,y])],
-                       DJ [N (A (q' [x,y])),N (A (f' [x1,y])),A (f' [x1,x])],
-                       DJ [A (f' [skZ [x1,y,x],x]),A (f' [skZ [x1,y,x],y]),A (q' [x,y])],
-                       DJ [N (A (f' [skZ [x1,y,x],y])),A (f' [skZ [x1,y,x],y]),A (q' [x,y])],
-                       DJ [A (f' [skZ [x1,y,x],x]),N (A (f' [skZ [x1,y,x],x])),A (q' [x,y])],
-                       DJ [N (A (f' [skZ [x1,y,x],y])),N (A (f' [skZ [x1,y,x],x])),A (q' [x,y])]]) :: Maybe (PropForm (AtomicFormula (Term AtomicWord) V AtomicWord AtomicWord)))
-            ((toPropositional convertA (cnf (for_all [x'] (for_all [y'] (q [x, y] .<=>. for_all [z'] (f [z, x] .<=>. f [z, y])))))) >>= return . flatten :: Maybe (PropForm (AtomicFormula (Term AtomicWord) V AtomicWord AtomicWord))))
+            (Just (CJ [DJ [N (A (q [x,y])),N (A (f [x1,x])),A (f [x1,y])],
+                       DJ [N (A (q [x,y])),N (A (f [x1,y])),A (f [x1,x])],
+                       DJ [A (f [skZ [x1,y,x],x]),A (f [skZ [x1,y,x],y]),A (q [x,y])],
+                       DJ [N (A (f [skZ [x1,y,x],y])),A (f [skZ [x1,y,x],y]),A (q [x,y])],
+                       DJ [A (f [skZ [x1,y,x],x]),N (A (f [skZ [x1,y,x],x])),A (q [x,y])],
+                       DJ [N (A (f [skZ [x1,y,x],y])),N (A (f [skZ [x1,y,x],x])),A (q [x,y])]])
+             :: Maybe (PropForm (Formula AtomicWord AtomicWord)))
+            ((toPropositional convertA (cnf (for_all [x'] (for_all [y'] (q [x, y] .<=>. for_all [z'] (f [z, x] .<=>. f [z, y])))))) >>=
+             return . flatten :: Maybe (PropForm (Formula AtomicWord AtomicWord))))
     where
       f = pApp "f"
       q = pApp "q"
-      f' = PredApp' (AtomicWord "f")
-      q' = PredApp' (AtomicWord "q")
       skZ = FunApp (AtomicWord "z")
-      convertA = Just
+      convertA = Just . A
 
 test10 = formCase "cnf test 10"
                   (((q [skY [x],z,t]) .|. (p [x,skY [x]])) .&. (((.~.) (r [skY [x]])) .|. (p [x,skY [x]])))

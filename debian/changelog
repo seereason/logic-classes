@@ -1,3 +1,11 @@
+haskell-logic (0.6) unstable; urgency=low
+
+  * Split a Logic class out of PropositionalLogic and make it the ancestor
+    of PropositionalLogic and PredicateLogic.  This way we can eliminate
+    the horrible atom parameter from the PredicateLogic type.
+
+ -- David Fox <dsf@seereason.com>  Mon, 28 Jun 2010 06:34:43 -0700
+
 haskell-logic (0.5.1) unstable; urgency=low
 
   * Rename variables in the moveQuantifiersOut operation of cnf to

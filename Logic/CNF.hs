@@ -12,12 +12,13 @@ module Logic.CNF
 import Debug.Trace
 import qualified Data.Set as S
 import Data.String
+import Logic.Logic
 import Logic.Predicate
 
-cnf :: (PredicateLogic formula atom term v p f, Eq formula, Eq term, Show formula, Enum v) => formula -> formula
+cnf :: (PredicateLogic formula term v p f, Eq formula, Eq term, Show formula, Enum v) => formula -> formula
 cnf = distributeDisjuncts . skolemize [] . moveQuantifiersOut . moveNegationsIn . simplify
 
-cnf' :: (PredicateLogic formula atom term v p f, Eq formula, Eq term, Show formula, Enum v) => formula -> formula
+cnf' :: (PredicateLogic formula term v p f, Eq formula, Eq term, Show formula, Enum v) => formula -> formula
 cnf' = t6 . distributeDisjuncts . t5 . skolemize [] . t4 . moveQuantifiersOut . t3 . moveNegationsIn . t2 . simplify . t1
     where
       t1 x = trace ("input:               " ++ show x) x
@@ -27,7 +28,7 @@ cnf' = t6 . distributeDisjuncts . t5 . skolemize [] . t4 . moveQuantifiersOut . 
       t5 x = trace ("skolmize:            " ++ show x) x
       t6 x = trace ("distributeDisjuncts: " ++ show x) x
 
-skolemize :: (Eq formula, Eq term, PredicateLogic formula atom term v p f) => [v] -> formula -> formula
+skolemize :: (Eq formula, Eq term, PredicateLogic formula term v p f) => [v] -> formula -> formula
 skolemize uq =
     foldF n q b i a
     where
@@ -40,7 +41,7 @@ skolemize uq =
       i = infixPred
       a = pApp
 
-skolemFunction :: (IsString f, PredicateLogic formula atom term v p f) => [v] -> v -> term
+skolemFunction :: (IsString f, PredicateLogic formula term v p f) => [v] -> v -> term
 skolemFunction uq v = fApp (fromString (toString v)) (map var uq)
 
 {-
@@ -76,13 +77,13 @@ P <=> Q 	(P => Q) & (Q => P)
 P => Q  	~P | Q
 -}
 
-simplify :: PredicateLogic formula atom term v p f => formula -> formula
+simplify :: PredicateLogic formula term v p f => formula -> formula
 simplify =
     foldF n q b i a
     where
       q All vs f = for_all vs (simplify f)
       q Exists vs f = exists vs (simplify f)
-      b :: PredicateLogic formula atom term v p f => formula -> BinOp -> formula -> formula
+      b :: PredicateLogic formula term v p f => formula -> BinOp -> formula -> formula
       b f1 (:&:) f2 = simplify f1 .&. simplify f2
       b f1 (:|:) f2 = simplify f1 .|. simplify f2
       b f1 (:=>:) f2 = ((.~.) (simplify f1)) .|. simplify f2
@@ -115,7 +116,7 @@ Formula	Rewrites to
 ~~P 	P
 -}
 
-moveNegationsIn :: PredicateLogic formula atom term v p f => formula -> formula
+moveNegationsIn :: PredicateLogic formula term v p f => formula -> formula
 moveNegationsIn =
     foldF n q b i a
     where
@@ -130,7 +131,7 @@ moveNegationsIn =
       i = infixPred
       a p ts = pApp p ts
       -- Helper function for moveNegationsIn, for already negated formulae
-      doNegation :: PredicateLogic formula atom term v p f => formula -> formula
+      doNegation :: PredicateLogic formula term v p f => formula -> formula
       doNegation =
           foldF n' q' b' i' a'
           where
@@ -162,7 +163,7 @@ moveNegationsIn =
 -- variable which does not appear and change occurrences of X in P to
 -- this new variable.  We could instead modify Q, but that looks
 -- slightly more tedious.
-moveQuantifiersOut :: forall formula atom term v p f. (PredicateLogic formula atom term v p f, Show formula, Enum v) => formula -> formula
+moveQuantifiersOut :: forall formula term v p f. (PredicateLogic formula term v p f, Show formula, Enum v) => formula -> formula
 moveQuantifiersOut formula =
     foldF n q b i a formula
     where
@@ -246,7 +247,7 @@ P | (Q & R) 	(P | Q) & (P | R)
 -}            
 
 -- a|(b&c) -> (a|b)&(a|c)
-distributeDisjuncts :: (Eq formula, PredicateLogic formula atom term v p f) => formula -> formula
+distributeDisjuncts :: (Eq formula, PredicateLogic formula term v p f) => formula -> formula
 distributeDisjuncts =
     foldF n q b i a
     where

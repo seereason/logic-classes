@@ -17,27 +17,17 @@ module Logic.Propositional
     , convertProp
     ) where
 
-import Data.Data (Data)
-import Data.List (isPrefixOf)
-import Data.Typeable (Typeable)
-import Happstack.Data (deriveNewData)
-import Happstack.State (Version, deriveSerialize)
+import Logic.Logic
 
--- |The type class.  Minimal implementation:
--- @
---  (.<=>.), (.=>.), (.|.), (.&.), (.~.), foldF0
--- @
-class Show atom => PropositionalLogic formula atom | formula -> atom where
-    -- | Formula combinators: Equivalence
-    (.<=>.) :: formula -> formula -> formula
-    -- | Implication
-    (.=>.) :: formula -> formula -> formula
-    -- | Disjunction/OR
-    (.|.) :: formula -> formula -> formula
-    -- | Conjunction/AND
-    (.&.) :: formula -> formula -> formula
-    -- | Negation
-    (.~.) :: formula -> formula
+-- |A type class for propositional logic.  If the type we are writing
+-- an instance for is a zero-order (aka propositional) logic type
+-- there will generally by a type or a type parameter corresponding to
+-- atom.  For first order or predicate logic types, it is generally
+-- easiest to just use the formula type itself as the atom type, and
+-- raise errors in the implementation if a non-atomic formula somehow
+-- appears where an atomic formula is expected (i.e. as an argument to
+-- atomic or to the third argument of foldF0.)
+class (Logic formula, Show atom) => PropositionalLogic formula atom | formula -> atom where
     -- | Build an atomic formula from the atom type.
     atomic :: atom -> formula
     -- | A fold function that distributes different sorts of formula
@@ -49,32 +39,6 @@ class Show atom => PropositionalLogic formula atom | formula -> atom where
            -> (atom -> r)
            -> formula
            -> r
-
-    -- | Derived formula combinators.  These could be overridden for instances
-    -- that actually have constructors to represent them, such as Logic-TPTP.
-    -- Reverse implication:
-    (.<=.) :: formula -> formula -> formula
-    x .<=. y = y .=>. x
-    -- | Exclusive or
-    (.<~>.) :: formula -> formula -> formula
-    x .<~>. y = ((.~.) x .&. y) .|. (x .&. (.~.) y)
-    -- | Nor
-    (.~|.) :: formula -> formula -> formula
-    x .~|. y = (.~.) (x .|. y)
-    -- | Nand
-    (.~&.) :: formula -> formula -> formula
-    x .~&. y = (.~.) (x .&. y)
-
--- | A helper function for building folds:
--- @
---   foldF0 (.~.) binOp atomic
--- @
--- is a no-op
-binOp :: PropositionalLogic formula atom => formula -> BinOp -> formula -> formula
-binOp f1 (:<=>:) f2 = f1 .<=>. f2
-binOp f1 (:=>:) f2 = f1 .=>. f2
-binOp f1 (:&:) f2 = f1 .&. f2
-binOp f1 (:|:) f2 = f1 .|. f2
 
 -- | Show a formula in a format that can be evaluated 
 showForm0 :: PropositionalLogic formula atom => formula -> String
@@ -90,33 +54,6 @@ showForm0 formula =
       showFormOp (:&:) = ".&."
       showFormOp (:|:) = ".|."
 
-infixl 2  .<=>. ,  .=>. ,  .<~>.
-infixl 3  .|.
-infixl 4  .&.
-
--- | The 'BinOp' type (and in 'Logic.Predicate' the 'InfixPred' and
--- 'Quant' types) could be parameters of the type class instead of
--- being implemented here concretely, but I'm not sure whether the
--- added complexity is worthwhile.
-data BinOp
-    = (:<=>:)  -- ^ Equivalence
-    |  (:=>:)  -- ^ Implication
-    |  (:&:)  -- ^ AND
-    |  (:|:)  -- ^ OR
-    deriving (Eq,Ord,Show,Data,Typeable,Enum,Bounded)
-
--- |We need to implement read manually here due to
--- <http://hackage.haskell.org/trac/ghc/ticket/4136>
-instance Read BinOp where
-    readsPrec _ s = 
-        map (\ (x, t) -> (x, drop (length t) s))
-            (take 1 (dropWhile (\ (_, t) -> not (isPrefixOf t s)) prs))
-        where
-          prs = [((:<=>:), ":<=>:"),
-                 ((:=>:), ":=>:"),
-                 ((:&:), ":&:"),
-                 ((:|:), ":|:")]
-
 -- |Convert any instance of a propositional logic expression to any
 -- other using the supplied atom conversion function.
 convertProp :: forall formula1 atom1 formula2 atom2.
@@ -130,9 +67,3 @@ convertProp convertA formula =
       n f = (.~.) (convert' f)
       b f1 op f2 = binOp (convert' f1) op (convert' f2)
       a = atomic . convertA
-
-instance Version BinOp
-
-$(deriveSerialize ''BinOp)
-
-$(deriveNewData [''BinOp])

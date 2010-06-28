@@ -7,7 +7,6 @@
 -- with some constructors like :~&: omitted.
 module Logic.Instances.Parameterized
     ( Formula(..)
-    , AtomicFormula(..)
     , Predicate
     , Proposition
     , Term(..)
@@ -21,6 +20,7 @@ import Data.String (IsString)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
+import Logic.Logic (Logic(..))
 import Logic.Propositional (PropositionalLogic(..), BinOp(..))
 import Logic.Predicate (PredicateLogic(..), Quant(..), InfixPred(..), showForm)
     
@@ -73,52 +73,29 @@ pref = 'x'
 mx = 'z'
 cnt = ord mx - ord mn + 1
 
--- |There is no atomic formula type in this data type, but we need one
--- to use as a parameter to the PropositionalLogic class.  The formulas
--- that are not generated from other formulas include those built using
--- the InfixPred and PredApp constructors, so we create a new type here
--- to represent the parameters to those two types.
-data AtomicFormula term v p f
-    = InfixPred' term InfixPred term
-    | PredApp' p [term]
-      deriving (Show, Eq, Ord)
-
-instance (IsString f, Show p, Show f) => PropositionalLogic (Formula p f) (AtomicFormula (Term f) V p f) where
+instance Logic (Formula p f) where
     x .<=>. y = BinOp  x (:<=>:) y
     x .=>.  y = BinOp  x (:=>:)  y
     x .|.   y = BinOp  x (:|:)   y
     x .&.   y = BinOp  x (:&:)   y
     (.~.) x   = (:~:) x
-    atomic (InfixPred' t1 (:=:) t2) = t1 .=. t2
-    atomic (InfixPred' t1 (:!=:) t2) = t1 .!=. t2
-    atomic (PredApp' p ts) = pApp p ts
+
+instance (Logic (Formula p f), IsString f, Show p, Show f) =>
+         PropositionalLogic (Formula p f) (Formula p f) where
+    atomic (InfixPred t1 (:=:) t2) = t1 .=. t2
+    atomic (InfixPred t1 (:!=:) t2) = t1 .!=. t2
+    atomic (PredApp p ts) = pApp p ts
+    atomic _ = error "atomic method of PropositionalLogic for Parameterized: invalid argument"
     foldF0 n b a formula =
         case formula of
           (:~:) x -> n x
           Quant _ _ _ -> error "foldF0: quantifiers should not be present"
           BinOp f1 op f2 -> b f1 op f2
-          InfixPred t1 op t2 -> a (InfixPred' t1 op t2)
-          PredApp p ts -> a (PredApp' p ts)
+          InfixPred t1 op t2 -> a (InfixPred t1 op t2)
+          PredApp p ts -> a (PredApp p ts)
 
-{-
-foldFormula0 ::
-                  (Formula p f -> r)
-               -> (Formula p f -> BinOp -> Formula p f -> r)
-               -> (Term f -> InfixPred -> Term f -> r)
-               -> (p -> [Term f] -> r)
-               -> Formula p f
-               -> r
-foldFormula0 kneg kbinop kinfix kpredapp f =
-    case f of
-      (:~:) x -> kneg x
-      BinOp x y z -> kbinop x y z
-      InfixPred x y z -> kinfix x y z
-      PredApp x y -> kpredapp x y
-      Quant _ _ _ -> error "foldFormula0: Quantifiers should not be present, use foldFormula"
--}
-
-instance (PropositionalLogic (Formula p f) (AtomicFormula (Term f) V p f), Show p, Show f, IsString f) =>
-          PredicateLogic (Formula p f) (AtomicFormula (Term f) V p f) (Term f) V p f where
+instance (PropositionalLogic (Formula p f) (Formula p f), Show p, Show f, IsString f) =>
+          PredicateLogic (Formula p f) (Term f) V p f where
     for_all vars x = Quant All vars x
     exists vars x = Quant Exists vars x
     foldF = foldFormula
@@ -158,30 +135,6 @@ foldTerm kvar kfunapp t =
     case t of
       Var x -> kvar x
       FunApp x y -> kfunapp x y
-
--- |Versions of foldFormula and foldTerm to handle the wrapped types, which
--- were in TPTP but are not included in this system.
-{-
-foldF ::
-           (Formula p f -> r) -- ^ Handle negation
-         -> (Quant -> [V] -> Formula p f -> r) -- ^ Handle quantification
-         -> (Formula p f -> BinOp -> Formula p f -> r) -- ^ Handle binary op
-         -> (Term f -> InfixPred -> Term f -> r) -- ^ Handle equality/inequality
-         -> (p -> [Term f] -> r) -- ^ Handle predicate symbol application
-         -> (Formula p f -> r) -- ^ Handle formula
-         
-foldF kneg kquant kbinop kinfix kpredapp f = foldFormula kneg kquant kbinop kinfix kpredapp (unwrapF f)
-
--- | Eliminate terms
-foldT ::
-           (V -> r)             -- ^ Handle variable
-         -> (f -> [Term f] -> r) -- ^ Handle function symbol application
-         -> (Term f -> r)        -- ^ Handle term
-foldT kvar kfunapp t = foldTerm kvar kfunapp (unwrapT t)
-
-unwrapF = id
-unwrapT = id
--}
 
 instance Version (Term f)
 instance Version V

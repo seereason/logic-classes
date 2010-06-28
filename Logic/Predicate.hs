@@ -40,6 +40,7 @@ import Data.String (IsString(..))
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
+import Logic.Logic
 import Logic.Propositional
 
 -- |The 'PropositionalLogic' type class.  Minimal implementation:
@@ -49,10 +50,9 @@ import Logic.Propositional
 -- example, without them the univquant_free_vars function gives the
 -- error @No instance for (PropositionalLogic Formula t V p f)@
 -- because the function doesn't mention the Term type.
-class (PropositionalLogic formula atom, Show v, Show p, Show f, Ord v, Enum v, IsString v, IsString f) =>
-      PredicateLogic formula atom term v p f
-                       | formula -> atom
-                       , formula -> term
+class (Logic formula, Show v, Show p, Show f, Ord v, Enum v, IsString v, IsString f) =>
+      PredicateLogic formula term v p f
+                       | formula -> term
                        , formula -> v
                        , formula -> p
                        , term -> formula
@@ -62,7 +62,6 @@ class (PropositionalLogic formula atom, Show v, Show p, Show f, Ord v, Enum v, I
                        , v -> term
                        , v -> p
                        , v -> f where
-    -- Minimum implementation:
     -- | Universal quantification - for all x (formula x)
     for_all :: [v] -> formula -> formula
     -- | Existential quantification - there exists x such that (formula x)
@@ -103,19 +102,19 @@ class (PropositionalLogic formula atom, Show v, Show p, Show f, Ord v, Enum v, I
 
 
 -- | Helper function for building folds.
-quant :: PredicateLogic formula atom term v p f => 
+quant :: PredicateLogic formula term v p f => 
          Quant -> [v] -> formula -> formula
 quant All vs f = for_all vs f
 quant Exists vs f = exists vs f
 
 -- | Helper function for building folds.
-infixPred :: PredicateLogic formula atom term v p f => 
+infixPred :: PredicateLogic formula term v p f => 
              term -> InfixPred -> term -> formula
 infixPred t1 (:=:) t2 = t1 .=. t2
 infixPred t1 (:!=:) t2 = t1 .!=. t2
 
 -- | Display a formula in a format that can be read into the interpreter.
-showForm :: PredicateLogic formula atom term v p f => 
+showForm :: PredicateLogic formula term v p f => 
             formula -> String
 showForm formula =
     foldF n q b i a formula
@@ -139,12 +138,8 @@ showForm formula =
           where
             v v' = "var " ++ show (toString v')
             f fn ts = "fApp (" ++ show fn ++ ") [" ++ intercalate "," (map showTerm ts) ++ "]"
-
--- * These three simple types could be parameters to the type class as
--- well instead of being implemented here concretely, but I'm not sure
--- whether the added complexity is worthwhile.
                        
--- | The 'Quant' and 'InfixPred' types, like the BinOp type in
+-- |The 'Quant' and 'InfixPred' types, like the BinOp type in
 -- 'Logic.Propositional', could be additional parameters to the type
 -- class, but it would add additional complexity with unclear
 -- benefits.
@@ -164,7 +159,7 @@ instance Read InfixPred where
                  ((:!=:), ":!=:")]
 
 -- |Find the free (unquantified) variables in a formula.
-freeVars :: PredicateLogic formula atom term v p f => formula -> S.Set v
+freeVars :: PredicateLogic formula term v p f => formula -> S.Set v
 freeVars =
     foldF freeVars   
           (\_ vars x -> S.difference (freeVars x) (S.fromList vars))                    
@@ -175,7 +170,7 @@ freeVars =
       freeVarsOfTerm = foldT S.singleton (\ _ args -> S.unions (fmap freeVarsOfTerm args))
 
 -- |Find the variables that are quantified in a formula
-quantVars :: PredicateLogic formula atom term v p f => formula -> S.Set v
+quantVars :: PredicateLogic formula term v p f => formula -> S.Set v
 quantVars =
     foldF quantVars   
           (\ _ vars x -> S.union (S.fromList vars) (quantVars x))
@@ -184,7 +179,7 @@ quantVars =
           (\ _ _ -> S.empty)
 
 -- |Find the free and quantified variables in a formula.
-allVars :: PredicateLogic formula atom term v p f => formula -> S.Set v
+allVars :: PredicateLogic formula term v p f => formula -> S.Set v
 allVars =
     foldF freeVars   
           (\_ vars x -> S.union (allVars x) (S.fromList vars))
@@ -195,7 +190,7 @@ allVars =
       allVarsOfTerm = foldT S.singleton (\ _ args -> S.unions (fmap allVarsOfTerm args))
 
 -- | Universally quantify all free variables in the formula (Name comes from TPTP)
-univquant_free_vars :: PredicateLogic formula atom term v p f => formula -> formula
+univquant_free_vars :: PredicateLogic formula term v p f => formula -> formula
 univquant_free_vars cnf' =
     if S.null free then cnf' else for_all (S.toList free) cnf'
     where free = freeVars cnf'
@@ -203,7 +198,7 @@ univquant_free_vars cnf' =
 -- * Substituting variables
 
 -- |Substitute new for each free occurrence of old in a formula.
-substitute' :: (PredicateLogic formula atom term v p f, Show formula) => v -> v -> formula -> formula
+substitute' :: (PredicateLogic formula term v p f, Show formula) => v -> v -> formula -> formula
 substitute' new old formula =
     foldF (\ f' -> (.~.) (sf f'))
               -- If the old variable appears in a quantifier
@@ -219,14 +214,14 @@ substitute' new old formula =
       sv v = if v == old then new else v
 
 -- |Substitute V for the (single) free variable in the formula.
-substitute :: (PredicateLogic formula atom term v p f, Show formula) => v -> formula -> formula
+substitute :: (PredicateLogic formula term v p f, Show formula) => v -> formula -> formula
 substitute new f =
     case S.toList (freeVars f) of
       [old] -> substitute' new old f
       _ -> error "subtitute: formula must have exactly one free variable"
 
 -- |Replace all occurrences of a term with another.
-substituteTerm :: (Eq term, PredicateLogic formula atom term v p f) => (term, term) -> formula -> formula
+substituteTerm :: (Eq term, PredicateLogic formula term v p f) => (term, term) -> formula -> formula
 substituteTerm pair@(new, old) formula =
     foldF n q b i a formula
     where
@@ -243,13 +238,13 @@ substituteTerm pair@(new, old) formula =
       st t = if t == old then new else t
 
 -- |Call 'substituteTerm' for each of the @(new,old)@ pairs.
-substituteTerms :: (Eq term, PredicateLogic formula atom term v p f) => [(term, term)] -> formula -> formula
+substituteTerms :: (Eq term, PredicateLogic formula term v p f) => [(term, term)] -> formula -> formula
 substituteTerms pairs formula = foldr substituteTerm formula pairs
 
 -- |Convert any instance of a first order logic expression to any other.
-convertPred :: forall formula1 atom1 term1 v1 p1 f1 formula2 atom2 term2 v2 p2 f2.
-           (PredicateLogic formula1 atom1 term1 v1 p1 f1,
-            PredicateLogic formula2 atom2 term2 v2 p2 f2) =>
+convertPred :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
+           (PredicateLogic formula1 term1 v1 p1 f1,
+            PredicateLogic formula2 term2 v2 p2 f2) =>
            (v1 -> v2) -> (p1 -> p2) -> (f1 -> f2) -> formula1 -> formula2
 convertPred convertV convertP convertF formula =
     foldF n q b i p formula
@@ -262,9 +257,9 @@ convertPred convertV convertP convertF formula =
       i t1 op t2 = infixPred (convertTerm' t1) op (convertTerm' t2)
       p x ts = pApp (convertP x) (map convertTerm' ts)
 
-convertTerm :: forall formula1 atom1 term1 v1 p1 f1 formula2 atom2 term2 v2 p2 f2.
-               (PredicateLogic formula1 atom1 term1 v1 p1 f1,
-                PredicateLogic formula2 atom2 term2 v2 p2 f2) =>
+convertTerm :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
+               (PredicateLogic formula1 term1 v1 p1 f1,
+                PredicateLogic formula2 term2 v2 p2 f2) =>
                (v1 -> v2) -> (f1 -> f2) -> term1 -> term2
 convertTerm convertV convertF term =
     foldT v fn term
@@ -276,17 +271,20 @@ convertTerm convertV convertF term =
 -- |Try to convert a first order logic formula to propositional.  This
 -- will return Nothing if there are any quantifiers, or if it runs
 -- into an atom that it is unable to convert.
-toPropositional :: forall m formula1 atom1 term1 v1 p1 f1 formula2 atom2.
-                   (Monad m, Applicative m, PredicateLogic formula1 atom1 term1 v1 p1 f1,
-                    PropositionalLogic formula2 atom2) =>
-                   (atom1 -> m atom2) -> formula1 -> m formula2
-toPropositional convertA formula =
-    foldF0 n b a formula
+toPropositional :: forall m formula1 term v p f formula2 atom.
+                   (PredicateLogic formula1 term v p f,
+                    PropositionalLogic formula2 atom,
+                    Monad m, Applicative m) =>
+                   (formula1 -> m formula2) -> formula1 -> m formula2
+toPropositional convertAtom formula =
+    foldF n q b i p formula
     where
-      convert' = toPropositional convertA
+      convert' = toPropositional convertAtom
       n f = (.~.) <$> convert' f
+      q _ _ _ = error "toPropositional: invalid argument"
       b f1 op f2 = binOp <$> convert' f1 <*> pure op <*> convert' f2
-      a atom = convertA atom >>= return . atomic
+      i _ _ _ = convertAtom formula
+      p _ _ = convertAtom formula
 
 instance Version InfixPred
 instance Version Quant
