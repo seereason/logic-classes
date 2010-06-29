@@ -18,7 +18,7 @@ instance Skolem V String where
 instance Show (Formula String String) where
     show = showForm
 
-tests = precTests ++ cnfTests
+tests = precTests ++ cnfTests ++ theoremTests
 
 formCase :: PredicateLogic (Formula String String) (Term String) V String String =>
             String -> Formula String String -> Formula String String -> Test
@@ -147,18 +147,19 @@ test8 = formCase "cnf test 8"
       a = var (V "a")
       b = var (V "b")
 
-test9 = formCase "cnf test 9"
-                  (((((.~.) (q [x,y])) .|. (((.~.) (f [x1,x])) .|. (f [x1,y]))) .&.
-                    (((.~.) (q [x,y])) .|. (((.~.) (f [x1,y])) .|. (f [x1,x])))) .&.
-                   (((((f [skZ [x1,y,x],x]) .|. (f [skZ [x1,y,x],y])) .|. (q [x,y])) .&.
-                     ((((.~.) (f [skZ [x1,y,x],y])) .|. (f [skZ [x1,y,x],y])) .|. (q [x,y]))) .&.
-                    ((((f [skZ [x1,y,x],x]) .|. ((.~.) (f [skZ [x1,y,x],x]))) .|. (q [x,y])) .&.
-                     ((((.~.) (f [skZ [x1,y,x],y])) .|. ((.~.) (f [skZ [x1,y,x],x]))) .|. (q [x,y])))))
-                  (cnf (for_all [x'] (for_all [y'] (q [x, y] .<=>. for_all [z'] (f [z, x] .<=>. f [z, y])))))
+test9 =
+    formCase "cnf test 9"
+             (((((.~.) (q [x,y])) .|. ((((.~.) (f [z,x])) .|. ((f [z,y]))))) .&.
+               ((((.~.) (q [x,y])) .|. ((((.~.) (f [z,y])) .|. ((f [z,x]))))))) .&.
+              ((((((f [fApp ("Sk(x1)") [z,y,x],x]) .|. ((f [fApp ("Sk(x1)") [z,y,x],y]))) .|. ((q [x,y]))) .&.
+                 (((((.~.) (f [fApp ("Sk(x1)") [z,y,x],y])) .|. ((f [fApp ("Sk(x1)") [z,y,x],y]))) .|. ((q [x,y]))))) .&.
+                (((((f [fApp ("Sk(x1)") [z,y,x],x]) .|. (((.~.) (f [fApp ("Sk(x1)") [z,y,x],x])))) .|. ((q [x,y]))) .&.
+                  (((((.~.) (f [fApp ("Sk(x1)") [z,y,x],y])) .|. (((.~.) (f [fApp ("Sk(x1)") [z,y,x],x])))) .|. ((q [x,y])))))))))
+             (cnf (for_all [x'] (for_all [y'] (q [x, y] .<=>. for_all [z'] (f [z, x] .<=>. f [z, y])))))
     where
       f = pApp "f"
       q = pApp "q"
-      skZ = fApp "Sk(z)"
+      -- skZ = fApp "Sk(z)"
       (x', y', z') = (V "x", V "y", V "z")
       (x, y, z) = (var x', var y', var z')
 
@@ -169,6 +170,13 @@ test9 = formCase "cnf test 9"
 -- the corresponding operator of a PropositionalLogic instance.
 test9a = TestCase 
            (assertEqual "convert to PropLogic"
+            (Just (CJ [DJ [N (A (q [x,y])),N (A (f [z,x])),A (f [z,y])],
+                       DJ [N (A (q [x,y])),N (A (f [z,y])),A (f [z,x])],
+                       DJ [A (f [fApp ("Sk(x1)") [z,y,x],x]),A (f [fApp ("Sk(x1)") [z,y,x],y]),A (q [x,y])],
+                       DJ [N (A (f [fApp ("Sk(x1)") [z,y,x],y])),A (f [fApp ("Sk(x1)") [z,y,x],y]),A (q [x,y])],
+                       DJ [A (f [fApp ("Sk(x1)") [z,y,x],x]),N (A (f [fApp ("Sk(x1)") [z,y,x],x])),A (q [x,y])],
+                       DJ [N (A (f [fApp ("Sk(x1)") [z,y,x],y])),N (A (f [fApp ("Sk(x1)") [z,y,x],x])),A (q [x,y])]]))
+{-
             (Just (CJ [DJ [N (A (q [x,y])),N (A (f [x1,x])),A (f [x1,y])],
                        DJ [N (A (q [x,y])),N (A (f [x1,y])),A (f [x1,x])],
                        DJ [A (f [skZ [x1,y,x],x]),A (f [skZ [x1,y,x],y]),A (q [x,y])],
@@ -176,6 +184,7 @@ test9a = TestCase
                        DJ [A (f [skZ [x1,y,x],x]),N (A (f [skZ [x1,y,x],x])),A (q [x,y])],
                        DJ [N (A (f [skZ [x1,y,x],y])),N (A (f [skZ [x1,y,x],x])),A (q [x,y])]])
              :: Maybe (PropForm (Formula String String)))
+-}
             ((toPropositional convertA (cnf (for_all [x'] (for_all [y'] (q [x, y] .<=>. for_all [z'] (f [z, x] .<=>. f [z, y])))))) >>=
              return . flatten :: Maybe (PropForm (Formula String String))))
     where
@@ -248,3 +257,36 @@ moveQuantifiersOut1 =
     formCase "moveQuantifiersOut1"
              (for_all [y'] (pApp (fromString "p") [y] .&. (pApp (fromString "q") [x])))
              (moveQuantifiersOut (for_all [x'] (pApp (fromString "p") [x]) .&. (pApp (fromString "q") [x])))
+
+theoremTests = [theorem1 {-, theorem2-}]
+
+theorem1 =
+    TestCase (assertEqual "theorm test 1"
+              (Just True)
+              (theorem (for_all [x'] (((pApp "S" [x] .=>. pApp "H" [x]) .&.
+                                       (pApp "H" [x] .=>. pApp "M" [x])) .=>.
+                                      (pApp "S" [x] .=>. pApp "M" [x])))))
+
+{-
+theorem2 =
+    TestCase (assertEqual "theorm test 2"
+              (Just True)
+              (theorem ((.~.) ((for_all [x'] (((pApp "S" [x] .=>. pApp "H" [x]) .&.
+                                               (pApp "H" [x] .=>. pApp "M" [x]))) .&.
+                                exists [x'] (pApp "S" [x] .&. ((.~.) (pApp "M" [x]))))))))
+-}
+
+type FormulaPF = Formula String String
+type F = PropForm FormulaPF
+
+-- |If the negation of a formula is satisfiable, then the formula was
+-- not a tautology, which is to say, not a theorm.
+-- theorem :: PredicateLogic formula atom term v p f => formula -> Maybe Bool
+theorem :: FormulaPF -> Maybe Bool
+theorem formula = prepare ((.~.) formula) >>= return . not . satisfiable
+
+-- |Prepare ta formula to be passed to the satisfiability function.
+prepare :: FormulaPF -> Maybe F
+prepare formula = (toPropositional convertA . cnf $ formula) {- >>= return . flatten -}
+
+convertA = Just . A
