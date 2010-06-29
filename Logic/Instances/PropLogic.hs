@@ -18,25 +18,27 @@ instance (Logic (PropForm a), Show a) => PropositionalLogic (PropForm a) a where
     foldF0 n b a formula =
         case formula of
           -- EJ [x,y,z,...] -> CJ [EJ [x,y], EJ[y,z], ...]
-          EJ xs -> case pairs xs of
-                     [] -> foldF0 n b a (head xs)
-                     [(x, y)] -> b x (:<=>:) y
-                     ps -> foldF0 n b a (CJ (map (\ (x, y) -> EJ [x, y]) ps))
-          SJ xs -> case pairs xs of
-                     [] -> foldF0 n b a (head xs)
-                     [(x, y)] -> b x (:=>:) y
-                     ps -> foldF0 n b a (CJ (map (\ (x, y) -> SJ [x, y]) ps))
+          EJ [] -> error "Empty EJ"
+          EJ [x] -> fold' x
+          EJ [x0, x1] -> b x0 (:<=>:) x1
+          EJ xs -> fold' (CJ (map (\ (x0, x1) -> EJ [x0, x1]) (pairs xs)))
+          SJ [] -> error "Empty SJ"
+          SJ [x] -> fold' x
+          SJ [x0, x1] -> b x0 (:=>:) x1
+          SJ xs -> fold' (CJ (map (\ (x0, x1) -> SJ [x0, x1]) (pairs xs)))
           DJ [] -> error "Empty disjunct"
-          DJ [x] -> foldF0 n b a x
-          DJ (x0:xs) -> foldF0 n b a (foldl (\ f x -> DJ [f, x]) x0 xs)
+          DJ [x] -> fold' x
+          DJ (x0:xs) -> b x0 (:|:) (DJ xs)
           CJ [] -> error "Empty conjunct"
-          CJ [x] -> foldF0 n b a x
-          CJ (x0:xs) -> foldF0 n b a (foldl (\ f x -> CJ [f, x]) x0 xs)
+          CJ [x] -> fold' x
+          CJ (x0:xs) -> b x0 (:&:) (CJ xs)
           N x -> n x
           -- Not sure what to do about these - so far not an issue.
           T -> error "foldF0 method of PropForm: T"
           F -> error "foldF0 method of PropForm: F"
           A x -> a x
+        where
+          fold' = foldF0 n b a
 
 pairs :: [a] -> [(a, a)]
 pairs (x:y:zs) = (x,y) : pairs (y:zs)
