@@ -180,8 +180,15 @@ moveQuantifiersOut formula =
           foldF n' q' b' i' a' f1
           where
             n' _ = doRHS f1 op f2
+            -- We see (∃X f(x)) | f2, which we want to change to ∃x
+            -- (f(x) | f2).  The problem we have is that there could
+            -- be free occurrences of x in f2 (probably quantified in
+            -- an expression we have already recursed into), so moving
+            -- the quantifier changes the meaning of the expression.
+            -- To avoid this we must find a replacement for x which is
+            -- not free in f2, perhaps y: ∃y (f(y) | f2).
             q' qop vs f =
-                let (f', vs') = renameVars vs f f2 in
+                let (vs', f') = renameFreeVars (freeVars f2) vs f in
                 quant qop vs' (moveQuantifiersOut (doBinOp f' op f2))
             b' _ _ _ = doRHS f1 op f2
             i' _ _ _ = doRHS f1 op f2
@@ -193,7 +200,7 @@ moveQuantifiersOut formula =
           where
             n' _ = doBinOp f1 op f2
             q' qop vs f =
-                let (f', vs') = renameVars vs f f1 in
+                let (vs', f') = renameFreeVars (freeVars f1) vs f in
                 quant qop vs' (moveQuantifiersOut (doBinOp f1 op f'))
             b' _ _ _ = doBinOp f1 op f2
             i' _ _ _ = doBinOp f1 op f2
@@ -202,23 +209,16 @@ moveQuantifiersOut formula =
       doBinOp f1 (:&:) f2 = f1 .&. f2
       doBinOp f1 (:|:) f2 = f1 .|. f2
       doBinOp _ op _ = error $ "moveQuantifierOut: unexpected BinOp " ++ show op
-      -- The variables in vs were quantified in f, now we want to wrap
-      -- the same quantifier around f2, so we must first rename those
-      -- variables in f so they don't collide with any variables in f2.
-            -- vs=[x], f=P, f2=Q -> (y, P(y))
-      renameVars :: [v] -> formula -> formula -> (formula, [v])
-      renameVars vs f f2 =
-          (foldr doPair f prs, (map snd prs))
-          where
-            doPair :: (v, v) -> formula -> formula
-            doPair (old, new) f' = substitute' new old f'
-            -- choose the new names
-            prs :: [(v, v)]
-            prs = fst $ foldr (\ old (ps, dnu) ->
-                                   let new = rename old dnu in
-                                   (((old, new) : ps), S.insert new dnu)) 
-                              ([], allVars f2) vs
-            rename v s = if S.member v s then rename (succ v) s else v
+
+-- Find new variables that are not in the set and substitute free
+-- occurrences in the formula.
+renameFreeVars :: PredicateLogic formula term v p f => S.Set v -> [v] -> formula -> ([v], formula)
+renameFreeVars s vs f =
+    (vs', foldr (\ (new, old) f' -> substitute' new old f') f (zip vs' vs))
+    where
+      pairs = zip vs vs'
+      (vs', _) = foldr (\ v (vs', s') -> let v' = findName s' v in (v' : vs', S.insert v' s')) ([], s) vs
+      findName s' v = if S.member v s' then findName s' (succ v) else v
 
 {-
 distdisjuncts (a :\/ (b :& c)) 
