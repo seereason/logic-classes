@@ -214,10 +214,9 @@ moveQuantifiersOut formula =
 -- occurrences in the formula.
 renameFreeVars :: PredicateLogic formula term v p f => S.Set v -> [v] -> formula -> ([v], formula)
 renameFreeVars s vs f =
-    (vs', foldr (\ (new, old) f' -> substitute' new old f') f (zip vs' vs))
+    (vs'', foldr (\ (new, old) f' -> substitute' new old f') f (zip vs'' vs))
     where
-      pairs = zip vs vs'
-      (vs', _) = foldr (\ v (vs', s') -> let v' = findName s' v in (v' : vs', S.insert v' s')) ([], s) vs
+      (vs'', _) = foldr (\ v (vs', s') -> let v' = findName s' v in (v' : vs', S.insert v' s')) ([], s) vs
       findName s' v = if S.member v s' then findName s' (succ v) else v
 
 {-
