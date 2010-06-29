@@ -120,12 +120,12 @@ showForm :: (PredicateLogic formula term v p f, Show v, Show p, Show f) =>
 showForm formula =
     foldF n q b i a formula
     where
-      n f = "(.~.) " ++ parenForm f
-      q All vs f = "for_all " ++ show vs ++ " " ++ parenForm f
-      q Exists vs f = "exists " ++ show vs ++ " " ++ parenForm f
-      b f1 op f2 = parenForm f1 ++ " " ++ showFormOp op ++ " " ++ parenForm f2
-      i t1 op t2 = parenTerm t1 ++ " " ++ showTermOp op ++ " " ++ parenTerm t2
-      a p ts = "pApp (" ++ show p ++ ") [" ++ intercalate "," (map showTerm ts) ++ "]"
+      n f = "((.~.) " ++ showForm f ++ ")"
+      q All vs f = "(for_all " ++ show vs ++ " " ++ showForm f ++ ")"
+      q Exists vs f = "(exists " ++ show vs ++ " " ++ showForm f ++ ")"
+      b f1 op f2 = "(" ++ showForm f1 ++ " " ++ showFormOp op ++ " " ++ parenForm f2 ++ ")"
+      i t1 op t2 = "(" ++ parenTerm t1 ++ " " ++ showTermOp op ++ " " ++ parenTerm t2 ++ ")"
+      a p ts = "(pApp (" ++ show p ++ ") [" ++ intercalate "," (map showTerm ts) ++ "])"
       parenForm x = "(" ++ showForm x ++ ")"
       parenTerm x = "(" ++ showTerm x ++ ")"
       showFormOp (:<=>:) = ".<=>."
@@ -137,7 +137,7 @@ showForm formula =
       showTerm term =
           foldT v f term
           where
-            v v' = "var " ++ show v'
+            v v' = "var (" ++ show v' ++ ")"
             f fn ts = "fApp (" ++ show fn ++ ") [" ++ intercalate "," (map showTerm ts) ++ "]"
                        
 -- |The 'Quant' and 'InfixPred' types, like the BinOp type in

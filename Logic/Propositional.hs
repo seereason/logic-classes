@@ -39,14 +39,14 @@ class Logic formula => PropositionalLogic formula atom | formula -> atom where
            -> r
 
 -- | Show a formula in a format that can be evaluated 
-showForm0 :: (PropositionalLogic formula atom, Show atom) => formula -> String
-showForm0 formula =
+showForm0 :: (PropositionalLogic formula atom) => (atom -> String) -> formula -> String
+showForm0 showAtom formula =
     foldF0 n b a formula
     where
       n f = "(.~.) " ++ parenForm f
       b f1 op f2 = parenForm f1 ++ " " ++ showFormOp op ++ " " ++ parenForm f2
-      a atom = "atom " ++ show atom
-      parenForm x = "(" ++ showForm0 x ++ ")"
+      a = showAtom
+      parenForm x = "(" ++ showForm0 showAtom x ++ ")"
       showFormOp (:<=>:) = ".<=>."
       showFormOp (:=>:) = ".=>."
       showFormOp (:&:) = ".&."
