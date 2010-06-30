@@ -1,3 +1,10 @@
+haskell-logic (0.7) unstable; urgency=low
+
+  * Change the order of substitution function arguments from (new, old)
+    to (old, new), to match the notation generally used in textbooks.
+
+ -- David Fox <dsf@seereason.com>  Wed, 30 Jun 2010 08:58:54 -0700
+
 haskell-logic (0.6.1) unstable; urgency=low
 
   * Fix a bug in substituteTerm and re-implement skolemize.

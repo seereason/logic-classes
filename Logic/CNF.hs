@@ -41,8 +41,8 @@ skolemize uq f =
       -- We see an exists v, replace occurrences of var v with a skolem function
       q Exists (v:vs) x =
           skolemize uq (quant Exists vs x')
-          where x' = substituteTerm (v', var v) x
-                v' = fApp (skolem v) (map var uq)
+          where x' = substitute v sk x
+                sk = fApp (skolem v) (map var uq)
       q All vs x = {- quant All vs -} (skolemize (uq ++ vs) x)
       b = binOp
       i = infixPred
@@ -219,7 +219,7 @@ moveQuantifiersOut formula =
 -- occurrences in the formula.
 renameFreeVars :: PredicateLogic formula term v p f => S.Set v -> [v] -> formula -> ([v], formula)
 renameFreeVars s vs f =
-    (vs'', foldr (\ (new, old) f' -> substitute' new old f') f (zip vs'' vs))
+    (vs'', substitutePairs (zip vs (map var vs'')) f)
     where
       (vs'', _) = foldr (\ v (vs', s') -> let v' = findName s' v in (v' : vs', S.insert v' s')) ([], s) vs
       findName s' v = if S.member v s' then findName s' (succ v) else v

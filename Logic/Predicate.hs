@@ -21,10 +21,8 @@ module Logic.Predicate
     , quantVars
     , allVars
     , univquant_free_vars
-    , substitute'
     , substitute
-    , substituteTerm
-    , substituteTerms
+    , substitutePairs
     , convertPred
     , convertTerm
     , toPropositional
@@ -196,11 +194,9 @@ univquant_free_vars cnf' =
     if S.null free then cnf' else for_all (S.toList free) cnf'
     where free = freeVars cnf'
 
--- * Substituting variables
-
--- |Substitute new for each free occurrence of old in a formula.
-substitute' :: (PredicateLogic formula term v p f) => v -> v -> formula -> formula
-substitute' new old formula =
+-- |Replace each free occurrence of variable old with term new.
+substitute :: (PredicateLogic formula term v p f) => v -> term -> formula -> formula
+substitute old new formula =
     foldF (\ f' -> (.~.) (sf f'))
               -- If the old variable appears in a quantifier
               -- we can stop doing the substitution.
@@ -210,36 +206,13 @@ substitute' new old formula =
               (\ p ts -> pApp p (map st ts))
               formula
     where
-      sf = substitute' new old
-      st t = foldT (var . sv) (\ func ts -> fApp func (map st ts)) t
-      sv v = if v == old then new else v
+      sf = substitute old new
+      st t = foldT sv (\ func ts -> fApp func (map st ts)) t
+      sv v = if v == old then new else var v
 
--- |Substitute V for the (single) free variable in the formula.
-substitute :: (PredicateLogic formula term v p f) => v -> formula -> formula
-substitute new f =
-    case S.toList (freeVars f) of
-      [old] -> substitute' new old f
-      _ -> error "subtitute: formula must have exactly one free variable"
-
--- |Replace all occurrences of a term with another.
-substituteTerm :: (Eq term, PredicateLogic formula term v p f) => (term, term) -> formula -> formula
-substituteTerm pair@(new, old) formula =
-    foldF n q b i a formula
-    where
-      n = (.~.) . substituteTerm pair
-      q qop vs = quant qop vs . substituteTerm pair
-      b f1 (:<=>:) f2 = substituteTerm pair f1 .<=>. substituteTerm pair f2
-      b f1 (:=>:) f2 = substituteTerm pair f1 .=>. substituteTerm pair f2
-      b f1 (:&:) f2 = substituteTerm pair f1 .&. substituteTerm pair f2
-      b f1 (:|:) f2 = substituteTerm pair f1 .|. substituteTerm pair f2
-      i t1 (:=:) t2 = stt t1 .=. stt t2
-      i t1 (:!=:) t2 = stt t1 .!=. stt t2
-      a p ts = pApp p (map stt ts)
-      stt t = if t == old then new else foldT var (\ x ts -> fApp x (map stt ts)) t
-
--- |Call 'substituteTerm' for each of the @(new,old)@ pairs.
-substituteTerms :: (Eq term, PredicateLogic formula term v p f) => [(term, term)] -> formula -> formula
-substituteTerms pairs formula = foldr substituteTerm formula pairs
+substitutePairs :: (PredicateLogic formula term v p f) => [(v, term)] -> formula -> formula
+substitutePairs pairs formula = 
+    foldr (\ (old, new) formula -> substitute old new formula) formula pairs 
 
 -- |Convert any instance of a first order logic expression to any other.
 convertPred :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
