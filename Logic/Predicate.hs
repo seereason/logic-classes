@@ -227,16 +227,15 @@ substituteTerm pair@(new, old) formula =
     foldF n q b i a formula
     where
       n = (.~.) . substituteTerm pair
-      q All vs = for_all vs . substituteTerm pair
-      q Exists vs = for_all vs . substituteTerm pair
+      q qop vs = quant qop vs . substituteTerm pair
       b f1 (:<=>:) f2 = substituteTerm pair f1 .<=>. substituteTerm pair f2
       b f1 (:=>:) f2 = substituteTerm pair f1 .=>. substituteTerm pair f2
       b f1 (:&:) f2 = substituteTerm pair f1 .&. substituteTerm pair f2
       b f1 (:|:) f2 = substituteTerm pair f1 .|. substituteTerm pair f2
-      i t1 (:=:) t2 = st t1 .=. st t2
-      i t1 (:!=:) t2 = st t1 .!=. st t2
-      a p ts = pApp p (map st ts)
-      st t = if t == old then new else t
+      i t1 (:=:) t2 = stt t1 .=. stt t2
+      i t1 (:!=:) t2 = stt t1 .!=. stt t2
+      a p ts = pApp p (map stt ts)
+      stt t = if t == old then new else foldT var (\ x ts -> fApp x (map stt ts)) t
 
 -- |Call 'substituteTerm' for each of the @(new,old)@ pairs.
 substituteTerms :: (Eq term, PredicateLogic formula term v p f) => [(term, term)] -> formula -> formula
