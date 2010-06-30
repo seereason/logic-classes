@@ -27,21 +27,26 @@ cnf' = t6 . distributeDisjuncts . t5 . skolemize [] . t4 . moveQuantifiersOut . 
       t5 x = trace ("skolmize:            " ++ showForm x) x
       t6 x = trace ("distributeDisjuncts: " ++ showForm x) x
 
+-- |Remove existential quantifiers and replace the variables they
+-- quantify with skolem functions, which are new functions applied to
+-- the variables which are universally quantified in the context that
+-- the existential quantifier appeared.
 skolemize :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term) => [v] -> formula -> formula
-skolemize uq =
-    foldF n q b i a
+skolemize uq f =
+    foldF n q b i a f
     where
       n x = (.~.) (skolemize uq x)
       -- ∃x: p x is satisfiable <=> p x is satisfiable, so we can discard outermost.
-      q Exists _ x | uq == [] = skolemize uq x
-      q Exists vs x = skolemize uq (substituteTerms pairs x) where pairs = zip (map (skolemFunction uq) vs) (map var vs)
-      q All vs x = skolemize (vs ++ uq) x
+      q Exists [] x = skolemize uq x
+      -- We see an exists v, replace occurrences of var v with a skolem function
+      q Exists (v:vs) x =
+          skolemize uq (quant Exists vs x')
+          where x' = substituteTerm (v', var v) x
+                v' = fApp (skolem v) (map var uq)
+      q All vs x = {- quant All vs -} (skolemize (uq ++ vs) x)
       b = binOp
       i = infixPred
       a = pApp
-
-skolemFunction :: (PredicateLogic formula term v p f, Skolem v f) => [v] -> v -> term
-skolemFunction uq v = fApp (skolem v) (map var uq)
 
 {-
 1st order formula

@@ -1,7 +1,8 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, TypeSynonymInstances #-}
+{-# OPTIONS -Wall -Werror -fno-warn-name-shadowing -fno-warn-missing-signatures -fno-warn-orphans #-}
 module Test.Logic (tests) where
 
-import Data.Maybe (fromJust)
+import Data.List (intercalate)
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 import Logic.CNF
@@ -10,6 +11,7 @@ import Logic.Instances.PropLogic
 import Logic.Logic
 import Logic.Predicate
 import PropLogic
+import qualified TextDisplay as TD
 import Test.HUnit
 
 instance Skolem V String where
@@ -18,12 +20,14 @@ instance Skolem V String where
 instance Show (Formula String String) where
     show = showForm
 
+tests :: [Test]
 tests = precTests ++ cnfTests ++ theoremTests
 
 formCase :: PredicateLogic (Formula String String) (Term String) V String String =>
             String -> Formula String String -> Formula String String -> Test
 formCase s expected input = TestCase (assertEqual s expected input)
 
+precTests :: [Test]
 precTests =
     [ formCase "prec test 1"
                -- Note that the result of cnf is a conjunction of disjunctions, which
@@ -58,21 +62,26 @@ precTests =
       b = pApp ("b") []
       c = pApp ("c") []
 
+cnfTests :: [Test]
 cnfTests = [test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test9a,
-            moveQuantifiersOut1]
+            moveQuantifiersOut1, skolemize1]
 
 p vs = pApp "p" vs
 q vs = pApp "q" vs
 r vs = pApp "r" vs
 s vs = pApp "s" vs
 x' = V "x"
-x1' = V "x1"
 y' = V "y"
 z' = V "z"
+u' = V "u"
+v' = V "v"
+w' = V "w"
 x = var x'
-x1 = var x1'
 y = var y'
 z = var z'
+u = var u'
+v = var v'
+w = var w'
 
 -- Test cases from http://www.cs.miami.edu/~geoff/Courses/CS63S-09S/Content/FOFToCNF.shtml
 -- 
@@ -108,7 +117,7 @@ test6 = formCase "cnf test 6"
                   ((.~.) p .|. f skX)
                   (cnf (exists [x'] (p .=>. f x)))
     where
-      skX = x
+      skX = fApp "Sk(x)" []
       f x = pApp "f" [x]
       p = pApp "p" []
 
@@ -117,12 +126,12 @@ test7 = formCase "cnf test 7"
                   -- (((.~.) p) .|. f skX .&. p .|. ((.~.) (f skX)))
                   -- This is what we are currently getting from our
                   -- code, which is different but still may be correct.  However, we may
-                  ((((.~.) p) .|. (f x)) .&. (((.~.) (f x)) .|. p))
+                  ((((.~.) p) .|. (f skX)) .&. (((.~.) (f skX)) .|. p))
                   -- (((p []) .|. (p [])) .&. ((((.~.) (f [x])) .|. ((.~.) (f [x]))) .|. (p [])))
                   -- p
                   (cnf (exists [x'] (p .<=>. f x)))
     where
-      skX = V "skX"
+      skX = fApp "Sk(x)" []
       f x = pApp "f" [x]
       p = pApp "p" []
 
@@ -141,20 +150,16 @@ test8 = formCase "cnf test 8"
       (x', y', z') = (V "x", V "y", V "z")
       (x, y, z) = (var x', var y', var z')
       yOfZ = fApp "Sk(y)" [z]
-      -- yz = fApp "y" ["z"]
-      skY b = fApp "Sk(y)" [b]
       f vs = pApp "f" vs
-      a = var (V "a")
-      b = var (V "b")
 
 test9 =
     formCase "cnf test 9"
              (((((.~.) (q [x,y])) .|. ((((.~.) (f [z,x])) .|. ((f [z,y]))))) .&.
                ((((.~.) (q [x,y])) .|. ((((.~.) (f [z,y])) .|. ((f [z,x]))))))) .&.
-              ((((((f [fApp ("Sk(x1)") [z,y,x],x]) .|. ((f [fApp ("Sk(x1)") [z,y,x],y]))) .|. ((q [x,y]))) .&.
-                 (((((.~.) (f [fApp ("Sk(x1)") [z,y,x],y])) .|. ((f [fApp ("Sk(x1)") [z,y,x],y]))) .|. ((q [x,y]))))) .&.
-                (((((f [fApp ("Sk(x1)") [z,y,x],x]) .|. (((.~.) (f [fApp ("Sk(x1)") [z,y,x],x])))) .|. ((q [x,y]))) .&.
-                  (((((.~.) (f [fApp ("Sk(x1)") [z,y,x],y])) .|. (((.~.) (f [fApp ("Sk(x1)") [z,y,x],x])))) .|. ((q [x,y])))))))))
+              ((((((f [fApp ("Sk(x1)") [x,y,z],x]) .|. ((f [fApp ("Sk(x1)") [x,y,z],y]))) .|. ((q [x,y]))) .&.
+                 (((((.~.) (f [fApp ("Sk(x1)") [x,y,z],y])) .|. ((f [fApp ("Sk(x1)") [x,y,z],y]))) .|. ((q [x,y]))))) .&.
+                (((((f [fApp ("Sk(x1)") [x,y,z],x]) .|. (((.~.) (f [fApp ("Sk(x1)") [x,y,z],x])))) .|. ((q [x,y]))) .&.
+                  (((((.~.) (f [fApp ("Sk(x1)") [x,y,z],y])) .|. (((.~.) (f [fApp ("Sk(x1)") [x,y,z],x])))) .|. ((q [x,y])))))))))
              (cnf (for_all [x'] (for_all [y'] (q [x, y] .<=>. for_all [z'] (f [z, x] .<=>. f [z, y])))))
     where
       f = pApp "f"
@@ -172,43 +177,33 @@ test9a = TestCase
            (assertEqual "convert to PropLogic"
             (Just (CJ [DJ [N (A (q [x,y])),N (A (f [z,x])),A (f [z,y])],
                        DJ [N (A (q [x,y])),N (A (f [z,y])),A (f [z,x])],
-                       DJ [A (f [fApp ("Sk(x1)") [z,y,x],x]),A (f [fApp ("Sk(x1)") [z,y,x],y]),A (q [x,y])],
-                       DJ [N (A (f [fApp ("Sk(x1)") [z,y,x],y])),A (f [fApp ("Sk(x1)") [z,y,x],y]),A (q [x,y])],
-                       DJ [A (f [fApp ("Sk(x1)") [z,y,x],x]),N (A (f [fApp ("Sk(x1)") [z,y,x],x])),A (q [x,y])],
-                       DJ [N (A (f [fApp ("Sk(x1)") [z,y,x],y])),N (A (f [fApp ("Sk(x1)") [z,y,x],x])),A (q [x,y])]]))
-{-
-            (Just (CJ [DJ [N (A (q [x,y])),N (A (f [x1,x])),A (f [x1,y])],
-                       DJ [N (A (q [x,y])),N (A (f [x1,y])),A (f [x1,x])],
-                       DJ [A (f [skZ [x1,y,x],x]),A (f [skZ [x1,y,x],y]),A (q [x,y])],
-                       DJ [N (A (f [skZ [x1,y,x],y])),A (f [skZ [x1,y,x],y]),A (q [x,y])],
-                       DJ [A (f [skZ [x1,y,x],x]),N (A (f [skZ [x1,y,x],x])),A (q [x,y])],
-                       DJ [N (A (f [skZ [x1,y,x],y])),N (A (f [skZ [x1,y,x],x])),A (q [x,y])]])
-             :: Maybe (PropForm (Formula String String)))
--}
+                       DJ [A (f [fApp ("Sk(x1)") [x,y,z],x]),A (f [fApp ("Sk(x1)") [x,y,z],y]),A (q [x,y])],
+                       DJ [N (A (f [fApp ("Sk(x1)") [x,y,z],y])),A (f [fApp ("Sk(x1)") [x,y,z],y]),A (q [x,y])],
+                       DJ [A (f [fApp ("Sk(x1)") [x,y,z],x]),N (A (f [fApp ("Sk(x1)") [x,y,z],x])),A (q [x,y])],
+                       DJ [N (A (f [fApp ("Sk(x1)") [x,y,z],y])),N (A (f [fApp ("Sk(x1)") [x,y,z],x])),A (q [x,y])]]))
             ((toPropositional convertA (cnf (for_all [x'] (for_all [y'] (q [x, y] .<=>. for_all [z'] (f [z, x] .<=>. f [z, y])))))) >>=
              return . flatten :: Maybe (PropForm (Formula String String))))
     where
       f = pApp "f"
       q = pApp "q"
-      skZ = FunApp "Sk(z)"
       convertA = Just . A
 
 test10 = formCase "cnf test 10"
-                  (((q [skY [x],z,t]) .|. (p [x,skY [x]])) .&. (((.~.) (r [skY [x]])) .|. (p [x,skY [x]])))
+                  (((q [skY [x],skZ [x],skT [x]]) .|. ((p [x,skY [x]]))) .&. ((((.~.) (r [skY [x]])) .|. ((p [x,skY [x]])))))
                   (cnf (for_all [x'] (exists [y'] ((p [x, y] .<=. for_all [x'] (exists [t'] (q [y, x, t]) .=>. r [y]))))))
     where
-      a = var (V "a")
-      b = var (V "b")
       t' = V "t"
       t = var t'
       p = pApp "p"
       q = pApp "q"
       r = pApp "r"
       skY = fApp "Sk(y)"
+      skZ = fApp "Sk(z)"
+      skT = fApp "Sk(t)"
 
 test11 = formCase "cnf test 11"
                   -- This one didn't come with a solution - here's ours
-                  ((((.~.) (p [x,z])) .|. ((.~.) (q [x,skY [z,x]]))) .&. (((.~.) (p [x,z])) .|. (r [skY [z,x],z])))
+                  ((((.~.) (p [x,z])) .|. ((.~.) (q [x,skY [x,z]]))) .&. (((.~.) (p [x,z])) .|. (r [skY [x,z],z])))
                   (cnf (for_all [x'] (for_all [z'] (p [x, z] .=>. exists [y'] ((.~.) (q [x, y] .|. ((.~.) (r [y, z]))))))))
     where
       p = pApp "p"
@@ -222,43 +217,21 @@ test12 = formCase "cnf test 12"
     where
       [p, q, r, s, t] = map (\ s -> pApp s []) ["p", "q", "r", "s", "t"]
 
-{-
-test1 = TestCase
-        (assertEqual "Logic Test 1"
-         (TD.textFrame
-          (PL.truthTable
-           (PL.A
-            -- All S2 are 12% S1
-            (SeeReason.Types.A
-             (Primitive (Reference (SubjectId 2)))
-             (Primitive (Description np [Percentage 12.0, S (SubjectId 1)]))))))
-         -- (runLogicM defaultValue "" (renderSubject (Subject 1)))
-         ["+------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------+"
-         ,"| A (Primitive (Reference (SubjectId {unSubjectId = 2}))) (Primitive (Description NounPhrase [Percentage 12.0,S (SubjectId {unSubjectId = 1})])) | A (Primitive (Reference (SubjectId {unSubjectId = 2}))) (Primitive (Description NounPhrase [Percentage 12.0,S (SubjectId {unSubjectId = 1})])) |"
-         ,"+------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------+"
-         ,"|                                                                       0                                                                        |                                                                       0                                                                        |"
-         ,"+------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------+"
-         ,"|                                                                       1                                                                        |                                                                       1                                                                        |"
-         ,"+------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------+"])
-
-test2 = TestCase
-        (assertEqual "Logic Test 1"
-         (PL.satisfiable
-          (PL.CJ
-           [PL.A (SeeReason.Types.A
-                  (Primitive (Reference (SubjectId 2)))
-                  (Primitive (Description np [Percentage 12.0, S (SubjectId 1)]))),
-            PL.F]))
-         -- (runLogicM defaultValue "" (renderSubject (Subject 1)))
-         True)
--}
-
 moveQuantifiersOut1 =
     formCase "moveQuantifiersOut1"
              (for_all [y'] (pApp (fromString "p") [y] .&. (pApp (fromString "q") [x])))
              (moveQuantifiersOut (for_all [x'] (pApp (fromString "p") [x]) .&. (pApp (fromString "q") [x])))
 
-theoremTests = [theorem1 {-, theorem2-}]
+skolemize1 :: Test
+skolemize1 =
+    formCase "skolemize1" expected formula
+    where
+      expected :: Formula String String
+      expected = pApp "P" [fApp ("Sk(x)") [], y, z, fApp ("Sk(u)") [y, z], v, fApp "Sk(w)" [y, z, v]]
+      formula :: Formula String String
+      formula = (skolemize [] (exists [x'] (for_all [y', z'] (exists [u'] (for_all [v'] (exists [w'] (pApp "P" [x, y, z, u, v, w])))))))
+
+theoremTests = [theorem1 {-, theorem1a, theorem1b, theorem1c, theorem1d, theorem2-}]
 
 theorem1 =
     TestCase (assertEqual "theorm test 1"
@@ -267,7 +240,48 @@ theorem1 =
                                        (pApp "H" [x] .=>. pApp "M" [x])) .=>.
                                       (pApp "S" [x] .=>. pApp "M" [x])))))
 
+instance TD.Display (Formula String String) where
+    textFrame x = [quickShow x]
+        where
+          quickShow =
+              foldF (\ _ -> error "Expecting atoms")
+                    (\ _ _ _ -> error "Expecting atoms")
+                    (\ _ _ _ -> error "Expecting atoms")
+                    (\ t1 op t2 -> quickShowTerm t1 ++ quickShowOp op ++ quickShowTerm t2)
+                    (\ p ts -> quickShowPred p ++ quickShowTerms ts)
+          quickShowTerm (Var v) = quickShowVar v
+          quickShowTerm (FunApp fn ts) = quickShowFn fn ++ quickShowTerms ts
+          quickShowTerms xs = "(" ++ intercalate "," (map quickShowTerm xs) ++ ")"
+          quickShowVar (V s) = s
+          quickShowPred s = s
+          quickShowFn s = s
+          quickShowOp (:=:) = "="
+          quickShowOp (:!=:) = "!="
+
 {-
+-- Truth table tests, find a more reasonable result value than [String].
+
+(theorem1a, theorem1b, theorem1c, theorem1d) =
+    ( TestCase (assertEqual "truth table 1"
+                (Just ["foo"])
+                (prepare (for_all [x'] (((s [x] .=>. h [x]) .&. (h [x] .=>. m [x])) .=>. (s [x] .=>. m [x]))) >>=
+                 return . TD.textFrame . truthTable))
+    , TestCase (assertEqual "truth table 2"
+                (Just ["foo"])
+                (prepare (exists [x'] ((s [x] .=>. h [x]) .&. (h [x] .=>. m [x]) .&. s [x] .&. ((.~.) (m [x])))) >>=
+                 return . TD.textFrame . truthTable))
+    , TestCase (assertEqual "truth table 3"
+                (Just ["foo"])
+                (prepare (exists [x'] ((s [x] .=>. h [x]) .&. (h [x] .=>. m [x]) .&. s [x] .&. m [x])) >>=
+                 return . TD.textFrame . truthTable))
+    , TestCase (assertEqual "truth table 4"
+                (Just ["foo"])
+                (prepare (for_all [x'] (s [x] .=>. h [x]) .&. for_all [x'] (h [x] .=>. m [x]) .&. exists [x'] (s [x]) .&. exists [x'] (((.~.) (m [x])))) >>=
+                 return . TD.textFrame . truthTable)) )
+    where s = pApp "S"
+          h = pApp "H"
+          m = pApp "M"
+
 theorem2 =
     TestCase (assertEqual "theorm test 2"
               (Just True)
