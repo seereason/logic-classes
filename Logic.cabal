@@ -7,18 +7,18 @@ Synopsis:         Library for unifying various treatments of first order logic
 Description:      Library for unifying various treatments of propositional (zeroth order)
                   and predicate (first order) logic.  Includes polymorphic functions to
                   convert between different instances, for doing variable substitution and
-                  free variable gathering, and for conversion to CNF.
+                  free variable gathering, and for conversion to various normal forms.
 Build-Type:       Custom
 Category:         Math
 Cabal-version:    >= 1.2
 
 Library
  GHC-options: -threaded -Wall -Werror -O2
- Exposed-Modules:  Logic.CNF,
-                   Logic.Instances.Parameterized,
+ Exposed-Modules:  Logic.Instances.Parameterized,
                    Logic.Instances.PropLogic,
                    Logic.Instances.TPTP,
                    Logic.Logic,
+                   Logic.NormalForm,
                    Logic.Predicate,
                    Logic.Propositional
  Build-Depends:    base, containers, fgl, happstack-data,

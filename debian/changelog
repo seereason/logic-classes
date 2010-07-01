@@ -3,6 +3,8 @@ haskell-logic (0.8) unstable; urgency=low
   * Modify skolemize so it leaves the universal quantifiers on its
     result, and add a function removeUniversal to remove them.  We
     envision having a use for those quantifiers some time soon.
+  * Use standard names for the various normal forms, move Logic.CNF
+    to Logic.NormalForm.
 
  -- David Fox <dsf@seereason.com>  Wed, 30 Jun 2010 18:28:00 -0700
 

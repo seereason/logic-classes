@@ -1,14 +1,40 @@
 {-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
-module Logic.CNF
-    ( cnf
-    , cnfNoQuants
+-- |A series of transformations to convert first order logic formulas
+-- into (ultimately) Clause Normal Form.
+-- 
+-- @
+-- 1st order formula:
+--   ∀Y (∀X (taller(Y,X) | wise(X)) => wise(Y))
+-- 
+-- Simplify
+--   ∀Y (~∀X (taller(Y,X) | wise(X)) | wise(Y))
+-- 
+-- Move negations in - Negation Normal Form
+--   ∀Y (∃X (~taller(Y,X) & ~wise(X)) | wise(Y))
+-- 
+-- Move quantifiers out - Prenex Normal Form
+--   ∀Y (∃X ((~taller(Y,X) & ~wise(X)) | wise(Y)))
+-- 
+-- Distribute disjunctions
+--   ∀Y ∃X ((~taller(Y,X) | wise(Y)) & (~wise(X) | wise(Y)))
+-- 
+-- Skolemize  - Skolem Normal Form
+--   ∀Y (~taller(Y,x(Y)) | wise(Y)) & (~wise(x(Y)) | wise(Y))
+-- 
+-- Convert to CNF
+--   { ~taller(Y,x(Y)) | wise(Y),
+--     ~wise(x(Y)) | wise(Y) } 
+-- @
+-- 
+module Logic.NormalForm
+    ( simplify
+    , negationNormalForm
+    , prenexNormalForm
+    , disjunctiveNormalForm
+    , skolemNormalForm
+    , clauseNormalForm
+    , cnf
     , cnfTraced
-    , simplify
-    , moveNegationsIn
-    , moveQuantifiersOut
-    , skolemize
-    , removeUniversal
-    , distributeDisjuncts
     ) where
 
 import Debug.Trace
@@ -16,93 +42,14 @@ import qualified Data.Set as S
 import Logic.Logic
 import Logic.Predicate
 
--- |Turn a formula into clause normal form.
-cnf :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v) => formula -> formula
-cnf = distributeDisjuncts . skolemize [] . moveQuantifiersOut . moveNegationsIn . simplify
-
--- |Run cnf and then remove all the universal quantifiers from the
--- outside of the formula.  It can be shown that this will actually
--- remove all the remaining quantifiers.
-cnfNoQuants :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v) => formula -> formula
-cnfNoQuants = removeUniversal . cnf
-
--- |Run the CNF algorithm and output a trace of the steps.
-cnfTraced :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v, Show v, Show p, Show f) => formula -> formula
-cnfTraced = t6 . distributeDisjuncts . t5 . skolemize [] . t4 . moveQuantifiersOut . t3 . moveNegationsIn . t2 . simplify . t1
-    where
-      t1 x = trace ("\ninput:               " ++ showForm x) x
-      t2 x = trace ("simplified:          " ++ showForm x) x
-      t3 x = trace ("moveNegationsIn:     " ++ showForm x) x
-      t4 x = trace ("moveQuantifiersOut:  " ++ showForm x) x
-      t5 x = trace ("skolmize:            " ++ showForm x) x
-      t6 x = trace ("distributeDisjuncts: " ++ showForm x) x
-
--- |Remove the outermost universal quantifiers, presumably after
--- skolemization has moved all such quantifiers to the outside and
--- made them unnecessary.
-removeUniversal ::(PredicateLogic formula term v p f, Skolem v f) => formula -> formula
-removeUniversal formula =
-    foldF (.~.) removeAll binOp infixPred pApp formula
-    where
-      removeAll All _ f = removeUniversal f
-      removeAll Exists vs f = exists vs (removeUniversal f)
-
--- |Remove existential quantifiers and replace the variables they
--- quantify with skolem functions, which are new functions applied to
--- the variables which are universally quantified in the context that
--- the existential quantifier appeared.
-skolemize :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term) => [v] -> formula -> formula
-skolemize uq f =
-    foldF n q b i a f
-    where
-      n x = (.~.) (skolemize uq x)
-      -- ∃x: p x is satisfiable <=> p x is satisfiable, so we can discard outermost.
-      q Exists [] x = skolemize uq x
-      -- We see an exists v, replace occurrences of var v with a skolem function
-      q Exists (v:vs) x =
-          skolemize uq (quant Exists vs x')
-          where x' = substitute v sk x
-                -- Only add arguments for the variables which are free in x
-                sk = fApp (skolem v) (map var (filter free uq))
-                free v' = S.member v' (freeVars x)
-      q All vs x = quant All vs (skolemize (uq ++ vs) x)
-      b = binOp
-      i = infixPred
-      a = pApp
-
-{-
-1st order formula
-∀Y (∀X (taller(Y,X) | wise(X)) => wise(Y))
-
-Simplify
-∀Y (~∀X (taller(Y,X) | wise(X)) | wise(Y))
-
-Move negations in
-∀Y (∃X (~taller(Y,X) & ~wise(X)) | wise(Y))
-
-Move quantifiers out
-∀Y (∃X ((~taller(Y,X) & ~wise(X)) | wise(Y)))
-
-Skolemize
-∃X ((~taller(Y,X) & ~wise(X)) | wise(Y)) γ = {Y}
-(~taller(Y,x(Y)) & ~wise(x(Y))) | wise(Y)
-
-Distribute disjunctions
-(~taller(Y,x(Y)) | wise(Y)) & (~wise(x(Y)) | wise(Y))
-
-Convert to CNF
-{ ~taller(Y,x(Y)) | wise(Y),
-~wise(x(Y)) | wise(Y) } 
--}
-
-{-
-Simplify:
-
-P <~> Q 	(P | Q) & (~P | ~Q)
-P <=> Q 	(P => Q) & (Q => P)
-P => Q  	~P | Q
--}
-
+-- |Simplify:
+-- 
+-- @
+--  P <~> Q     (P | Q) & (~P | ~Q)
+--  P <=> Q     (P => Q) & (Q => P)
+--  P => Q      ~P | Q
+-- @
+-- 
 simplify :: PredicateLogic formula term v p f => formula -> formula
 simplify =
     foldF n q b i a
@@ -113,34 +60,25 @@ simplify =
       b f1 (:&:) f2 = simplify f1 .&. simplify f2
       b f1 (:|:) f2 = simplify f1 .|. simplify f2
       b f1 (:=>:) f2 = ((.~.) (simplify f1)) .|. simplify f2
-      -- b f1 (:<=>:) f2 = simplify (f1 .=>. f2 .&. f2 .=>. f1)
-      b f1 (:<=>:) f2 = simplify ((((.~.) (simplify f1)) .|. simplify f2) .&. (((.~.) (simplify f2)) .|. simplify f1))
+      b f1 (:<=>:) f2 = simplify ((f1 .=>. f2) .&. (f2 .=>. f1))
       n f = (.~.) (simplify f)
       i t1 (:=:) t2 = t1 .=. t2
       i t1 (:!=:) t2 = t1 .!=. t2
       a p ts = pApp p ts
-{-
-removeArrows (Forall x y) = Forall x (removeArrows y)
-removeArrows (Exists x y) = Exists x (removeArrows y)
-removeArrows (Not a)    = makeNeg  (removeArrows a)
-removeArrows (a :& b)   = makeConj (removeArrows a) (removeArrows b)
-removeArrows (a :\/ b)  = makeDisj (removeArrows a) (removeArrows b)
-removeArrows (a :-> b)  = makeDisj (makeNeg (removeArrows a)) (removeArrows b)
-removeArrows (a :<-> b) = makeDisj (makeConj(removeArrows a)  (removeArrows b))
-                                   (makeConj(makeNeg (removeArrows a)) 
-                                            (makeNeg(removeArrows b)))
-removeArrows  e = e
--}
 
-{-
-Move negations in
-Formula	Rewrites to
-~∀X P 	∃X ~P
-~∃X P 	∀X ~P
-~(P & Q) 	(~P | ~Q)
-~(P | Q) 	(~P & ~Q)
-~~P 	P
--}
+-- |Simplify and then move negations inwards:
+-- 
+-- @
+-- Formula      Rewrites to
+-- ~∀X P        ∃X ~P
+-- ~∃X P        ∀X ~P
+-- ~(P & Q)     (~P | ~Q)
+-- ~(P | Q)     (~P & ~Q)
+-- ~~P  P
+-- @
+-- 
+negationNormalForm :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v) => formula -> formula
+negationNormalForm = moveNegationsIn . simplify
 
 moveNegationsIn :: PredicateLogic formula term v p f => formula -> formula
 moveNegationsIn =
@@ -171,24 +109,29 @@ moveNegationsIn =
             a' p ts = (.~.) (pApp p ts)
 
 
--- |Move quantifiers out
+-- |Convert to Negation Normal Form and then move quantifiers outwards:
 -- 
--- > Formula	Rewrites to
--- > ∀X P & Q 	∀X (P & Q)
--- > ∃X P & Q 	∃X (P & Q)
--- > Q & ∀X P 	∀X (Q & P)
--- > Q & ∃X P 	∃X (Q & P)
--- > ∀X P | Q 	∀X (P | Q)
--- > ∃X P | Q 	∃X (P | Q)
--- > Q | ∀X P 	∀X (Q | P)
--- > Q | ∃XP 	∃X (Q | P)
+-- @
+--  Formula     Rewrites to
+--  ∀X P & Q    ∀X (P & Q)
+--  ∃X P & Q    ∃X (P & Q)
+--  Q & ∀X P    ∀X (Q & P)
+--  Q & ∃X P    ∃X (Q & P)
+--  ∀X P | Q    ∀X (P | Q)
+--  ∃X P | Q    ∃X (P | Q)
+--  Q | ∀X P    ∀X (Q | P)
+--  Q | ∃XP     ∃X (Q | P)
+-- @
 -- 
 -- We also need to do some variable renaming here, so that in an
--- example like @∀X P & Q -> ∀X (P & Q)@ there are no references to X
+-- example like @&#8704;X P & Q -> &#8704;X (P & Q)@ there are no references to X
 -- in Q.  We choose to examine Q and if X appears there, find another
 -- variable which does not appear and change occurrences of X in P to
 -- this new variable.  We could instead modify Q, but that looks
 -- slightly more tedious.
+prenexNormalForm :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v) => formula -> formula
+prenexNormalForm = moveQuantifiersOut . negationNormalForm
+
 moveQuantifiersOut :: forall formula term v p f. (PredicateLogic formula term v p f, Enum v) => formula -> formula
 moveQuantifiersOut formula =
     foldF n q b i a formula
@@ -246,32 +189,17 @@ renameFreeVars s vs f =
       (vs'', _) = foldr (\ v (vs', s') -> let v' = findName s' v in (v' : vs', S.insert v' s')) ([], s) vs
       findName s' v = if S.member v s' then findName s' (succ v) else v
 
-{-
-distdisjuncts (a :\/ (b :& c)) 
- | a == b    = distdisjuncts a
- | a == c    = distdisjuncts a 
- | otherwise = distdisjuncts  (makeConj (distdisjuncts (makeDisj a b))  
-                                        (distdisjuncts (makeDisj a c)))
+-- |Convert to Prenex Normal Form and then distribute the disjunctions over the conjunctions:
+-- 
+-- @
+-- Formula      Rewrites to
+-- P | (Q & R)  (P | Q) & (P | R)
+-- (Q & R) | P  (Q | P) & (R | P)
+-- @
+-- 
+disjunctiveNormalForm :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v) => formula -> formula
+disjunctiveNormalForm = distributeDisjuncts . prenexNormalForm
 
-distdisjuncts ((a :& b) :\/ c) 
- | c == b    = distdisjuncts c
- | c == a    = distdisjuncts c
- | otherwise = distdisjuncts (makeConj (distdisjuncts(makeDisj c a))
-                                       (distdisjuncts(makeDisj c b)))
-
-distdisjuncts (a :&  b)  =  makeConj (distdisjuncts a) (distdisjuncts b)
-distdisjuncts (a :\/ b)  =  makeDisj (distdisjuncts a) (distdisjuncts b)
-distdisjuncts e = e
--}
-
-{-
-Distribute disjunctions
-Formula	Rewrites to
-P | (Q & R) 	(P | Q) & (P | R)
-(Q & R) | P 	(Q | P) & (R | P)
--}            
-
--- a|(b&c) -> (a|b)&(a|c)
 distributeDisjuncts :: (Eq formula, PredicateLogic formula term v p f) => formula -> formula
 distributeDisjuncts =
     foldF n q b i a
@@ -308,3 +236,61 @@ distributeDisjuncts =
             b' _ _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
             i' _ _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
             a' _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
+
+-- |Convert to Disjunctive Normal Form and then Skolemize.  This means
+-- removing the existential quantifiers and replacing the variables
+-- they quantify with skolem functions (and constants, which are
+-- functions of zero variables.)  The Skolem functions are new
+-- functions applied to the list of variables which are universally
+-- quantified in the context where the existential quantifier
+-- appeared.
+skolemNormalForm :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v) => formula -> formula
+skolemNormalForm = skolemize [] . disjunctiveNormalForm
+
+skolemize :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term) => [v] -> formula -> formula
+skolemize uq f =
+    foldF n q b i a f
+    where
+      n x = (.~.) (skolemize uq x)
+      -- ∃x: p x is satisfiable <=> p x is satisfiable, so we can discard outermost.
+      q Exists [] x = skolemize uq x
+      -- We see an exists v, replace occurrences of var v with a skolem function
+      q Exists (v:vs) x =
+          skolemize uq (quant Exists vs x')
+          where x' = substitute v sk x
+                -- Only add arguments for the variables which are free in x
+                sk = fApp (skolem v) (map var (filter free uq))
+                free v' = S.member v' (freeVars x)
+      q All vs x = quant All vs (skolemize (uq ++ vs) x)
+      b = binOp
+      i = infixPred
+      a = pApp
+
+-- |Convert to Skolem Normal Form and then remove the outermost
+-- universal quantifiers.  Due to the nature of Skolem Normal Form,
+-- this is actually all the remaining quantifiers, the result is
+-- effectively a propositional logic formula.
+clauseNormalForm :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v) => formula -> formula
+clauseNormalForm = removeUniversal . skolemNormalForm
+
+removeUniversal ::(PredicateLogic formula term v p f, Skolem v f) => formula -> formula
+removeUniversal formula =
+    foldF (.~.) removeAll binOp infixPred pApp formula
+    where
+      removeAll All _ f = removeUniversal f
+      removeAll Exists vs f = exists vs (removeUniversal f)
+
+-- |Nickname for clauseNormalForm.
+cnf :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v) => formula -> formula
+cnf = clauseNormalForm
+
+-- |Nickname for clauseNormalForm.
+cnfTraced :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v, Show formula) => formula -> formula
+cnfTraced = t6 . removeUniversal . t5 . skolemize [] . t4 . distributeDisjuncts . t3 . moveQuantifiersOut . t2 . moveNegationsIn . simplify . t1
+    where
+      t1 x = trace ("\ninput: " ++ show x) x
+      t2 x = trace ("NNF:   " ++ show x) x
+      t3 x = trace ("PNF:   " ++ show x) x
+      t4 x = trace ("DNF:   " ++ show x) x
+      t5 x = trace ("SNF:   " ++ show x) x
+      t6 x = trace ("CNF:   " ++ show x) x

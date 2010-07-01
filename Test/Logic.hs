@@ -5,12 +5,12 @@ module Test.Logic (tests) where
 import Data.List (intercalate)
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
-import Logic.CNF
-import Logic.Instances.Parameterized
-import Logic.Instances.PropLogic
-import Logic.Logic
-import Logic.Predicate
-import PropLogic
+import Logic.Instances.Parameterized (Formula(..), Term(..), V(..))
+import Logic.Instances.PropLogic (flatten)
+import Logic.Logic (Logic(..))
+import Logic.NormalForm
+import Logic.Predicate (PredicateLogic(..), InfixPred(..), Skolem(..), toPropositional, showForm, freeVars, substitute)
+import PropLogic (PropForm(..), truthTable, satisfiable)
 import qualified TextDisplay as TD
 import Test.HUnit
 
@@ -92,7 +92,7 @@ w = var w'
 
 test1 =
     formCase "cnf test 1"
-              (for_all [y'] ((((.~.) (taller y xy)) .|. (wise y)) .&. ((.~.) (wise xy) .|. (wise y))))
+              ((((.~.) (taller y xy)) .|. (wise y)) .&. ((.~.) (wise xy) .|. (wise y)))
               (cnf (for_all [y'] (for_all [x'] (taller y x .|. wise x) .=>. wise y)))
         where
           xy = fApp (fromString "Sk(x)") [y]
@@ -100,18 +100,18 @@ test1 =
           wise a = pApp "wise" [a]
 
 test2 = formCase "cnf test 2"
-                  (for_all [x'] (((.~.) (pApp "s" [x])) .|. ((.~.) (pApp "q" [x]))))
+                  (((.~.) (pApp "s" [x])) .|. ((.~.) (pApp "q" [x])))
                   (cnf ((.~.) (exists [x'] (pApp "s" [x] .&. pApp "q" [x]))))
 test3 = formCase "cnf test 3"
-                  (for_all [x'] (((.~.) (p [x])) .|. ((q [x]) .|. (r [x]))))
+                  (((.~.) (p [x])) .|. ((q [x]) .|. (r [x])))
                   (cnf (for_all [x'] (p [x] .=>. (q [x] .|. r [x]))))
 
 test4 = formCase "cnf test 4"
-                  (for_all [x'] (for_all [y'] (p [x] .&. (.~.) (q [y]))))
+                  (p [x] .&. (.~.) (q [y]))
                   (cnf ((.~.) (exists [x'] (p [x] .=>. exists [x'] (q [x])))))
 
 test5 = formCase "cnf test 5"
-                  (for_all [x'] ((((.~.) (q [x])) .|. s [x]) .&. (((.~.) (r [x])) .|. s [x])))
+                  ((((.~.) (q [x])) .|. s [x]) .&. (((.~.) (r [x])) .|. s [x]))
                   (cnf (for_all [x'] (q [x] .|. r [x] .=>. s [x])))
 
 test6 = formCase "cnf test 6"
@@ -137,11 +137,9 @@ test7 = formCase "cnf test 7"
       p = pApp "p" []
 
 test8 = formCase "cnf test 8"
-                 (for_all [z']
-                  (for_all [x'] 
-                   (((((.~.) (f [x, yOfZ])) .|. (f [x, z])) .&.
-                     (((.~.) (f [x, yOfZ])) .|. ((.~.) (f [x, x])))) .&.
-                    ((((.~.) (f [x, z])) .|. (f [x, x])) .|. (f [x, yOfZ])))))
+                 (((((.~.) (f [x, yOfZ])) .|. (f [x, z])) .&.
+                   (((.~.) (f [x, yOfZ])) .|. ((.~.) (f [x, x])))) .&.
+                  ((((.~.) (f [x, z])) .|. (f [x, x])) .|. (f [x, yOfZ])))
 
                  (cnf (for_all [z'] (exists [y'] (for_all [x'] (f [x, y] .<=>. (f [x, z] .&. ((.~.) (f [x, x]))))))))
     where
@@ -152,15 +150,12 @@ test8 = formCase "cnf test 8"
 
 test9 =
     formCase "cnf test 9"
-             (for_all [x']
-              (for_all [y']
-               (for_all [z'] 
-                (((((.~.) (q [x,y])) .|. ((((.~.) (f [z,x])) .|. ((f [z,y]))))) .&.
-                  ((((.~.) (q [x,y])) .|. ((((.~.) (f [z,y])) .|. ((f [z,x]))))))) .&.
-                 ((((((f [fApp ("Sk(x1)") [x,y,z],x]) .|. ((f [fApp ("Sk(x1)") [x,y,z],y]))) .|. ((q [x,y]))) .&.
-                    (((((.~.) (f [fApp ("Sk(x1)") [x,y,z],y])) .|. ((f [fApp ("Sk(x1)") [x,y,z],y]))) .|. ((q [x,y]))))) .&.
-                   (((((f [fApp ("Sk(x1)") [x,y,z],x]) .|. (((.~.) (f [fApp ("Sk(x1)") [x,y,z],x])))) .|. ((q [x,y]))) .&.
-                     (((((.~.) (f [fApp ("Sk(x1)") [x,y,z],y])) .|. (((.~.) (f [fApp ("Sk(x1)") [x,y,z],x])))) .|. ((q [x,y]))))))))))))
+             (((((.~.) (q [x,y])) .|. ((((.~.) (f [z,x])) .|. ((f [z,y]))))) .&.
+               ((((.~.) (q [x,y])) .|. ((((.~.) (f [z,y])) .|. ((f [z,x]))))))) .&.
+              ((((((f [fApp ("Sk(x1)") [x,y,z],x]) .|. ((f [fApp ("Sk(x1)") [x,y,z],y]))) .|. ((q [x,y]))) .&.
+                 (((((.~.) (f [fApp ("Sk(x1)") [x,y,z],y])) .|. ((f [fApp ("Sk(x1)") [x,y,z],y]))) .|. ((q [x,y]))))) .&.
+                (((((f [fApp ("Sk(x1)") [x,y,z],x]) .|. (((.~.) (f [fApp ("Sk(x1)") [x,y,z],x])))) .|. ((q [x,y]))) .&.
+                  (((((.~.) (f [fApp ("Sk(x1)") [x,y,z],y])) .|. (((.~.) (f [fApp ("Sk(x1)") [x,y,z],x])))) .|. ((q [x,y])))))))))
              (cnf (for_all [x'] (for_all [y'] (q [x, y] .<=>. for_all [z'] (f [z, x] .<=>. f [z, y])))))
     where
       f = pApp "f"
@@ -182,7 +177,7 @@ test9a = TestCase
                        DJ [N (A (f [fApp ("Sk(x1)") [x,y,z],y])),A (f [fApp ("Sk(x1)") [x,y,z],y]),A (q [x,y])],
                        DJ [A (f [fApp ("Sk(x1)") [x,y,z],x]),N (A (f [fApp ("Sk(x1)") [x,y,z],x])),A (q [x,y])],
                        DJ [N (A (f [fApp ("Sk(x1)") [x,y,z],y])),N (A (f [fApp ("Sk(x1)") [x,y,z],x])),A (q [x,y])]]))
-            ((toPropositional convertA (cnfNoQuants (for_all [x'] (for_all [y'] (q [x, y] .<=>. for_all [z'] (f [z, x] .<=>. f [z, y])))))) >>=
+            ((toPropositional convertA (cnf (for_all [x'] (for_all [y'] (q [x, y] .<=>. for_all [z'] (f [z, x] .<=>. f [z, y])))))) >>=
              return . flatten :: Maybe (PropForm (Formula String String))))
     where
       f = pApp "f"
@@ -190,7 +185,7 @@ test9a = TestCase
       convertA = Just . A
 
 test10 = formCase "cnf test 10"
-                  (for_all [x'] (((q [skY [x],skZ [x],skT [x]]) .|. ((p [x,skY [x]]))) .&. ((((.~.) (r [skY [x]])) .|. ((p [x,skY [x]]))))))
+                  (((q [skY [x],skZ [x],skT [x]]) .|. ((p [x,skY [x]]))) .&. ((((.~.) (r [skY [x]])) .|. ((p [x,skY [x]])))))
                   (cnf (for_all [x'] (exists [y'] ((p [x, y] .<=. for_all [x'] (exists [t'] (q [y, x, t]) .=>. r [y]))))))
     where
       t' = V "t"
@@ -204,7 +199,7 @@ test10 = formCase "cnf test 10"
 
 test11 = formCase "cnf test 11"
                   -- This one didn't come with a solution - here's ours
-                  (for_all [x'] (for_all [z'] ((((.~.) (p [x,z])) .|. ((.~.) (q [x,skY [x,z]]))) .&. (((.~.) (p [x,z])) .|. (r [skY [x,z],z])))))
+                  ((((.~.) (p [x,z])) .|. ((.~.) (q [x,skY [x,z]]))) .&. (((.~.) (p [x,z])) .|. (r [skY [x,z],z])))
                   (cnf (for_all [x'] (for_all [z'] (p [x, z] .=>. exists [y'] ((.~.) (q [x, y] .|. ((.~.) (r [y, z]))))))))
     where
       p = pApp "p"
@@ -221,7 +216,7 @@ test12 = formCase "cnf test 12"
 moveQuantifiersOut1 =
     formCase "moveQuantifiersOut1"
              (for_all [y'] (pApp (fromString "p") [y] .&. (pApp (fromString "q") [x])))
-             (moveQuantifiersOut (for_all [x'] (pApp (fromString "p") [x]) .&. (pApp (fromString "q") [x])))
+             (prenexNormalForm (for_all [x'] (pApp (fromString "p") [x]) .&. (pApp (fromString "q") [x])))
 
 skolemize1 =
     formCase "skolemize1" expected formula
@@ -229,7 +224,7 @@ skolemize1 =
       expected :: Formula String String
       expected = for_all [y',z'] (for_all [v'] (pApp "P" [fApp ("Sk(x)") [], y, z, fApp ("Sk(u)") [y, z], v, fApp "Sk(w)" [y, z, v]]))
       formula :: Formula String String
-      formula = (skolemize [] (exists [x'] (for_all [y', z'] (exists [u'] (for_all [v'] (exists [w'] (pApp "P" [x, y, z, u, v, w])))))))
+      formula = (skolemNormalForm (exists [x'] (for_all [y', z'] (exists [u'] (for_all [v'] (exists [w'] (pApp "P" [x, y, z, u, v, w])))))))
 
 skolemize2 =
     formCase "skolemize2" expected formula
@@ -237,7 +232,7 @@ skolemize2 =
       expected :: Formula String String
       expected = for_all [V "y"] (pApp ("loves") [fApp ("Sk(x)") [],y])
       formula :: Formula String String
-      formula = skolemize [] (exists [x'] (for_all [y'] (pApp "loves" [x, y])))
+      formula = skolemNormalForm (exists [x'] (for_all [y'] (pApp "loves" [x, y])))
 
 skolemize3 =
     formCase "skolemize3" expected formula
@@ -245,7 +240,7 @@ skolemize3 =
       expected :: Formula String String
       expected = for_all [V "y"] (pApp ("loves") [fApp ("Sk(x)") [y],y])
       formula :: Formula String String
-      formula = skolemize [] (for_all [y'] (exists [x'] (pApp "loves" [x, y])))
+      formula = skolemNormalForm (for_all [y'] (exists [x'] (pApp "loves" [x, y])))
 
 theoremTests = [theorem1, theorem1a, theorem2, theorem3, theorem4]
 
@@ -366,7 +361,7 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                        "+------+------+-------------+------+-------------+--------------------------------------------------------------------+"])
                 (let formula = (for_all [x'] ((s [x] .=>. h [x]) .&. (h [x] .=>. m [x]))) .=>.
                                (for_all [x'] (s [x] .=>. m [x])) in
-                 (theorem formula, prepare' formula >>= return . TD.textFrame . truthTable)))
+                 (theorem formula, prepare formula >>= return . TD.textFrame . truthTable)))
     , TestCase (assertEqual "socrates is not mortal"
                 (Just False)
                 (theorem (exists [x'] ((s [x] .=>. h [x]) .&.
@@ -569,10 +564,6 @@ theorem formula = prepare formula >>= return . not . satisfiable
 
 -- |Prepare ta formula to be passed to the satisfiability function.
 prepare :: FormulaPF -> Maybe F
-prepare formula = (toPropositional convertA . removeUniversal . cnf . (.~.) $ formula) {- >>= return . flatten -}
-
--- |Prepare ta formula to be passed to the satisfiability function.
-prepare' :: FormulaPF -> Maybe F
-prepare' formula = (toPropositional convertA . removeUniversal . cnfTraced . (.~.) $ formula) {- >>= return . flatten -}
+prepare formula = (toPropositional convertA . cnf . (.~.) $ formula) {- >>= return . flatten -}
 
 convertA = Just . A
