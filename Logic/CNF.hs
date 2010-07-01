@@ -1,11 +1,13 @@
 {-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
 module Logic.CNF
     ( cnf
-    , cnf'
+    , cnfNoQuants
+    , cnfTraced
     , simplify
     , moveNegationsIn
-    , skolemize
     , moveQuantifiersOut
+    , skolemize
+    , removeUniversal
     , distributeDisjuncts
     ) where
 
@@ -14,18 +16,36 @@ import qualified Data.Set as S
 import Logic.Logic
 import Logic.Predicate
 
+-- |Turn a formula into clause normal form.
 cnf :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v) => formula -> formula
 cnf = distributeDisjuncts . skolemize [] . moveQuantifiersOut . moveNegationsIn . simplify
 
-cnf' :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v, Show v, Show p, Show f) => formula -> formula
-cnf' = t6 . distributeDisjuncts . t5 . skolemize [] . t4 . moveQuantifiersOut . t3 . moveNegationsIn . t2 . simplify . t1
+-- |Run cnf and then remove all the universal quantifiers from the
+-- outside of the formula.  It can be shown that this will actually
+-- remove all the remaining quantifiers.
+cnfNoQuants :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v) => formula -> formula
+cnfNoQuants = removeUniversal . cnf
+
+-- |Run the CNF algorithm and output a trace of the steps.
+cnfTraced :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v, Show v, Show p, Show f) => formula -> formula
+cnfTraced = t6 . distributeDisjuncts . t5 . skolemize [] . t4 . moveQuantifiersOut . t3 . moveNegationsIn . t2 . simplify . t1
     where
-      t1 x = trace ("input:               " ++ showForm x) x
+      t1 x = trace ("\ninput:               " ++ showForm x) x
       t2 x = trace ("simplified:          " ++ showForm x) x
       t3 x = trace ("moveNegationsIn:     " ++ showForm x) x
       t4 x = trace ("moveQuantifiersOut:  " ++ showForm x) x
       t5 x = trace ("skolmize:            " ++ showForm x) x
       t6 x = trace ("distributeDisjuncts: " ++ showForm x) x
+
+-- |Remove the outermost universal quantifiers, presumably after
+-- skolemization has moved all such quantifiers to the outside and
+-- made them unnecessary.
+removeUniversal ::(PredicateLogic formula term v p f, Skolem v f) => formula -> formula
+removeUniversal formula =
+    foldF (.~.) removeAll binOp infixPred pApp formula
+    where
+      removeAll All _ f = removeUniversal f
+      removeAll Exists vs f = exists vs (removeUniversal f)
 
 -- |Remove existential quantifiers and replace the variables they
 -- quantify with skolem functions, which are new functions applied to
@@ -42,8 +62,10 @@ skolemize uq f =
       q Exists (v:vs) x =
           skolemize uq (quant Exists vs x')
           where x' = substitute v sk x
-                sk = fApp (skolem v) (map var uq)
-      q All vs x = {- quant All vs -} (skolemize (uq ++ vs) x)
+                -- Only add arguments for the variables which are free in x
+                sk = fApp (skolem v) (map var (filter free uq))
+                free v' = S.member v' (freeVars x)
+      q All vs x = quant All vs (skolemize (uq ++ vs) x)
       b = binOp
       i = infixPred
       a = pApp
@@ -215,7 +237,7 @@ moveQuantifiersOut formula =
       doBinOp f1 (:|:) f2 = f1 .|. f2
       doBinOp _ op _ = error $ "moveQuantifierOut: unexpected BinOp " ++ show op
 
--- Find new variables that are not in the set and substitute free
+-- |Find new variables that are not in the set and substitute free
 -- occurrences in the formula.
 renameFreeVars :: PredicateLogic formula term v p f => S.Set v -> [v] -> formula -> ([v], formula)
 renameFreeVars s vs f =

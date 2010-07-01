@@ -212,7 +212,7 @@ substitute old new formula =
 
 substitutePairs :: (PredicateLogic formula term v p f) => [(v, term)] -> formula -> formula
 substitutePairs pairs formula = 
-    foldr (\ (old, new) formula -> substitute old new formula) formula pairs 
+    foldr (\ (old, new) f -> substitute old new f) formula pairs 
 
 -- |Convert any instance of a first order logic expression to any other.
 convertPred :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
