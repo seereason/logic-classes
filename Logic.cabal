@@ -1,5 +1,5 @@
 Name:             Logic
-Version:          0.8
+Version:          0.9
 License:          BSD3
 Author:           SeeReason Partners <partners@seereason.com>
 Maintainer:       SeeReason Partners <partners@seereason.com>
@@ -20,7 +20,8 @@ Library
                    Logic.Logic,
                    Logic.NormalForm,
                    Logic.Predicate,
-                   Logic.Propositional
+                   Logic.Propositional,
+                   Logic.Satisfiable
  Build-Depends:    base, containers, fgl, happstack-data,
                    happstack-state, mtl, syb-with-class, text, logic-TPTP, PropLogic
 
