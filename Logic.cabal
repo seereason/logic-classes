@@ -1,5 +1,5 @@
 Name:             Logic
-Version:          0.9
+Version:          0.10
 License:          BSD3
 Author:           SeeReason Partners <partners@seereason.com>
 Maintainer:       SeeReason Partners <partners@seereason.com>
@@ -14,7 +14,8 @@ Cabal-version:    >= 1.2
 
 Library
  GHC-options: -threaded -Wall -Werror -O2
- Exposed-Modules:  Logic.Instances.Parameterized,
+ Exposed-Modules:  Logic.Instances.Chiou,
+                   Logic.Instances.Parameterized,
                    Logic.Instances.PropLogic,
                    Logic.Instances.TPTP,
                    Logic.Logic,
@@ -22,8 +23,8 @@ Library
                    Logic.Predicate,
                    Logic.Propositional,
                    Logic.Satisfiable
- Build-Depends:    base, containers, fgl, happstack-data,
-                   happstack-state, mtl, syb-with-class, text, logic-TPTP, PropLogic
+ Build-Depends:    base, containers, fgl, happstack-data, happstack-state,
+                   mtl, syb-with-class, text, logic-TPTP, PropLogic, ChiouProver >= 0.2
 
 Executable tests
  Main-Is: Test/Test.hs

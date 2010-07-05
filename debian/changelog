@@ -1,3 +1,9 @@
+haskell-logic (0.10) unstable; urgency=low
+
+  * Add an instance for the Charles Chiou first order logic prover.
+
+ -- David Fox <dsf@seereason.com>  Mon, 05 Jul 2010 09:03:04 -0700
+
 haskell-logic (0.9) unstable; urgency=low
 
   * Add a Logic.Satisfiable module, containing functions theorem, 
