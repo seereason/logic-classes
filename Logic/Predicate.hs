@@ -11,7 +11,6 @@
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
 module Logic.Predicate
     ( PredicateLogic(..)
-    , Skolem(..)
     , Quant(..)
     , quant
     , InfixPred(..)
@@ -28,7 +27,7 @@ module Logic.Predicate
     , toPropositional
     ) where
 
-import Control.Applicative (Applicative, (<$>), (<*>), pure)
+--import Control.Applicative (Applicative, (<$>), (<*>), pure)
 import Data.Data (Data)
 import Data.Function (on)
 import Data.List (isPrefixOf, intercalate)
@@ -39,11 +38,6 @@ import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
 import Logic.Logic
 import Logic.Propositional (PropositionalLogic(..))
-
--- |A class which allows the creation of a skolem function from a
--- variable.  This is used while converting a formula to CNF.
-class Skolem v f where
-    skolem :: v -> f
 
 -- |The 'PropositionalLogic' type class.  Minimal implementation:
 -- @for_all, exists, foldF, foldT, (.=.), (.!=.), pApp, fApp, var,
@@ -244,18 +238,17 @@ convertTerm convertV convertF term =
 -- |Try to convert a first order logic formula to propositional.  This
 -- will return Nothing if there are any quantifiers, or if it runs
 -- into an atom that it is unable to convert.
-toPropositional :: forall m formula1 term v p f formula2 atom.
+toPropositional :: forall formula1 term v p f formula2 atom.
                    (PredicateLogic formula1 term v p f,
-                    PropositionalLogic formula2 atom,
-                    Monad m, Applicative m) =>
-                   (formula1 -> m formula2) -> formula1 -> m formula2
+                    PropositionalLogic formula2 atom) =>
+                   (formula1 -> formula2) -> formula1 -> formula2
 toPropositional convertAtom formula =
     foldF n q b i p formula
     where
       convert' = toPropositional convertAtom
-      n f = (.~.) <$> convert' f
+      n f = (.~.) (convert' f)
       q _ _ _ = error "toPropositional: invalid argument"
-      b f1 op f2 = binOp <$> convert' f1 <*> pure op <*> convert' f2
+      b f1 op f2 = binOp (convert' f1) op (convert' f2)
       i _ _ _ = convertAtom formula
       p _ _ = convertAtom formula
 

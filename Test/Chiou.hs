@@ -1,62 +1,65 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, TypeSynonymInstances #-}
-{-# OPTIONS -Wall -Werror -fno-warn-name-shadowing -fno-warn-missing-signatures -fno-warn-orphans #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes, TypeSynonymInstances #-}
+{-# OPTIONS -Wall -Werror -fno-warn-name-shadowing -fno-warn-orphans #-}
 module Test.Chiou (tests) where
 
 import Chiou.FirstOrderLogic
-import Debug.Trace
-import qualified Logic.Instances.Parameterized as Param
+import Data.String (IsString(..))
+import qualified Logic.Instances.Parameterized as P
 import Logic.Instances.Chiou (AtomicFunction(..))
 import Logic.Logic (Logic(..))
-import Logic.Predicate (PredicateLogic(..), convertPred, Skolem(..), showForm {-, toPropositional, InfixPred(..), freeVars, substitute-})
+import Logic.Predicate (PredicateLogic(..), convertPred, showForm {-, toPropositional, InfixPred(..), freeVars, substitute-})
 import Test.HUnit
 
--- Skolem instance for Formula String String
-instance Skolem Param.V String where
-    skolem (Param.V s) = "Sk(" ++ s ++ ")"
-
-instance Show (Param.Formula String String) where
+instance Show (P.Formula String String) where
     show = showForm
 
+type FormulaPF = P.Formula String String
+
+instance IsString AtomicFunction where
+    fromString s = AtomicFunction s
+
+-- |Argument to conversion tests.  These pairs look the same, but
+-- they use the class methods to construct different types, as
+-- you can see from the signature.
+testFormulas ::[(String, Sentence, FormulaPF)]
+testFormulas =
+    [ ( "exists, equal"
+      , exists ["x"] (x .=. y)
+      , exists ["x"] (x .=. y))
+    , ( "fApp"
+      , (s [fApp (fromString "a") [x, y]])
+      , (s [fApp (fromString "a") [x, y]]))
+    , ( "forall, imply, and, var, pApp"
+     , for_all ["x"] (((s [x] .=>. h [x]) .&. (h [x] .=>. m [x])) .=>. (s [x] .=>. m [x]))
+     , for_all ["x"] (((s [x] .=>. h [x]) .&. (h [x] .=>. m [x])) .=>. (s [x] .=>. m [x])))]
+    where
+
+x :: (PredicateLogic formula term v p f, IsString v) => term
+x = var (fromString "x")
+y :: (PredicateLogic formula term v p f, IsString v) => term
+y = var (fromString "y")
+
+s :: (PredicateLogic formula term v p f, IsString p) => [term] -> formula
+s = pApp (fromString "s")
+m :: (PredicateLogic formula term v p f, IsString p) => [term] -> formula
+m = pApp (fromString "m")
+h :: (PredicateLogic formula term v p f, IsString p) => [term] -> formula
+h = pApp (fromString "h")
+
+pairTest :: (String, Sentence, FormulaPF) -> [Test]
+pairTest (s, f1, f2) =
+    [ TestCase (assertEqual (s ++ ", Chiou to FormulaPF") f1 (convertPred vc pc AtomicFunction f2)),
+      TestCase (assertEqual (s ++ ", FormulaPF to Chiou") f2 (convertPred P.V pc fc f1)) ]
+
 tests :: [Test]
-tests = 
-    [ TestCase (assertEqual "Chiou test 1"
-                            (convertPred vc pc AtomicConstant (t2 formula') :: Sentence)
-                            (t1 formula))
-    , TestCase (assertEqual "Chiou test 2"
-                            (convertPred Param.V pc fc (t1 formula) :: Param.Formula String String)
-                            (t2 formula'))
-    ]
-    where
-      t2 formula = trace ("\nParameterized:" ++ showForm formula) formula
-      t1 formula = trace ("\nChiou:         " ++ show formula) formula
+tests = concatMap pairTest testFormulas
 
--- |Use the class operators to build a Chiou Sentence
-formula :: Sentence
-formula = for_all [x'] (((s [x] .=>. h [x]) .&. (h [x] .=>. m [x])) .=>. (s [x] .=>. m [x]))
-    where
-      h vs = pApp "h" vs
-      m vs = pApp "m" vs
-      s vs = pApp "s" vs
-      x' = "x"
-      x = var x'
-
--- |Use the same class operators to build a Parameterized Formula.
-formula' :: Param.Formula String String
-formula' = for_all [x'] (((s [x] .=>. h [x]) .&. (h [x] .=>. m [x])) .=>. (s [x] .=>. m [x]))
-    where
-      h vs = pApp "h" vs
-      m vs = pApp "m" vs
-      s vs = pApp "s" vs
-      x' = "x"
-      x = var x'
-
-
-vc :: Param.V -> String
-vc (Param.V s) = s
+vc :: P.V -> String
+vc (P.V s) = s
 
 pc :: String -> String
 pc = id
 
 fc :: AtomicFunction -> String
-fc (AtomicConstant s) = s
-fc _ = error "FIXME: fc"
+fc (AtomicFunction s) = s
+fc (AtomicSkolemFunction n) = show n

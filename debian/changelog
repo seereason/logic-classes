@@ -1,3 +1,12 @@
+haskell-logic (0.11) unstable; urgency=low
+
+  * Modify the Skolem class so it uses a monad to generate new names
+    for skolem functions.  This corresponds to the technique used
+    by what is now our only working example of a first order logic
+    theorem prover, the new Chiou package.
+
+ -- David Fox <dsf@seereason.com>  Mon, 05 Jul 2010 12:46:08 -0700
+
 haskell-logic (0.10) unstable; urgency=low
 
   * Add an instance for the Charles Chiou first order logic prover.

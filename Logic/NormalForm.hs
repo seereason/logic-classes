@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses, RankNTypes, ScopedTypeVariables #-}
 -- |A series of transformations to convert first order logic formulas
 -- into (ultimately) Clause Normal Form.
 -- 
@@ -31,6 +31,7 @@ module Logic.NormalForm
     , negationNormalForm
     , prenexNormalForm
     , disjunctiveNormalForm
+    , Skolem(..)
     , skolemNormalForm
     , clauseNormalForm
     , cnf
@@ -77,7 +78,7 @@ simplify =
 -- ~~P  P
 -- @
 -- 
-negationNormalForm :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v) => formula -> formula
+negationNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, Enum v) => formula -> formula
 negationNormalForm = moveNegationsIn . simplify
 
 moveNegationsIn :: PredicateLogic formula term v p f => formula -> formula
@@ -129,7 +130,7 @@ moveNegationsIn =
 -- variable which does not appear and change occurrences of X in P to
 -- this new variable.  We could instead modify Q, but that looks
 -- slightly more tedious.
-prenexNormalForm :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v) => formula -> formula
+prenexNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, Enum v) => formula -> formula
 prenexNormalForm = moveQuantifiersOut . negationNormalForm
 
 moveQuantifiersOut :: forall formula term v p f. (PredicateLogic formula term v p f, Enum v) => formula -> formula
@@ -197,7 +198,7 @@ renameFreeVars s vs f =
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-disjunctiveNormalForm :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v) => formula -> formula
+disjunctiveNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, Enum v) => formula -> formula
 disjunctiveNormalForm = distributeDisjuncts . prenexNormalForm
 
 distributeDisjuncts :: (Eq formula, PredicateLogic formula term v p f) => formula -> formula
@@ -237,6 +238,12 @@ distributeDisjuncts =
             i' _ _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
             a' _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
 
+-- |This class shows how to use monad m to create a new unique skolem
+-- function of the type f.  This is intended to correspond to the
+-- AtomicFunction parameter named f in the PredicateLogic class.
+class Monad m => Skolem m f where
+    skolem :: m f
+
 -- |Convert to Disjunctive Normal Form and then Skolemize.  This means
 -- removing the existential quantifiers and replacing the variables
 -- they quantify with skolem functions (and constants, which are
@@ -244,36 +251,37 @@ distributeDisjuncts =
 -- functions applied to the list of variables which are universally
 -- quantified in the context where the existential quantifier
 -- appeared.
-skolemNormalForm :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v) => formula -> formula
+skolemNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, Enum v, Skolem m f) => formula -> m formula
 skolemNormalForm = skolemize [] . disjunctiveNormalForm
 
-skolemize :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term) => [v] -> formula -> formula
+skolemize :: (PredicateLogic formula term v p f, Eq formula, Eq term, Skolem m f) => [v] -> formula -> m formula
 skolemize uq f =
     foldF n q b i a f
     where
-      n x = (.~.) (skolemize uq x)
+      n x = skolemize uq x >>= return . (.~.)
       -- ∃x: p x is satisfiable <=> p x is satisfiable, so we can discard outermost.
       q Exists [] x = skolemize uq x
       -- We see an exists v, replace occurrences of var v with a skolem function
       q Exists (v:vs) x =
-          skolemize uq (quant Exists vs x')
-          where x' = substitute v sk x
+          skolem >>= \ skf ->
+          skolemize uq (quant Exists vs (x' skf))
+          where x' skf = substitute v (sk skf) x
                 -- Only add arguments for the variables which are free in x
-                sk = fApp (skolem v) (map var (filter free uq))
+                sk skf = fApp skf (map var (filter free uq))
                 free v' = S.member v' (freeVars x)
-      q All vs x = quant All vs (skolemize (uq ++ vs) x)
-      b = binOp
-      i = infixPred
-      a = pApp
+      q All vs x = skolemize (uq ++ vs) x >>= return . quant All vs
+      b f1 op f2 = return $ binOp f1 op f2
+      i t1 op t2 = return $ infixPred t1 op t2
+      a p ts = return $ pApp p ts
 
 -- |Convert to Skolem Normal Form and then remove the outermost
 -- universal quantifiers.  Due to the nature of Skolem Normal Form,
 -- this is actually all the remaining quantifiers, the result is
 -- effectively a propositional logic formula.
-clauseNormalForm :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v) => formula -> formula
-clauseNormalForm = removeUniversal . skolemNormalForm
+clauseNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, Enum v, Skolem m f) => formula -> m formula
+clauseNormalForm f = skolemNormalForm f >>= return . removeUniversal
 
-removeUniversal ::(PredicateLogic formula term v p f, Skolem v f) => formula -> formula
+removeUniversal ::(PredicateLogic formula term v p f) => formula -> formula
 removeUniversal formula =
     foldF (.~.) removeAll binOp infixPred pApp formula
     where
@@ -281,12 +289,13 @@ removeUniversal formula =
       removeAll Exists vs f = exists vs (removeUniversal f)
 
 -- |Nickname for clauseNormalForm.
-cnf :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v) => formula -> formula
+cnf :: (PredicateLogic formula term v p f, Eq formula, Eq term, Enum v, Skolem m f) => formula -> m formula
 cnf = clauseNormalForm
 
 -- |Nickname for clauseNormalForm.
-cnfTraced :: (PredicateLogic formula term v p f, Skolem v f, Eq formula, Eq term, Enum v, Show formula) => formula -> formula
-cnfTraced = t6 . removeUniversal . t5 . skolemize [] . t4 . distributeDisjuncts . t3 . moveQuantifiersOut . t2 . moveNegationsIn . simplify . t1
+cnfTraced :: (PredicateLogic formula term v p f, Eq formula, Eq term, Enum v, Show formula, Skolem m f) => formula -> m formula
+cnfTraced f =
+    (skolemize [] . t4 . distributeDisjuncts . t3 . moveQuantifiersOut . t2 . moveNegationsIn . simplify . t1 $ f) >>= return . t6 . removeUniversal . t5
     where
       t1 x = trace ("\ninput: " ++ show x) x
       t2 x = trace ("NNF:   " ++ show x) x

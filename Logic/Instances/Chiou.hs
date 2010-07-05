@@ -9,7 +9,7 @@ import Chiou.FirstOrderLogic
 import Data.Char (ord, isDigit, chr)
 import Logic.Logic (Logic(..), BinOp(..))
 import Logic.Propositional (PropositionalLogic(..))
-import Logic.Predicate (PredicateLogic(..), Skolem(..), InfixPred(..))
+import Logic.Predicate (PredicateLogic(..), InfixPred(..))
 import qualified Logic.Predicate as Logic
 
 -- |This enum instance is used to generate a series of new variable
@@ -60,16 +60,14 @@ instance (Logic Sentence) => PropositionalLogic Sentence Sentence where
 -- which is not a variable.
 data AtomicFunction
     = AtomicFunction Function
-    | AtomicConstant Constant
+    -- | AtomicConstant Constant
     | AtomicSkolemFunction Int
-    | AtomicSkolemConstant Int
+    -- | AtomicSkolemConstant Int
 
 -- |There is no correspondance between skolem functions and variable
 -- names in this instance, we probably need to remove it from the
 -- system.  Instead it maintains a skolem function allocator in its
 -- state monad.
-instance Skolem String Term where
-    skolem = error "Chiou.skolem"
 
 instance (PropositionalLogic Sentence Sentence) =>
           PredicateLogic Sentence Term Variable Predicate AtomicFunction where
@@ -90,14 +88,14 @@ instance (PropositionalLogic Sentence Sentence) =>
         case t of
           Variable name -> v name
           Function name ts -> fn (AtomicFunction name) ts
-          Constant name -> fn (AtomicConstant name) []
-          SkolemConstant n -> fn (AtomicSkolemConstant n) []
+          Constant name -> fn (AtomicFunction name) []
+          SkolemConstant n -> fn (AtomicSkolemFunction n) []
           SkolemFunction n ts -> fn (AtomicSkolemFunction n) ts
     pApp x args = Predicate x args
     var = Variable
+    fApp (AtomicFunction name) [] = Constant name
     fApp (AtomicFunction name) ts = Function name ts
-    fApp (AtomicConstant name) _ = Constant name
+    fApp (AtomicSkolemFunction n) [] = SkolemConstant n
     fApp (AtomicSkolemFunction n) ts = SkolemFunction n ts
-    fApp (AtomicSkolemConstant n) _ = SkolemConstant n
     x .=. y = Equal x y
     x .!=. y = Not (Equal x y)

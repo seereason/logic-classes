@@ -37,9 +37,6 @@ data AtomicFunction
     | Skolem V
     deriving Show
 
-instance Logic.Skolem V AtomicFunction where
-    skolem = Skolem
-
 -- |If this looks confusing, it is because TPTP has the same operators
 -- as Logic, the .&. on the left is the Logic method name and .&. on
 -- the right is the TPTP function.
