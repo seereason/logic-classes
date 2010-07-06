@@ -44,9 +44,10 @@ import Logic.Propositional (PropositionalLogic(..))
 -- |This class shows how to use monad m to create a new unique skolem
 -- function of the type f.  This is intended to correspond to the
 -- AtomicFunction parameter named f in the PredicateLogic class.
-class (MonadState Int m, IsString f) => Skolem m f where
+class (MonadState Int m, Enum f) => Skolem m f where
     skolem :: m f
-    skolem = get >>= \ n -> put (succ n) >> return (fromString (show n))
+    skolem = get >>= \ n -> put (succ n) >> return (toEnum n)
+    oldSkolem :: Int -> f
 
 -- |The 'PropositionalLogic' type class.  Minimal implementation:
 -- @for_all, exists, foldF, foldT, (.=.), (.!=.), pApp, fApp, var,
@@ -259,6 +260,32 @@ toPropositional convertAtom formula =
       b f1 op f2 = binOp (convert' f1) op (convert' f2)
       i _ _ _ = convertAtom formula
       p _ _ = convertAtom formula
+
+{-
+-- |Choose a "standard" order for the commutative and associative
+-- operations such as &, |, and =.
+-- Rewrite a & (b & c) -> (a & b) & c
+--         a | (b | c) -> (a | b) | c
+-- Sort commutative pairs using the Ord instance.
+reassociate :: (PredicateLogic formula term v p f, Ord formula, Ord term) => formula -> formula
+reassociate =
+    foldF ((.~.) . reassociate)
+          (\ op vs f -> quant op vs (reassociate f))
+          (\ f1 op f2 -> foldF (binOp (reassociate f1) op . (.~.))
+                               (\ qop vs f2' -> binOp (reassociate f1) op (quant qop vs (reassociate f2')))
+                               (b f1 op)
+                               (\ t1 op2 t2 -> binOp (reassociate f1) op (infixPred t1 op2 t2))
+                               (\ fn ts -> binOp (reassociate f1) op (pApp fn ts))
+                               f2)
+          infixPred
+          pApp
+    where
+      -- This is some sweet folding goodness!
+      b f1 op f2a op2 f2b =
+           if op == op2 && (op == (:&:) || op == (:|:))
+           then reassociate (binOp (binOp f1 op f2a) op f2b)
+           else binOp (reassociate f1) op (reassociate (binOp f2a op2 f2b))
+-}
 
 instance Version InfixPred
 instance Version Quant

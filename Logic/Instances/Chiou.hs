@@ -3,16 +3,14 @@
 {-# OPTIONS -Wall -Werror -fno-warn-orphans -fno-warn-missing-signatures #-}
 module Logic.Instances.Chiou
     ( AtomicFunction(..)
-    , cnf2
     ) where
 
 import Chiou.FirstOrderLogic
-import Chiou.NormalForm (toCNFSentence)
 import Data.Char (ord, isDigit, chr)
 import Data.String (IsString(..))
 import Logic.Logic (Logic(..), BinOp(..))
 import Logic.Propositional (PropositionalLogic(..))
-import Logic.Predicate (PredicateLogic(..), InfixPred(..), convertPred)
+import Logic.Predicate (PredicateLogic(..), InfixPred(..))
 import qualified Logic.Predicate as Logic
 
 -- |This enum instance is used to generate a series of new variable
@@ -71,6 +69,11 @@ data AtomicFunction
 instance IsString AtomicFunction where
     fromString = AtomicFunction
 
+instance Enum AtomicFunction where
+    toEnum = AtomicSkolemFunction 
+    fromEnum (AtomicSkolemFunction n) = n
+    fromEnum _ = error "Enum AtomicFunction"
+
 -- |There is no correspondance between skolem functions and variable
 -- names in this instance, we probably need to remove it from the
 -- system.  Instead it maintains a skolem function allocator in its
@@ -107,16 +110,21 @@ instance (PropositionalLogic Sentence Sentence) =>
     x .=. y = Equal x y
     x .!=. y = Not (Equal x y)
 
-cnf2 :: PredicateLogic formula term v p f => formula -> formula
-cnf2 f = f''
+{-
+cnf2 :: PredicateLogic formula term v p f =>
+        (v -> Variable) -> (p -> Predicate) -> (f -> AtomicFunction) -> formula -> formula
+cnf2 cv cp cf f = f''
     where
-      f'' ::PredicateLogic formula term v p f => formula
+      -- Convert from Sentence
+      f'' :: PredicateLogic formula term v p f => formula
       f'' = convertPred cv' cp' cf' f'
+      -- Convert to Sentence
       f' :: Sentence
       f' = toCNFSentence (convertPred cv cp cf f)
-      cv = undefined
-      cp = undefined
-      cf = undefined
-      cv' = undefined
-      cp' = undefined
-      cf' = undefined
+-}
+{-
+      cv' = undefined -- fromString
+      cp' = undefined -- fromString
+      -- cf' :: String -> AtomicFunction
+      cf' = undefined -- (AtomicFunction s) = s
+-}
