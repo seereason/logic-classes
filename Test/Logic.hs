@@ -4,6 +4,7 @@
 module Test.Logic (tests) where
 
 import qualified Chiou.FirstOrderLogic as C
+import Chiou.NormalForm (toCNFSentence)
 import Control.Monad.Identity (Identity(..), runIdentity)
 import Control.Monad.State (MonadState(..), StateT, evalStateT)
 --import Data.List (intercalate)
@@ -188,20 +189,20 @@ testFormulas =
        -- toPropositional A ((((.~.) (taller y xy)) .|. (wise y)) .&. ((.~.) (wise xy) .|. (wise y)) :: TestFormula),
        for_all ["y"] (for_all ["x"] (taller y x .|. wise x) .=>. wise y))
     , ("cnf test 2",
-       toPropositional A (((.~.) (pApp "s" [x])) .|. ((.~.) (pApp "q" [x]))),
+       flatten (toPropositional A (((.~.) (pApp "s" [x])) .|. ((.~.) (pApp "q" [x])))),
        ((.~.) (exists ["x"] (pApp "s" [x] .&. pApp "q" [x]))))
     , ("cnf test 3",
-       toPropositional A (((.~.) (p [x])) .|. ((q [x]) .|. (r [x]))),
+       flatten (toPropositional A (((.~.) (p [x])) .|. ((q [x]) .|. (r [x])))),
        (for_all ["x"] (p [x] .=>. (q [x] .|. r [x]))))
     , ("cnf test 4",
-       toPropositional A (p [x] .&. (.~.) (q [y])),
+       flatten (toPropositional A (p [x] .&. (.~.) (q [y]))),
        ((.~.) (exists ["x"] (p [x] .=>. exists ["y"] (q [y])))))
     , ("cnf test 5",
-       toPropositional A ((((.~.) (q [x])) .|. s [x]) .&. (((.~.) (r [x])) .|. s [x])),
+       flatten (toPropositional A ((((.~.) (q [x])) .|. s [x]) .&. (((.~.) (r [x])) .|. s [x]))),
        (for_all ["x"] (q [x] .|. r [x] .=>. s [x])))
     , let p = pApp "p" [] in
       ("cnf test 6",
-       toPropositional A ((.~.) p .|. (f [skX] :: TestFormula)),
+       flatten (toPropositional A ((.~.) p .|. (f [skX] :: TestFormula))),
        (exists ["x"] (p .=>. f [x])))
     , let p = pApp "p" [] in
       ("cnf test 7",
@@ -209,7 +210,7 @@ testFormulas =
        -- (((.~.) p) .|. f skX .&. p .|. ((.~.) (f skX)))
        -- This is what we are currently getting from our
        -- code, which is different but still may be correct.  However, we may
-       toPropositional A ((((.~.) p) .|. (f [skX])) .&. (((.~.) (f [skX])) .|. p)),
+       flatten (toPropositional A ((((.~.) p) .|. (f [skX])) .&. (((.~.) (f [skX])) .|. p))),
        -- (((p []) .|. (p [])) .&. ((((.~.) (f [x])) .|. ((.~.) (f [x]))) .|. (p [])))
        -- p
        (exists ["x"] (p .<=>. f [x])))
@@ -218,25 +219,25 @@ testFormulas =
           yOfZ = fApp (toEnum 1) [z]
           f vs = pApp "f" vs in
       ("cnf test 8",
-       toPropositional A (((((.~.) (f [x, yOfZ])) .|. (f [x, z])) .&.
-                           (((.~.) (f [x, yOfZ])) .|. ((.~.) (f [x, x])))) .&.
-                          ((((.~.) (f [x, z])) .|. (f [x, x])) .|. (f [x, yOfZ]))),
+       flatten (toPropositional A (((((.~.) (f [x, yOfZ])) .|. (f [x, z])) .&.
+                                    (((.~.) (f [x, yOfZ])) .|. ((.~.) (f [x, x])))) .&.
+                                   ((((.~.) (f [x, z])) .|. (f [x, x])) .|. (f [x, yOfZ])))),
        (for_all ["z"] (exists ["y"] (for_all ["x"] (f [x, y] .<=>. (f [x, z] .&. ((.~.) (f [x, x]))))))))
     , ("cnf test 9",
-       CJ [CJ [DJ [N (A (pApp ("q") [var ("x"),var ("y")])),
-                   DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])),
-                       A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])]],
-               DJ [N (A (pApp ("q") [var ("x"),var ("y")])),
+       CJ [DJ [N (A (pApp ("q") [var ("x"),var ("y")])),
+               N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])),
+               A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])],
+           DJ [N (A (pApp ("q") [var ("x"),var ("y")])),
+               N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])),
+               A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])],
+           DJ [CJ [DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]),
+                       A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])],
+                   DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]),
+                       N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]))],
                    DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])),
-                       A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])]]],
-           DJ [CJ [CJ [DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]),
-                           A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])],
-                       DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]),
-                           N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]))]],
-                   CJ [DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])),
-                           A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])],
-                       DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])),
-                           N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]))]]],
+                       A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])],
+                   DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])),
+                         N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]))]],
                A (pApp ("q") [var ("x"),var ("y")])]],
 {-
        toPropositional A (((((.~.) (q [x,y])) .|. ((((.~.) (f [z,x])) .|. ((f [z,y]))))) .&.
@@ -256,14 +257,14 @@ testFormulas =
        (for_all ["x"] (exists ["y"] ((p [x, y] .<=. for_all ["x"] (exists ["z"] (q [y, x, z]) .=>. r [y]))))))
     , ("cnf test 11",
        -- This one didn't come with a solution - here's ours
-       toPropositional A ((((.~.) (p [x,z])) .|. ((.~.) (q [x,skY [x,z]]))) .&. (((.~.) (p [x,z])) .|. (r [skY [x,z],z]))),
+       flatten (toPropositional A ((((.~.) (p [x,z])) .|. ((.~.) (q [x,skY [x,z]]))) .&. (((.~.) (p [x,z])) .|. (r [skY [x,z],z])))),
        (for_all ["x"] (for_all ["z"] (p [x, z] .=>. exists ["y"] ((.~.) (q [x, y] .|. ((.~.) (r [y, z]))))))))
     , let [p, q, r, s, t] = map (\ s -> pApp s []) ["p", "q", "r", "s", "t"] in
       ("cnf test 12",
-       CJ [CJ [DJ [A (pApp ("p") []),DJ [A (pApp ("r") []),A (pApp ("s") [])]],
-               DJ [A (pApp ("p") []),DJ [A (pApp ("r") []),A (pApp ("t") [])]]],
-           CJ [DJ [N (A (pApp ("q") [])),DJ [A (pApp ("r") []),A (pApp ("s") [])]],
-               DJ [N (A (pApp ("q") [])),DJ [A (pApp ("r") []),A (pApp ("t") [])]]]],
+       CJ [DJ [A (pApp ("p") []),A (pApp ("r") []),A (pApp ("s") [])],
+           DJ [A (pApp ("p") []),A (pApp ("r") []),A (pApp ("t") [])],
+           DJ [N (A (pApp ("q") [])),A (pApp ("r") []),A (pApp ("s") [])],
+           DJ [N (A (pApp ("q") [])),A (pApp ("r") []),A (pApp ("t") [])]],
        -- toPropositional A ((((p.|.(r.|.s)).&.(((.~.) q).|.(r.|.s))).&.((p.|.(r.|.t)).&.(((.~.) q).|.(r.|.t))))),
        ((p .=>. q) .=>. (((.~.) r) .=>. (s .&. t))))
     ]
@@ -289,9 +290,9 @@ testFormulas =
 
 pairTest :: (String, PropForm TestFormula, TestFormula) -> [Test]
 pairTest (s, f1, f2) =
-    [ TestCase (assertEqual (s ++ ", Chiou cnf") f1 (cnf' f2))
+    [ TestCase (assertEqual (s ++ ", Chiou cnf") f1 (flatten (cnf' f2)))
     , TestCase (assertEqual (s ++ ", PredicateLogic cnf")
-                f1 (toPropositional A (runIdentity (evalStateT (cnf f2) 1)))) ]
+                f1 (flatten (toPropositional A (runIdentity (evalStateT (cnf f2) 1))))) ]
 
 -- |Here is an example of automatic conversion from a PredicateLogic
 -- instance to a PropositionalLogic instance.  The result is PropForm
