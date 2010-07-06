@@ -61,9 +61,7 @@ instance (Logic Sentence) => PropositionalLogic Sentence Sentence where
 -- which is not a variable.
 data AtomicFunction
     = AtomicFunction Function
-    -- | AtomicConstant Constant
     | AtomicSkolemFunction Int
-    -- | AtomicSkolemConstant Int
     deriving (Show)
 
 instance IsString AtomicFunction where
