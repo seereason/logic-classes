@@ -2,7 +2,7 @@
 -- converting it to a convenient instance of PropositionalLogic and
 -- using the satisfiable function from that instance, in this case
 -- the PropLogic package.
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, OverloadedStrings #-}
 module Logic.Satisfiable
     ( clauses
     , theorem
@@ -11,8 +11,8 @@ module Logic.Satisfiable
     ) where
 
 import Logic.Logic ((.~.))
-import Logic.NormalForm (Skolem(..), clauseNormalForm)
-import Logic.Predicate (PredicateLogic(..), toPropositional)
+import Logic.NormalForm (clauseNormalForm)
+import Logic.Predicate (Skolem(..), PredicateLogic(..), toPropositional)
 --import Logic.Instances.Parameterized (Formula(..))
 import Logic.Instances.PropLogic ()
 import PropLogic (PropForm(..), satisfiable)

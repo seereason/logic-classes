@@ -15,9 +15,6 @@ instance Show (P.Formula String String) where
 
 type FormulaPF = P.Formula String String
 
-instance IsString AtomicFunction where
-    fromString s = AtomicFunction s
-
 -- |Argument to conversion tests.  These pairs look the same, but
 -- they use the class methods to construct different types, as
 -- you can see from the signature.

@@ -10,7 +10,8 @@
              GeneralizedNewtypeDeriving, MultiParamTypeClasses, RankNTypes, TemplateHaskell, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
 module Logic.Predicate
-    ( PredicateLogic(..)
+    ( Skolem(..)
+    , PredicateLogic(..)
     , Quant(..)
     , quant
     , InfixPred(..)
@@ -27,17 +28,25 @@ module Logic.Predicate
     , toPropositional
     ) where
 
---import Control.Applicative (Applicative, (<$>), (<*>), pure)
+import Control.Monad.State (MonadState(..))
 import Data.Data (Data)
 import Data.Function (on)
 import Data.List (isPrefixOf, intercalate)
 import Data.Monoid (mappend)
 import qualified Data.Set as S
+import Data.String (IsString(..))
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
 import Logic.Logic
 import Logic.Propositional (PropositionalLogic(..))
+
+-- |This class shows how to use monad m to create a new unique skolem
+-- function of the type f.  This is intended to correspond to the
+-- AtomicFunction parameter named f in the PredicateLogic class.
+class (MonadState Int m, IsString f) => Skolem m f where
+    skolem :: m f
+    skolem = get >>= \ n -> put (succ n) >> return (fromString (show n))
 
 -- |The 'PropositionalLogic' type class.  Minimal implementation:
 -- @for_all, exists, foldF, foldT, (.=.), (.!=.), pApp, fApp, var,
@@ -92,7 +101,6 @@ class (Logic formula, Ord v, Enum v) => PredicateLogic formula term v p f
     -- (atomic function) is one of the type parameters, this package
     -- is mostly indifferent to its internal structure.
     fApp :: f -> [term] -> term
-
 
 -- | Helper function for building folds.
 quant :: PredicateLogic formula term v p f => 

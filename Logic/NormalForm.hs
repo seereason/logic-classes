@@ -31,7 +31,6 @@ module Logic.NormalForm
     , negationNormalForm
     , prenexNormalForm
     , disjunctiveNormalForm
-    , Skolem(..)
     , skolemNormalForm
     , clauseNormalForm
     , cnf
@@ -237,12 +236,6 @@ distributeDisjuncts =
             b' _ _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
             i' _ _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
             a' _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
-
--- |This class shows how to use monad m to create a new unique skolem
--- function of the type f.  This is intended to correspond to the
--- AtomicFunction parameter named f in the PredicateLogic class.
-class Monad m => Skolem m f where
-    skolem :: m f
 
 -- |Convert to Disjunctive Normal Form and then Skolemize.  This means
 -- removing the existential quantifiers and replacing the variables

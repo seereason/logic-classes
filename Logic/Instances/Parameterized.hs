@@ -50,7 +50,10 @@ data Term f
                 
 -- | Variable names
 newtype V = V String
-    deriving (Eq,Ord,Show,Data,Typeable,Read,Monoid,IsString)
+    deriving (Eq,Ord,Data,Typeable,Read,Monoid,IsString)
+
+instance Show V where
+    show (V s) = show s
 
 -- |Generate a series of variable names.  We *only* recognize variable
 -- names which begin with one of the letters t thru z followed by zero
@@ -80,7 +83,7 @@ instance Logic (Formula p f) where
     x .&.   y = BinOp  x (:&:)   y
     (.~.) x   = (:~:) x
 
-instance (Logic (Formula p f), Show p, Show f) =>
+instance (Logic (Formula p f), Eq p, Eq f, Show p, Show f) =>
          PropositionalLogic (Formula p f) (Formula p f) where
     atomic (InfixPred t1 (:=:) t2) = t1 .=. t2
     atomic (InfixPred t1 (:!=:) t2) = t1 .!=. t2
@@ -94,7 +97,7 @@ instance (Logic (Formula p f), Show p, Show f) =>
           InfixPred t1 op t2 -> a (InfixPred t1 op t2)
           PredApp p ts -> a (PredApp p ts)
 
-instance (PropositionalLogic (Formula p f) (Formula p f), Show p, Show f) =>
+instance (PropositionalLogic (Formula p f) (Formula p f), Eq p, Eq f, Show p, Show f) =>
           PredicateLogic (Formula p f) (Term f) V p f where
     for_all vars x = Quant All vars x
     exists vars x = Quant Exists vars x
