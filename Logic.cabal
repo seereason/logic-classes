@@ -24,7 +24,7 @@ Library
                    Logic.Propositional,
                    Logic.Satisfiable
  Build-Depends:    base, containers, fgl, happstack-data, happstack-state,
-                   mtl, syb-with-class, text, logic-TPTP, PropLogic, ChiouProver >= 0.5
+                   mtl, syb-with-class, text, logic-TPTP, PropLogic, ChiouProver >= 0.6
 
 Executable tests
  Main-Is: Test/Test.hs
