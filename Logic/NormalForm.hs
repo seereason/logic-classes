@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables #-}
 -- |A series of transformations to convert first order logic formulas
 -- into (ultimately) Clause Normal Form.
 -- 
@@ -35,14 +35,18 @@ module Logic.NormalForm
     , clauseNormalForm
     , cnf
     , cnfTraced
+    , implicativeNormalForm
     ) where
 
+import Chiou.FirstOrderLogic (Sentence(..))
+import Chiou.NormalForm (ImplicativeNormalForm(..), toINF, NormalSentence(..))
 import Data.Char (isDigit)
 import Data.String (IsString(..))
 import Debug.Trace
 import qualified Data.Set as S
 import Logic.Logic
 import Logic.Predicate
+import Logic.Instances.Chiou ()
 
 -- |Simplify:
 -- 
@@ -291,6 +295,27 @@ skolemize uq f =
 clauseNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, Skolem m f, IsString v) =>
                     formula -> m formula
 clauseNormalForm f = skolemNormalForm f >>= return . removeUniversal
+
+implicativeNormalForm :: forall formula term v p f. 
+                         (PredicateLogic formula term v p f, Eq formula, Eq term, Eq p, Eq f, Enum f, IsString p) =>
+                         formula -> formula
+implicativeNormalForm =
+    fromChiou . conjunctList . map toFOL . toINF . toChiou
+    where
+      -- toChiou :: PredicateLogic formula term v p f => formula -> Sentence v p f
+      toChiou = convertPred id id id
+      toFOL ::  PredicateLogic formula term v p f => ImplicativeNormalForm v p f -> Sentence v p f
+      toFOL (INF neg pos) = (conjunctList (map convert neg)) .=>. (disjunctList (map convert pos))
+      -- fromChiou :: PredicateLogic formula term v p f => Sentence v p f -> formula
+      fromChiou = convertPred id id id
+      -- Convert [a, b, c, d] to (a .&. (b .&. (c .&. d)))
+      disjunctList (x : xs) = foldl (.|.) x xs
+      disjunctList [] = pApp (fromString "False") []
+      conjunctList (x : xs) = foldl (.&.) x xs
+      conjunctList [] = pApp (fromString "True") []
+      convert (NFPredicate p ts) = Predicate p ts
+      convert (NFNot f) = Not (convert f)
+      convert (NFEqual t1 t2) = Equal t1 t2
 
 removeUniversal ::(PredicateLogic formula term v p f) => formula -> formula
 removeUniversal formula =
