@@ -197,9 +197,11 @@ renameFreeVars s vs f =
       findName :: (IsString v, Ord v) => S.Set v -> String -> String
       findName s' v = if S.member (fromString v) s' then findName s' (nextName v) else v
       nextName :: String -> String
+      nextName "x" = "y"
+      nextName "y" = "z"
       nextName v =
-          reverse (show (1 + read (if n == "" then "2" else n) :: Int) ++
-                   (if a == "" then "x" else a))
+          reverse (show (1 + read (if n == "" then "1" else n) :: Int) ++
+                   {- (if a == "" then "x" else a) -} "x")
               where (n, a) = break (not . isDigit) (reverse v)
 
 -- |Convert to Prenex Normal Form and then distribute the disjunctions over the conjunctions:
