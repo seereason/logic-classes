@@ -37,6 +37,8 @@ module Logic.NormalForm
     , cnfTraced
     ) where
 
+import Data.Char (isDigit)
+import Data.String (IsString(..))
 import Debug.Trace
 import qualified Data.Set as S
 import Logic.Logic
@@ -77,7 +79,7 @@ simplify =
 -- ~~P  P
 -- @
 -- 
-negationNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, Enum v) => formula -> formula
+negationNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term) => formula -> formula
 negationNormalForm = moveNegationsIn . simplify
 
 moveNegationsIn :: PredicateLogic formula term v p f => formula -> formula
@@ -129,10 +131,11 @@ moveNegationsIn =
 -- variable which does not appear and change occurrences of X in P to
 -- this new variable.  We could instead modify Q, but that looks
 -- slightly more tedious.
-prenexNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, Enum v) => formula -> formula
+prenexNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, IsString v) => formula -> formula
 prenexNormalForm = moveQuantifiersOut . negationNormalForm
 
-moveQuantifiersOut :: forall formula term v p f. (PredicateLogic formula term v p f, Enum v) => formula -> formula
+moveQuantifiersOut :: forall formula term v p f. (PredicateLogic formula term v p f, IsString v) =>
+                      formula -> formula
 moveQuantifiersOut formula =
     foldF n q b i a formula
     where
@@ -182,12 +185,22 @@ moveQuantifiersOut formula =
 
 -- |Find new variables that are not in the set and substitute free
 -- occurrences in the formula.
-renameFreeVars :: PredicateLogic formula term v p f => S.Set v -> [v] -> formula -> ([v], formula)
+renameFreeVars :: (PredicateLogic formula term v p f, Ord v, IsString v) =>
+                  S.Set v -> [v] -> formula -> ([v], formula)
 renameFreeVars s vs f =
     (vs'', substitutePairs (zip vs (map var vs'')) f)
     where
-      (vs'', _) = foldr (\ v (vs', s') -> let v' = findName s' v in (v' : vs', S.insert v' s')) ([], s) vs
-      findName s' v = if S.member v s' then findName s' (succ v) else v
+      (vs'', _) = foldr (\ v (vs', s') ->
+                             if S.member v s'
+                             then let v' = fromString (findName s' "x") in (v' : vs', S.insert v' s')
+                             else (v : vs', S.insert v s')) ([], s) vs
+      findName :: (IsString v, Ord v) => S.Set v -> String -> String
+      findName s' v = if S.member (fromString v) s' then findName s' (nextName v) else v
+      nextName :: String -> String
+      nextName v =
+          reverse (show (1 + read (if n == "" then "2" else n) :: Int) ++
+                   (if a == "" then "x" else a))
+              where (n, a) = break (not . isDigit) (reverse v)
 
 -- |Convert to Prenex Normal Form and then distribute the disjunctions over the conjunctions:
 -- 
@@ -197,7 +210,8 @@ renameFreeVars s vs f =
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-disjunctiveNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, Enum v) => formula -> formula
+disjunctiveNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, IsString v) =>
+                         formula -> formula
 disjunctiveNormalForm = distributeDisjuncts . prenexNormalForm
 
 distributeDisjuncts :: (Eq formula, PredicateLogic formula term v p f) => formula -> formula
@@ -244,7 +258,8 @@ distributeDisjuncts =
 -- functions applied to the list of variables which are universally
 -- quantified in the context where the existential quantifier
 -- appeared.
-skolemNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, Enum v, Skolem m f) => formula -> m formula
+skolemNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, Skolem m f, IsString v) =>
+                    formula -> m formula
 skolemNormalForm = skolemize [] . disjunctiveNormalForm
 
 skolemize :: (PredicateLogic formula term v p f, Eq formula, Eq term, Skolem m f) => [v] -> formula -> m formula
@@ -271,7 +286,8 @@ skolemize uq f =
 -- universal quantifiers.  Due to the nature of Skolem Normal Form,
 -- this is actually all the remaining quantifiers, the result is
 -- effectively a propositional logic formula.
-clauseNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, Enum v, Skolem m f) => formula -> m formula
+clauseNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, Skolem m f, IsString v) =>
+                    formula -> m formula
 clauseNormalForm f = skolemNormalForm f >>= return . removeUniversal
 
 removeUniversal ::(PredicateLogic formula term v p f) => formula -> formula
@@ -282,11 +298,12 @@ removeUniversal formula =
       removeAll Exists vs f = exists vs (removeUniversal f)
 
 -- |Nickname for clauseNormalForm.
-cnf :: (PredicateLogic formula term v p f, Eq formula, Eq term, Enum v, Skolem m f) => formula -> m formula
+cnf :: (PredicateLogic formula term v p f, Eq formula, Eq term, Skolem m f, IsString v) =>
+       formula -> m formula
 cnf = clauseNormalForm
 
 -- |Nickname for clauseNormalForm.
-cnfTraced :: (PredicateLogic formula term v p f, Eq formula, Eq term, Enum v, Show formula, Skolem m f) => formula -> m formula
+cnfTraced :: (PredicateLogic formula term v p f, Eq formula, Eq term, IsString v, Show formula, Skolem m f) => formula -> m formula
 cnfTraced f =
     (skolemize [] . t4 . distributeDisjuncts . t3 . moveQuantifiersOut . t2 . moveNegationsIn . simplify . t1 $ f) >>= return . t6 . removeUniversal . t5
     where

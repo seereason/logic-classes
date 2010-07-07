@@ -34,7 +34,6 @@ import Data.Function (on)
 import Data.List (isPrefixOf, intercalate)
 import Data.Monoid (mappend)
 import qualified Data.Set as S
-import Data.String (IsString(..))
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
@@ -56,17 +55,13 @@ class (MonadState Int m, Enum f) => Skolem m f where
 -- example, without them the univquant_free_vars function gives the
 -- error @No instance for (PropositionalLogic Formula t V p f)@
 -- because the function doesn't mention the Term type.
-class (Logic formula, Ord v, Enum v) => PredicateLogic formula term v p f
+class (Logic formula, Ord v) => PredicateLogic formula term v p f
                        | formula -> term
                        , formula -> v
                        , formula -> p
                        , term -> formula
                        , term -> v
-                       , term -> f
-                       , v -> formula
-                       , v -> term
-                       , v -> p
-                       , v -> f where
+                       , term -> f where
     -- | Universal quantification - for all x (formula x)
     for_all :: [v] -> formula -> formula
     -- | Existential quantification - there exists x such that (formula x)

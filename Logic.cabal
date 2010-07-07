@@ -1,5 +1,5 @@
 Name:             Logic
-Version:          0.11
+Version:          0.12
 License:          BSD3
 Author:           SeeReason Partners <partners@seereason.com>
 Maintainer:       SeeReason Partners <partners@seereason.com>
@@ -24,7 +24,7 @@ Library
                    Logic.Propositional,
                    Logic.Satisfiable
  Build-Depends:    base, containers, fgl, happstack-data, happstack-state,
-                   mtl, syb-with-class, text, logic-TPTP, PropLogic, ChiouProver >= 0.2
+                   mtl, syb-with-class, text, logic-TPTP, PropLogic, ChiouProver >= 0.5
 
 Executable tests
  Main-Is: Test/Test.hs

@@ -33,14 +33,15 @@ pref = 'x'
 mx = 'z'
 cnt = ord mx - ord mn + 1
 
-instance Logic Sentence where
+instance Logic (Sentence v p f) where
     x .<=>. y = Connective x Equiv y
     x .=>.  y = Connective x Imply y
     x .|.   y = Connective x Or y
     x .&.   y = Connective x And y
     (.~.) x   = Not x
 
-instance (Logic Sentence) => PropositionalLogic Sentence Sentence where
+instance (Logic (Sentence v p f), Ord v, Enum f) =>
+         PropositionalLogic (Sentence v p f) (Sentence v p f) where
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Not _) = error "Logic.Instances.Chiou.atomic: unexpected"
@@ -60,9 +61,9 @@ instance (Logic Sentence) => PropositionalLogic Sentence Sentence where
 -- |We need a type to represent the atomic function, which is any term
 -- which is not a variable.
 data AtomicFunction
-    = AtomicFunction Function
+    = AtomicFunction String
     | AtomicSkolemFunction Int
-    deriving (Show)
+    deriving (Eq, Show)
 
 instance IsString AtomicFunction where
     fromString = AtomicFunction
@@ -77,8 +78,8 @@ instance Enum AtomicFunction where
 -- system.  Instead it maintains a skolem function allocator in its
 -- state monad.
 
-instance (PropositionalLogic Sentence Sentence) =>
-          PredicateLogic Sentence Term Variable Predicate AtomicFunction where
+instance (PropositionalLogic (Sentence v p f) (Sentence v p f), Ord v, Enum f) =>
+          PredicateLogic (Sentence v p f) (Term v f) v p f where
     for_all vars x = Quantifier ForAll vars x
     exists vars x = Quantifier Exists vars x
     foldF n q b i p f =
@@ -94,17 +95,17 @@ instance (PropositionalLogic Sentence Sentence) =>
           Equal t1 t2 -> i t1 (:=:) t2
     foldT v fn t =
         case t of
-          Variable name -> v name
-          Function name ts -> fn (AtomicFunction name) ts
-          Constant name -> fn (AtomicFunction name) []
-          SkolemConstant n -> fn (AtomicSkolemFunction n) []
-          SkolemFunction n ts -> fn (AtomicSkolemFunction n) ts
+          Variable x -> v x
+          Function f ts -> fn f ts
+          Constant f -> fn f []
+          SkolemConstant n -> fn (toEnum n) []
+          SkolemFunction n ts -> fn (toEnum n) ts
     pApp x args = Predicate x args
     var = Variable
-    fApp (AtomicFunction name) [] = Constant name
-    fApp (AtomicFunction name) ts = Function name ts
-    fApp (AtomicSkolemFunction n) [] = SkolemConstant n
-    fApp (AtomicSkolemFunction n) ts = SkolemFunction n ts
+    fApp f [] = Constant f
+    fApp f ts = Function f ts
+    -- fApp (AtomicSkolemFunction n) [] = SkolemConstant n
+    -- fApp (AtomicSkolemFunction n) ts = SkolemFunction n ts
     x .=. y = Equal x y
     x .!=. y = Not (Equal x y)
 

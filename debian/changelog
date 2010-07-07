@@ -1,3 +1,13 @@
+haskell-logic (0.12) unstable; urgency=low
+
+  * Parameterize the variable type v in the PredicateLogic class and
+    the Formula type in the Parameterized instance.
+  * Reduce the number of functional dependencies in the PredicateLogic
+    class, this allows us to create two instances that use the same
+    types for any of v, p, or f.
+
+ -- David Fox <dsf@seereason.com>  Tue, 06 Jul 2010 17:52:37 -0700
+
 haskell-logic (0.11) unstable; urgency=low
 
   * Modify the Skolem class so it uses a monad to generate new names
