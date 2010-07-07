@@ -1,3 +1,9 @@
+haskell-logic (0.13) unstable; urgency=low
+
+  * Implement polymorphic version of implicativeNormalForm.
+
+ -- David Fox <dsf@seereason.com>  Tue, 06 Jul 2010 22:39:55 -0700
+
 haskell-logic (0.12) unstable; urgency=low
 
   * Parameterize the variable type v in the PredicateLogic class and
