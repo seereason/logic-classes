@@ -202,7 +202,7 @@ renameFreeVars s vs f =
       nextName v =
           reverse (show (1 + read (if n == "" then "1" else n) :: Int) ++
                    {- (if a == "" then "x" else a) -} "x")
-              where (n, a) = break (not . isDigit) (reverse v)
+              where (n, _a) = break (not . isDigit) (reverse v)
 
 -- |Convert to Prenex Normal Form and then distribute the disjunctions over the conjunctions:
 -- 
