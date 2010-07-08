@@ -5,9 +5,9 @@ module Logic.Instances.TPTP where
 import Control.Monad.Identity (Identity(..))
 import Codec.TPTP
 import Data.Char (isDigit, ord, chr)
+import qualified Logic.FirstOrder as Logic
 import qualified Logic.Logic as Logic
 import qualified Logic.Propositional as Logic
-import qualified Logic.Predicate as Logic
 
 -- |Generate a series of variable names.  
 instance Enum V where
@@ -81,7 +81,7 @@ instance Logic.PropositionalLogic Formula Formula where
               p' p ts = a (F (Identity (PredApp p ts)))
               unwrapF' (F x) = F x -- copoint x
 
-instance Logic.PredicateLogic Formula Term V AtomicWord AtomicFunction where
+instance Logic.FirstOrderLogic Formula Term V AtomicWord AtomicFunction where
     for_all vars x = for_all vars x
     exists vars x = exists vars x
     -- Use the TPTP fold to implement the Logic fold.  This means

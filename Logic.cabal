@@ -1,5 +1,5 @@
 Name:             Logic
-Version:          0.14
+Version:          0.15
 License:          BSD3
 Author:           SeeReason Partners <partners@seereason.com>
 Maintainer:       SeeReason Partners <partners@seereason.com>
@@ -20,13 +20,13 @@ Library
                    Logic.Chiou.NormalForm
                    Logic.Chiou.Resolution
                    Logic.Chiou.Skolem
+                   Logic.FirstOrder,
                    Logic.Instances.Chiou,
                    Logic.Instances.Parameterized,
                    Logic.Instances.PropLogic,
                    Logic.Instances.TPTP,
                    Logic.Logic,
                    Logic.NormalForm,
-                   Logic.Predicate,
                    Logic.Propositional,
                    Logic.Satisfiable
  Build-Depends:    base, containers, fgl, happstack-data, happstack-state,

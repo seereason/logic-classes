@@ -44,8 +44,8 @@ import Debug.Trace
 import qualified Data.Set as S
 import Logic.Chiou.FirstOrderLogic (Sentence(..))
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), toINF, NormalSentence(..))
+import Logic.FirstOrder
 import Logic.Logic
-import Logic.Predicate
 import Logic.Instances.Chiou ()
 
 -- |Simplify:
@@ -56,13 +56,13 @@ import Logic.Instances.Chiou ()
 --  P => Q      ~P | Q
 -- @
 -- 
-simplify :: PredicateLogic formula term v p f => formula -> formula
+simplify :: FirstOrderLogic formula term v p f => formula -> formula
 simplify =
     foldF n q b i a
     where
       q All vs f = for_all vs (simplify f)
       q Exists vs f = exists vs (simplify f)
-      b :: PredicateLogic formula term v p f => formula -> BinOp -> formula -> formula
+      b :: FirstOrderLogic formula term v p f => formula -> BinOp -> formula -> formula
       b f1 (:&:) f2 = simplify f1 .&. simplify f2
       b f1 (:|:) f2 = simplify f1 .|. simplify f2
       b f1 (:=>:) f2 = ((.~.) (simplify f1)) .|. simplify f2
@@ -83,10 +83,10 @@ simplify =
 -- ~~P  P
 -- @
 -- 
-negationNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term) => formula -> formula
+negationNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Eq term) => formula -> formula
 negationNormalForm = moveNegationsIn . simplify
 
-moveNegationsIn :: PredicateLogic formula term v p f => formula -> formula
+moveNegationsIn :: FirstOrderLogic formula term v p f => formula -> formula
 moveNegationsIn =
     foldF n q b i a
     where
@@ -101,7 +101,7 @@ moveNegationsIn =
       i = infixPred
       a p ts = pApp p ts
       -- Helper function for moveNegationsIn, for already negated formulae
-      doNegation :: PredicateLogic formula term v p f => formula -> formula
+      doNegation :: FirstOrderLogic formula term v p f => formula -> formula
       doNegation =
           foldF n' q' b' i' a'
           where
@@ -135,10 +135,10 @@ moveNegationsIn =
 -- variable which does not appear and change occurrences of X in P to
 -- this new variable.  We could instead modify Q, but that looks
 -- slightly more tedious.
-prenexNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, IsString v) => formula -> formula
+prenexNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Eq term, IsString v) => formula -> formula
 prenexNormalForm = moveQuantifiersOut . negationNormalForm
 
-moveQuantifiersOut :: forall formula term v p f. (PredicateLogic formula term v p f, IsString v) =>
+moveQuantifiersOut :: forall formula term v p f. (FirstOrderLogic formula term v p f, IsString v) =>
                       formula -> formula
 moveQuantifiersOut formula =
     foldF n q b i a formula
@@ -189,7 +189,7 @@ moveQuantifiersOut formula =
 
 -- |Find new variables that are not in the set and substitute free
 -- occurrences in the formula.
-renameFreeVars :: (PredicateLogic formula term v p f, Ord v, IsString v) =>
+renameFreeVars :: (FirstOrderLogic formula term v p f, Ord v, IsString v) =>
                   S.Set v -> [v] -> formula -> ([v], formula)
 renameFreeVars s vs f =
     (vs'', substitutePairs (zip vs (map var vs'')) f)
@@ -216,11 +216,11 @@ renameFreeVars s vs f =
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-disjunctiveNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, IsString v) =>
+disjunctiveNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Eq term, IsString v) =>
                          formula -> formula
 disjunctiveNormalForm = distributeDisjuncts . prenexNormalForm
 
-distributeDisjuncts :: (Eq formula, PredicateLogic formula term v p f) => formula -> formula
+distributeDisjuncts :: (Eq formula, FirstOrderLogic formula term v p f) => formula -> formula
 distributeDisjuncts =
     foldF n q b i a
     where
@@ -264,11 +264,11 @@ distributeDisjuncts =
 -- functions applied to the list of variables which are universally
 -- quantified in the context where the existential quantifier
 -- appeared.
-skolemNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
+skolemNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
                     formula -> m formula
 skolemNormalForm = skolemize [] . disjunctiveNormalForm
 
-skolemize :: (PredicateLogic formula term v p f, Eq formula, Eq term, HasSkolem m, Skolem f) => [v] -> formula -> m formula
+skolemize :: (FirstOrderLogic formula term v p f, Eq formula, Eq term, HasSkolem m, Skolem f) => [v] -> formula -> m formula
 skolemize uq f =
     foldF n q b i a f
     where
@@ -292,21 +292,21 @@ skolemize uq f =
 -- universal quantifiers.  Due to the nature of Skolem Normal Form,
 -- this is actually all the remaining quantifiers, the result is
 -- effectively a propositional logic formula.
-clauseNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
+clauseNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
                     formula -> m formula
 clauseNormalForm f = skolemNormalForm f >>= return . removeUniversal
 
 implicativeNormalForm :: forall formula term v p f. 
-                         (PredicateLogic formula term v p f, Eq formula, Eq term, Eq p, Eq f, Skolem f, IsString p) =>
+                         (FirstOrderLogic formula term v p f, Eq formula, Eq term, Eq p, Eq f, Skolem f, IsString p) =>
                          formula -> formula
 implicativeNormalForm =
     fromChiou . conjunctList . map toFOL . toINF . toChiou
     where
-      -- toChiou :: PredicateLogic formula term v p f => formula -> Sentence v p f
+      -- toChiou :: FirstOrderLogic formula term v p f => formula -> Sentence v p f
       toChiou = convertPred id id id
-      toFOL ::  PredicateLogic formula term v p f => ImplicativeNormalForm v p f -> Sentence v p f
+      toFOL ::  FirstOrderLogic formula term v p f => ImplicativeNormalForm v p f -> Sentence v p f
       toFOL (INF neg pos) = (conjunctList (map convert neg)) .=>. (disjunctList (map convert pos))
-      -- fromChiou :: PredicateLogic formula term v p f => Sentence v p f -> formula
+      -- fromChiou :: FirstOrderLogic formula term v p f => Sentence v p f -> formula
       fromChiou = convertPred id id id
       -- Convert [a, b, c, d] to (a .&. (b .&. (c .&. d)))
       disjunctList (x : xs) = foldl (.|.) x xs
@@ -317,7 +317,7 @@ implicativeNormalForm =
       convert (NFNot f) = Not (convert f)
       convert (NFEqual t1 t2) = Equal t1 t2
 
-removeUniversal ::(PredicateLogic formula term v p f) => formula -> formula
+removeUniversal ::(FirstOrderLogic formula term v p f) => formula -> formula
 removeUniversal formula =
     foldF (.~.) removeAll binOp infixPred pApp formula
     where
@@ -325,12 +325,12 @@ removeUniversal formula =
       removeAll Exists vs f = exists vs (removeUniversal f)
 
 -- |Nickname for clauseNormalForm.
-cnf :: (PredicateLogic formula term v p f, Eq formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
+cnf :: (FirstOrderLogic formula term v p f, Eq formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
        formula -> m formula
 cnf = clauseNormalForm
 
 -- |Nickname for clauseNormalForm.
-cnfTraced :: (PredicateLogic formula term v p f, Eq formula, Eq term, IsString v, Show formula, HasSkolem m, Skolem f) => formula -> m formula
+cnfTraced :: (FirstOrderLogic formula term v p f, Eq formula, Eq term, IsString v, Show formula, HasSkolem m, Skolem f) => formula -> m formula
 cnfTraced f =
     (skolemize [] . t4 . distributeDisjuncts . t3 . moveQuantifiersOut . t2 . moveNegationsIn . simplify . t1 $ f) >>= return . t6 . removeUniversal . t5
     where

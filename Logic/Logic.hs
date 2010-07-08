@@ -60,7 +60,7 @@ infixl 2  .<=>. ,  .=>. ,  .<~>.
 infixl 3  .|.
 infixl 4  .&.
 
--- | The 'BinOp' type (and in 'Logic.Predicate' the 'InfixPred' and
+-- | The 'BinOp' type (and in 'Logic.FirstOrder' the 'InfixPred' and
 -- 'Quant' types) could be parameters of the type class instead of
 -- being implemented here concretely, but I'm not sure whether the
 -- added complexity is worthwhile.

@@ -12,7 +12,7 @@ import Logic.Chiou.Monad (ProverT, runProverT)
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), ConjunctiveNormalForm(..), distributeAndOverOr)
 import Logic.Chiou.KnowledgeBase (askKB, loadKB, showKB, theoremKB)
 import Logic.Chiou.Resolution (SetOfSupport)
-import Logic.Predicate (Skolem(..))
+import Logic.FirstOrder (Skolem(..))
 import Test.HUnit
 import System.Exit
 

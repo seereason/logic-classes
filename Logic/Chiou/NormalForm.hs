@@ -20,7 +20,7 @@ module Logic.Chiou.NormalForm
     ) where
 
 import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Connective(..), Quantifier(..))
-import Logic.Predicate (Skolem(..))
+import Logic.FirstOrder (Skolem(..))
 import Data.String (IsString(..))
 
 data ConjunctiveNormalForm v p f =

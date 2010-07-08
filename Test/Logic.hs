@@ -15,7 +15,7 @@ import qualified Logic.Instances.Parameterized as P
 import Logic.Instances.PropLogic (flatten)
 import Logic.Logic (Logic(..))
 import Logic.NormalForm (prenexNormalForm, skolemNormalForm, disjunctiveNormalForm, cnf, implicativeNormalForm)
-import Logic.Predicate (Skolem(..), PredicateLogic(..), toPropositional, showForm, freeVars, substitute, convertPred, HasSkolem(..))
+import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), toPropositional, showForm, freeVars, substitute, convertPred, HasSkolem(..))
 import Logic.Satisfiable (clauses, theorem, inconsistant)
 import PropLogic (PropForm(..), truthTable)
 import qualified TextDisplay as TD
@@ -64,11 +64,11 @@ cf' (AtomicSkolemFunction n) = SkolemFunction n
 tests :: [Test]
 tests = precTests ++ cnfTests ++ theoremTests
 
-formCase :: PredicateLogic (P.Formula V String AtomicFunction) (P.Term V AtomicFunction) V String AtomicFunction =>
+formCase :: FirstOrderLogic (P.Formula V String AtomicFunction) (P.Term V AtomicFunction) V String AtomicFunction =>
             String -> TestFormula -> TestFormula -> Test
 formCase s expected input = TestCase (assertEqual s expected input)
 
--- formCaseChiou :: PredicateLogic C.Sentence C.Term String String AtomicFunction =>
+-- formCaseChiou :: FirstOrderLogic C.Sentence C.Term String String AtomicFunction =>
 --                  String -> TestFormula -> TestFormula -> Test
 -- formCaseChiou s expected input = TestCase (assertEqual s expected input)
 
@@ -112,13 +112,13 @@ cnfTests :: [Test]
 cnfTests = concatMap pairTest testFormulas ++
            [test9a, moveQuantifiersOut1, skolemize1, skolemize2, skolemize3, inf1]
 
-p :: (IsString t, PredicateLogic formula term v t f) => [term] -> formula
+p :: (IsString t, FirstOrderLogic formula term v t f) => [term] -> formula
 p vs = pApp "p" vs
-q :: (IsString t, PredicateLogic formula term v t f) => [term] -> formula
+q :: (IsString t, FirstOrderLogic formula term v t f) => [term] -> formula
 q vs = pApp "q" vs
-r :: (IsString t, PredicateLogic formula term v t f) => [term] -> formula
+r :: (IsString t, FirstOrderLogic formula term v t f) => [term] -> formula
 r vs = pApp "r" vs
-s :: (IsString t, PredicateLogic formula term v t f) => [term] -> formula
+s :: (IsString t, FirstOrderLogic formula term v t f) => [term] -> formula
 s vs = pApp "s" vs
 {-
 x' :: IsString v => v
@@ -134,17 +134,17 @@ v' = "v"
 w' :: IsString v => v
 w' = "w"
 -}
-x :: (PredicateLogic formula term v p f, IsString v) => term
+x :: (FirstOrderLogic formula term v p f, IsString v) => term
 x = var (fromString "x")
-y :: (PredicateLogic formula term v p f, IsString v) => term
+y :: (FirstOrderLogic formula term v p f, IsString v) => term
 y = var (fromString "y")
-z :: (PredicateLogic formula term v p f, IsString v) => term
+z :: (FirstOrderLogic formula term v p f, IsString v) => term
 z = var (fromString "z")
-u :: (PredicateLogic formula term v p f, IsString v) => term
+u :: (FirstOrderLogic formula term v p f, IsString v) => term
 u = var (fromString "u")
-v :: (PredicateLogic formula term v p f, IsString v) => term
+v :: (FirstOrderLogic formula term v p f, IsString v) => term
 v = var (fromString "v")
-w :: (PredicateLogic formula term v p f, IsString v) => term
+w :: (FirstOrderLogic formula term v p f, IsString v) => term
 w = var (fromString "w")
 
 -- Test cases from http://www.cs.miami.edu/~geoff/Courses/CS63S-09S/Content/FOFToCNF.shtml
@@ -230,19 +230,43 @@ testFormulas =
     , ("cnf test 9",
 {-
        -- This is what we get from the polymorphic code
-       CJ [DJ [N (A (pApp ("q") [var ("x"),var ("y")])),N (A (pApp ("f") [var ("z"),var ("x")])),A (pApp ("f") [var ("z"),var ("y")])],
-           DJ [N (A (pApp ("q") [var ("x"),var ("y")])),N (A (pApp ("f") [var ("z"),var ("y")])),A (pApp ("f") [var ("z"),var ("x")])],
-           DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]),A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")]),A (pApp ("q") [var ("x"),var ("y")])],
-           DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])),A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")]),A (pApp ("q") [var ("x"),var ("y")])],
-           DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]),N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])),A (pApp ("q") [var ("x"),var ("y")])],
-           DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])),N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])),A (pApp ("q") [var ("x"),var ("y")])]],
+       CJ [DJ [N (A (pApp ("q") [var ("x"),var ("y")])),
+               N (A (pApp ("f") [var ("z"),var ("x")])),
+               A (pApp ("f") [var ("z"),var ("y")])],
+           DJ [N (A (pApp ("q") [var ("x"),var ("y")])),
+               N (A (pApp ("f") [var ("z"),var ("y")])),
+               A (pApp ("f") [var ("z"),var ("x")])],
+           DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]),
+               A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")]),
+               A (pApp ("q") [var ("x"),var ("y")])],
+           DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])),
+               A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")]),
+               A (pApp ("q") [var ("x"),var ("y")])],
+           DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]),
+               N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])),
+               A (pApp ("q") [var ("x"),var ("y")])],
+           DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])),
+               N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])),
+               A (pApp ("q") [var ("x"),var ("y")])]],
 -}
-       CJ [DJ [N (A (pApp ("q") [var (V "x"),var (V "y")])),N (A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "x")])),A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "y")])],
-           DJ [N (A (pApp ("q") [var (V "x"),var (V "y")])),N (A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "y")])),A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "x")])],
-           DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "x")]),A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "y")]),A (pApp ("q") [var (V "x"),var (V "y")])],
-           DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "y")])),A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "y")]),A (pApp ("q") [var (V "x"),var (V "y")])],
-           DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "x")]),N (A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "x")])),A (pApp ("q") [var (V "x"),var (V "y")])],
-           DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "y")])),N (A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "x")])),A (pApp ("q") [var (V "x"),var (V "y")])]],
+       CJ [DJ [N (A (pApp ("q") [var ("x"),var ("y")])),
+               N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])),
+               A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])],
+           DJ [N (A (pApp ("q") [var ("x"),var ("y")])),
+               N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])),
+               A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])],
+           DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]),
+               A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")]),
+               A (pApp ("q") [var ("x"),var ("y")])],
+           DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])),
+               A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")]),
+               A (pApp ("q") [var ("x"),var ("y")])],
+           DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]),
+               N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])),
+               A (pApp ("q") [var ("x"),var ("y")])],
+           DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])),
+               N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])),
+               A (pApp ("q") [var ("x"),var ("y")])]],
        (for_all ["x"] (for_all ["x"] (for_all ["y"] (q [x, y] .<=>. for_all ["z"] (f [z, x] .<=>. f [z, y]))))))
     , ("cnf test 10",
 {-
@@ -297,10 +321,10 @@ testFormulas =
 pairTest :: (String, PropForm TestFormula, TestFormula) -> [Test]
 pairTest (s, f1, f2) =
     [ TestCase (assertEqual (s ++ ", Chiou cnf") f1 (flatten (cnf' f2)))
-    , TestCase (assertEqual (s ++ ", PredicateLogic cnf")
+    , TestCase (assertEqual (s ++ ", FirstOrderLogic cnf")
                 f1 (flatten (toPropositional A (runIdentity (evalStateT (cnf f2) (1 :: Int)))))) ]
 
--- |Here is an example of automatic conversion from a PredicateLogic
+-- |Here is an example of automatic conversion from a FirstOrderLogic
 -- instance to a PropositionalLogic instance.  The result is PropForm
 -- a where a is the original type, but the a values will always be
 -- "atomic" formulas, never the operators which can be converted into
@@ -512,6 +536,6 @@ prepare formula = ({- flatten . -} fromJust . toPropositional convertA . cnf . (
 convertA = Just . A
 -}
 
-table :: (PredicateLogic formula term v p f, Show formula, Ord formula, Eq term, HasSkolem m, Skolem f, IsString v, TD.Display formula) =>
+table :: (FirstOrderLogic formula term v p f, Show formula, Ord formula, Eq term, HasSkolem m, Skolem f, IsString v, TD.Display formula) =>
          formula -> m TD.TextFrame
 table f = clauses f >>= return . TD.textFrame . truthTable

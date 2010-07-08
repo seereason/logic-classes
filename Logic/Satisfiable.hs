@@ -1,4 +1,4 @@
--- |Do satisfiability computations on any PredicateLogic formula by
+-- |Do satisfiability computations on any FirstOrderLogic formula by
 -- converting it to a convenient instance of PropositionalLogic and
 -- using the satisfiable function from that instance, in this case
 -- the PropLogic package.
@@ -11,23 +11,23 @@ module Logic.Satisfiable
     ) where
 
 import Data.String (IsString)
+import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), toPropositional, HasSkolem(..))
 import Logic.Logic ((.~.))
 import Logic.NormalForm (clauseNormalForm)
-import Logic.Predicate (Skolem(..), PredicateLogic(..), toPropositional, HasSkolem(..))
 import Logic.Instances.PropLogic ()
 import PropLogic (PropForm(..), satisfiable)
 
-clauses :: (PredicateLogic formula term v p f, Show formula, Eq formula, Eq term, HasSkolem m, Skolem f, IsString v) => formula -> m (PropForm formula)
+clauses :: (FirstOrderLogic formula term v p f, Show formula, Eq formula, Eq term, HasSkolem m, Skolem f, IsString v) => formula -> m (PropForm formula)
 clauses f = clauseNormalForm f >>= return . toPropositional A
 
-inconsistant :: (PredicateLogic formula term v p f, Ord formula, Show formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
+inconsistant :: (FirstOrderLogic formula term v p f, Ord formula, Show formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
                 formula -> m Bool
 inconsistant f = clauses f >>= return . not . satisfiable
 
-theorem :: (PredicateLogic formula term v p f, Ord formula, Show formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
+theorem :: (FirstOrderLogic formula term v p f, Ord formula, Show formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
            formula -> m Bool
 theorem f = inconsistant ((.~.) f)
 
-invalid :: (PredicateLogic formula term v p f, Ord formula, Show formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
+invalid :: (FirstOrderLogic formula term v p f, Ord formula, Show formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
            formula -> m Bool
 invalid f = theorem f >>= \ t -> inconsistant f >>= \ i -> return (not (t || i))

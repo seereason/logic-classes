@@ -8,7 +8,7 @@ import Control.Monad.State (get)
 import Logic.Chiou.FirstOrderLogic (Term(..))
 import Logic.Chiou.Monad (ProverT, SkolemCount, State(skolemCount))
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..))
-import Logic.Predicate (Skolem(..))
+import Logic.FirstOrder (Skolem(..))
 
 assignSkolemL :: (Monad m, Skolem f) => [ImplicativeNormalForm v p f] -> SkolemCount -> ProverT v p f m ([(ImplicativeNormalForm v p f, SkolemCount)], SkolemCount)
 assignSkolemL [] _ = return ([], 0)

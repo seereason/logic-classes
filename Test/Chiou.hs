@@ -12,7 +12,7 @@ import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), fr
 import Logic.Instances.Chiou ()
 import qualified Logic.Instances.Parameterized as P
 import Logic.Logic (Logic(..))
-import Logic.Predicate (Skolem(..), PredicateLogic(..), convertPred, showForm)
+import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), convertPred, showForm)
 import Test.HUnit
 
 -- | Variable names
@@ -54,16 +54,16 @@ testFormulas =
      , for_all ["x"] (((s [x] .=>. h [x]) .&. (h [x] .=>. m [x])) .=>. (s [x] .=>. m [x])))]
     where
 
-x :: (PredicateLogic formula term v p f, IsString v) => term
+x :: (FirstOrderLogic formula term v p f, IsString v) => term
 x = var (fromString "x")
-y :: (PredicateLogic formula term v p f, IsString v) => term
+y :: (FirstOrderLogic formula term v p f, IsString v) => term
 y = var (fromString "y")
 
-s :: (PredicateLogic formula term v p f, IsString p) => [term] -> formula
+s :: (FirstOrderLogic formula term v p f, IsString p) => [term] -> formula
 s = pApp (fromString "s")
-m :: (PredicateLogic formula term v p f, IsString p) => [term] -> formula
+m :: (FirstOrderLogic formula term v p f, IsString p) => [term] -> formula
 m = pApp (fromString "m")
-h :: (PredicateLogic formula term v p f, IsString p) => [term] -> formula
+h :: (FirstOrderLogic formula term v p f, IsString p) => [term] -> formula
 h = pApp (fromString "h")
 
 pairTest :: (String, SentenceVPA, FormulaPF) -> [Test]

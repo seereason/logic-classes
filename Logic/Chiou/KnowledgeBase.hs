@@ -26,7 +26,7 @@ import Logic.Chiou.Monad (ProverT, State(..), zeroKB, SkolemCount, FolModule)
 import Logic.Chiou.NormalForm (ImplicativeNormalForm, toINF)
 import Logic.Chiou.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Logic.Chiou.Skolem (assignSkolemL)
-import Logic.Predicate (Skolem(..))
+import Logic.FirstOrder (Skolem(..))
 
 -- |Reset the knowledgebase to empty.
 emptyKB :: Monad m => ProverT v p f m ()

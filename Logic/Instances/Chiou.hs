@@ -8,8 +8,8 @@ import Data.String (IsString(..))
 import Logic.Chiou.FirstOrderLogic
 import Logic.Logic (Logic(..), BinOp(..))
 import Logic.Propositional (PropositionalLogic(..))
-import Logic.Predicate (Skolem(..), PredicateLogic(..), InfixPred(..))
-import qualified Logic.Predicate as Logic
+import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), InfixPred(..))
+import qualified Logic.FirstOrder as Logic
 
 -- |This enum instance is used to generate a series of new variable
 -- names.
@@ -74,7 +74,7 @@ instance Skolem AtomicFunction where
     fromSkolem _ = Nothing
 
 instance (PropositionalLogic (Sentence v p f) (Sentence v p f), Ord v, Skolem f) =>
-          PredicateLogic (Sentence v p f) (Term v f) v p f where
+          FirstOrderLogic (Sentence v p f) (Term v f) v p f where
     for_all vars x = Quantifier ForAll vars x
     exists vars x = Quantifier Exists vars x
     foldF n q b i p f =
@@ -101,12 +101,12 @@ instance (PropositionalLogic (Sentence v p f) (Sentence v p f), Ord v, Skolem f)
     x .!=. y = Not (Equal x y)
 
 {-
-cnf2 :: PredicateLogic formula term v p f =>
+cnf2 :: FirstOrderLogic formula term v p f =>
         (v -> Variable) -> (p -> Predicate) -> (f -> AtomicFunction) -> formula -> formula
 cnf2 cv cp cf f = f''
     where
       -- Convert from Sentence
-      f'' :: PredicateLogic formula term v p f => formula
+      f'' :: FirstOrderLogic formula term v p f => formula
       f'' = convertPred cv' cp' cf' f'
       -- Convert to Sentence
       f' :: Sentence

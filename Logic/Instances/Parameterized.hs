@@ -16,9 +16,9 @@ import Data.Data (Data)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
+import Logic.FirstOrder (FirstOrderLogic(..), Quant(..), InfixPred(..))
 import Logic.Logic (Logic(..), BinOp(..))
 import Logic.Propositional (PropositionalLogic(..))
-import Logic.Predicate (PredicateLogic(..), Quant(..), InfixPred(..))
     
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula v p f
@@ -66,7 +66,7 @@ instance (Logic (Formula v p f), Ord v, Eq p, Eq f, Show p, Show f) =>
           PredApp p ts -> a (PredApp p ts)
 
 instance (PropositionalLogic (Formula v p f) (Formula v p f), Ord v, Eq p, Eq f, Show p, Show f) =>
-          PredicateLogic (Formula v p f) (Term v f) v p f where
+          FirstOrderLogic (Formula v p f) (Term v f) v p f where
     for_all vars x = Quant All vars x
     exists vars x = Quant Exists vars x
     foldF = foldFormula
