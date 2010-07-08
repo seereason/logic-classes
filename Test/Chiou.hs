@@ -6,7 +6,7 @@ module Test.Chiou (tests, V(..)) where
 import Chiou.FirstOrderLogic (Sentence(..), Term(..), Quantifier(..), Connective(..))
 import Chiou.KnowledgeBase (loadKB, theoremKB, validKB)
 import Chiou.Monad (runProverT)
-import Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..))
+import Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), fromINF)
 import Control.Monad.Identity (runIdentity)
 import Data.String (IsString(..))
 import qualified Logic.Instances.Parameterized as P
