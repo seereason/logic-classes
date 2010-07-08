@@ -1,16 +1,14 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
              RankNTypes, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wall -Werror -fno-warn-orphans -fno-warn-missing-signatures #-}
-module Logic.Instances.Chiou
-    ( AtomicFunction(..)
-    ) where
+module Logic.Instances.Chiou () where
 
-import Chiou.FirstOrderLogic
 import Data.Char (ord, isDigit, chr)
 import Data.String (IsString(..))
+import Logic.Chiou.FirstOrderLogic
 import Logic.Logic (Logic(..), BinOp(..))
 import Logic.Propositional (PropositionalLogic(..))
-import Logic.Predicate (PredicateLogic(..), InfixPred(..))
+import Logic.Predicate (Skolem(..), PredicateLogic(..), InfixPred(..))
 import qualified Logic.Predicate as Logic
 
 -- |This enum instance is used to generate a series of new variable
@@ -40,7 +38,7 @@ instance Logic (Sentence v p f) where
     x .&.   y = Connective x And y
     (.~.) x   = Not x
 
-instance (Logic (Sentence v p f), Ord v, Enum f) =>
+instance (Logic (Sentence v p f), Ord v, Skolem f) =>
          PropositionalLogic (Sentence v p f) (Sentence v p f) where
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
@@ -63,24 +61,19 @@ instance (Logic (Sentence v p f), Ord v, Enum f) =>
 data AtomicFunction
     = AtomicFunction String
     -- This is redundant with the SkolemFunction and SkolemConstant
-    -- constructors int the Chiou Term type.
+    -- constructors in the Chiou Term type.
     | AtomicSkolemFunction Int
     deriving (Eq, Show)
 
 instance IsString AtomicFunction where
     fromString = AtomicFunction
 
-instance Enum AtomicFunction where
-    toEnum = AtomicSkolemFunction 
-    fromEnum (AtomicSkolemFunction n) = n
-    fromEnum _ = error "Enum AtomicFunction"
+instance Skolem AtomicFunction where
+    toSkolem = AtomicSkolemFunction 
+    fromSkolem (AtomicSkolemFunction n) = Just n
+    fromSkolem _ = Nothing
 
--- |There is no correspondance between skolem functions and variable
--- names in this instance, we probably need to remove it from the
--- system.  Instead it maintains a skolem function allocator in its
--- state monad.
-
-instance (PropositionalLogic (Sentence v p f) (Sentence v p f), Ord v, Enum f) =>
+instance (PropositionalLogic (Sentence v p f) (Sentence v p f), Ord v, Skolem f) =>
           PredicateLogic (Sentence v p f) (Term v f) v p f where
     for_all vars x = Quantifier ForAll vars x
     exists vars x = Quantifier Exists vars x
@@ -99,12 +92,8 @@ instance (PropositionalLogic (Sentence v p f) (Sentence v p f), Ord v, Enum f) =
         case t of
           Variable x -> v x
           Function f ts -> fn f ts
-          Constant f -> fn f []
-          SkolemConstant n -> fn (toEnum n) []
-          SkolemFunction n ts -> fn (toEnum n) ts
     pApp x args = Predicate x args
     var = Variable
-    fApp f [] = Constant f
     fApp f ts = Function f ts
     -- fApp (AtomicSkolemFunction n) [] = SkolemConstant n
     -- fApp (AtomicSkolemFunction n) ts = SkolemFunction n ts

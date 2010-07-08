@@ -13,22 +13,21 @@ module Logic.Satisfiable
 import Data.String (IsString)
 import Logic.Logic ((.~.))
 import Logic.NormalForm (clauseNormalForm)
-import Logic.Predicate (Skolem(..), PredicateLogic(..), toPropositional)
---import Logic.Instances.Parameterized (Formula(..))
+import Logic.Predicate (Skolem(..), PredicateLogic(..), toPropositional, HasSkolem(..))
 import Logic.Instances.PropLogic ()
 import PropLogic (PropForm(..), satisfiable)
 
-clauses :: (PredicateLogic formula term v p f, Show formula, Eq formula, Eq term, Skolem m f, IsString v) => formula -> m (PropForm formula)
+clauses :: (PredicateLogic formula term v p f, Show formula, Eq formula, Eq term, HasSkolem m, Skolem f, IsString v) => formula -> m (PropForm formula)
 clauses f = clauseNormalForm f >>= return . toPropositional A
 
-inconsistant :: (PredicateLogic formula term v p f, Ord formula, Show formula, Eq term, Skolem m f, IsString v) =>
+inconsistant :: (PredicateLogic formula term v p f, Ord formula, Show formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
                 formula -> m Bool
 inconsistant f = clauses f >>= return . not . satisfiable
 
-theorem :: (PredicateLogic formula term v p f, Ord formula, Show formula, Eq term, Skolem m f, IsString v) =>
+theorem :: (PredicateLogic formula term v p f, Ord formula, Show formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
            formula -> m Bool
 theorem f = inconsistant ((.~.) f)
 
-invalid :: (PredicateLogic formula term v p f, Ord formula, Show formula, Eq term, Skolem m f, IsString v) =>
+invalid :: (PredicateLogic formula term v p f, Ord formula, Show formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
            formula -> m Bool
 invalid f = theorem f >>= \ t -> inconsistant f >>= \ i -> return (not (t || i))

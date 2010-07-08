@@ -1,3 +1,13 @@
+haskell-logic (0.14) unstable; urgency=low
+
+  * Fix skolem handling.  Use a Skolem class to convert between Ints
+    and skolem functions, and a HasSkolem class to obtain numbers for
+    skolem functions from a monad.    
+  * Integrate Chiou Prover package into this one.  We need to mix
+    pieces of the two.
+
+ -- David Fox <dsf@seereason.com>  Thu, 08 Jul 2010 12:47:23 -0700
+
 haskell-logic (0.13) unstable; urgency=low
 
   * Implement polymorphic version of implicativeNormalForm.

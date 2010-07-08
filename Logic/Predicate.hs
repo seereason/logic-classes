@@ -11,6 +11,7 @@
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
 module Logic.Predicate
     ( Skolem(..)
+    , HasSkolem(..)
     , PredicateLogic(..)
     , Quant(..)
     , quant
@@ -28,7 +29,6 @@ module Logic.Predicate
     , toPropositional
     ) where
 
-import Control.Monad.State (MonadState(..))
 import Data.Data (Data)
 import Data.Function (on)
 import Data.List (isPrefixOf, intercalate)
@@ -40,13 +40,17 @@ import Happstack.State (Version, deriveSerialize)
 import Logic.Logic
 import Logic.Propositional (PropositionalLogic(..))
 
+-- |This class shows how to convert between atomic Skolem functions
+-- and Ints.
+class Skolem f where
+    toSkolem :: Int -> f
+    fromSkolem  :: f -> Maybe Int
+
 -- |This class shows how to use monad m to create a new unique skolem
 -- function of the type f.  This is intended to correspond to the
 -- AtomicFunction parameter named f in the PredicateLogic class.
-class (MonadState Int m, Enum f) => Skolem m f where
-    skolem :: m f
-    skolem = get >>= \ n -> put (succ n) >> return (toEnum n)
-    oldSkolem :: Int -> f
+class Monad m => HasSkolem m where
+    skolem :: m Int
 
 -- |The 'PropositionalLogic' type class.  Minimal implementation:
 -- @for_all, exists, foldF, foldT, (.=.), (.!=.), pApp, fApp, var,

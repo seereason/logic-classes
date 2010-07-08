@@ -1,18 +1,18 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings,
              RankNTypes, StandaloneDeriving, TypeSynonymInstances #-}
 {-# OPTIONS -Wall -Werror -fno-warn-name-shadowing -fno-warn-orphans -fno-warn-missing-signatures -fno-warn-unused-imports #-}
-module Test.Chiou (tests, V(..)) where
+module Test.Chiou (tests, V(..), AtomicFunction(..)) where
 
-import Chiou.FirstOrderLogic (Sentence(..), Term(..), Quantifier(..), Connective(..))
-import Chiou.KnowledgeBase (loadKB, theoremKB, validKB)
-import Chiou.Monad (runProverT)
-import Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), fromINF)
 import Control.Monad.Identity (runIdentity)
 import Data.String (IsString(..))
+import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Quantifier(..), Connective(..))
+import Logic.Chiou.KnowledgeBase (loadKB, theoremKB, validKB)
+import Logic.Chiou.Monad (runProverT)
+import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), fromINF)
+import Logic.Instances.Chiou ()
 import qualified Logic.Instances.Parameterized as P
-import Logic.Instances.Chiou (AtomicFunction(..))
 import Logic.Logic (Logic(..))
-import Logic.Predicate (PredicateLogic(..), convertPred, showForm)
+import Logic.Predicate (Skolem(..), PredicateLogic(..), convertPred, showForm)
 import Test.HUnit
 
 -- | Variable names
@@ -22,8 +22,21 @@ newtype V = V String
 instance IsString V where
     fromString = V
 
+data AtomicFunction
+    = AtomicFunction String
+    | SkolemFunction Int
+    deriving (Show, Eq, Ord)
+
+instance Skolem AtomicFunction where
+    toSkolem = SkolemFunction
+    fromSkolem (SkolemFunction n) = Just n
+    fromSkolem _ = Nothing
+
+instance IsString AtomicFunction where
+    fromString  = AtomicFunction
+
 type SentenceVPA = Sentence V Pr AtomicFunction
-type FormulaPF = P.Formula V Pr String
+type FormulaPF = P.Formula V Pr AtomicFunction
 
 -- |Argument to conversion tests.  These pairs look the same, but
 -- they use the class methods to construct different types, as
@@ -55,18 +68,11 @@ h = pApp (fromString "h")
 
 pairTest :: (String, SentenceVPA, FormulaPF) -> [Test]
 pairTest (s, f1, f2) =
-    [ TestCase (assertEqual (s ++ ", Chiou to FormulaPF") f1 (convertPred id pc AtomicFunction f2)),
-      TestCase (assertEqual (s ++ ", FormulaPF to Chiou") f2 (convertPred id pc fc f1)) ]
+    [ TestCase (assertEqual (s ++ ", Chiou to FormulaPF") f1 (convertPred id id id f2)),
+      TestCase (assertEqual (s ++ ", FormulaPF to Chiou") f2 (convertPred id id id f1)) ]
 
 tests :: [Test]
 tests = concatMap pairTest testFormulas ++ testProver
-
-pc :: Pr -> Pr
-pc = id
-
-fc :: AtomicFunction -> String
-fc (AtomicFunction s) = s
-fc (AtomicSkolemFunction n) = show n
 
 -- |A newtype for the Primitive Predicate parameter.
 newtype Pr = Pr String deriving (Eq)
@@ -89,7 +95,7 @@ expected3 =
      (Quantifier ForAll [V "x"] (Connective (Predicate (Pr "Human") [Variable (V "x")]) Imply (Predicate (Pr "Mortal") [Variable (V "x")])),
       Just [INF [NFPredicate (Pr "Human") [Variable (V "x")]] [NFPredicate (Pr "Mortal") [Variable (V "x")]]]),(Connective (Predicate (Pr "Socrates") [Variable (V "x")]) Imply (Predicate (Pr "Mortal") [Variable (V "x")]),Just [INF [NFPredicate (Pr "Socrates") [Variable (V "x")]] [NFPredicate (Pr "Mortal") [Variable (V "x")]]]),
      (Quantifier Exists [V "x"] (Predicate (Pr "Socrates") [Variable (V "x")]),
-      Just [INF [] [NFPredicate (Pr "Socrates") [Constant (AtomicSkolemFunction 1)]]])]
+      Just [INF [] [NFPredicate (Pr "Socrates") [Function (toSkolem 1) []]]])]
 expected4 =
     ( Just False
     , [(INF []													[NFPredicate (Pr "Socrates") [Variable (V "x")]],	[(V "x",Variable (V "x"))]),
@@ -97,21 +103,20 @@ expected4 =
        (INF []													[NFPredicate (Pr "Human") [Variable (V "x")]],		[(V "x",Variable (V "x"))])]
     , [(INF [NFPredicate (Pr "Socrates") [Variable (V "x")],NFPredicate (Pr "Mortal") [Variable (V "x")]]	[],							[(V "x",Variable (V "x"))]),
        (INF [NFPredicate (Pr "Human") [Variable (V "x")],NFPredicate (Pr "Socrates") [Variable (V "x")]]	[],							[(V "x",Variable (V "x"))]),
-       (INF [NFPredicate (Pr "Mortal") [Constant (AtomicSkolemFunction 1)]]					[],							[(V "x",Constant (AtomicSkolemFunction 1))]),
+       (INF [NFPredicate (Pr "Mortal") [Function (toSkolem 1) []]]					[],							[(V "x",Function (toSkolem 1) [])]),
        (INF [NFPredicate (Pr "Socrates") [Variable (V "x")],NFPredicate (Pr "Socrates") [Variable (V "x")]]	[],							[(V "x",Variable (V "x"))]),
-       (INF [NFPredicate (Pr "Human") [Constant (AtomicSkolemFunction 1)]]					[],							[(V "x",Constant (AtomicSkolemFunction 1))]),
-       (INF [NFPredicate (Pr "Socrates") [Constant (AtomicSkolemFunction 1)]]					[],							[(V "x",Constant (AtomicSkolemFunction 1))]),
-       (INF []													[],							[(V "x",Constant (AtomicSkolemFunction 1))])])
+       (INF [NFPredicate (Pr "Human") [Function (toSkolem 1) []]]					[],							[(V "x",Function (toSkolem 1) [])]),
+       (INF [NFPredicate (Pr "Socrates") [Function (toSkolem 1) []]]					[],							[(V "x",Function (toSkolem 1) [])]),
+       (INF []													[],							[(V "x",Function (toSkolem 1) [])])])
 expected5 =
-    (Nothing,
-     [(((pApp (Pr "Socrates") [var (V "x")]) .=>. ((pApp (Pr "False") []))) :: SentenceVPA,[(V "x",Variable (V "x"))])],
-     [(((pApp (Pr "True") []) .=>. ((pApp (Pr "Socrates") [fApp (toEnum 1) []]))),[]),
-      (((pApp (Pr "True") []) .=>. ((pApp (Pr "Human") [fApp (toEnum 1) []]))),[]),
-      (((pApp (Pr "Mortal") [fApp (toEnum 1) []]) .=>. ((pApp (Pr "False") []))),[]),
-      (((pApp (Pr "True") []) .=>. ((pApp (Pr "Mortal") [fApp (toEnum 1) []]))),[]),
-      (((pApp (Pr "Human") [fApp (toEnum 1) []]) .=>. ((pApp (Pr "False") []))),[]),
-      (((pApp (Pr "Socrates") [fApp (toEnum 1) []]) .=>. ((pApp (Pr "False") []))),[]),
-      (((pApp (Pr "Socrates") [fApp (toEnum 1) []]) .=>. ((pApp (Pr "False") [] :: SentenceVPA))),[])])
+    (Just False,
+     [(Connective (Predicate (Pr "Socrates") [Variable (V "x")]) Imply (Predicate (Pr "False") []),[(V "x",Variable (V "x"))])],
+     [(Connective (Predicate (Pr "True") []) Imply (Predicate (Pr "Socrates") [Function (SkolemFunction 1) []]),[]),
+      (Connective (Predicate (Pr "True") []) Imply (Predicate (Pr "Human") [Function (SkolemFunction 1) []]),[]),
+      (Connective (Predicate (Pr "Mortal") [Function (SkolemFunction 1) []]) Imply (Predicate (Pr "False") []),[]),
+      (Connective (Predicate (Pr "True") []) Imply (Predicate (Pr "Mortal") [Function (SkolemFunction 1) []]),[]),
+      (Connective (Predicate (Pr "Human") [Function (SkolemFunction 1) []]) Imply (Predicate (Pr "False") []),[]),
+      (Connective (Predicate (Pr "True") []) Imply (Predicate (Pr "False") []),[])])
 
 dog = pApp "Dog"
 cat = pApp "Cat"
@@ -123,20 +128,23 @@ socrates = pApp "Socrates"
 human = pApp "Human"
 mortal = pApp "Mortal"
 
+jack :: Term V AtomicFunction
 jack = fApp (fromString "Jack") []
+tuna :: Term V AtomicFunction
 tuna = fApp (fromString "Tuna") []
+curiosity :: Term V AtomicFunction
 curiosity = fApp (fromString "Curiosity") []
 
 testProver :: [Test]
 testProver =
     [ TestCase (assertEqual "prover test 1"
                             (False,
-                             [(INF [NFPredicate (Pr "Kills") [Constant (AtomicFunction "Jack"),Constant (AtomicFunction "Tuna")]] [],[]),(INF [] [NFPredicate (Pr "Kills") [Constant (AtomicFunction "Curiosity"),Constant (AtomicFunction "Tuna")]],[]),(INF [NFPredicate (Pr "Animal") [Constant (AtomicFunction "Tuna")],NFPredicate (Pr "AnimalLover") [Constant (AtomicFunction "Curiosity")]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Constant (AtomicFunction "Curiosity"),Variable (V "y")],NFPredicate (Pr "Animal") [Constant (AtomicFunction "Tuna")]] [],[]),(INF [NFPredicate (Pr "Cat") [Constant (AtomicFunction "Tuna")],NFPredicate (Pr "AnimalLover") [Constant (AtomicFunction "Curiosity")]] [],[]),(INF [NFPredicate (Pr "Owns") [Constant (AtomicFunction "Curiosity"),Constant (AtomicSkolemFunction 1)],NFPredicate (Pr "Animal") [Constant (AtomicFunction "Tuna")]] [],[]),(INF [NFPredicate (Pr "Cat") [Constant (AtomicFunction "Tuna")],NFPredicate (Pr "Owns") [Constant (AtomicFunction "Curiosity"),Variable (V "y")],NFPredicate (Pr "Dog") [Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Constant (AtomicFunction "Curiosity"),Variable (V "y")],NFPredicate (Pr "Cat") [Constant (AtomicFunction "Tuna")]] [],[]),(INF [NFPredicate (Pr "AnimalLover") [Constant (AtomicFunction "Curiosity")]] [],[]),(INF [NFPredicate (Pr "Cat") [Constant (AtomicFunction "Tuna")],NFPredicate (Pr "Owns") [Constant (AtomicFunction "Curiosity"),Constant (AtomicSkolemFunction 1)]] [],[]),(INF [NFPredicate (Pr "Owns") [Constant (AtomicFunction "Curiosity"),Constant (AtomicSkolemFunction 1)],NFPredicate (Pr "Cat") [Constant (AtomicFunction "Tuna")]] [],[]),(INF [NFPredicate (Pr "Owns") [Constant (AtomicFunction "Curiosity"),Variable (V "y")],NFPredicate (Pr "Dog") [Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Constant (AtomicFunction "Curiosity"),Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Owns") [Constant (AtomicFunction "Curiosity"),Constant (AtomicSkolemFunction 1)]] [],[])])
+                             [(INF [NFPredicate (Pr "Kills") [Function (AtomicFunction "Jack") [],Function (AtomicFunction "Tuna") []]] [],[]),(INF [] [NFPredicate (Pr "Kills") [Function (AtomicFunction "Curiosity") [],Function (AtomicFunction "Tuna") []]],[]),(INF [NFPredicate (Pr "Animal") [Function (AtomicFunction "Tuna") []],NFPredicate (Pr "AnimalLover") [Function (AtomicFunction "Curiosity") []]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Function (AtomicFunction "Curiosity") [],Variable (V "y")],NFPredicate (Pr "Animal") [Function (AtomicFunction "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (AtomicFunction "Tuna") []],NFPredicate (Pr "AnimalLover") [Function (AtomicFunction "Curiosity") []]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (AtomicFunction "Curiosity") [],Function (toSkolem 1) []],NFPredicate (Pr "Animal") [Function (AtomicFunction "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (AtomicFunction "Tuna") []],NFPredicate (Pr "Owns") [Function (AtomicFunction "Curiosity") [],Variable (V "y")],NFPredicate (Pr "Dog") [Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Function (AtomicFunction "Curiosity") [],Variable (V "y")],NFPredicate (Pr "Cat") [Function (AtomicFunction "Tuna") []]] [],[]),(INF [NFPredicate (Pr "AnimalLover") [Function (AtomicFunction "Curiosity") []]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (AtomicFunction "Tuna") []],NFPredicate (Pr "Owns") [Function (AtomicFunction "Curiosity") [],Function (toSkolem 1) []]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (AtomicFunction "Curiosity") [],Function (toSkolem 1) []],NFPredicate (Pr "Cat") [Function (AtomicFunction "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (AtomicFunction "Curiosity") [],Variable (V "y")],NFPredicate (Pr "Dog") [Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Function (AtomicFunction "Curiosity") [],Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (AtomicFunction "Curiosity") [],Function (toSkolem 1) []]] [],[])])
                             (runIdentity (runProverT (loadKB animalSentences >>
                                                       theoremKB (kills [jack, tuna])))))
     , TestCase (assertEqual "prover test 2"
                            (True,
-                            [(INF [NFPredicate (Pr "Kills") [Constant (AtomicFunction "Curiosity"),Constant (AtomicFunction "Tuna")]] [],[]),(INF [] [NFPredicate (Pr "Kills") [Constant (AtomicFunction "Jack"),Constant (AtomicFunction "Tuna")]],[]),(INF [NFPredicate (Pr "Animal") [Constant (AtomicFunction "Tuna")],NFPredicate (Pr "AnimalLover") [Constant (AtomicFunction "Jack")]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Constant (AtomicFunction "Jack"),Variable (V "y")],NFPredicate (Pr "Animal") [Constant (AtomicFunction "Tuna")]] [],[]),(INF [NFPredicate (Pr "Cat") [Constant (AtomicFunction "Tuna")],NFPredicate (Pr "AnimalLover") [Constant (AtomicFunction "Jack")]] [],[]),(INF [NFPredicate (Pr "Owns") [Constant (AtomicFunction "Jack"),Constant (AtomicSkolemFunction 1)],NFPredicate (Pr "Animal") [Constant (AtomicFunction "Tuna")]] [],[]),(INF [NFPredicate (Pr "Dog") [Constant (AtomicSkolemFunction 1)],NFPredicate (Pr "Animal") [Constant (AtomicFunction "Tuna")]] [],[]),(INF [NFPredicate (Pr "Cat") [Constant (AtomicFunction "Tuna")],NFPredicate (Pr "Owns") [Constant (AtomicFunction "Jack"),Variable (V "y")],NFPredicate (Pr "Dog") [Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Constant (AtomicFunction "Jack"),Variable (V "y")],NFPredicate (Pr "Cat") [Constant (AtomicFunction "Tuna")]] [],[]),(INF [NFPredicate (Pr "AnimalLover") [Constant (AtomicFunction "Jack")]] [],[]),(INF [NFPredicate (Pr "Animal") [Constant (AtomicFunction "Tuna")]] [],[]),(INF [NFPredicate (Pr "Cat") [Constant (AtomicFunction "Tuna")],NFPredicate (Pr "Owns") [Constant (AtomicFunction "Jack"),Constant (AtomicSkolemFunction 1)]] [],[]),(INF [NFPredicate (Pr "Cat") [Constant (AtomicFunction "Tuna")],NFPredicate (Pr "Dog") [Constant (AtomicSkolemFunction 1)]] [],[]),(INF [NFPredicate (Pr "Owns") [Constant (AtomicFunction "Jack"),Constant (AtomicSkolemFunction 1)],NFPredicate (Pr "Cat") [Constant (AtomicFunction "Tuna")]] [],[]),(INF [NFPredicate (Pr "Owns") [Constant (AtomicFunction "Jack"),Variable (V "y")],NFPredicate (Pr "Dog") [Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Dog") [Constant (AtomicSkolemFunction 1)],NFPredicate (Pr "Cat") [Constant (AtomicFunction "Tuna")]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Constant (AtomicFunction "Jack"),Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Cat") [Constant (AtomicFunction "Tuna")]] [],[]),(INF [NFPredicate (Pr "Owns") [Constant (AtomicFunction "Jack"),Constant (AtomicSkolemFunction 1)]] [],[]),(INF [NFPredicate (Pr "Dog") [Constant (AtomicSkolemFunction 1)]] [],[]),(INF [] [],[])])
+                            [(INF [NFPredicate (Pr "Kills") [Function (AtomicFunction "Curiosity") [],Function (AtomicFunction "Tuna") []]] [],[]),(INF [] [NFPredicate (Pr "Kills") [Function (AtomicFunction "Jack") [],Function (AtomicFunction "Tuna") []]],[]),(INF [NFPredicate (Pr "Animal") [Function (AtomicFunction "Tuna") []],NFPredicate (Pr "AnimalLover") [Function (AtomicFunction "Jack") []]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Function (AtomicFunction "Jack") [],Variable (V "y")],NFPredicate (Pr "Animal") [Function (AtomicFunction "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (AtomicFunction "Tuna") []],NFPredicate (Pr "AnimalLover") [Function (AtomicFunction "Jack") []]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (AtomicFunction "Jack") [],Function (toSkolem 1) []],NFPredicate (Pr "Animal") [Function (AtomicFunction "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Dog") [Function (toSkolem 1) []],NFPredicate (Pr "Animal") [Function (AtomicFunction "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (AtomicFunction "Tuna") []],NFPredicate (Pr "Owns") [Function (AtomicFunction "Jack") [],Variable (V "y")],NFPredicate (Pr "Dog") [Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Function (AtomicFunction "Jack") [],Variable (V "y")],NFPredicate (Pr "Cat") [Function (AtomicFunction "Tuna") []]] [],[]),(INF [NFPredicate (Pr "AnimalLover") [Function (AtomicFunction "Jack") []]] [],[]),(INF [NFPredicate (Pr "Animal") [Function (AtomicFunction "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (AtomicFunction "Tuna") []],NFPredicate (Pr "Owns") [Function (AtomicFunction "Jack") [],Function (toSkolem 1) []]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (AtomicFunction "Tuna") []],NFPredicate (Pr "Dog") [Function (toSkolem 1) []]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (AtomicFunction "Jack") [],Function (toSkolem 1) []],NFPredicate (Pr "Cat") [Function (AtomicFunction "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (AtomicFunction "Jack") [],Variable (V "y")],NFPredicate (Pr "Dog") [Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Dog") [Function (toSkolem 1) []],NFPredicate (Pr "Cat") [Function (AtomicFunction "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Function (AtomicFunction "Jack") [],Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (AtomicFunction "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (AtomicFunction "Jack") [],Function (toSkolem 1) []]] [],[]),(INF [NFPredicate (Pr "Dog") [Function (toSkolem 1) []]] [],[]),(INF [] [],[])])
                            (runIdentity (runProverT (loadKB animalSentences >>
                                                      theoremKB (kills [curiosity, tuna])))))
     , TestCase (assertEqual "prover test 3: socrates is mortal"

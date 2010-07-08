@@ -1,5 +1,5 @@
 Name:             Logic
-Version:          0.13
+Version:          0.14
 License:          BSD3
 Author:           SeeReason Partners <partners@seereason.com>
 Maintainer:       SeeReason Partners <partners@seereason.com>
@@ -14,7 +14,13 @@ Cabal-version:    >= 1.2
 
 Library
  GHC-options: -threaded -Wall -Werror -O2
- Exposed-Modules:  Logic.Instances.Chiou,
+ Exposed-Modules:  Logic.Chiou.FirstOrderLogic
+                   Logic.Chiou.KnowledgeBase
+                   Logic.Chiou.Monad
+                   Logic.Chiou.NormalForm
+                   Logic.Chiou.Resolution
+                   Logic.Chiou.Skolem
+                   Logic.Instances.Chiou,
                    Logic.Instances.Parameterized,
                    Logic.Instances.PropLogic,
                    Logic.Instances.TPTP,
@@ -24,7 +30,7 @@ Library
                    Logic.Propositional,
                    Logic.Satisfiable
  Build-Depends:    base, containers, fgl, happstack-data, happstack-state,
-                   mtl, syb-with-class, text, logic-TPTP, PropLogic, ChiouProver >= 0.6
+                   mtl, syb-with-class, text, logic-TPTP, PropLogic
 
 Executable tests
  Main-Is: Test/Test.hs

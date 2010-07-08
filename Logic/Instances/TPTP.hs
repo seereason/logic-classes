@@ -106,8 +106,10 @@ instance Logic.PredicateLogic Formula Term V AtomicWord AtomicFunction where
               i' _t1 (:!=:) _t2 = undefined
               unwrapF' (F x) = F x -- copoint x
     foldT v fa term =
-        -- The two extra term types in TPTP are represented here as
-        -- additional values in the AtomicFunction type.
+        -- We call the foldT function from the TPTP package here, which
+        -- has a different signature from the foldT method we are
+        -- implementing.  The two extra term types in TPTP are represented
+        -- here as additional values in the AtomicFunction type.
         foldT string double v atom (unwrapT' term)
         where atom w ts = fa (Atom w) ts
               string s = fa (StringLit s) []

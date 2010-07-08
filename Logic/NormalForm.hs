@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, UndecidableInstances #-}
 -- |A series of transformations to convert first order logic formulas
 -- into (ultimately) Clause Normal Form.
 -- 
@@ -38,12 +38,12 @@ module Logic.NormalForm
     , implicativeNormalForm
     ) where
 
-import Chiou.FirstOrderLogic (Sentence(..))
-import Chiou.NormalForm (ImplicativeNormalForm(..), toINF, NormalSentence(..))
 import Data.Char (isDigit)
 import Data.String (IsString(..))
 import Debug.Trace
 import qualified Data.Set as S
+import Logic.Chiou.FirstOrderLogic (Sentence(..))
+import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), toINF, NormalSentence(..))
 import Logic.Logic
 import Logic.Predicate
 import Logic.Instances.Chiou ()
@@ -264,11 +264,11 @@ distributeDisjuncts =
 -- functions applied to the list of variables which are universally
 -- quantified in the context where the existential quantifier
 -- appeared.
-skolemNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, Skolem m f, IsString v) =>
+skolemNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
                     formula -> m formula
 skolemNormalForm = skolemize [] . disjunctiveNormalForm
 
-skolemize :: (PredicateLogic formula term v p f, Eq formula, Eq term, Skolem m f) => [v] -> formula -> m formula
+skolemize :: (PredicateLogic formula term v p f, Eq formula, Eq term, HasSkolem m, Skolem f) => [v] -> formula -> m formula
 skolemize uq f =
     foldF n q b i a f
     where
@@ -281,7 +281,7 @@ skolemize uq f =
           skolemize uq (quant Exists vs (x' skf))
           where x' skf = substitute v (sk skf) x
                 -- Only add arguments for the variables which are free in x
-                sk skf = fApp skf (map var (filter free uq))
+                sk skf = fApp (toSkolem skf) (map var (filter free uq))
                 free v' = S.member v' (freeVars x)
       q All vs x = skolemize (uq ++ vs) x >>= return . quant All vs
       b f1 op f2 = return $ binOp f1 op f2
@@ -292,12 +292,12 @@ skolemize uq f =
 -- universal quantifiers.  Due to the nature of Skolem Normal Form,
 -- this is actually all the remaining quantifiers, the result is
 -- effectively a propositional logic formula.
-clauseNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, Skolem m f, IsString v) =>
+clauseNormalForm :: (PredicateLogic formula term v p f, Eq formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
                     formula -> m formula
 clauseNormalForm f = skolemNormalForm f >>= return . removeUniversal
 
 implicativeNormalForm :: forall formula term v p f. 
-                         (PredicateLogic formula term v p f, Eq formula, Eq term, Eq p, Eq f, Enum f, IsString p) =>
+                         (PredicateLogic formula term v p f, Eq formula, Eq term, Eq p, Eq f, Skolem f, IsString p) =>
                          formula -> formula
 implicativeNormalForm =
     fromChiou . conjunctList . map toFOL . toINF . toChiou
@@ -325,12 +325,12 @@ removeUniversal formula =
       removeAll Exists vs f = exists vs (removeUniversal f)
 
 -- |Nickname for clauseNormalForm.
-cnf :: (PredicateLogic formula term v p f, Eq formula, Eq term, Skolem m f, IsString v) =>
+cnf :: (PredicateLogic formula term v p f, Eq formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
        formula -> m formula
 cnf = clauseNormalForm
 
 -- |Nickname for clauseNormalForm.
-cnfTraced :: (PredicateLogic formula term v p f, Eq formula, Eq term, IsString v, Show formula, Skolem m f) => formula -> m formula
+cnfTraced :: (PredicateLogic formula term v p f, Eq formula, Eq term, IsString v, Show formula, HasSkolem m, Skolem f) => formula -> m formula
 cnfTraced f =
     (skolemize [] . t4 . distributeDisjuncts . t3 . moveQuantifiersOut . t2 . moveNegationsIn . simplify . t1 $ f) >>= return . t6 . removeUniversal . t5
     where
