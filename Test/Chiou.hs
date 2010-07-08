@@ -1,20 +1,18 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings,
              RankNTypes, StandaloneDeriving, TypeSynonymInstances #-}
-{-# OPTIONS -Wall -Werror -fno-warn-name-shadowing -fno-warn-orphans -fno-warn-missing-signatures #-}
+{-# OPTIONS -Wall -Werror -fno-warn-name-shadowing -fno-warn-orphans -fno-warn-missing-signatures -fno-warn-unused-imports #-}
 module Test.Chiou (tests, V(..)) where
 
-import qualified Chiou.FirstOrderLogic as C
-import Chiou.FirstOrderLogic (Term(..))
+import Chiou.FirstOrderLogic (Sentence(..), Term(..), Quantifier(..), Connective(..))
 import Chiou.KnowledgeBase (loadKB, theoremKB, validKB)
 import Chiou.Monad (runProverT)
-import qualified Chiou.NormalForm as C
 import Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..))
 import Control.Monad.Identity (runIdentity)
 import Data.String (IsString(..))
 import qualified Logic.Instances.Parameterized as P
 import Logic.Instances.Chiou (AtomicFunction(..))
 import Logic.Logic (Logic(..))
-import Logic.Predicate (PredicateLogic(..), convertPred {-, showForm-})
+import Logic.Predicate (PredicateLogic(..), convertPred, showForm)
 import Test.HUnit
 
 -- | Variable names
@@ -24,13 +22,13 @@ newtype V = V String
 instance IsString V where
     fromString = V
 
-type Sentence = C.Sentence V Pr AtomicFunction
+type SentenceVPA = Sentence V Pr AtomicFunction
 type FormulaPF = P.Formula V Pr String
 
 -- |Argument to conversion tests.  These pairs look the same, but
 -- they use the class methods to construct different types, as
 -- you can see from the signature.
-testFormulas ::[(String, Sentence, FormulaPF)]
+testFormulas ::[(String, SentenceVPA, FormulaPF)]
 testFormulas =
     [ ( "exists, equal"
       , exists [fromString "x"] (x .=. y)
@@ -55,7 +53,7 @@ m = pApp (fromString "m")
 h :: (PredicateLogic formula term v p f, IsString p) => [term] -> formula
 h = pApp (fromString "h")
 
-pairTest :: (String, Sentence, FormulaPF) -> [Test]
+pairTest :: (String, SentenceVPA, FormulaPF) -> [Test]
 pairTest (s, f1, f2) =
     [ TestCase (assertEqual (s ++ ", Chiou to FormulaPF") f1 (convertPred id pc AtomicFunction f2)),
       TestCase (assertEqual (s ++ ", FormulaPF to Chiou") f2 (convertPred id pc fc f1)) ]
@@ -76,7 +74,7 @@ newtype Pr = Pr String deriving (Eq)
 instance IsString Pr where
     fromString = Pr
 
-animalSentences :: [Sentence]
+animalSentences :: [SentenceVPA]
 animalSentences =
     [ exists ["x"] ((dog [x]) .&. (owns [jack, x]))
     , for_all ["x"] (((exists ["y"] (dog [y])) .&. (owns [x, y])) .=>. (animalLover [x]))
@@ -85,17 +83,35 @@ animalSentences =
     , cat [tuna]
     , for_all ["x"] ((cat [x]) .=>. (animal [x])) ]
 
-socratesSentences1 :: [Sentence]
-socratesSentences1 =
-    [ for_all ["x"] (socrates [x] .=>. human [x])
-    , for_all ["x"] (human [x] .=>. mortal [x]) ]
-
-socratesSentences2 :: [Sentence]
-socratesSentences2 = [ for_all ["x"] (socrates [x] .=>. (.~.) (mortal [x])),
-                       exists ["x"] (socrates [x]) ] ++ socratesSentences1
-
-socratesSentences3 :: [Sentence]
-socratesSentences3 = [ exists ["x"] (socrates [x]) ] ++ socratesSentences1
+expected3 =
+    [(Quantifier ForAll [V "x"] (Connective (Predicate (Pr "Socrates") [Variable (V "x")]) Imply (Predicate (Pr "Human") [Variable (V "x")])),
+      Just [INF [NFPredicate (Pr "Socrates") [Variable (V "x")]] [NFPredicate (Pr "Human") [Variable (V "x")]]]),
+     (Quantifier ForAll [V "x"] (Connective (Predicate (Pr "Human") [Variable (V "x")]) Imply (Predicate (Pr "Mortal") [Variable (V "x")])),
+      Just [INF [NFPredicate (Pr "Human") [Variable (V "x")]] [NFPredicate (Pr "Mortal") [Variable (V "x")]]]),(Connective (Predicate (Pr "Socrates") [Variable (V "x")]) Imply (Predicate (Pr "Mortal") [Variable (V "x")]),Just [INF [NFPredicate (Pr "Socrates") [Variable (V "x")]] [NFPredicate (Pr "Mortal") [Variable (V "x")]]]),
+     (Quantifier Exists [V "x"] (Predicate (Pr "Socrates") [Variable (V "x")]),
+      Just [INF [] [NFPredicate (Pr "Socrates") [Constant (AtomicSkolemFunction 1)]]])]
+expected4 =
+    ( Just False
+    , [(INF []													[NFPredicate (Pr "Socrates") [Variable (V "x")]],	[(V "x",Variable (V "x"))]),
+       (INF []													[NFPredicate (Pr "Mortal") [Variable (V "x")]],		[(V "x",Variable (V "x"))]),
+       (INF []													[NFPredicate (Pr "Human") [Variable (V "x")]],		[(V "x",Variable (V "x"))])]
+    , [(INF [NFPredicate (Pr "Socrates") [Variable (V "x")],NFPredicate (Pr "Mortal") [Variable (V "x")]]	[],							[(V "x",Variable (V "x"))]),
+       (INF [NFPredicate (Pr "Human") [Variable (V "x")],NFPredicate (Pr "Socrates") [Variable (V "x")]]	[],							[(V "x",Variable (V "x"))]),
+       (INF [NFPredicate (Pr "Mortal") [Constant (AtomicSkolemFunction 1)]]					[],							[(V "x",Constant (AtomicSkolemFunction 1))]),
+       (INF [NFPredicate (Pr "Socrates") [Variable (V "x")],NFPredicate (Pr "Socrates") [Variable (V "x")]]	[],							[(V "x",Variable (V "x"))]),
+       (INF [NFPredicate (Pr "Human") [Constant (AtomicSkolemFunction 1)]]					[],							[(V "x",Constant (AtomicSkolemFunction 1))]),
+       (INF [NFPredicate (Pr "Socrates") [Constant (AtomicSkolemFunction 1)]]					[],							[(V "x",Constant (AtomicSkolemFunction 1))]),
+       (INF []													[],							[(V "x",Constant (AtomicSkolemFunction 1))])])
+expected5 =
+    (Nothing,
+     [(((pApp (Pr "Socrates") [var (V "x")]) .=>. ((pApp (Pr "False") []))) :: SentenceVPA,[(V "x",Variable (V "x"))])],
+     [(((pApp (Pr "True") []) .=>. ((pApp (Pr "Socrates") [fApp (toEnum 1) []]))),[]),
+      (((pApp (Pr "True") []) .=>. ((pApp (Pr "Human") [fApp (toEnum 1) []]))),[]),
+      (((pApp (Pr "Mortal") [fApp (toEnum 1) []]) .=>. ((pApp (Pr "False") []))),[]),
+      (((pApp (Pr "True") []) .=>. ((pApp (Pr "Mortal") [fApp (toEnum 1) []]))),[]),
+      (((pApp (Pr "Human") [fApp (toEnum 1) []]) .=>. ((pApp (Pr "False") []))),[]),
+      (((pApp (Pr "Socrates") [fApp (toEnum 1) []]) .=>. ((pApp (Pr "False") []))),[]),
+      (((pApp (Pr "Socrates") [fApp (toEnum 1) []]) .=>. ((pApp (Pr "False") [] :: SentenceVPA))),[])])
 
 dog = pApp "Dog"
 cat = pApp "Cat"
@@ -124,25 +140,26 @@ testProver =
                            (runIdentity (runProverT (loadKB animalSentences >>
                                                      theoremKB (kills [curiosity, tuna])))))
     , TestCase (assertEqual "prover test 3: socrates is mortal"
-                           (Just True,
-                            [(INF [] [NFPredicate (Pr "Socrates") [Variable (V "x")]],[(V "x",Variable (V "x"))]),(INF [NFPredicate (Pr "Mortal") [Variable (V "x")]] [],[(V "x",Variable (V "x"))]),(INF [] [NFPredicate (Pr "Human") [Variable (V "x")]],[(V "x",Variable (V "x"))]),(INF [NFPredicate (Pr "Human") [Variable (V "x")]] [],[(V "x",Variable (V "x"))]),(INF [] [NFPredicate (Pr "Mortal") [Variable (V "x")]],[(V "x",Variable (V "x"))]),(INF [] [],[(V "x",Variable (V "x"))])],[(INF [NFPredicate (Pr "Socrates") [Variable (V "x")]] [NFPredicate (Pr "Mortal") [Variable (V "x")]],[(V "x",Variable (V "x"))])])
-                           (testSentence socratesSentences1 (socrates [x] .=>. mortal [x])))
-    , TestCase (assertEqual "prover test 4a: socrates exists and is not mortal"
-                           (Nothing,
-                            [(INF [NFPredicate (Pr "Socrates") [Variable (V "x")]] [NFPredicate (Pr "Mortal") [Variable (V "x")]],[(V "x",Variable (V "x"))]),(INF [] [NFPredicate (Pr "Mortal") [Constant (AtomicSkolemFunction 1)]],[(V "x",Constant (AtomicSkolemFunction 1))])],
-                            [(INF [] [NFPredicate (Pr "Socrates") [SkolemConstant 1]],[]),(INF [NFPredicate (Pr "Mortal") [SkolemConstant 1]] [],[]),(INF [] [NFPredicate (Pr "Human") [SkolemConstant 1]],[]),(INF [NFPredicate (Pr "Human") [SkolemConstant 1]] [],[]),(INF [] [NFPredicate (Pr "Mortal") [SkolemConstant 1]],[]),(INF [NFPredicate (Pr "Socrates") [SkolemConstant 1]] [],[])])
-                           (testSentence socratesSentences3 (exists ["x"] (socrates [x] .&. (.~.) (mortal [x])))))
-    , TestCase (assertEqual "prover test 4b: socrates exists and is mortal"
-                           (Just True,
-                            [(INF [NFPredicate (Pr "Socrates") [Variable (V "x")],NFPredicate (Pr "Mortal") [Variable (V "x")]] [],[(V "x",Variable (V "x"))]),(INF [NFPredicate (Pr "Mortal") [Constant (AtomicSkolemFunction 1)]] [],[(V "x",Constant (AtomicSkolemFunction 1))]),(INF [NFPredicate (Pr "Human") [Variable (V "x")],NFPredicate (Pr "Socrates") [Variable (V "x")]] [],[(V "x",Variable (V "x"))]),(INF [NFPredicate (Pr "Human") [Constant (AtomicSkolemFunction 1)]] [],[(V "x",Constant (AtomicSkolemFunction 1))]),(INF [NFPredicate (Pr "Socrates") [Variable (V "x")],NFPredicate (Pr "Socrates") [Variable (V "x")]] [],[(V "x",Variable (V "x"))]),(INF [NFPredicate (Pr "Socrates") [Constant (AtomicSkolemFunction 1)]] [],[(V "x",Constant (AtomicSkolemFunction 1))]),(INF [] [],[(V "x",Constant (AtomicSkolemFunction 1))])],
-                            [(INF [] [NFPredicate (Pr "Socrates") [SkolemConstant 1]],[]),(INF [] [NFPredicate (Pr "Mortal") [SkolemConstant 1]],[]),(INF [] [NFPredicate (Pr "Human") [SkolemConstant 1]],[]),(INF [] [NFPredicate (Pr "Mortal") [SkolemConstant 1]],[])])
-                           (testSentence socratesSentences3 (exists ["x"] (socrates [x] .&. mortal [x]))))
-    -- Why can't we show that s(x) => ~m(x) conflicts with s(x) => h(x) & h(x) => m(x)?
-    , TestCase (assertEqual "prover test 5: socrates exists"
-                           (Just True,
-                            [(INF [NFPredicate (Pr "Socrates") [Variable (V "x")]] [],[(V "x",Variable (V "x"))]),(INF [] [],[(V "x",Constant (AtomicSkolemFunction 1))])],
-                            [(INF [] [NFPredicate (Pr "Socrates") [SkolemConstant 1]],[]),(INF [NFPredicate (Pr "Mortal") [SkolemConstant 1]] [],[]),(INF [] [NFPredicate (Pr "Human") [SkolemConstant 1]],[])])
-                           (testSentence socratesSentences2 (exists ["x"] (socrates [x]))))
+                            expected3
+                            (testLoad [ for_all ["x"] (socrates [x] .=>. human [x]) -- Socrates exists and is mortal
+                                      , for_all ["x"] (human [x] .=>. mortal [x])
+                                      , socrates [x] .=>. mortal [x]
+                                      , exists ["x"] (socrates [x]) ]))
+    , TestCase (assertEqual "prover test 4: socrates is not mortal"
+                            expected4
+                            (runIdentity 
+                             (runProverT
+                              (loadKB [ for_all ["x"] (socrates [x] .=>. human [x]) -- Socrates exists and is not mortal
+                                      , for_all ["x"] (human [x] .=>. mortal [x])
+                                      , exists ["x"] (socrates [x]) ] >>
+                               validKB (socrates [x] .=>. (.~.) (mortal [x]))))))
+    , TestCase (assertEqual "prover test 5: socrates exists is not mortal"
+                            expected5
+                            (testSentence
+                             [ for_all ["x"] (socrates [x] .=>. human [x]) -- Socrates is not mortal and exists
+                             , for_all ["x"] (human [x] .=>. mortal [x])
+                             , for_all ["x"] (socrates [x] .=>. (.~.) (mortal [x])) ]
+                             (exists ["x"] (socrates [x]))))
     ]
     where
       kills = pApp "Kills"
@@ -150,16 +167,30 @@ testProver =
       curiosity = fApp "Curiosity" []
       tuna = fApp "Tuna" []
 
-testSentence kb s = runIdentity (runProverT (loadKB kb >> validKB s))
+testLoad kb = runIdentity (runProverT (loadKB kb))
 
+testSentence kb s = 
+    f (runIdentity (runProverT (loadKB kb >> validKB s)))
+    where
+      f (flag, xs, ys) = (flag, map fromUnify xs, map fromUnify ys)
+      fromUnify (inf, subst) = (fromINF inf, subst)
+{-
+    map (\ (flag, xs, ys) ->
+             (flag,
+              map fromUnify xs,
+              map fromUnify ys)) 
+
+              map (\ (inf, prs) -> (fromINF inf, prs)) xs,
+              map (\ (inf, prs) -> (fromINF inf, prs)) ys
+-}
 -- Ugly Printing
 
-deriving instance (Show v, Show p, Show f) => Show (C.Sentence v p f)
-deriving instance (Show v, Show p, Show f) => Show (C.ImplicativeNormalForm v p f)
-deriving instance (Show v, Show p, Show f) => Show (C.NormalSentence v p f)
-deriving instance (Show v, Show f) => Show (C.Term v f)
-deriving instance Show C.Quantifier
-deriving instance Show C.Connective
+deriving instance (Show v, Show p, Show f) => Show (Sentence v p f)
+deriving instance (Show v, Show p, Show f) => Show (ImplicativeNormalForm v p f)
+deriving instance (Show v, Show p, Show f) => Show (NormalSentence v p f)
+deriving instance (Show v, Show f) => Show (Term v f)
+deriving instance Show Quantifier
+deriving instance Show Connective
 
 deriving instance Show V
 deriving instance Show Pr

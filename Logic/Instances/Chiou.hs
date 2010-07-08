@@ -62,6 +62,8 @@ instance (Logic (Sentence v p f), Ord v, Enum f) =>
 -- which is not a variable.
 data AtomicFunction
     = AtomicFunction String
+    -- This is redundant with the SkolemFunction and SkolemConstant
+    -- constructors int the Chiou Term type.
     | AtomicSkolemFunction Int
     deriving (Eq, Show)
 
