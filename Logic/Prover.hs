@@ -23,6 +23,18 @@ load' :: (FirstOrderLogic formula term v p f, Eq p, Eq f, Boolean p, Skolem f) =
          [formula] -> [(Maybe Bool, [formula])]
 load' = runIdentity . C.runProverT . load
 
+-- |Try to add a sentence to the knowledge base.  The result value is
+-- a pair, the Maybe Bool is
+-- 
+--  * Just True if the formula was proved using the existing knowledge base,
+-- 
+--  * Just False if it was disproven (i.e. its inverse was proven), and
+-- 
+--  * Nothing if it could neither be proven nor disproven.
+-- 
+-- The list of formulas is the proof or disproof or attempted proof
+-- that was generated.  The new formula is added to the knowledge base
+-- in all cases except for disproof.
 tell :: (FirstOrderLogic formula term v p f, Eq p, Eq f, Boolean p, Skolem f, Monad m) =>
         formula -> C.ProverT v p f m (Maybe Bool, [formula])
 tell x = C.tellKB (f2s x) >>= return . fromINF
