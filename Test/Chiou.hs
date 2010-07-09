@@ -90,12 +90,10 @@ animalSentences =
     , for_all ["x"] ((cat [x]) .=>. (animal [x])) ]
 
 expected3 =
-    [(Quantifier ForAll [V "x"] (Connective (Predicate (Pr "Socrates") [Variable (V "x")]) Imply (Predicate (Pr "Human") [Variable (V "x")])),
-      Just [INF [NFPredicate (Pr "Socrates") [Variable (V "x")]] [NFPredicate (Pr "Human") [Variable (V "x")]]]),
-     (Quantifier ForAll [V "x"] (Connective (Predicate (Pr "Human") [Variable (V "x")]) Imply (Predicate (Pr "Mortal") [Variable (V "x")])),
-      Just [INF [NFPredicate (Pr "Human") [Variable (V "x")]] [NFPredicate (Pr "Mortal") [Variable (V "x")]]]),(Connective (Predicate (Pr "Socrates") [Variable (V "x")]) Imply (Predicate (Pr "Mortal") [Variable (V "x")]),Just [INF [NFPredicate (Pr "Socrates") [Variable (V "x")]] [NFPredicate (Pr "Mortal") [Variable (V "x")]]]),
-     (Quantifier Exists [V "x"] (Predicate (Pr "Socrates") [Variable (V "x")]),
-      Just [INF [] [NFPredicate (Pr "Socrates") [Function (toSkolem 1) []]]])]
+    [(Nothing,[INF [NFPredicate (Pr "Socrates") [Variable (V "x")]] [NFPredicate (Pr "Human") [Variable (V "x")]]]),
+     (Nothing,[INF [NFPredicate (Pr "Human") [Variable (V "x")]] [NFPredicate (Pr "Mortal") [Variable (V "x")]]]),
+     (Just True,[INF [NFPredicate (Pr "Socrates") [Variable (V "x")]] [NFPredicate (Pr "Mortal") [Variable (V "x")]]]),
+     (Nothing,[INF [] [NFPredicate (Pr "Socrates") [Function (SkolemFunction 1) []]]])]
 expected4 =
     ( Just False
     , [(INF []													[NFPredicate (Pr "Socrates") [Variable (V "x")]],	[(V "x",Variable (V "x"))]),

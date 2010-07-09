@@ -1,6 +1,7 @@
 haskell-logic (0.15) unstable; urgency=low
 
   * Rename PredicateLogic -> FirstOrderLogic
+  * Add a Logic.Prover module with a function to load a knowledgebase.
 
  -- David Fox <dsf@seereason.com>  Thu, 08 Jul 2010 16:00:35 -0700
 

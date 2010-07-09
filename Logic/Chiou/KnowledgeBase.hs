@@ -74,17 +74,17 @@ inconsistantKB s = getKB >>= return . prove [] (getSetOfSupport (toINF s))
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
 tellKB :: (Monad m, Eq v, Eq p, Eq f, Skolem f, IsString p) =>
-          Sentence v p f -> ProverT v p f m (Sentence v p f, Maybe [ImplicativeNormalForm v p f])
+          Sentence v p f -> ProverT v p f m (Maybe Bool, [ImplicativeNormalForm v p f])
 tellKB s = do (inf, sc) <-  assignSkolemL (toINF s) 0
               (valid, _, _) <- validKB s
               case valid of
-                Just False -> return (s, Nothing)
+                Just False -> return ()
                 _ -> modify (\ st -> st { knowledgeBase = knowledgeBase st ++ inf
-                                        , skolemCount = skolemCount st + sc }) >>
-                     return (s, Just (map fst inf))
+                                        , skolemCount = skolemCount st + sc })
+              return (valid, map fst inf)
 
 loadKB :: (Monad m, Eq v, Eq p, Eq f, Skolem f, IsString p) =>
-          [Sentence v p f] -> ProverT v p f m [(Sentence v p f, Maybe [ImplicativeNormalForm v p f])]
+          [Sentence v p f] -> ProverT v p f m [(Maybe Bool, [ImplicativeNormalForm v p f])]
 loadKB sentences = emptyKB >> mapM tellKB sentences
 
 -- |Delete an entry from the KB.

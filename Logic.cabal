@@ -28,6 +28,7 @@ Library
                    Logic.Logic,
                    Logic.NormalForm,
                    Logic.Propositional,
+                   Logic.Prover,
                    Logic.Satisfiable
  Build-Depends:    base, containers, fgl, happstack-data, happstack-state,
                    mtl, syb-with-class, text, logic-TPTP, PropLogic

@@ -50,15 +50,15 @@ main = runTestTT (TestList [loadTest, distributeTest, proofTest1, proofTest2]) >
 
 loadTest :: Test
 loadTest =
-    TestCase (assertEqual "loadKB test" expected (runIdentity (runProverT (loadKB sentences >>= return . map snd))))
+    TestCase (assertEqual "loadKB test" expected (runIdentity (runProverT (loadKB sentences))))
     where
-      expected :: [Maybe [ImplicativeNormalForm V Pr AtomicFunction]]
-      expected = [Just [INF [] [NFPredicate (Pr "Dog") [Function (Skolem 1) []]],INF [] [NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Function (Skolem 1) []]]],
-                  Just [INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Variable (V "x"),Variable (V "y")]] [NFPredicate (Pr "AnimalLover") [Variable (V "x")]]],
-                  Just [INF [NFPredicate (Pr "AnimalLover") [Variable (V "x")],NFPredicate (Pr "Animal") [Variable (V "y")],NFPredicate (Pr "Kills") [Variable (V "x"),Variable (V "y")]] []],
-                  Just [INF [] [NFPredicate (Pr "Kills") [Function (Fn "Jack") [],Function (Fn "Tuna") []],NFPredicate (Pr "Kills") [Function (Fn "Curiosity") [],Function (Fn "Tuna") []]]],
-                  Just [INF [] [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]]],
-                  Just [INF [NFPredicate (Pr "Cat") [Variable (V "x")]] [NFPredicate (Pr "Animal") [Variable (V "x")]]]]
+      expected :: [(Maybe Bool, [ImplicativeNormalForm V Pr AtomicFunction])]
+      expected = [(Nothing,[INF [] [NFPredicate (Pr "Dog") [Function (Skolem 1) []]],INF [] [NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Function (Skolem 1) []]]]),
+                  (Nothing,[INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Variable (V "x"),Variable (V "y")]] [NFPredicate (Pr "AnimalLover") [Variable (V "x")]]]),
+                  (Nothing,[INF [NFPredicate (Pr "AnimalLover") [Variable (V "x")],NFPredicate (Pr "Animal") [Variable (V "y")],NFPredicate (Pr "Kills") [Variable (V "x"),Variable (V "y")]] []]),
+                  (Nothing,[INF [] [NFPredicate (Pr "Kills") [Function (Fn "Jack") [],Function (Fn "Tuna") []],NFPredicate (Pr "Kills") [Function (Fn "Curiosity") [],Function (Fn "Tuna") []]]]),
+                  (Nothing,[INF [] [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]]]),
+                  (Nothing,[INF [NFPredicate (Pr "Cat") [Variable (V "x")]] [NFPredicate (Pr "Animal") [Variable (V "x")]]])]
       
 {-
 testLoad :: Monad m => [(Sentence V Pr AtomicFunction, Maybe [ImplicativeNormalForm V Pr AtomicFunction])] -> ProverT V Pr AtomicFunction m ()
@@ -147,7 +147,7 @@ testProof label (question, expectedAnswer, expectedProof) =
     where
       format (flag, proof) = "(" ++ show flag ++ ",\n   [" ++ intercalate "\n    " (map show proof) ++ "])"
 
-loadCmd :: Monad m => ProverT V Pr AtomicFunction m [(Sentence V Pr AtomicFunction, Maybe [ImplicativeNormalForm V Pr AtomicFunction])]
+loadCmd :: Monad m => ProverT V Pr AtomicFunction m [(Maybe Bool, [ImplicativeNormalForm V Pr AtomicFunction])]
 loadCmd = loadKB sentences
 
 sentences :: [Sentence V Pr AtomicFunction]
