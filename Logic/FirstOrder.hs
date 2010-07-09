@@ -11,6 +11,7 @@
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
 module Logic.FirstOrder
     ( Skolem(..)
+    , Boolean(..)
     , HasSkolem(..)
     , FirstOrderLogic(..)
     , Quant(..)
@@ -45,6 +46,10 @@ import Logic.Propositional (PropositionalLogic(..))
 class Skolem f where
     toSkolem :: Int -> f
     fromSkolem  :: f -> Maybe Int
+
+-- |A Predicate class needs to have True and False elements.
+class Boolean p where
+    fromBool :: Bool -> p
 
 -- |This class shows how to use monad m to create a new unique skolem
 -- function of the type f.  This is intended to correspond to the

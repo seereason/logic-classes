@@ -15,7 +15,7 @@ import qualified Logic.Instances.Parameterized as P
 import Logic.Instances.PropLogic (flatten)
 import Logic.Logic (Logic(..))
 import Logic.NormalForm (prenexNormalForm, skolemNormalForm, disjunctiveNormalForm, cnf, implicativeNormalForm)
-import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), toPropositional, showForm, freeVars, substitute, convertPred, HasSkolem(..))
+import Logic.FirstOrder (Skolem(..), Boolean(..), FirstOrderLogic(..), toPropositional, showForm, freeVars, substitute, convertPred, HasSkolem(..))
 import Logic.Satisfiable (clauses, theorem, inconsistant)
 import PropLogic (PropForm(..), truthTable)
 import qualified TextDisplay as TD
@@ -24,6 +24,11 @@ import Test.HUnit
 
 instance Show (P.Formula V String AtomicFunction) where
     show = showForm
+
+-- |Don't use this at home!  It breaks type safety, fromString "True"
+-- fromBool True.
+instance Boolean String where
+    fromBool = show
 
 {-
 data AF = SkolemFunction Int | OtherFunction String deriving (Ord, Eq, Show)
@@ -321,7 +326,7 @@ testFormulas =
 pairTest :: (String, PropForm TestFormula, TestFormula) -> [Test]
 pairTest (s, f1, f2) =
     [ TestCase (assertEqual (s ++ ", Chiou cnf") f1 (flatten (cnf' f2)))
-    , TestCase (assertEqual (s ++ ", FirstOrderLogic cnf")
+    , TestCase (assertEqual (s ++ ", Parameterized cnf")
                 f1 (flatten (toPropositional A (runIdentity (evalStateT (cnf f2) (1 :: Int)))))) ]
 
 -- |Here is an example of automatic conversion from a FirstOrderLogic

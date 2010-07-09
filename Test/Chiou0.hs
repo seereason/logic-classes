@@ -12,7 +12,7 @@ import Logic.Chiou.Monad (ProverT, runProverT)
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), ConjunctiveNormalForm(..), distributeAndOverOr)
 import Logic.Chiou.KnowledgeBase (askKB, loadKB, showKB, theoremKB)
 import Logic.Chiou.Resolution (SetOfSupport)
-import Logic.FirstOrder (Skolem(..))
+import Logic.FirstOrder (Skolem(..), Boolean(..))
 import Test.HUnit
 import System.Exit
 
@@ -22,10 +22,18 @@ instance IsString V where
     fromString = V
 
 -- |A newtype for the Primitive Predicate parameter.
-newtype Pr = Pr String deriving (Eq, Show)
+data Pr
+    = Pr String
+    | T
+    | F
+    deriving (Eq, Show)
 
 instance IsString Pr where
     fromString = Pr
+
+instance Boolean Pr where
+    fromBool True = T
+    fromBool False = F
 
 data AtomicFunction
     = Fn String

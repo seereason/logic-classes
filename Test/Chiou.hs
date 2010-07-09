@@ -12,7 +12,7 @@ import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), fr
 import Logic.Instances.Chiou ()
 import qualified Logic.Instances.Parameterized as P
 import Logic.Logic (Logic(..))
-import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), convertPred, showForm)
+import Logic.FirstOrder (Skolem(..), Boolean(..), FirstOrderLogic(..), convertPred, showForm)
 import Test.HUnit
 
 -- | Variable names
@@ -75,10 +75,18 @@ tests :: [Test]
 tests = concatMap pairTest testFormulas ++ testProver
 
 -- |A newtype for the Primitive Predicate parameter.
-newtype Pr = Pr String deriving (Eq)
+data Pr
+    = Pr String
+    | T
+    | F
+    deriving (Eq)
 
 instance IsString Pr where
     fromString = Pr
+
+instance Boolean Pr where
+    fromBool True = T
+    fromBool False = F
 
 animalSentences :: [SentenceVPA]
 animalSentences =
@@ -108,13 +116,13 @@ expected4 =
        (INF []													[],							[(V "x",Function (toSkolem 1) [])])])
 expected5 =
     (Just False,
-     [(Connective (Predicate (Pr "Socrates") [Variable (V "x")]) Imply (Predicate (Pr "False") []),[(V "x",Variable (V "x"))])],
-     [(Connective (Predicate (Pr "True") []) Imply (Predicate (Pr "Socrates") [Function (SkolemFunction 1) []]),[]),
-      (Connective (Predicate (Pr "True") []) Imply (Predicate (Pr "Human") [Function (SkolemFunction 1) []]),[]),
-      (Connective (Predicate (Pr "Mortal") [Function (SkolemFunction 1) []]) Imply (Predicate (Pr "False") []),[]),
-      (Connective (Predicate (Pr "True") []) Imply (Predicate (Pr "Mortal") [Function (SkolemFunction 1) []]),[]),
-      (Connective (Predicate (Pr "Human") [Function (SkolemFunction 1) []]) Imply (Predicate (Pr "False") []),[]),
-      (Connective (Predicate (Pr "True") []) Imply (Predicate (Pr "False") []),[])])
+     [(Not (Predicate (Pr "Socrates") [Variable (V "x")]),[(V "x",Variable (V "x"))])],
+     [(Predicate (Pr "Socrates") [Function (SkolemFunction 1) []],[]),
+      (Predicate (Pr "Human") [Function (SkolemFunction 1) []],[]),
+      (Not (Predicate (Pr "Mortal") [Function (SkolemFunction 1) []]),[]),
+      (Predicate (Pr "Mortal") [Function (SkolemFunction 1) []],[]),
+      (Not (Predicate (Pr "Human") [Function (SkolemFunction 1) []]),[]),
+      (Predicate (fromBool False) [],[])])
 
 dog = pApp "Dog"
 cat = pApp "Cat"

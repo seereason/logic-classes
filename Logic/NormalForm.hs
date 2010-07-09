@@ -297,7 +297,7 @@ clauseNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Eq term, Ha
 clauseNormalForm f = skolemNormalForm f >>= return . removeUniversal
 
 implicativeNormalForm :: forall formula term v p f. 
-                         (FirstOrderLogic formula term v p f, Eq formula, Eq term, Eq p, Eq f, Skolem f, IsString p) =>
+                         (FirstOrderLogic formula term v p f, Eq formula, Eq term, Eq p, Eq f, Skolem f, Boolean p) =>
                          formula -> formula
 implicativeNormalForm =
     fromChiou . conjunctList . map toFOL . toINF . toChiou
@@ -310,9 +310,9 @@ implicativeNormalForm =
       fromChiou = convertPred id id id
       -- Convert [a, b, c, d] to (a .&. (b .&. (c .&. d)))
       disjunctList (x : xs) = foldl (.|.) x xs
-      disjunctList [] = pApp (fromString "False") []
+      disjunctList [] = pApp (fromBool False) []
       conjunctList (x : xs) = foldl (.&.) x xs
-      conjunctList [] = pApp (fromString "True") []
+      conjunctList [] = pApp (fromBool True) []
       convert (NFPredicate p ts) = Predicate p ts
       convert (NFNot f) = Not (convert f)
       convert (NFEqual t1 t2) = Equal t1 t2

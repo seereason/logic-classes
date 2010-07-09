@@ -20,8 +20,7 @@ module Logic.Chiou.NormalForm
     ) where
 
 import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Connective(..), Quantifier(..))
-import Logic.FirstOrder (Skolem(..))
-import Data.String (IsString(..))
+import Logic.FirstOrder (Skolem(..), Boolean(..))
 
 data ConjunctiveNormalForm v p f =
     CNF [NormalSentence v p f]
@@ -75,7 +74,7 @@ showCNFDerivation s0 = let
 			 "Distribute AND over OR:\t" ++
 			 (show s6 ++ "\n")
 
-toINF :: (Eq v, Eq p, Eq f, Skolem f, IsString p) => Sentence v p f -> [ImplicativeNormalForm v p f]
+toINF :: (Eq v, Eq p, Eq f, Skolem f, Boolean p) => Sentence v p f -> [ImplicativeNormalForm v p f]
 toINF s =
     let
       cnf = toCNFSentence s
@@ -83,7 +82,7 @@ toINF s =
     in
       map toINF' cnfL
 
-toINF' :: (Eq v, Eq p, Eq f, IsString p) => Sentence v p f -> ImplicativeNormalForm v p f
+toINF' :: (Eq v, Eq p, Eq f, Boolean p) => Sentence v p f -> ImplicativeNormalForm v p f
 toINF' s =
     let
       norm = normalize s
@@ -97,22 +96,22 @@ toINF' s =
 			     (NFNot _) -> False
 		             _ -> True) norm
     in
-      if neg == [ NFPredicate "True" [] ] then
+      if neg == [ NFPredicate (fromBool True) [] ] then
         INF [] pos
       else
-        if pos == [ NFPredicate "False" [] ] then
+        if pos == [ NFPredicate (fromBool False) [] ] then
 	  INF neg []
 	else
 	  INF neg pos
 
-toINFSentence :: (Eq v, Eq p, Eq f, Skolem f, IsString p) => Sentence v p f -> Sentence v p f
+toINFSentence :: (Eq v, Eq p, Eq f, Skolem f, Boolean p) => Sentence v p f -> Sentence v p f
 toINFSentence s0 = let
 		     s1 = toCNFSentence s0
 		     s2 = disjunctionToImplication s1
 		   in
 		     s2
 
-showINFDerivation :: (Show (Sentence v p f), Eq v, Eq p, Eq f, Skolem f, IsString p, Show v, Show p, Show f) => Sentence v p f -> String
+showINFDerivation :: (Show (Sentence v p f), Eq v, Eq p, Eq f, Skolem f, Boolean p, Show v, Show p, Show f) => Sentence v p f -> String
 showINFDerivation s0 = let
 		         s1 = toCNFSentence s0
 			 s2 = disjunctionToImplication s1
@@ -121,15 +120,18 @@ showINFDerivation s0 = let
 			 "Convert disjunctions to implications:\t" ++
 			 (show s2 ++ "\n")
 
-fromINF :: IsString p => ImplicativeNormalForm v p f -> Sentence v p f
+fromINF :: (Boolean p, Eq p) => ImplicativeNormalForm v p f -> Sentence v p f
 fromINF (INF neg pos) =
-    Connective (toAnds neg) Imply (toOrs pos)
+    case (toAnds neg, toOrs pos) of
+      (Predicate t [], ors) | t == fromBool True -> ors
+      (ands, Predicate f []) | f == fromBool False -> Not ands
+      (ands, ors) -> Connective ands Imply ors
     where
-      toAnds :: IsString p => [NormalSentence v p f] -> Sentence v p f
-      toAnds [] = Predicate "True" []
+      toAnds :: Boolean p => [NormalSentence v p f] -> Sentence v p f
+      toAnds [] = Predicate (fromBool True) []
       toAnds [x] = sentence x
       toAnds (x : xs) = Connective (sentence x) And (toAnds xs)
-      toOrs [] = Predicate "False" []
+      toOrs [] = Predicate (fromBool False) []
       toOrs [x] = sentence x
       toOrs (x : xs) = Connective (sentence x) Or (toAnds xs)
       sentence :: NormalSentence v p f -> Sentence v p f
@@ -370,7 +372,7 @@ substitute (Function f terms) xs =
  - Invariants: The input Sentence is in CNF
  --}
 
-disjunctionToImplication :: IsString p => Sentence v p f -> Sentence v p f
+disjunctionToImplication :: Boolean p => Sentence v p f -> Sentence v p f
 disjunctionToImplication s =
     let
       cnfL = collectCnf s
@@ -378,7 +380,7 @@ disjunctionToImplication s =
     in
       foldl (\s1 -> \s2 -> Connective s1 And s2) (head cnfL') (tail cnfL')
 
-disjunctionToImplication' :: IsString p => Sentence v p f -> Sentence v p f
+disjunctionToImplication' :: Boolean p => Sentence v p f -> Sentence v p f
 disjunctionToImplication' s =
     let
       norm = normalize s
@@ -398,11 +400,11 @@ collectCnf :: Sentence v p f -> [Sentence v p f]
 collectCnf (Connective s1 And s2) = collectCnf s1 ++ collectCnf s2
 collectCnf s = [s]
 
-denormalize :: IsString p => Connective -> [NormalSentence v p f] -> Sentence v p f
+denormalize :: Boolean p => Connective -> [NormalSentence v p f] -> Sentence v p f
 denormalize Imply _ = error "denormalizing =>"
 denormalize Equiv _ = error "denormalizing <=>"
-denormalize And [] = Predicate "True" []
-denormalize Or [] = Predicate "False" []
+denormalize And [] = Predicate (fromBool True) []
+denormalize Or [] = Predicate (fromBool False) []
 denormalize _c (x:[]) = denormalize' x
 denormalize c (x:xs) = Connective (denormalize' x) c (denormalize c xs)
 

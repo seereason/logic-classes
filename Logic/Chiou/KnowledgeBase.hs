@@ -20,13 +20,12 @@ module Logic.Chiou.KnowledgeBase
 
 import Control.Monad.State (MonadState(get, put), modify)
 import Data.List (partition)
-import Data.String (IsString(..))
 import Logic.Chiou.FirstOrderLogic (Sentence(..))
 import Logic.Chiou.Monad (ProverT, State(..), zeroKB, SkolemCount, FolModule)
 import Logic.Chiou.NormalForm (ImplicativeNormalForm, toINF)
 import Logic.Chiou.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Logic.Chiou.Skolem (assignSkolemL)
-import Logic.FirstOrder (Skolem(..))
+import Logic.FirstOrder (Skolem(..), Boolean(..))
 
 -- |Reset the knowledgebase to empty.
 emptyKB :: Monad m => ProverT v p f m ()
@@ -47,12 +46,12 @@ getKB = get >>= return . map fst . knowledgeBase
 -- |Try to prove a sentence, return the result and the proof.
 -- askKB should be in KnowledgeBase module. However, since resolution
 -- is here functions are here, it is also placed in this module.
-askKB :: (Monad m, Eq v, Eq p, Eq f, Skolem f, IsString p) => Sentence v p f -> ProverT v p f m Bool
+askKB :: (Monad m, Eq v, Eq p, Eq f, Skolem f, Boolean p) => Sentence v p f -> ProverT v p f m Bool
 askKB s = theoremKB s >>= return . fst
 
 -- |See whether the sentence is true, false or invalid.  Return proofs
 -- for truth and falsity.
-validKB :: (Monad m, Eq v, Eq p, Eq f, Skolem f, IsString p) => Sentence v p f -> ProverT v p f m (Maybe Bool, SetOfSupport v p f, SetOfSupport v p f)
+validKB :: (Monad m, Eq v, Eq p, Eq f, Skolem f, Boolean p) => Sentence v p f -> ProverT v p f m (Maybe Bool, SetOfSupport v p f, SetOfSupport v p f)
 validKB s =
     theoremKB s >>= \ (proved, proof1) ->
     inconsistantKB s >>= \ (disproved, proof2) ->
@@ -60,20 +59,20 @@ validKB s =
 
 -- |Return a flag indicating whether sentence was proved, along with a
 -- proof.
-theoremKB :: (Monad m, Eq v, Eq p, Eq f, Skolem f, IsString p) =>
+theoremKB :: (Monad m, Eq v, Eq p, Eq f, Skolem f, Boolean p) =>
              Sentence v p f -> ProverT v p f m (Bool, SetOfSupport v p f)
 theoremKB s = inconsistantKB (Not s)
 
 -- |Return a flag indicating whether sentence was disproved, along
 -- with a disproof.
-inconsistantKB :: (Monad m, Eq v, Eq p, Eq f, Skolem f, IsString p) =>
+inconsistantKB :: (Monad m, Eq v, Eq p, Eq f, Skolem f, Boolean p) =>
                   Sentence v p f -> ProverT v p f m (Bool, SetOfSupport v p f)
 inconsistantKB s = getKB >>= return . prove [] (getSetOfSupport (toINF s))
 
 -- |Validate a sentence and insert it into the knowledgebase.  Returns
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
-tellKB :: (Monad m, Eq v, Eq p, Eq f, Skolem f, IsString p) =>
+tellKB :: (Monad m, Eq v, Eq p, Eq f, Skolem f, Boolean p) =>
           Sentence v p f -> ProverT v p f m (Maybe Bool, [ImplicativeNormalForm v p f])
 tellKB s = do (inf, sc) <-  assignSkolemL (toINF s) 0
               (valid, _, _) <- validKB s
@@ -83,7 +82,7 @@ tellKB s = do (inf, sc) <-  assignSkolemL (toINF s) 0
                                         , skolemCount = skolemCount st + sc })
               return (valid, map fst inf)
 
-loadKB :: (Monad m, Eq v, Eq p, Eq f, Skolem f, IsString p) =>
+loadKB :: (Monad m, Eq v, Eq p, Eq f, Skolem f, Boolean p) =>
           [Sentence v p f] -> ProverT v p f m [(Maybe Bool, [ImplicativeNormalForm v p f])]
 loadKB sentences = emptyKB >> mapM tellKB sentences
 
