@@ -12,14 +12,15 @@ import qualified Logic.Chiou.KnowledgeBase as C
 import qualified Logic.Chiou.Monad as C
 import qualified Logic.Chiou.NormalForm as C
 import Logic.FirstOrder (FirstOrderLogic(..), convertPred)
+import Logic.Implicative (Implicative(fromINF))
 import Logic.Instances.Chiou ()
 import Logic.Instances.Parameterized ()
 
-load :: (FirstOrderLogic formula term v p f, Monad m) =>
+load :: (FirstOrderLogic formula term v p f, Ord p, Ord f, Monad m) =>
           [formula] -> C.ProverT v p f m [(Maybe Bool, [formula])]
-load xs = C.loadKB (map f2s xs) >>= return . map fromINF
+load xs = C.loadKB (map f2s xs) >>= return . map fromINF'
 
-load' :: (FirstOrderLogic formula term v p f) =>
+load' :: (FirstOrderLogic formula term v p f, Ord p, Ord f) =>
          [formula] -> [(Maybe Bool, [formula])]
 load' = runIdentity . C.runProverT . load
 
@@ -35,9 +36,9 @@ load' = runIdentity . C.runProverT . load
 -- The list of formulas is the proof or disproof or attempted proof
 -- that was generated.  The new formula is added to the knowledge base
 -- in all cases except for disproof.
-tell :: (FirstOrderLogic formula term v p f, Monad m) =>
+tell :: (FirstOrderLogic formula term v p f, Ord p, Ord f, Monad m) =>
         formula -> C.ProverT v p f m (Maybe Bool, [formula])
-tell x = C.tellKB (f2s x) >>= return . fromINF
+tell x = C.tellKB (f2s x) >>= return . fromINF'
 
 empty :: (FirstOrderLogic formula term v p f, Monad m) => C.ProverT v p f m ()
 empty = C.emptyKB
@@ -57,6 +58,6 @@ s2f = convertPred id id id
 f2s :: (FirstOrderLogic formula term v p f) => formula -> C.Sentence v p f
 f2s = convertPred id id id
 
-fromINF :: (FirstOrderLogic formula term v p f) =>
+fromINF' :: (FirstOrderLogic formula term v p f, Ord p, Ord f) =>
            (t, [C.ImplicativeNormalForm v p f]) -> (t, [formula])
-fromINF (flag, infs) = (flag, map (s2f . C.fromINF) infs)
+fromINF' (flag, infs) = (flag, map (s2f . fromINF id id) infs)

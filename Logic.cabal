@@ -20,15 +20,16 @@ Library
                    Logic.Chiou.NormalForm
                    Logic.Chiou.Resolution
                    Logic.Chiou.Skolem
-                   Logic.FirstOrder,
-                   Logic.Instances.Chiou,
-                   Logic.Instances.Parameterized,
-                   Logic.Instances.PropLogic,
-                   Logic.Instances.TPTP,
-                   Logic.Logic,
-                   Logic.NormalForm,
-                   Logic.Propositional,
-                   Logic.Prover,
+                   Logic.FirstOrder
+                   Logic.Implicative
+                   Logic.Instances.Chiou
+                   Logic.Instances.Parameterized
+                   Logic.Instances.PropLogic
+                   Logic.Instances.TPTP
+                   Logic.Logic
+                   Logic.NormalForm
+                   Logic.Propositional
+                   Logic.Prover
                    Logic.Satisfiable
  Build-Depends:    base, containers, fgl, happstack-data, happstack-state,
                    mtl, syb-with-class, text, logic-TPTP, PropLogic

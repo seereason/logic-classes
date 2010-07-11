@@ -1,5 +1,5 @@
-{-# LANGUAGE FlexibleContexts, OverloadedStrings #-}
-{-# OPTIONS -Wall -Werror #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, UndecidableInstances #-}
+{-# OPTIONS -Wall -Werror -fno-warn-name-shadowing #-}
 
 {- NormalForm.hs -}
 {- Charles Chiou -}
@@ -16,11 +16,12 @@ module Logic.Chiou.NormalForm
     , toCNF, toCNFSentence, showCNFDerivation
     , toINF, toINFSentence, showINFDerivation
     , distributeAndOverOr
-    , fromINF
     ) where
 
+import qualified Data.Set as S
 import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Connective(..), Quantifier(..))
 import Logic.FirstOrder (Skolem(..), Boolean(..))
+import Logic.Implicative (Literal(..), Implicative(..))
 
 data ConjunctiveNormalForm v p f =
     CNF [NormalSentence v p f]
@@ -34,7 +35,24 @@ data NormalSentence v p f
     = NFNot (NormalSentence v p f)
     | NFPredicate p [Term v f]
     | NFEqual (Term v f) (Term v f)
-    deriving (Eq)
+    deriving (Eq, Ord)
+
+instance Boolean p => Literal (NormalSentence v p f) (Term v f) p where
+    litEqual True t1 t2 = NFNot (litEqual False t1 t2)
+    litEqual False t1 t2 = NFEqual t1 t2
+    litPredicate True p ts = NFNot (litPredicate False p ts)
+    litPredicate False p ts = NFPredicate p ts
+    litFold equal predicate l =
+        case l of
+          NFNot (NFEqual t1 t2) -> equal True t1 t2
+          NFEqual t1 t2 -> equal False t1 t2
+          NFNot (NFPredicate p ts) -> predicate True p ts
+          NFPredicate p ts -> predicate False p ts
+          _ -> error "Logic.Chiou.NormalForm: Invalid NormalSentence"
+
+instance (Ord v, Ord p, Boolean p, Ord f) => Implicative (ImplicativeNormalForm v p f) (NormalSentence v p f) (Term v f) p where
+    neg (INF x _) = S.fromList x
+    pos (INF _ x) = S.fromList x
 
 toCNF :: (Eq v, Eq p, Eq f, Skolem f) => Sentence v p f -> ConjunctiveNormalForm v p f
 toCNF s = CNF (normalize (toCNFSentence s))
@@ -119,25 +137,6 @@ showINFDerivation s0 = let
 		         showCNFDerivation s0 ++
 			 "Convert disjunctions to implications:\t" ++
 			 (show s2 ++ "\n")
-
-fromINF :: (Boolean p, Eq p) => ImplicativeNormalForm v p f -> Sentence v p f
-fromINF (INF neg pos) =
-    case (toAnds neg, toOrs pos) of
-      (Predicate t [], ors) | t == fromBool True -> ors
-      (ands, Predicate f []) | f == fromBool False -> Not ands
-      (ands, ors) -> Connective ands Imply ors
-    where
-      toAnds :: Boolean p => [NormalSentence v p f] -> Sentence v p f
-      toAnds [] = Predicate (fromBool True) []
-      toAnds [x] = sentence x
-      toAnds (x : xs) = Connective (sentence x) And (toAnds xs)
-      toOrs [] = Predicate (fromBool False) []
-      toOrs [x] = sentence x
-      toOrs (x : xs) = Connective (sentence x) Or (toAnds xs)
-      sentence :: NormalSentence v p f -> Sentence v p f
-      sentence (NFNot s) = Not (sentence s)
-      sentence (NFPredicate p ts) = Predicate p ts
-      sentence (NFEqual t1 t2) = Equal t1 t2
 
 {-- 
    Invariants:

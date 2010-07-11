@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, UndecidableInstances #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses,
+             RankNTypes, ScopedTypeVariables, UndecidableInstances #-}
 -- |A series of transformations to convert first order logic formulas
 -- into (ultimately) Clause Normal Form.
 -- 
@@ -40,8 +41,8 @@ module Logic.NormalForm
 
 import Data.Char (isDigit)
 import Data.String (IsString(..))
-import Debug.Trace
 import qualified Data.Set as S
+import Debug.Trace
 import Logic.Chiou.FirstOrderLogic (Sentence(..))
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), toINF, NormalSentence(..))
 import Logic.FirstOrder

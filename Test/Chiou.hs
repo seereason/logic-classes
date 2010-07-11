@@ -8,8 +8,9 @@ import Data.String (IsString(..))
 import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Quantifier(..), Connective(..))
 import Logic.Chiou.KnowledgeBase (loadKB, theoremKB, validKB)
 import Logic.Chiou.Monad (runProverT)
-import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), fromINF)
+import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..))
 import Logic.Instances.Chiou ()
+import Logic.Implicative (Implicative(fromINF))
 import qualified Logic.Instances.Parameterized as P
 import Logic.Logic (Logic(..))
 import Logic.FirstOrder (Skolem(..), Boolean(..), FirstOrderLogic(..), convertPred, showForm)
@@ -79,7 +80,7 @@ data Pr
     = Pr String
     | T
     | F
-    deriving (Eq)
+    deriving (Eq, Ord)
 
 instance IsString Pr where
     fromString = Pr
@@ -114,6 +115,7 @@ expected4 =
        (INF [NFPredicate (Pr "Human") [Function (toSkolem 1) []]]					[],							[(V "x",Function (toSkolem 1) [])]),
        (INF [NFPredicate (Pr "Socrates") [Function (toSkolem 1) []]]					[],							[(V "x",Function (toSkolem 1) [])]),
        (INF []													[],							[(V "x",Function (toSkolem 1) [])])])
+expected5 :: (Maybe Bool, [(Sentence V Pr AtomicFunction, [(V, Term V AtomicFunction)])], [(Sentence V Pr AtomicFunction, [(V, Term V AtomicFunction)])])
 expected5 =
     (Just False,
      [(Not (Predicate (Pr "Socrates") [Variable (V "x")]),[(V "x",Variable (V "x"))])],
@@ -122,7 +124,7 @@ expected5 =
       (Not (Predicate (Pr "Mortal") [Function (SkolemFunction 1) []]),[]),
       (Predicate (Pr "Mortal") [Function (SkolemFunction 1) []],[]),
       (Not (Predicate (Pr "Human") [Function (SkolemFunction 1) []]),[]),
-      (Predicate (fromBool False) [],[])])
+      (Connective (Predicate (fromBool False) []) Imply (Predicate (fromBool True) []),[])])
 
 dog = pApp "Dog"
 cat = pApp "Cat"
@@ -187,7 +189,7 @@ testSentence kb s =
     f (runIdentity (runProverT (loadKB kb >> validKB s)))
     where
       f (flag, xs, ys) = (flag, map fromUnify xs, map fromUnify ys)
-      fromUnify (inf, subst) = (fromINF inf, subst)
+      fromUnify (inf, subst) = (fromINF id id inf, subst)
 {-
     map (\ (flag, xs, ys) ->
              (flag,

@@ -1,20 +1,18 @@
 {-# LANGUAGE OverloadedStrings, StandaloneDeriving #-}
+{-# OPTIONS -fno-warn-orphans #-}
 
 module Test.Chiou0 where
 
 import Control.Monad.Identity (runIdentity)
 import Control.Monad.Trans (MonadIO, liftIO)
-import Data.Either (rights)
-import Data.List (intercalate)
 import Data.String (IsString(..))
 import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Quantifier(..), Connective(..))
 import Logic.Chiou.Monad (ProverT, runProverT)
-import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), ConjunctiveNormalForm(..), distributeAndOverOr)
-import Logic.Chiou.KnowledgeBase (askKB, loadKB, showKB, theoremKB)
+import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), {-ConjunctiveNormalForm(..),-} distributeAndOverOr)
+import Logic.Chiou.KnowledgeBase (loadKB, theoremKB {-, askKB, showKB-})
 import Logic.Chiou.Resolution (SetOfSupport)
 import Logic.FirstOrder (Skolem(..), Boolean(..))
 import Test.HUnit
-import System.Exit
 
 newtype V = V String deriving (Eq, Show)
 
@@ -48,6 +46,7 @@ instance Skolem AtomicFunction where
 instance IsString AtomicFunction where
     fromString = Fn
 
+tests :: [Test]
 tests = [loadTest, distributeTest, proofTest1, proofTest2]
 
 {-
@@ -152,8 +151,6 @@ testProof label (question, expectedAnswer, expectedProof) =
     then error ("\n Expected:\n  " ++ show (expectedAnswer, expectedProof) ++
                 "\n Actual:\n  " ++ show actual')
     else liftIO (putStrLn (label ++ " ok"))
-    where
-      format (flag, proof) = "(" ++ show flag ++ ",\n   [" ++ intercalate "\n    " (map show proof) ++ "])"
 
 loadCmd :: Monad m => ProverT V Pr AtomicFunction m [(Maybe Bool, [ImplicativeNormalForm V Pr AtomicFunction])]
 loadCmd = loadKB sentences
