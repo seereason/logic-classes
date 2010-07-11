@@ -20,7 +20,7 @@ module Logic.Chiou.NormalForm
 
 import qualified Data.Set as S
 import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Connective(..), Quantifier(..))
-import Logic.FirstOrder (Skolem(..), Boolean(..))
+import Logic.FirstOrder -- (Skolem(..), Boolean(..), {-, FirstOrderLogic, convertPred-} quant, infixPred, pApp)
 import Logic.Implicative (Literal(..), Implicative(..))
 
 data ConjunctiveNormalForm v p f =
@@ -173,8 +173,8 @@ moveNotInwards (Not (Connective s1 Or s2)) =
 moveNotInwards (Not (Connective s1 And s2)) =
     Connective (moveNotInwards (Not s1)) Or (moveNotInwards (Not s2))
 moveNotInwards (Not (Quantifier ForAll vs s)) =
-    Quantifier Exists vs (moveNotInwards (Not s))
-moveNotInwards (Not (Quantifier Exists vs s)) =
+    Quantifier ExistsCh vs (moveNotInwards (Not s))
+moveNotInwards (Not (Quantifier ExistsCh vs s)) =
     Quantifier ForAll vs (moveNotInwards (Not s))
 moveNotInwards (Not (Not s)) = moveNotInwards s
 moveNotInwards (Not s) = Not (moveNotInwards s)
@@ -224,7 +224,7 @@ prependQuantifiers' (s, ((q, vs):qs)) = Quantifier q vs (prependQuantifiers' (s,
   -}
 distributeDisjuncts :: (Eq f, Eq p, Eq v) => Sentence v p f -> Sentence v p f
 distributeDisjuncts =
-    foldF Not q b Equal Predicate
+    foldFCh Not q b Equal Predicate
     where
       q op vs x = Quantifier op vs (distributeDisjuncts x)
       b f1 Or f2 = doRHS (distributeDisjuncts f1) (distributeDisjuncts f2)
@@ -232,7 +232,7 @@ distributeDisjuncts =
       b f1 op f2 = Connective (distributeDisjuncts f1) op (distributeDisjuncts f2)
       -- Helper function once we've seen a disjunction.  Note that it does not call itself.
       doRHS f1 f2 =
-          foldF n' q' b' i' a' f2
+          foldFCh n' q' b' i' a' f2
           where
             n' _ = doLHS f1 f2
             -- Quick simplification, but assumes Eq formula: (p | q) & p -> p
@@ -243,7 +243,7 @@ distributeDisjuncts =
             i' _ _ = doLHS f1 f2
             a' _ _ = doLHS f1 f2
       doLHS f1 f2 =
-          foldF n' q' b' i' a' f1
+          foldFCh n' q' b' i' a' f1
           where
             n' _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
             q' _ _ _ =  distributeDisjuncts f1 .|. distributeDisjuncts f2
@@ -259,14 +259,14 @@ distributeDisjuncts =
 (.|.) :: Sentence v p f -> Sentence v p f -> Sentence v p f
 (.|.) a b = Connective a Or b
 
-foldF :: (Sentence v p f -> r)
+foldFCh :: (Sentence v p f -> r)
       -> (Quantifier -> [v] -> Sentence v p f -> r)
       -> (Sentence v p f -> Connective -> Sentence v p f -> r)
       -> (Term v f -> Term v f -> r)
       -> (p -> [Term v f] -> r)
       -> Sentence v p f
       -> r
-foldF n q b i a formula =
+foldFCh n q b i a formula =
     case formula of
       Not f -> n f
       Quantifier op vs f -> q op vs f
@@ -326,36 +326,36 @@ skolemize s = skolemize' 1 s [] []
 skolemize' :: (Eq v, Skolem f) => Int -> Sentence v p f -> [v] -> [(v, Term v f)] -> Sentence v p f
 skolemize' i (Quantifier ForAll vs s) univ skmap =
     skolemize' i s (univ ++ vs) skmap
-skolemize' i (Quantifier Exists vs s) univ skmap =
-    skolemize' (i + length vs) s univ (skmap ++ (skolem i vs univ))
+skolemize' i (Quantifier ExistsCh vs s) univ skmap =
+    skolemize' (i + length vs) s univ (skmap ++ (skolemCh i vs univ))
 skolemize' i (Connective s1 c s2) univ skmap =
     Connective (skolemize' i s1 univ skmap) c (skolemize' i s2 univ skmap)
 skolemize' i (Not s) univ skmap =
     Not (skolemize' i s univ skmap)
 skolemize' _i (Equal t1 t2) _univ skmap =
-    Equal (substitute t1 skmap) (substitute t2 skmap)
+    Equal (substituteCh t1 skmap) (substituteCh t2 skmap)
 skolemize' _i (Predicate p terms) _univ skmap =
-    Predicate p (map (\x -> substitute x skmap) terms)
+    Predicate p (map (\x -> substituteCh x skmap) terms)
 
-skolem :: Skolem f => Int -> [v] -> [v] -> [(v, Term v f)]
-skolem _i [] _u = []
-skolem i (v:vs) u = let
-                      skolems =  skolem (i + 1) vs u
+skolemCh :: Skolem f => Int -> [v] -> [v] -> [(v, Term v f)]
+skolemCh _i [] _u = []
+skolemCh i (v:vs) u = let
+                      skolems =  skolemCh (i + 1) vs u
 		    in
 		      if null u then
 		        (v, Function (toSkolem i) []):skolems
 		      else
 		        (v, Function (toSkolem i) (map Variable u)):skolems
 
-substitute :: (Eq v) => Term v f -> [(v, Term v f)] -> Term v f
-substitute (Variable v) [] = Variable v
-substitute var@(Variable v) ((v', t):xs) =
+substituteCh :: (Eq v) => Term v f -> [(v, Term v f)] -> Term v f
+substituteCh (Variable v) [] = Variable v
+substituteCh var@(Variable v) ((v', t):xs) =
     if v == v' then
       t
     else
-      substitute var xs
-substitute (Function f terms) xs =
-    Function f (map (\x -> substitute x xs) terms)
+      substituteCh var xs
+substituteCh (Function f terms) xs =
+    Function f (map (\x -> substituteCh x xs) terms)
 
 
 {--

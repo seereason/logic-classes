@@ -67,5 +67,5 @@ data Connective
 
 data Quantifier
     = ForAll
-    | Exists
+    | ExistsCh
     deriving (Eq, Ord)

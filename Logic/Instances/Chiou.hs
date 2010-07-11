@@ -76,12 +76,12 @@ instance Skolem AtomicFunction where
 instance (PropositionalLogic (Sentence v p f) (Sentence v p f), Ord v, IsString v, Eq p, Logic.Boolean p, Eq f, Skolem f) =>
           FirstOrderLogic (Sentence v p f) (Term v f) v p f where
     for_all vars x = Quantifier ForAll vars x
-    exists vars x = Quantifier Exists vars x
+    exists vars x = Quantifier ExistsCh vars x
     foldF n q b i p f =
         case f of
           Not x -> n x
           Quantifier ForAll vs f' -> q Logic.All vs f'
-          Quantifier Exists vs f' -> q Logic.Exists vs f'
+          Quantifier ExistsCh vs f' -> q Logic.Exists vs f'
           Connective f1 Imply f2 -> b f1 (:=>:) f2
           Connective f1 Equiv f2 -> b f1 (:<=>:) f2
           Connective f1 And f2 -> b f1 (:&:) f2

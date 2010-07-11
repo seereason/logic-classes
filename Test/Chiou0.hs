@@ -156,8 +156,8 @@ loadCmd :: Monad m => ProverT V Pr AtomicFunction m [(Maybe Bool, [ImplicativeNo
 loadCmd = loadKB sentences
 
 sentences :: [Sentence V Pr AtomicFunction]
-sentences = [Quantifier Exists ["x"] (Connective (Predicate "Dog" [Variable "x"]) And (Predicate "Owns" [Function "Jack" [], Variable "x"])),
-             Quantifier ForAll ["x"] (Connective (Connective (Quantifier Exists ["y"] (Predicate "Dog" [Variable "y"])) And
+sentences = [Quantifier ExistsCh ["x"] (Connective (Predicate "Dog" [Variable "x"]) And (Predicate "Owns" [Function "Jack" [], Variable "x"])),
+             Quantifier ForAll ["x"] (Connective (Connective (Quantifier ExistsCh ["y"] (Predicate "Dog" [Variable "y"])) And
                                                              (Predicate "Owns" [Variable "x", Variable "y"])) Imply
                                                  (Predicate "AnimalLover" [Variable "x"])),
 
