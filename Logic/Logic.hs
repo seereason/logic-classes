@@ -1,11 +1,6 @@
--- | PropositionalLogic is a multi-parameter type class for
--- representing instance of propositional (aka zeroth order) logic
--- datatypes.  These are formulas which have truth values, but no "for
--- all" or "there exists" quantifiers and thus no variables or terms
--- as we have in first order or predicate logic.  It is intended that
--- we will be able to write instances for various different
--- implementations to allow these systems to interoperate.  The
--- operator names were adopted from the Logic-TPTP package.
+-- | The Logic type class defines the basic boolean logic operations,
+-- AND, OR, NOT, and so on.  Definitions which pertain to both
+-- propositional and first order logic are here.
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
              GeneralizedNewtypeDeriving, MultiParamTypeClasses, RankNTypes, TemplateHaskell, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}

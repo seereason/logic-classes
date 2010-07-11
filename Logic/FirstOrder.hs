@@ -1,9 +1,9 @@
--- | 'FirstOrderLogic' is a multi-parameter type class for representing
--- instances of predicate or first order logic datatypes.  It builds
--- on the 'PropositionalLogic' class and adds the quantifiers
--- @for_all@ and @exists@.  It also adds structure to the atomic
--- formula datatype: it introduces the @term@ and @v@ (for variable)
--- type parameters, plus a @p@ parameter to represent the atomic
+-- | 'FirstOrderLogic' is a multi-parameter type class for
+-- representing instances of predicate or first order logic datatypes.
+-- It builds on the 'Logic' class and adds the quantifiers @for_all@
+-- and @exists@.  It also adds structure to the atomic formula
+-- datatype: it introduces the @Term@ type and three type parameters:
+-- @v@ (for variable), plus a @p@ parameter to represent the atomic
 -- predicate type and an @f@ parameter to represent the type of the
 -- atomic function type.
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
@@ -47,7 +47,8 @@ class Skolem f where
     toSkolem :: Int -> f
     fromSkolem  :: f -> Maybe Int
 
--- |A Predicate class needs to have True and False elements.
+-- |For some functions the atomic predicate type needs to have True
+-- and False elements.
 class Boolean p where
     fromBool :: Bool -> p
 
@@ -58,13 +59,13 @@ class Monad m => HasSkolem m where
     skolem :: m Int
 
 -- |The 'PropositionalLogic' type class.  Minimal implementation:
--- @for_all, exists, foldF, foldT, (.=.), (.!=.), pApp, fApp, var,
--- toString@.  The functional dependencies are necessary here so we
--- can write functions that don't fix all of the type parameters.  For
--- example, without them the univquant_free_vars function gives the
--- error @No instance for (PropositionalLogic Formula t V p f)@
--- because the function doesn't mention the Term type.
-class (Logic formula, Ord v) => FirstOrderLogic formula term v p f
+-- @for_all, exists, foldF, foldT, (.=.), pApp, fApp, var@.  The
+-- functional dependencies are necessary here so we can write
+-- functions that don't fix all of the type parameters.  For example,
+-- without them the univquant_free_vars function gives the error @No
+-- instance for (FirstOrderLogic Formula term V p f)@ because the
+-- function doesn't mention the Term type.
+class (Logic formula, Ord v, Eq p, Boolean p, Eq f, Skolem f) => FirstOrderLogic formula term v p f
                        | formula -> term
                        , formula -> v
                        , formula -> p
@@ -98,6 +99,7 @@ class (Logic formula, Ord v) => FirstOrderLogic formula term v p f
     (.=.) :: term -> term -> formula
     -- | Inequality of Terms
     (.!=.) :: term -> term -> formula
+    a .!=. b = (.~.) (a .=. b)
     -- | Build a formula by applying terms to an atomic predicate.
     pApp :: p -> [term] -> formula
     -- | Build a term which is a variable reference.

@@ -37,6 +37,10 @@ data AtomicFunction
     | Skolem V
     deriving Show
 
+-- |This is not a safe way to implement booleans.
+instance Logic.Boolean AtomicWord where
+    fromBool flag = AtomicWord (show flag)
+
 -- |If this looks confusing, it is because TPTP has the same operators
 -- as Logic, the .&. on the left is the Logic method name and .&. on
 -- the right is the TPTP function.
@@ -81,7 +85,7 @@ instance Logic.PropositionalLogic Formula Formula where
               p' p ts = a (F (Identity (PredApp p ts)))
               unwrapF' (F x) = F x -- copoint x
 
-instance Logic.FirstOrderLogic Formula Term V AtomicWord AtomicFunction where
+instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.FirstOrderLogic Formula Term V AtomicWord AtomicFunction where
     for_all vars x = for_all vars x
     exists vars x = exists vars x
     -- Use the TPTP fold to implement the Logic fold.  This means
