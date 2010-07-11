@@ -38,7 +38,7 @@ instance Logic (Sentence v p f) where
     x .&.   y = Connective x And y
     (.~.) x   = Not x
 
-instance (Logic (Sentence v p f), Ord v, Eq p, Logic.Boolean p, Eq f, Skolem f) =>
+instance (Logic (Sentence v p f), Ord v, IsString v, Eq p, Logic.Boolean p, Eq f, Skolem f) =>
          PropositionalLogic (Sentence v p f) (Sentence v p f) where
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
@@ -73,7 +73,7 @@ instance Skolem AtomicFunction where
     fromSkolem (AtomicSkolemFunction n) = Just n
     fromSkolem _ = Nothing
 
-instance (PropositionalLogic (Sentence v p f) (Sentence v p f), Ord v, Eq p, Logic.Boolean p, Eq f, Skolem f) =>
+instance (PropositionalLogic (Sentence v p f) (Sentence v p f), Ord v, IsString v, Eq p, Logic.Boolean p, Eq f, Skolem f) =>
           FirstOrderLogic (Sentence v p f) (Term v f) v p f where
     for_all vars x = Quantifier ForAll vars x
     exists vars x = Quantifier Exists vars x

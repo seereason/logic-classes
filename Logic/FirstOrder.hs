@@ -35,6 +35,7 @@ import Data.Function (on)
 import Data.List (isPrefixOf, intercalate)
 import Data.Monoid (mappend)
 import qualified Data.Set as S
+import Data.String (IsString(..))
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
@@ -65,7 +66,7 @@ class Monad m => HasSkolem m where
 -- without them the univquant_free_vars function gives the error @No
 -- instance for (FirstOrderLogic Formula term V p f)@ because the
 -- function doesn't mention the Term type.
-class (Logic formula, Ord v, Eq p, Boolean p, Eq f, Skolem f) => FirstOrderLogic formula term v p f
+class (Logic formula, Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f) => FirstOrderLogic formula term v p f
                        | formula -> term
                        , formula -> v
                        , formula -> p
@@ -204,7 +205,7 @@ univquant_free_vars cnf' =
     where free = freeVars cnf'
 
 -- |Replace each free occurrence of variable old with term new.
-substitute :: (FirstOrderLogic formula term v p f) => v -> term -> formula -> formula
+substitute :: FirstOrderLogic formula term v p f => v -> term -> formula -> formula
 substitute old new formula =
     foldF (\ f' -> (.~.) (sf f'))
               -- If the old variable appears in a quantifier
@@ -219,7 +220,7 @@ substitute old new formula =
       st t = foldT sv (\ func ts -> fApp func (map st ts)) t
       sv v = if v == old then new else var v
 
-substitutePairs :: (FirstOrderLogic formula term v p f) => [(v, term)] -> formula -> formula
+substitutePairs :: FirstOrderLogic formula term v p f => [(v, term)] -> formula -> formula
 substitutePairs pairs formula = 
     foldr (\ (old, new) f -> substitute old new f) formula pairs 
 

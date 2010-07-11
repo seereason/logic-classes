@@ -240,9 +240,9 @@ distributeDisjuncts =
           foldF n' q' b' i' a' f2
           where
             n' _ = doLHS f1 f2
-            b' f3 And f4
-                | f1 == f3 || f1 == f4 = distributeDisjuncts f1
-                | otherwise = distributeDisjuncts (distributeDisjuncts (f1 .|. f3) .&. distributeDisjuncts (f1 .|. f4))
+            -- Quick simplification, but assumes Eq formula: (p | q) & p -> p
+            -- b' f3 And f4 | f1 == f3 || f1 == f4 = distributeDisjuncts f1
+            b' f3 And f4 = distributeDisjuncts (distributeDisjuncts (f1 .|. f3) .&. distributeDisjuncts (f1 .|. f4))
             b' _ _ _ = doLHS f1 f2
             q' _ _ _ = doLHS f1 f2
             i' _ _ = doLHS f1 f2
@@ -252,10 +252,9 @@ distributeDisjuncts =
           where
             n' _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
             q' _ _ _ =  distributeDisjuncts f1 .|. distributeDisjuncts f2
-            b' f3 And f4
-                -- Quick simplification: p & (p | q) == p
-                | f2 == f3 ||  f2 == f4 = distributeDisjuncts f2
-                | otherwise = distributeDisjuncts (distributeDisjuncts (f3 .|. f2) .&. distributeDisjuncts (f4 .|. f2))
+            -- Quick simplification, but assumes Eq formula: p & (p | q) -> p
+            -- b' f3 And f4 | f2 == f3 ||  f2 == f4 = distributeDisjuncts f2
+            b' f3 And f4 = distributeDisjuncts (distributeDisjuncts (f3 .|. f2) .&. distributeDisjuncts (f4 .|. f2))
             b' _ _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
             i' _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
             a' _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2

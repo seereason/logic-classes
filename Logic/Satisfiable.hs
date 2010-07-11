@@ -10,24 +10,23 @@ module Logic.Satisfiable
     , invalid
     ) where
 
-import Data.String (IsString)
-import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), toPropositional, HasSkolem(..))
+import Logic.FirstOrder (FirstOrderLogic(..), toPropositional, HasSkolem(..))
 import Logic.Logic ((.~.))
 import Logic.NormalForm (clauseNormalForm)
 import Logic.Instances.PropLogic ()
 import PropLogic (PropForm(..), satisfiable)
 
-clauses :: (FirstOrderLogic formula term v p f, Show formula, Eq formula, Eq term, HasSkolem m, Skolem f, IsString v) => formula -> m (PropForm formula)
+clauses :: (FirstOrderLogic formula term v p f, Ord formula, Show formula, HasSkolem m) => formula -> m (PropForm formula)
 clauses f = clauseNormalForm f >>= return . toPropositional A
 
-inconsistant :: (FirstOrderLogic formula term v p f, Ord formula, Show formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
+inconsistant :: (FirstOrderLogic formula term v p f, Ord formula, Show formula, HasSkolem m) =>
                 formula -> m Bool
 inconsistant f = clauses f >>= return . not . satisfiable
 
-theorem :: (FirstOrderLogic formula term v p f, Ord formula, Show formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
+theorem :: (FirstOrderLogic formula term v p f, Ord formula, Show formula, HasSkolem m) =>
            formula -> m Bool
 theorem f = inconsistant ((.~.) f)
 
-invalid :: (FirstOrderLogic formula term v p f, Ord formula, Show formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
+invalid :: (FirstOrderLogic formula term v p f, Ord formula, Show formula, HasSkolem m) =>
            formula -> m Bool
 invalid f = theorem f >>= \ t -> inconsistant f >>= \ i -> return (not (t || i))

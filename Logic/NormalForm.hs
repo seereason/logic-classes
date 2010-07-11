@@ -83,7 +83,7 @@ simplify =
 -- ~~P  P
 -- @
 -- 
-negationNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Eq term) => formula -> formula
+negationNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
 negationNormalForm = moveNegationsIn . simplify
 
 moveNegationsIn :: FirstOrderLogic formula term v p f => formula -> formula
@@ -135,10 +135,10 @@ moveNegationsIn =
 -- variable which does not appear and change occurrences of X in P to
 -- this new variable.  We could instead modify Q, but that looks
 -- slightly more tedious.
-prenexNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Eq term, IsString v) => formula -> formula
+prenexNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
 prenexNormalForm = moveQuantifiersOut . negationNormalForm
 
-moveQuantifiersOut :: forall formula term v p f. (FirstOrderLogic formula term v p f, IsString v) =>
+moveQuantifiersOut :: forall formula term v p f. FirstOrderLogic formula term v p f =>
                       formula -> formula
 moveQuantifiersOut formula =
     foldF n q b i a formula
@@ -189,7 +189,7 @@ moveQuantifiersOut formula =
 
 -- |Find new variables that are not in the set and substitute free
 -- occurrences in the formula.
-renameFreeVars :: (FirstOrderLogic formula term v p f, Ord v, IsString v) =>
+renameFreeVars :: forall formula term v p f. FirstOrderLogic formula term v p f =>
                   S.Set v -> [v] -> formula -> ([v], formula)
 renameFreeVars s vs f =
     (vs'', substitutePairs (zip vs (map var vs'')) f)
@@ -198,7 +198,7 @@ renameFreeVars s vs f =
                              if S.member v s'
                              then let v' = fromString (findName s' "x") in (v' : vs', S.insert v' s')
                              else (v : vs', S.insert v s')) ([], s) vs
-      findName :: (IsString v, Ord v) => S.Set v -> String -> String
+      findName :: S.Set v -> String -> String
       findName s' v = if S.member (fromString v) s' then findName s' (nextName v) else v
       nextName :: String -> String
       nextName "x" = "y"
@@ -216,11 +216,10 @@ renameFreeVars s vs f =
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-disjunctiveNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Eq term, IsString v) =>
-                         formula -> formula
+disjunctiveNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
 disjunctiveNormalForm = distributeDisjuncts . prenexNormalForm
 
-distributeDisjuncts :: (Eq formula, FirstOrderLogic formula term v p f) => formula -> formula
+distributeDisjuncts :: FirstOrderLogic formula term v p f => formula -> formula
 distributeDisjuncts =
     foldF n q b i a
     where
@@ -237,9 +236,9 @@ distributeDisjuncts =
           foldF n' q' b' i' a' f2
           where
             n' _ = doLHS f1 f2
-            b' f3 (:&:) f4
-                | f1 == f3 || f1 == f4 = distributeDisjuncts f1
-                | otherwise = distributeDisjuncts (distributeDisjuncts (f1 .|. f3) .&. distributeDisjuncts (f1 .|. f4))
+            -- Quick simplification, but assumes Eq formula: (p | q) & p -> p
+            -- b' f3 (:&:) f4 | f1 == f3 || f1 == f4 = distributeDisjuncts f1
+            b' f3 (:&:) f4 = distributeDisjuncts (distributeDisjuncts (f1 .|. f3) .&. distributeDisjuncts (f1 .|. f4))
             b' _ _ _ = doLHS f1 f2
             q' _ _ _ = doLHS f1 f2
             i' _ _ _ = doLHS f1 f2
@@ -249,10 +248,9 @@ distributeDisjuncts =
           where
             n' _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
             q' _ _ _ =  distributeDisjuncts f1 .|. distributeDisjuncts f2
-            b' f3 (:&:) f4
-                -- Quick simplification: p & (p | q) == p
-                | f2 == f3 ||  f2 == f4 = distributeDisjuncts f2
-                | otherwise = distributeDisjuncts (distributeDisjuncts (f3 .|. f2) .&. distributeDisjuncts (f4 .|. f2))
+            -- Quick simplification, but assumes Eq formula: p & (p | q) -> p
+            -- b' f3 (:&:) f4 | f2 == f3 || f2 == f4 = distributeDisjuncts f2
+            b' f3 (:&:) f4 = distributeDisjuncts (distributeDisjuncts (f3 .|. f2) .&. distributeDisjuncts (f4 .|. f2))
             b' _ _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
             i' _ _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
             a' _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
@@ -264,11 +262,11 @@ distributeDisjuncts =
 -- functions applied to the list of variables which are universally
 -- quantified in the context where the existential quantifier
 -- appeared.
-skolemNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
+skolemNormalForm :: (FirstOrderLogic formula term v p f, HasSkolem m) =>
                     formula -> m formula
 skolemNormalForm = skolemize [] . disjunctiveNormalForm
 
-skolemize :: (FirstOrderLogic formula term v p f, Eq formula, Eq term, HasSkolem m, Skolem f) => [v] -> formula -> m formula
+skolemize :: (FirstOrderLogic formula term v p f, HasSkolem m) => [v] -> formula -> m formula
 skolemize uq f =
     foldF n q b i a f
     where
@@ -292,12 +290,12 @@ skolemize uq f =
 -- universal quantifiers.  Due to the nature of Skolem Normal Form,
 -- this is actually all the remaining quantifiers, the result is
 -- effectively a propositional logic formula.
-clauseNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
+clauseNormalForm :: (FirstOrderLogic formula term v p f, HasSkolem m) =>
                     formula -> m formula
 clauseNormalForm f = skolemNormalForm f >>= return . removeUniversal
 
 implicativeNormalForm :: forall formula term v p f. 
-                         (FirstOrderLogic formula term v p f, Eq formula, Eq term, Eq p, Eq f, Skolem f, Boolean p) =>
+                         FirstOrderLogic formula term v p f =>
                          formula -> formula
 implicativeNormalForm =
     fromChiou . conjunctList . map toFOL . toINF . toChiou
@@ -317,7 +315,7 @@ implicativeNormalForm =
       convert (NFNot f) = Not (convert f)
       convert (NFEqual t1 t2) = Equal t1 t2
 
-removeUniversal ::(FirstOrderLogic formula term v p f) => formula -> formula
+removeUniversal :: FirstOrderLogic formula term v p f => formula -> formula
 removeUniversal formula =
     foldF (.~.) removeAll binOp infixPred pApp formula
     where
@@ -325,12 +323,12 @@ removeUniversal formula =
       removeAll Exists vs f = exists vs (removeUniversal f)
 
 -- |Nickname for clauseNormalForm.
-cnf :: (FirstOrderLogic formula term v p f, Eq formula, Eq term, HasSkolem m, Skolem f, IsString v) =>
+cnf :: (FirstOrderLogic formula term v p f, HasSkolem m) =>
        formula -> m formula
 cnf = clauseNormalForm
 
 -- |Nickname for clauseNormalForm.
-cnfTraced :: (FirstOrderLogic formula term v p f, Eq formula, Eq term, IsString v, Show formula, HasSkolem m, Skolem f) => formula -> m formula
+cnfTraced :: (FirstOrderLogic formula term v p f, HasSkolem m, Show formula) => formula -> m formula
 cnfTraced f =
     (skolemize [] . t4 . distributeDisjuncts . t3 . moveQuantifiersOut . t2 . moveNegationsIn . simplify . t1 $ f) >>= return . t6 . removeUniversal . t5
     where

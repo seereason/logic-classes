@@ -13,6 +13,7 @@ module Logic.Instances.Parameterized
     ) where
 
 import Data.Data (Data)
+import Data.String (IsString(..))
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
@@ -51,7 +52,7 @@ instance Logic (Formula v p f) where
     x .&.   y = BinOp  x (:&:)   y
     (.~.) x   = (:~:) x
 
-instance (Logic (Formula v p f), Ord v, Eq p, Boolean p, Eq f, Skolem f, Show p, Show f) =>
+instance (Logic (Formula v p f), Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f, Show p, Show f) =>
          PropositionalLogic (Formula v p f) (Formula v p f) where
     atomic (InfixPred t1 (:=:) t2) = t1 .=. t2
     atomic (InfixPred t1 (:!=:) t2) = t1 .!=. t2
@@ -65,7 +66,7 @@ instance (Logic (Formula v p f), Ord v, Eq p, Boolean p, Eq f, Skolem f, Show p,
           InfixPred t1 op t2 -> a (InfixPred t1 op t2)
           PredApp p ts -> a (PredApp p ts)
 
-instance (PropositionalLogic (Formula v p f) (Formula v p f), Ord v, Eq p, Boolean p, Eq f, Skolem f, Show p, Show f) =>
+instance (PropositionalLogic (Formula v p f) (Formula v p f), Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f, Show p, Show f) =>
           FirstOrderLogic (Formula v p f) (Term v f) v p f where
     for_all vars x = Quant All vars x
     exists vars x = Quant Exists vars x

@@ -1,3 +1,14 @@
+haskell-logic (0.16) unstable; urgency=low
+
+  * Move important super classes from the individual functions to the type
+    class FirstOrderLogic: Eq p, Boolean p, Eq f, Skolem f.
+  * Implement a default method for .!=.
+  * Remove two "quick simplifications" from Logic.NormalForm.distributeDisjuncts
+    because they assume Eq formula, which isn't really well defined.  Can these
+    make any difference anyway once we reach CNF?
+
+ -- David Fox <dsf@seereason.com>  Sat, 10 Jul 2010 22:25:18 -0700
+
 haskell-logic (0.15) unstable; urgency=low
 
   * Rename PredicateLogic -> FirstOrderLogic
