@@ -12,7 +12,7 @@ import qualified Logic.Chiou.KnowledgeBase as C
 import qualified Logic.Chiou.Monad as C
 import qualified Logic.Chiou.NormalForm as C
 import Logic.FirstOrder (FirstOrderLogic(..), convertPred)
-import Logic.Implicative (Implicative(fromINF))
+import Logic.Implicative (Implicative(fromImplicative))
 import Logic.Instances.Chiou ()
 import Logic.Instances.Parameterized ()
 
@@ -60,4 +60,4 @@ f2s = convertPred id id id
 
 fromINF' :: (FirstOrderLogic formula term v p f, Ord p, Ord f) =>
            (t, [C.ImplicativeNormalForm v p f]) -> (t, [formula])
-fromINF' (flag, infs) = (flag, map (s2f . fromINF id id) infs)
+fromINF' (flag, infs) = (flag, map (s2f . fromImplicative id id) infs)

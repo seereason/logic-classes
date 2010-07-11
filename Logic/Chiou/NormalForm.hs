@@ -38,19 +38,15 @@ data NormalSentence v p f
     deriving (Eq, Ord)
 
 instance Boolean p => Literal (NormalSentence v p f) (Term v f) p where
-    litEqual True t1 t2 = NFNot (litEqual False t1 t2)
-    litEqual False t1 t2 = NFEqual t1 t2
-    litPredicate True p ts = NFNot (litPredicate False p ts)
-    litPredicate False p ts = NFPredicate p ts
+    litEqual t1 t2 = NFEqual t1 t2
+    litPredicate p ts = NFPredicate p ts
     litFold equal predicate l =
         case l of
-          NFNot (NFEqual t1 t2) -> equal True t1 t2
-          NFEqual t1 t2 -> equal False t1 t2
-          NFNot (NFPredicate p ts) -> predicate True p ts
-          NFPredicate p ts -> predicate False p ts
+          NFEqual t1 t2 -> equal t1 t2
+          NFPredicate p ts -> predicate p ts
           _ -> error "Logic.Chiou.NormalForm: Invalid NormalSentence"
 
-instance (Ord v, Ord p, Boolean p, Ord f) => Implicative (ImplicativeNormalForm v p f) (NormalSentence v p f) (Term v f) p where
+instance (Ord v, Ord p, Boolean p, Ord f, Skolem f) => Implicative (ImplicativeNormalForm v p f) (NormalSentence v p f) (Term v f) p where
     neg (INF x _) = S.fromList x
     pos (INF _ x) = S.fromList x
 

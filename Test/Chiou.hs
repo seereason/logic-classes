@@ -10,7 +10,7 @@ import Logic.Chiou.KnowledgeBase (loadKB, theoremKB, validKB)
 import Logic.Chiou.Monad (runProverT)
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..))
 import Logic.Instances.Chiou ()
-import Logic.Implicative (Implicative(fromINF))
+import Logic.Implicative (Implicative(fromImplicative))
 import qualified Logic.Instances.Parameterized as P
 import Logic.Logic (Logic(..))
 import Logic.FirstOrder (Skolem(..), Boolean(..), FirstOrderLogic(..), convertPred, showForm)
@@ -189,7 +189,7 @@ testSentence kb s =
     f (runIdentity (runProverT (loadKB kb >> validKB s)))
     where
       f (flag, xs, ys) = (flag, map fromUnify xs, map fromUnify ys)
-      fromUnify (inf, subst) = (fromINF id id inf, subst)
+      fromUnify (inf, subst) = (fromImplicative id id inf, subst)
 {-
     map (\ (flag, xs, ys) ->
              (flag,
