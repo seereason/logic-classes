@@ -9,12 +9,14 @@ import Control.Monad.State (MonadState(..), StateT, evalStateT)
 --import Data.List (intercalate)
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
-import Logic.Chiou.NormalForm (toCNFSentence {-, showCNFDerivation-})
-import Logic.Instances.Chiou ()
+--import qualified Logic.Chiou.FirstOrderLogic as C
+import qualified Logic.Chiou.NormalForm as C
+--import Logic.Implicative (Implicative(..))
+--import qualified Logic.Instances.Chiou as C
 import qualified Logic.Instances.Parameterized as P
 import Logic.Instances.PropLogic (flatten)
 import Logic.Logic (Logic(..))
-import Logic.NormalForm (prenexNormalForm, skolemNormalForm, disjunctiveNormalForm, cnf, implicativeNormalForm)
+import Logic.NormalForm (prenexNormalForm, skolemNormalForm, disjunctiveNormalForm, cnf {-, implicativeNormalForm-})
 import Logic.FirstOrder (Skolem(..), Boolean(..), FirstOrderLogic(..), toPropositional, showForm, freeVars, substitute, convertFOF, HasSkolem(..))
 import Logic.Satisfiable (clauses, theorem, inconsistant)
 import PropLogic (PropForm(..), truthTable)
@@ -30,41 +32,8 @@ instance Show (P.Formula V String AtomicFunction) where
 instance Boolean String where
     fromBool = show
 
-{-
-data AF = SkolemFunction Int | OtherFunction String deriving (Ord, Eq, Show)
-
-instance IsString AF where
-    fromString = OtherFunction
-
-instance Enum AF where
-    toEnum = SkolemFunction
-    fromEnum (SkolemFunction n) = n
-    fromEnum _ = error "AF fromEnum: invalid argument"
--}
-
-{-
-type TestFormula = C.Sentence
-type TestTerm = C.Term
-cf :: AtomicFunction -> AtomicFunction
-cf = id
-cf' :: AtomicFunction -> AtomicFunction
-cf' = id
--}
-
 type TestFormula = P.Formula V String AtomicFunction
 type TestTerm = P.Term V AtomicFunction
-
-{-
-cf :: AtomicFunction -> AtomicFunction
-cf (OtherFunction s) = AtomicFunction s
-cf (SkolemFunction n) = AtomicSkolemFunction n
-cf' :: AtomicFunction -> AtomicFunction
-cf' (AtomicFunction s) = OtherFunction s
-cf' (AtomicSkolemFunction n) = SkolemFunction n
--}
-
---type TestVariable = String
---type TestPredicate = String
 
 tests :: [Test]
 tests = precTests ++ cnfTests ++ theoremTests
@@ -72,10 +41,6 @@ tests = precTests ++ cnfTests ++ theoremTests
 formCase :: FirstOrderLogic (P.Formula V String AtomicFunction) (P.Term V AtomicFunction) V String AtomicFunction =>
             String -> TestFormula -> TestFormula -> Test
 formCase s expected input = TestCase (assertEqual s expected input)
-
--- formCaseChiou :: FirstOrderLogic C.Sentence C.Term String String AtomicFunction =>
---                  String -> TestFormula -> TestFormula -> Test
--- formCaseChiou s expected input = TestCase (assertEqual s expected input)
 
 precTests :: [Test]
 precTests =
@@ -115,7 +80,7 @@ precTests =
 
 cnfTests :: [Test]
 cnfTests = concatMap pairTest testFormulas ++
-           [test9a, moveQuantifiersOut1, skolemize1, skolemize2, skolemize3, inf1]
+           [test9a, moveQuantifiersOut1, skolemize1, skolemize2, skolemize3 {-, inf1-}]
 
 p :: (IsString t, FirstOrderLogic formula term v t f) => [term] -> formula
 p vs = pApp "p" vs
@@ -159,21 +124,8 @@ type SkolemT = StateT Int
 instance HasSkolem (StateT Int Identity) where
     skolem = get >>= \ n -> put (n + 1) >> return n
 
-{-
-instance HasSkolem (StateT s Identity) where
-    skolem = get >>= \ st -> put (st {C.skolemCount = C.skolemCount st + 1}) >> return (C.skolemCount st)
--}
-
-{-
-instance (Enum f) => Skolem (StateT Int Identity) f where
-    skolem = get >>= \ n -> put (succ n) >> return (toEnum n)
-    oldSkolem n = toEnum n
--}
-
 cnf' :: TestFormula -> PropForm TestFormula
---cnf' f = runIdentity (evalStateT (cnf f) 1)
---cnf' f = toPropositional A (convertFOF id id cf' (toCNFSentence (convertPred id id cf f)))
-cnf' f = toPropositional A (convertFOF id id id (let s = convertFOF id id id f in ({-trace (showCNFDerivation s)-} (toCNFSentence s))))
+cnf' f = toPropositional A (convertFOF id id id (let s = convertFOF id id id f in (C.toCNFSentence s)))
 
 snf' :: TestFormula -> TestFormula
 snf' f = runIdentity (evalStateT (skolemNormalForm f :: SkolemT Identity (TestFormula)) 1)
@@ -312,16 +264,7 @@ testFormulas =
       taller a b = pApp "taller" [a, b]
       wise :: TestTerm -> TestFormula
       wise a = pApp "wise" [a]
-      -- skX = fApp (toSkolem 1) []
-      -- skY = fApp (toSkolem 1)
-      -- skZ = fApp (toSkolem 2)
-      -- skT = fApp (toSkolem 3)
       f = pApp "f"
-      -- g = pApp "g"
-      -- h = pApp "h"
-      -- t' = fromString "t"
-      -- t = var t'
-      -- [p, q, r, s, t] = map (\ s -> pApp s []) ["p", "q", "r", "s", "t"]
 
 pairTest :: (String, PropForm TestFormula, TestFormula) -> [Test]
 pairTest (s, f1, f2) =
@@ -395,14 +338,16 @@ skolemize3 =
       formula :: TestFormula
       formula = snf' (for_all ["y"] (exists ["x"] (pApp "loves" [x, y])))
 
+{-
 inf1 :: Test
 inf1 =
     formCase "inf1" expected formula
     where
       expected :: TestFormula
       expected = ((pApp ("p") [var ("x")]) .=>. (((pApp ("q") [var ("x")]) .|. ((pApp ("r") [var ("x")])))))
-      formula :: TestFormula
-      formula = (implicativeNormalForm (for_all ["x"] (p [x] .=>. (q [x] .|. r [x]))))
+      formula :: {- Implicative inf (C.Sentence V String AtomicFunction) (C.Term V AtomicFunction) V String AtomicFunction => -} TestFormula
+      formula = convertFOF id id id (implicativeNormalForm (convertFOF id id id (for_all ["x"] (p [x] .=>. (q [x] .|. r [x]))) :: C.Sentence V String AtomicFunction) :: C.Sentence V String AtomicFunction)
+-}
 
 theoremTests :: [Test]
 theoremTests =

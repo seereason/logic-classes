@@ -189,7 +189,7 @@ testSentence kb s =
     f (runIdentity (runProverT (loadKB kb >> validKB s)))
     where
       f (flag, xs, ys) = (flag, map fromUnify xs, map fromUnify ys)
-      fromUnify (inf, subst) = (fromImplicative id id inf, subst)
+      fromUnify (inf, subst) = (fromImplicative inf, subst)
 {-
     map (\ (flag, xs, ys) ->
              (flag,

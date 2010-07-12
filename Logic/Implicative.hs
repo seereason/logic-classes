@@ -29,54 +29,35 @@
 -- @
 -- 
 module Logic.Implicative
-    ( Literal(..)
-    , Implicative(..)
+    ( Implicative(..)
     ) where
 
 import qualified Data.Set as S
 import Logic.FirstOrder
 import Logic.Logic
---import Logic.Instances.Chiou ()
 
--- |A class to represent the literals, also called atomic functions,
--- which appear in the Implicative Normal Form.  For CNF we would also
--- need the ability to negate a literal.
-class Boolean p => Literal lit term p | lit -> term, lit -> p, term -> p where
-    litEqual :: term -> term -> lit
-    litPredicate :: p -> [term] -> lit
-    litFold :: (term -> term -> r) ->
-               (p -> [term] -> r) ->
-               lit ->
-               r
 -- |A class to represent types that express a formula in Implicative
 -- Normal Form.  Such a formula has the form @a & b & c .=>. d | e &
 -- f@, where a thru f are literals.  One more restriction that is not
 -- implied by the type is that no literal can appear in both the pos
 -- set and the neg set.  Minimum implementation: pos, neg, toINF
-class Literal lit term p => Implicative inf lit term p | inf -> lit , inf -> term, inf -> p where
-    neg :: inf -> S.Set lit  -- ^ Return the literals that are negated and disjuncted on the left side of the implies
-    pos :: inf -> S.Set lit  -- ^ Return the literals that are conjuncted on the right side of the implies
-    toImplicative :: forall formula term2 v v2 p2 f2. FirstOrderLogic formula term2 v2 p2 f2 =>
-                     (term2 -> term) -> (v2 -> v) -> (p2 -> p) -> formula -> [inf]
-    fromImplicative :: forall formula term2 v p2 f. FirstOrderLogic formula term2 v p2 f =>
-                       (term -> term2) -> (p -> p2) -> inf -> formula
-    fromImplicative ct cp inf =
+class FirstOrderLogic formula term v p f => Implicative inf formula term v p f | inf -> formula, inf -> term where
+    neg :: inf -> S.Set formula  -- ^ Return the literals that are negated and disjuncted on the left side of the implies
+    pos :: inf -> S.Set formula  -- ^ Return the literals that are conjuncted on the right side of the implies
+    toImplicative :: formula -> [inf]
+    fromImplicative :: inf -> formula
+    fromImplicative inf =
         case (S.elems (neg inf), S.elems (pos inf)) of
           ([], []) -> (pApp (fromBool False) []) .=>. (pApp (fromBool True) [])
           ([], ors) -> disj ors
           (ands, []) -> (.~.) (conj ands)
           (ands, ors) -> (disj ors) .=>. (conj ands)
         where
+          conj :: [formula] -> formula
           conj [] = error "True"
-          conj [x] = lit x
-          conj (x:xs) = (lit x) .&. (conj xs)
-          disj :: [lit] -> formula
+          conj [x] = x
+          conj (x:xs) = (x) .&. (conj xs)
+          disj :: [formula] -> formula
           disj [] = error "False"
-          disj [x] = lit x
-          disj (x:xs) = (lit x) .|. (disj xs)
-          lit :: lit -> formula
-          lit = litFold equal predicate
-          equal :: term -> term -> formula
-          equal t1 t2 = (ct t1) .=. (ct t2)
-          predicate :: p -> [term] -> formula
-          predicate p ts = pApp (cp p) (map ct ts)
+          disj [x] = x
+          disj (x:xs) = (x) .|. (disj xs)

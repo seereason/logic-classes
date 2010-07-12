@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses,
              RankNTypes, ScopedTypeVariables, UndecidableInstances #-}
+{-# OPTIONS -Wwarn #-}
 -- |A series of transformations to convert first order logic formulas
 -- into (ultimately) Clause Normal Form.
 -- 
@@ -43,9 +44,8 @@ import Data.Char (isDigit)
 import Data.String (IsString(..))
 import qualified Data.Set as S
 import Debug.Trace
-import Logic.Chiou.FirstOrderLogic (Sentence(..))
-import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), toINF, NormalSentence(..))
 import Logic.FirstOrder
+import Logic.Implicative (Implicative(..))
 import Logic.Logic
 import Logic.Instances.Chiou ()
 
@@ -295,26 +295,14 @@ clauseNormalForm :: (FirstOrderLogic formula term v p f, HasSkolem m) =>
                     formula -> m formula
 clauseNormalForm f = skolemNormalForm f >>= return . removeUniversal
 
-implicativeNormalForm :: forall formula term v p f. 
-                         FirstOrderLogic formula term v p f =>
+implicativeNormalForm :: forall inf formula term v p f. 
+                         Implicative inf formula term v p f =>
                          formula -> formula
-implicativeNormalForm =
-    fromChiou . conjunctList . map toFOL . toINF . toChiou
+implicativeNormalForm formula =
+    conjunctList . map fromImplicative $ (toImplicative formula :: [inf])
     where
-      -- toChiou :: FirstOrderLogic formula term v p f => formula -> Sentence v p f
-      toChiou = convertFOF id id id
-      toFOL ::  FirstOrderLogic formula term v p f => ImplicativeNormalForm v p f -> Sentence v p f
-      toFOL (INF neg pos) = (conjunctList (map convert neg)) .=>. (disjunctList (map convert pos))
-      -- fromChiou :: FirstOrderLogic formula term v p f => Sentence v p f -> formula
-      fromChiou = convertFOF id id id
-      -- Convert [a, b, c, d] to (a .&. (b .&. (c .&. d)))
-      disjunctList (x : xs) = foldl (.|.) x xs
-      disjunctList [] = pApp (fromBool False) []
       conjunctList (x : xs) = foldl (.&.) x xs
       conjunctList [] = pApp (fromBool True) []
-      convert (NFPredicate p ts) = Predicate p ts
-      convert (NFNot f) = Not (convert f)
-      convert (NFEqual t1 t2) = Equal t1 t2
 
 removeUniversal :: FirstOrderLogic formula term v p f => formula -> formula
 removeUniversal formula =

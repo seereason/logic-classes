@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE FlexibleContexts, RankNTypes #-}
 module Logic.Prover 
     ( load
     , load'
@@ -58,6 +58,6 @@ s2f = convertFOF id id id
 f2s :: (FirstOrderLogic formula term v p f) => formula -> C.Sentence v p f
 f2s = convertFOF id id id
 
-fromINF' :: (FirstOrderLogic formula term v p f, Ord p, Ord f) =>
+fromINF' :: (FirstOrderLogic formula term v p f, Ord p, Ord f, Implicative (C.ImplicativeNormalForm v p f) (C.Sentence v p f) (C.Term v f) v p f) =>
            (t, [C.ImplicativeNormalForm v p f]) -> (t, [formula])
-fromINF' (flag, infs) = (flag, map (s2f . fromImplicative id id) infs)
+fromINF' (flag, infs) = (flag, map (s2f . fromImplicative) infs)

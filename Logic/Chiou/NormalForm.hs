@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, UndecidableInstances #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes, UndecidableInstances #-}
 {-# OPTIONS -Wall -Werror -fno-warn-name-shadowing #-}
 
 {- NormalForm.hs -}
@@ -19,12 +19,11 @@ module Logic.Chiou.NormalForm
     ) where
 
 import qualified Data.Set as S
-import Data.String (IsString(..))
 import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Connective(..), Quantifier(..))
-import Logic.FirstOrder -- (Skolem(..), Boolean(..), {-, FirstOrderLogic, convertFOF-} quant, infixPred, pApp)
-import Logic.Implicative (Literal(..), Implicative(..))
+import Logic.FirstOrder (FirstOrderLogic(..), Boolean(..), Skolem(..), convertFOF)
+import Logic.Implicative (Implicative(..))
 import Logic.Instances.Chiou ()
---import Logic.Logic (binOp)
+import Logic.Logic (Logic(..))
 
 data ConjunctiveNormalForm v p f =
     CNF [NormalSentence v p f]
@@ -40,22 +39,17 @@ data NormalSentence v p f
     | NFEqual (Term v f) (Term v f)
     deriving (Eq, Ord)
 
-instance Boolean p => Literal (NormalSentence v p f) (Term v f) p where
-    litEqual t1 t2 = NFEqual t1 t2
-    litPredicate p ts = NFPredicate p ts
-    litFold equal predicate l =
-        case l of
-          NFEqual t1 t2 -> equal t1 t2
-          NFPredicate p ts -> predicate p ts
-          _ -> error "Logic.Chiou.NormalForm: Invalid NormalSentence"
-
-instance (Ord v, IsString v, Ord p, Boolean p, Ord f, Skolem f) => Implicative (ImplicativeNormalForm v p f) (NormalSentence v p f) (Term v f) v p f where
-    neg (INF x _) = S.fromList x
-    pos (INF _ x) = S.fromList x
+instance (FirstOrderLogic (Sentence v p f) (Term v f) v p f, Ord p, Ord f) => Implicative (ImplicativeNormalForm v p f) (Sentence v p f) (Term v f) v p f where
+    neg (INF x _) = S.fromList (map toSentence x)
+    pos (INF _ x) = S.fromList (map toSentence x)
     toImplicative formula =
         toINF (convert formula)
-        where convert :: FirstOrderLogic formula term v p f => formula -> Sentence v p f
-              convert formula = convertFOF id id id formula -- undefined ct cv cp formula
+        where convert formula = convertFOF id id id formula
+
+toSentence :: FirstOrderLogic (Sentence v p f) (Term v f) v p f => NormalSentence v p f -> Sentence v p f
+toSentence (NFNot s) = (.~.) (toSentence s)
+toSentence (NFEqual t1 t2) = t1 .=. t2
+toSentence (NFPredicate p ts) = pApp p ts
 
 toCNF :: (Eq v, Eq p, Eq f, Skolem f) => Sentence v p f -> ConjunctiveNormalForm v p f
 toCNF s = CNF (normalize (toCNFSentence s))
@@ -261,10 +255,10 @@ distributeDisjuncts =
             i' _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
             a' _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
 
-(.&.) :: Sentence v p f -> Sentence v p f -> Sentence v p f
-(.&.) a b = Connective a And b
-(.|.) :: Sentence v p f -> Sentence v p f -> Sentence v p f
-(.|.) a b = Connective a Or b
+      (.&.) :: Sentence v p f -> Sentence v p f -> Sentence v p f
+      (.&.) a b = Connective a And b
+      (.|.) :: Sentence v p f -> Sentence v p f -> Sentence v p f
+      (.|.) a b = Connective a Or b
 
 foldFCh :: (Sentence v p f -> r)
       -> (Quantifier -> [v] -> Sentence v p f -> r)
