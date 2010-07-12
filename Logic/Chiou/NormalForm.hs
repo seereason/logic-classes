@@ -19,9 +19,12 @@ module Logic.Chiou.NormalForm
     ) where
 
 import qualified Data.Set as S
+import Data.String (IsString(..))
 import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Connective(..), Quantifier(..))
-import Logic.FirstOrder -- (Skolem(..), Boolean(..), {-, FirstOrderLogic, convertPred-} quant, infixPred, pApp)
+import Logic.FirstOrder -- (Skolem(..), Boolean(..), {-, FirstOrderLogic, convertFOF-} quant, infixPred, pApp)
 import Logic.Implicative (Literal(..), Implicative(..))
+import Logic.Instances.Chiou ()
+--import Logic.Logic (binOp)
 
 data ConjunctiveNormalForm v p f =
     CNF [NormalSentence v p f]
@@ -46,9 +49,13 @@ instance Boolean p => Literal (NormalSentence v p f) (Term v f) p where
           NFPredicate p ts -> predicate p ts
           _ -> error "Logic.Chiou.NormalForm: Invalid NormalSentence"
 
-instance (Ord v, Ord p, Boolean p, Ord f, Skolem f) => Implicative (ImplicativeNormalForm v p f) (NormalSentence v p f) (Term v f) p where
+instance (Ord v, IsString v, Ord p, Boolean p, Ord f, Skolem f) => Implicative (ImplicativeNormalForm v p f) (NormalSentence v p f) (Term v f) v p f where
     neg (INF x _) = S.fromList x
     pos (INF _ x) = S.fromList x
+    toImplicative formula =
+        toINF (convert formula)
+        where convert :: FirstOrderLogic formula term v p f => formula -> Sentence v p f
+              convert formula = convertFOL id id id formula -- undefined ct cv cp formula
 
 toCNF :: (Eq v, Eq p, Eq f, Skolem f) => Sentence v p f -> ConjunctiveNormalForm v p f
 toCNF s = CNF (normalize (toCNFSentence s))

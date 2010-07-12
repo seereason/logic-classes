@@ -56,6 +56,8 @@ class Boolean p => Literal lit term p | lit -> term, lit -> p, term -> p where
 class Literal lit term p => Implicative inf lit term p | inf -> lit , inf -> term, inf -> p where
     neg :: inf -> S.Set lit  -- ^ Return the literals that are negated and disjuncted on the left side of the implies
     pos :: inf -> S.Set lit  -- ^ Return the literals that are conjuncted on the right side of the implies
+    toImplicative :: forall formula term2 v v2 p2 f2. FirstOrderLogic formula term2 v2 p2 f2 =>
+                     (term2 -> term) -> (v2 -> v) -> (p2 -> p) -> formula -> [inf]
     fromImplicative :: forall formula term2 v p2 f. FirstOrderLogic formula term2 v p2 f =>
                        (term -> term2) -> (p -> p2) -> inf -> formula
     fromImplicative ct cp inf =
