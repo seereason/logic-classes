@@ -11,7 +11,7 @@ import qualified Logic.Chiou.FirstOrderLogic as C
 import qualified Logic.Chiou.KnowledgeBase as C
 import qualified Logic.Chiou.Monad as C
 import qualified Logic.Chiou.NormalForm as C
-import Logic.FirstOrder (FirstOrderLogic(..), convertPred)
+import Logic.FirstOrder (FirstOrderLogic(..), convertFOF)
 import Logic.Implicative (Implicative(fromImplicative))
 import Logic.Instances.Chiou ()
 import Logic.Instances.Parameterized ()
@@ -53,10 +53,10 @@ theorem = fromINF . map fst . runIdentity . C.runProverT . C.loadKB . map f2s
 -}
 
 s2f :: (FirstOrderLogic formula term v p f) => C.Sentence v p f -> formula
-s2f = convertPred id id id
+s2f = convertFOF id id id
 
 f2s :: (FirstOrderLogic formula term v p f) => formula -> C.Sentence v p f
-f2s = convertPred id id id
+f2s = convertFOF id id id
 
 fromINF' :: (FirstOrderLogic formula term v p f, Ord p, Ord f) =>
            (t, [C.ImplicativeNormalForm v p f]) -> (t, [formula])

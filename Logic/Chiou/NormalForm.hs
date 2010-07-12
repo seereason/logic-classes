@@ -55,7 +55,7 @@ instance (Ord v, IsString v, Ord p, Boolean p, Ord f, Skolem f) => Implicative (
     toImplicative formula =
         toINF (convert formula)
         where convert :: FirstOrderLogic formula term v p f => formula -> Sentence v p f
-              convert formula = convertFOL id id id formula -- undefined ct cv cp formula
+              convert formula = convertFOF id id id formula -- undefined ct cv cp formula
 
 toCNF :: (Eq v, Eq p, Eq f, Skolem f) => Sentence v p f -> ConjunctiveNormalForm v p f
 toCNF s = CNF (normalize (toCNFSentence s))

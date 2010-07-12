@@ -107,10 +107,10 @@ cnf2 cv cp cf f = f''
     where
       -- Convert from Sentence
       f'' :: FirstOrderLogic formula term v p f => formula
-      f'' = convertPred cv' cp' cf' f'
+      f'' = convertFOF cv' cp' cf' f'
       -- Convert to Sentence
       f' :: Sentence
-      f' = toCNFSentence (convertPred cv cp cf f)
+      f' = toCNFSentence (convertFOF cv cp cf f)
 -}
 {-
       cv' = undefined -- fromString

@@ -13,7 +13,7 @@ import Logic.Instances.Chiou ()
 import Logic.Implicative (Implicative(fromImplicative))
 import qualified Logic.Instances.Parameterized as P
 import Logic.Logic (Logic(..))
-import Logic.FirstOrder (Skolem(..), Boolean(..), FirstOrderLogic(..), convertPred, showForm)
+import Logic.FirstOrder (Skolem(..), Boolean(..), FirstOrderLogic(..), convertFOF, showForm)
 import Test.HUnit
 
 -- | Variable names
@@ -69,8 +69,8 @@ h = pApp (fromString "h")
 
 pairTest :: (String, SentenceVPA, FormulaPF) -> [Test]
 pairTest (s, f1, f2) =
-    [ TestCase (assertEqual (s ++ ", Chiou to FormulaPF") f1 (convertPred id id id f2)),
-      TestCase (assertEqual (s ++ ", FormulaPF to Chiou") f2 (convertPred id id id f1)) ]
+    [ TestCase (assertEqual (s ++ ", Chiou to FormulaPF") f1 (convertFOF id id id f2)),
+      TestCase (assertEqual (s ++ ", FormulaPF to Chiou") f2 (convertFOF id id id f1)) ]
 
 tests :: [Test]
 tests = concatMap pairTest testFormulas ++ testProver

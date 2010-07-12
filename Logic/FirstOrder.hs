@@ -25,7 +25,7 @@ module Logic.FirstOrder
     , univquant_free_vars
     , substitute
     , substitutePairs
-    , convertPred
+    , convertFOF
     , convertTerm
     , toPropositional
     ) where
@@ -225,14 +225,14 @@ substitutePairs pairs formula =
     foldr (\ (old, new) f -> substitute old new f) formula pairs 
 
 -- |Convert any instance of a first order logic expression to any other.
-convertPred :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
-           (FirstOrderLogic formula1 term1 v1 p1 f1,
-            FirstOrderLogic formula2 term2 v2 p2 f2) =>
-           (v1 -> v2) -> (p1 -> p2) -> (f1 -> f2) -> formula1 -> formula2
-convertPred convertV convertP convertF formula =
+convertFOF :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
+              (FirstOrderLogic formula1 term1 v1 p1 f1,
+               FirstOrderLogic formula2 term2 v2 p2 f2) =>
+              (v1 -> v2) -> (p1 -> p2) -> (f1 -> f2) -> formula1 -> formula2
+convertFOF convertV convertP convertF formula =
     foldF n q b i p formula
     where
-      convert' = convertPred convertV convertP convertF
+      convert' = convertFOF convertV convertP convertF
       convertTerm' = convertTerm convertV convertF
       n f = (.~.) (convert' f)
       q x vs f = quant x (map convertV vs) (convert' f)

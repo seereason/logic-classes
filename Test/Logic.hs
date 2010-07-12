@@ -15,7 +15,7 @@ import qualified Logic.Instances.Parameterized as P
 import Logic.Instances.PropLogic (flatten)
 import Logic.Logic (Logic(..))
 import Logic.NormalForm (prenexNormalForm, skolemNormalForm, disjunctiveNormalForm, cnf, implicativeNormalForm)
-import Logic.FirstOrder (Skolem(..), Boolean(..), FirstOrderLogic(..), toPropositional, showForm, freeVars, substitute, convertPred, HasSkolem(..))
+import Logic.FirstOrder (Skolem(..), Boolean(..), FirstOrderLogic(..), toPropositional, showForm, freeVars, substitute, convertFOF, HasSkolem(..))
 import Logic.Satisfiable (clauses, theorem, inconsistant)
 import PropLogic (PropForm(..), truthTable)
 import qualified TextDisplay as TD
@@ -172,8 +172,8 @@ instance (Enum f) => Skolem (StateT Int Identity) f where
 
 cnf' :: TestFormula -> PropForm TestFormula
 --cnf' f = runIdentity (evalStateT (cnf f) 1)
---cnf' f = toPropositional A (convertPred id id cf' (toCNFSentence (convertPred id id cf f)))
-cnf' f = toPropositional A (convertPred id id id (let s = convertPred id id id f in ({-trace (showCNFDerivation s)-} (toCNFSentence s))))
+--cnf' f = toPropositional A (convertFOF id id cf' (toCNFSentence (convertPred id id cf f)))
+cnf' f = toPropositional A (convertFOF id id id (let s = convertFOF id id id f in ({-trace (showCNFDerivation s)-} (toCNFSentence s))))
 
 snf' :: TestFormula -> TestFormula
 snf' f = runIdentity (evalStateT (skolemNormalForm f :: SkolemT Identity (TestFormula)) 1)

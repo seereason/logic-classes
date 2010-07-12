@@ -6,6 +6,7 @@ haskell-logic (0.16) unstable; urgency=low
   * Remove two "quick simplifications" from Logic.NormalForm.distributeDisjuncts
     because they assume Eq formula, which isn't really well defined.  Can these
     make any difference anyway once we reach CNF?
+  * Rename convertPred -> convertFOF to match class name change.
 
  -- David Fox <dsf@seereason.com>  Sat, 10 Jul 2010 22:25:18 -0700
 

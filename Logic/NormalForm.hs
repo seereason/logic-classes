@@ -302,11 +302,11 @@ implicativeNormalForm =
     fromChiou . conjunctList . map toFOL . toINF . toChiou
     where
       -- toChiou :: FirstOrderLogic formula term v p f => formula -> Sentence v p f
-      toChiou = convertPred id id id
+      toChiou = convertFOF id id id
       toFOL ::  FirstOrderLogic formula term v p f => ImplicativeNormalForm v p f -> Sentence v p f
       toFOL (INF neg pos) = (conjunctList (map convert neg)) .=>. (disjunctList (map convert pos))
       -- fromChiou :: FirstOrderLogic formula term v p f => Sentence v p f -> formula
-      fromChiou = convertPred id id id
+      fromChiou = convertFOF id id id
       -- Convert [a, b, c, d] to (a .&. (b .&. (c .&. d)))
       disjunctList (x : xs) = foldl (.|.) x xs
       disjunctList [] = pApp (fromBool False) []
