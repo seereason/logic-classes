@@ -18,20 +18,16 @@ import Logic.Logic
 class FirstOrderLogic formula term v p f => Implicative inf formula term v p f | inf -> formula, inf -> term where
     neg :: inf -> S.Set formula  -- ^ Return the literals that are negated and disjuncted on the left side of the implies
     pos :: inf -> S.Set formula  -- ^ Return the literals that are conjuncted on the right side of the implies
-    toImplicative :: formula -> [inf]
-    fromImplicative :: inf -> formula
+    toImplicative :: formula -> [inf] -- ^ Convert a first order logic formula to implicative normal form
+    fromImplicative :: inf -> formula -- ^ Convert implicative to first order
     fromImplicative inf =
-        case (S.elems (neg inf), S.elems (pos inf)) of
-          ([], []) -> (pApp (fromBool False) []) .=>. (pApp (fromBool True) [])
-          ([], ors) -> disj ors
-          (ands, []) -> (.~.) (conj ands)
-          (ands, ors) -> (disj ors) .=>. (conj ands)
+        (disj (S.elems (neg inf))) .=>. (conj (S.elems (pos inf)))
         where
           conj :: [formula] -> formula
-          conj [] = error "True"
+          conj [] = pApp (fromBool True) []
           conj [x] = x
           conj (x:xs) = (x) .&. (conj xs)
           disj :: [formula] -> formula
-          disj [] = error "False"
+          disj [] = pApp (fromBool False) []
           disj [x] = x
           disj (x:xs) = (x) .|. (disj xs)

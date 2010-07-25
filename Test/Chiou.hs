@@ -118,13 +118,14 @@ expected4 =
 expected5 :: (Maybe Bool, [(Sentence V Pr AtomicFunction, [(V, Term V AtomicFunction)])], [(Sentence V Pr AtomicFunction, [(V, Term V AtomicFunction)])])
 expected5 =
     (Just False,
-     [(Not (Predicate (Pr "Socrates") [Variable (V "x")]),[(V "x",Variable (V "x"))])],
-     [(Predicate (Pr "Socrates") [Function (SkolemFunction 1) []],[]),
-      (Predicate (Pr "Human") [Function (SkolemFunction 1) []],[]),
-      (Not (Predicate (Pr "Mortal") [Function (SkolemFunction 1) []]),[]),
-      (Predicate (Pr "Mortal") [Function (SkolemFunction 1) []],[]),
-      (Not (Predicate (Pr "Human") [Function (SkolemFunction 1) []]),[]),
-      (Connective (Predicate (fromBool False) []) Imply (Predicate (fromBool True) []),[])])
+     [(Connective (Predicate (Pr "Socrates") [Variable (V "x")]) Imply (Predicate T []),
+   [(V "x",Variable (V "x"))])],
+     [(Connective (Predicate F []) Imply (Predicate (Pr "Socrates") [Function (SkolemFunction 1) []]),[]),
+      (Connective (Predicate F []) Imply (Predicate (Pr "Human") [Function (SkolemFunction 1) []]),[]),
+      (Connective (Predicate (Pr "Mortal") [Function (SkolemFunction 1) []]) Imply (Predicate T []),[]),
+      (Connective (Predicate F []) Imply (Predicate (Pr "Mortal") [Function (SkolemFunction 1) []]),[]),
+      (Connective (Predicate (Pr "Human") [Function (SkolemFunction 1) []]) Imply (Predicate T []),[]),
+      (Connective (Predicate F []) Imply (Predicate T []),[])])
 
 dog = pApp "Dog"
 cat = pApp "Cat"
