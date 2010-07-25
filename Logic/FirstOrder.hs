@@ -28,9 +28,6 @@ module Logic.FirstOrder
     , convertFOF
     , convertTerm
     , toPropositional
-    , moveQuantifiersLeft
-    , eliminateImplication
-    , moveNotInwards
     ) where
 
 import Data.Data (Data)
@@ -296,78 +293,6 @@ reassociate =
            then reassociate (binOp (binOp f1 op f2a) op f2b)
            else binOp (reassociate f1) op (reassociate (binOp f2a op2 f2b))
 -}
-
-moveQuantifiersLeft :: FirstOrderLogic formula term v p f =>
-                       formula -> formula
-moveQuantifiersLeft formula = 
-    prependQuantifiers' (collectQuantifiers' formula)
-
-collectQuantifiers' :: FirstOrderLogic formula term v p f =>
-                       formula -> (formula, [(Quant, [v])])
-collectQuantifiers' =
-    foldF n q  b i p
-    where n s = let (s', qs') = collectQuantifiers' s in ((.~.) s', qs')
-          q op vs f = let (f', qs') = collectQuantifiers' f in (f', ((op, vs) : qs'))
-          b f1 op f2 = let (f1', qs1') = collectQuantifiers' f1 
-                           (f2', qs2') = collectQuantifiers' f2 in
-                       (binOp f1' op f2', qs1' ++ qs2')
-          i t1 op t2 = (infixPred t1 op t2, [])
-          p pr ts = (pApp pr ts, [])
-
-prependQuantifiers' :: FirstOrderLogic formula term v p f =>
-                       (formula, [(Quant, [v])]) -> formula
-prependQuantifiers' (s, []) = s
-prependQuantifiers' (s, ((q, vs) : qs)) = quant q vs (prependQuantifiers' (s, qs))
-
-{-- 
-   Invariants:
-   P => Q           becomes       (NOT P) OR Q
-   P <=> Q          becomes       ((NOT P) OR Q) AND ((NOT Q) OR P)
- -}
-eliminateImplication :: FirstOrderLogic formula term v p f =>
-                        formula -> formula
-eliminateImplication =
-    foldF n q b infixPred pApp
-    where
-      n f = (.~.) (eliminateImplication f)
-      q vs op f = quant vs op (eliminateImplication f)
-      b f1 op f2 =
-          case op of
-            (:=>:) -> ((.~.) f1') .|. f2'
-            (:<=>:) -> eliminateImplication ((f1 .=>. f2) .&. (f2 .=>. f1))
-            _ -> binOp f1' op f2'
-          where
-            f1' = eliminateImplication f1
-            f2' = eliminateImplication f2
-
-{--
-   Invariants:
-   NOT (P OR Q)      becomes     (NOT P) AND (NOT Q)
-   NOT (P AND Q)     becomes     (NOT P) OR (NOT Q)
-   NOT (ForAll x P)  becomes     Exists x (NOT P)
-   NOT (Exists x P)  becomes     ForAll x (NOT P)
-   NOT (NOT P)       becomes     P
- -}
-moveNotInwards :: forall formula term v p f. FirstOrderLogic formula term v p f =>
-                  formula -> formula
-moveNotInwards formula =
-    foldF n q b infixPred pApp formula
-    where
-      n f = foldF moveNotInwards
-                  (\ op vs f' -> 
-                       case op of
-                         Exists -> for_all vs (moveNotInwards ((.~.) f'))
-                         All -> exists vs (moveNotInwards ((.~.) f')))
-                  (\ f1 op f2 ->
-                       case op of
-                         (:&:) -> moveNotInwards (((.~.) f1) .|. ((.~.) f2))
-                         (:|:) -> moveNotInwards (((.~.) f1) .&. ((.~.) f2))
-                         _ -> (.~.) (binOp (moveNotInwards f1) op (moveNotInwards f2)))
-                  (\ t1 op t2 -> (.~.) (infixPred t1 op t2))
-                  (\ p ts -> (.~.) (pApp p ts))
-                  f
-      q op vs f = quant op vs (moveNotInwards f)
-      b f1 op f2 = binOp (moveNotInwards f1) op (moveNotInwards f2)
 
 instance Version InfixPred
 instance Version Quant
