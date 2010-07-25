@@ -172,9 +172,9 @@ sentences = [Quantifier ExistsCh ["x"] (Connective (Predicate "Dog" [Variable "x
 
 -- Ugly Printing
 
-deriving instance (Show v, Show p, Show f) => Show (Sentence v p f)
+--deriving instance (Show v, Show p, Show f) => Show (Sentence v p f)
 deriving instance (Show v, Show p, Show f) => Show (ImplicativeNormalForm v p f)
 deriving instance (Show v, Show p, Show f) => Show (NormalSentence v p f)
-deriving instance (Show v, Show f) => Show (Term v f)
-deriving instance Show Quantifier
-deriving instance Show Connective
+--deriving instance (Show v, Show f) => Show (Term v f)
+--deriving instance Show Quantifier
+--deriving instance Show Connective

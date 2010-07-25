@@ -142,10 +142,10 @@ moveNegationsIn =
 -- variable which does not appear and change occurrences of X in P to
 -- this new variable.  We could instead modify Q, but that looks
 -- slightly more tedious.
-prenexNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
+prenexNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Show formula) => formula -> formula
 prenexNormalForm = moveQuantifiersOut . negationNormalForm
 
-moveQuantifiersOut :: forall formula term v p f. FirstOrderLogic formula term v p f =>
+moveQuantifiersOut :: forall formula term v p f. (FirstOrderLogic formula term v p f, Eq formula, Show formula) =>
                       formula -> formula
 moveQuantifiersOut formula =
     foldF n q b i a formula
@@ -223,7 +223,7 @@ renameFreeVars s vs f =
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-disjunctiveNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
+disjunctiveNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Show formula) => formula -> formula
 disjunctiveNormalForm = distributeDisjuncts . prenexNormalForm
 
 distributeDisjuncts :: FirstOrderLogic formula term v p f => formula -> formula
@@ -269,7 +269,7 @@ distributeDisjuncts =
 -- functions applied to the list of variables which are universally
 -- quantified in the context where the existential quantifier
 -- appeared.
-skolemNormalForm :: (FirstOrderLogic formula term v p f, HasSkolem m) =>
+skolemNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Show formula, HasSkolem m) =>
                     formula -> m formula
 skolemNormalForm = skolemize [] . disjunctiveNormalForm
 
@@ -297,7 +297,7 @@ skolemize uq f =
 -- universal quantifiers.  Due to the nature of Skolem Normal Form,
 -- this is actually all the remaining quantifiers, the result is
 -- effectively a propositional logic formula.
-clauseNormalForm :: (FirstOrderLogic formula term v p f, HasSkolem m) =>
+clauseNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Show formula, HasSkolem m) =>
                     formula -> m formula
 clauseNormalForm f = skolemNormalForm f >>= return . removeUniversal
 
@@ -318,12 +318,12 @@ removeUniversal formula =
       removeAll Exists vs f = exists vs (removeUniversal f)
 
 -- |Nickname for clauseNormalForm.
-cnf :: (FirstOrderLogic formula term v p f, HasSkolem m) =>
+cnf :: (FirstOrderLogic formula term v p f, Eq formula, Show formula, HasSkolem m) =>
        formula -> m formula
 cnf = clauseNormalForm
 
 -- |Nickname for clauseNormalForm.
-cnfTraced :: (FirstOrderLogic formula term v p f, HasSkolem m, Show formula) => formula -> m formula
+cnfTraced :: (FirstOrderLogic formula term v p f, HasSkolem m, Eq formula, Show formula) => formula -> m formula
 cnfTraced f =
     (skolemize [] . t4 . distributeDisjuncts . t3 . moveQuantifiersOut . t2 . moveNegationsIn . simplify . t1 $ f) >>= return . t6 . removeUniversal . t5
     where

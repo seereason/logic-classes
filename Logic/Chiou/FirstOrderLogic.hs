@@ -51,21 +51,21 @@ data Sentence v p f
     | Not (Sentence v p f)
     | Predicate p [Term v f]
     | Equal (Term v f) (Term v f)
-    deriving (Eq, Ord)
+    deriving (Eq, Ord, Show)
 
 data Term v f
     = Function f [Term v f]
     | Variable v
-    deriving (Eq, Ord)
+    deriving (Eq, Ord, Show)
 
 data Connective
     = Imply
     | Equiv
     | And
     | Or
-    deriving (Eq, Ord)
+    deriving (Eq, Ord, Show)
 
 data Quantifier
     = ForAll
     | ExistsCh
-    deriving (Eq, Ord)
+    deriving (Eq, Ord, Show)
