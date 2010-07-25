@@ -19,8 +19,9 @@ module Logic.Chiou.NormalForm
     ) where
 
 import qualified Data.Set as S
+import Data.String (IsString)
 import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Connective(..), Quantifier(..))
-import Logic.FirstOrder (FirstOrderLogic(..), Boolean(..), Skolem(..), convertFOF)
+import Logic.FirstOrder (FirstOrderLogic(..), Boolean(..), Skolem(..), convertFOF, moveNotInwards)
 import Logic.Implicative (Implicative(..))
 import Logic.Instances.Chiou ()
 import Logic.Logic (Logic(..))
@@ -51,10 +52,10 @@ toSentence (NFNot s) = (.~.) (toSentence s)
 toSentence (NFEqual t1 t2) = t1 .=. t2
 toSentence (NFPredicate p ts) = pApp p ts
 
-toCNF :: (Eq v, Eq p, Eq f, Skolem f) => Sentence v p f -> ConjunctiveNormalForm v p f
+toCNF :: (Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f) => Sentence v p f -> ConjunctiveNormalForm v p f
 toCNF s = CNF (normalize (toCNFSentence s))
 
-toCNFSentence :: (Eq v, Eq p, Eq f, Skolem f) => Sentence v p f -> Sentence v p f
+toCNFSentence :: (Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f) => Sentence v p f -> Sentence v p f
 toCNFSentence s0 = let
  		     s1 = eliminateImplication s0
 		     s2 = moveNotInwards s1
@@ -65,7 +66,7 @@ toCNFSentence s0 = let
 		   in
 		     s6
 
-showCNFDerivation :: (Show (Sentence v p f), Eq v, Eq p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> String
+showCNFDerivation :: (Show (Sentence v p f), Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> String
 showCNFDerivation s0 = let
 		         s1 = eliminateImplication s0
 			 s2 = moveNotInwards s1
@@ -89,7 +90,7 @@ showCNFDerivation s0 = let
 			 "Distribute AND over OR:\t" ++
 			 (show s6 ++ "\n")
 
-toINF :: (Eq v, Eq p, Eq f, Skolem f, Boolean p) => Sentence v p f -> [ImplicativeNormalForm v p f]
+toINF :: (Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f) => Sentence v p f -> [ImplicativeNormalForm v p f]
 toINF s =
     let
       cnf = toCNFSentence s
@@ -119,14 +120,14 @@ toINF' s =
 	else
 	  INF neg pos
 
-toINFSentence :: (Eq v, Eq p, Eq f, Skolem f, Boolean p) => Sentence v p f -> Sentence v p f
+toINFSentence :: (Ord v, IsString v, Eq p, Eq f, Skolem f, Boolean p) => Sentence v p f -> Sentence v p f
 toINFSentence s0 = let
 		     s1 = toCNFSentence s0
 		     s2 = disjunctionToImplication s1
 		   in
 		     s2
 
-showINFDerivation :: (Show (Sentence v p f), Eq v, Eq p, Eq f, Skolem f, Boolean p, Show v, Show p, Show f) => Sentence v p f -> String
+showINFDerivation :: (Show (Sentence v p f), Ord v, IsString v, Eq p, Eq f, Skolem f, Boolean p, Show v, Show p, Show f) => Sentence v p f -> String
 showINFDerivation s0 = let
 		         s1 = toCNFSentence s0
 			 s2 = disjunctionToImplication s1
@@ -165,6 +166,7 @@ eliminateImplication s = s
    NOT (Exists x P)  becomes     ForAll x (NOT P)
    NOT (NOT P)       becomes     P
  -}
+{-
 moveNotInwards :: Sentence v p f -> Sentence v p f
 moveNotInwards (Connective s1 c s2) =
     Connective (moveNotInwards s1) c (moveNotInwards s2)
@@ -180,6 +182,7 @@ moveNotInwards (Not (Quantifier ExistsCh vs s)) =
 moveNotInwards (Not (Not s)) = moveNotInwards s
 moveNotInwards (Not s) = Not (moveNotInwards s)
 moveNotInwards s = s
+-}
 
 standardizeVariables :: Sentence v p f -> Sentence v p f
 standardizeVariables s = s

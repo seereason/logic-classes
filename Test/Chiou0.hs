@@ -14,7 +14,7 @@ import Logic.Chiou.Resolution (SetOfSupport)
 import Logic.FirstOrder (Skolem(..), Boolean(..))
 import Test.HUnit
 
-newtype V = V String deriving (Eq, Show)
+newtype V = V String deriving (Eq, Ord, Show)
 
 instance IsString V where
     fromString = V
