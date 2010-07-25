@@ -58,6 +58,9 @@ import Logic.Instances.Chiou ()
 -- @
 -- 
 simplify :: FirstOrderLogic formula term v p f => formula -> formula
+simplify = eliminateImplication
+{-
+simplify :: FirstOrderLogic formula term v p f => formula -> formula
 simplify =
     foldF n q b i a
     where
@@ -72,6 +75,7 @@ simplify =
       i t1 (:=:) t2 = t1 .=. t2
       i t1 (:!=:) t2 = t1 .!=. t2
       a p ts = pApp p ts
+-}
 
 -- |Simplify and then move negations inwards:
 -- 
@@ -88,6 +92,8 @@ negationNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
 negationNormalForm = moveNegationsIn . simplify
 
 moveNegationsIn :: FirstOrderLogic formula term v p f => formula -> formula
+moveNegationsIn = moveNotInwards
+{-
 moveNegationsIn =
     foldF n q b i a
     where
@@ -114,7 +120,7 @@ moveNegationsIn =
             b' _ op _ = error $ "moveNegationsIn: Unexpected BinOp " ++ show op
             i' t1 op t2 = (.~.) (infixPred t1 op t2)
             a' p ts = (.~.) (pApp p ts)
-
+-}
 
 -- |Convert to Negation Normal Form and then move quantifiers outwards:
 -- 

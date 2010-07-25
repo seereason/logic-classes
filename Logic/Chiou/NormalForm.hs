@@ -21,7 +21,7 @@ module Logic.Chiou.NormalForm
 import qualified Data.Set as S
 import Data.String (IsString)
 import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Connective(..), Quantifier(..))
-import Logic.FirstOrder (FirstOrderLogic(..), Boolean(..), Skolem(..), convertFOF, moveNotInwards)
+import Logic.FirstOrder (FirstOrderLogic(..), Boolean(..), Skolem(..), convertFOF, moveQuantifiersLeft, eliminateImplication, moveNotInwards)
 import Logic.Implicative (Implicative(..))
 import Logic.Instances.Chiou ()
 import Logic.Logic (Logic(..))
@@ -141,6 +141,7 @@ showINFDerivation s0 = let
    P => Q           becomes       (NOT P) OR Q
    P <=> Q          becomes       ((NOT P) OR Q) AND ((NOT Q) OR P)
  -}
+{-
 eliminateImplication :: Sentence v p f -> Sentence v p f
 eliminateImplication (Connective s1 Imply s2) =
     Connective (Not (eliminateImplication s1)) Or (eliminateImplication s2)
@@ -157,6 +158,7 @@ eliminateImplication (Quantifier q vs s) =
     Quantifier q vs (eliminateImplication s)
 eliminateImplication (Not s) = Not (eliminateImplication s)
 eliminateImplication s = s
+-}
 
 {--
    Invariants:
@@ -190,6 +192,7 @@ standardizeVariables s = s
 {--
  
  -}
+{-
 moveQuantifiersLeft :: Sentence v p f -> Sentence v p f
 moveQuantifiersLeft s =
     let
@@ -219,7 +222,7 @@ collectQuantifiers' s =  (s, [])
 prependQuantifiers' :: (Sentence v p f, [(Quantifier, [v])]) -> Sentence v p f
 prependQuantifiers' (s, []) = s
 prependQuantifiers' (s, ((q, vs):qs)) = Quantifier q vs (prependQuantifiers' (s, qs))
-
+-}
 
 {- 
    Invariants:
