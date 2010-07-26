@@ -6,7 +6,7 @@ module Logic.Chiou.Skolem
 
 import Control.Monad.State (get)
 import Logic.Chiou.FirstOrderLogic (Term(..))
-import Logic.Chiou.Monad (ProverT, SkolemCount, State(skolemCount))
+import Logic.Chiou.Monad (ProverT, SkolemCount, ProverState(skolemCount))
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..))
 import Logic.FirstOrder (Skolem(..))
 

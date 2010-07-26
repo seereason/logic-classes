@@ -22,7 +22,7 @@ import Control.Monad.State (MonadState(get, put), modify)
 import Data.List (partition)
 import Data.String (IsString)
 import Logic.Chiou.FirstOrderLogic (Sentence(..))
-import Logic.Chiou.Monad (ProverT, State(..), zeroKB, SkolemCount, FolModule)
+import Logic.Chiou.Monad (ProverT, ProverState(..), zeroKB, SkolemCount, KnowledgeBase, FolModule)
 import Logic.Chiou.NormalForm (ImplicativeNormalForm)
 import Logic.Chiou.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Logic.Chiou.Skolem (assignSkolemL)
@@ -33,7 +33,7 @@ import Logic.NormalForm (toINF)
 emptyKB :: Monad m => ProverT v p f m ()
 emptyKB = put zeroKB
 
-unloadKB :: Monad m => String -> ProverT v p f m (Maybe [(ImplicativeNormalForm v p f, SkolemCount)])
+unloadKB :: Monad m => String -> ProverT v p f m (Maybe (KnowledgeBase v p f))
 unloadKB name =
     get >>= \ st -> maybe (return Nothing) (unload st) (lookup name (modules st))
     where
@@ -112,11 +112,11 @@ deleteElement i l
 showKB :: (Show (ImplicativeNormalForm v p f), Monad m, Show v, Show p, Show f) => ProverT v p f m String
 showKB = get >>= return . reportKB 1
 
-reportKB :: (Show (ImplicativeNormalForm v p f), Show v, Show p, Show f) => SkolemCount -> State v p f -> String
-reportKB _ (State {knowledgeBase = []}) = "Nothing in Knowledge Base\n"
-reportKB i (State {knowledgeBase = [x], modules = m}) =
+reportKB :: (Show (ImplicativeNormalForm v p f), Show v, Show p, Show f) => SkolemCount -> ProverState v p f -> String
+reportKB _ (ProverState {knowledgeBase = []}) = "Nothing in Knowledge Base\n"
+reportKB i (ProverState {knowledgeBase = [x], modules = m}) =
     show i ++ ") " ++ reportKB' (snd x) m ++ "\t" ++ show (fst x) ++ "\n"
-reportKB i st@(State {knowledgeBase = (x:xs), modules = m}) =
+reportKB i st@(ProverState {knowledgeBase = (x:xs), modules = m}) =
     show i ++ ") " ++ reportKB' (snd x) m ++  "\t" ++ show (fst x) ++ "\n" ++ reportKB (i + 1) (st {knowledgeBase = xs})
 
 reportKB' :: SkolemCount -> [FolModule] -> String

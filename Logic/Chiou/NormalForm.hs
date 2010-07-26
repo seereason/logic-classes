@@ -55,9 +55,10 @@ toSentence (NFNot s) = (.~.) (toSentence s)
 toSentence (NFEqual t1 t2) = t1 .=. t2
 toSentence (NFPredicate p ts) = pApp p ts
 
+{-
 toCNF :: (Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> ConjunctiveNormalForm v p f
 toCNF s = CNF (normalize (toCNFSentence s))
-
+-}
 toCNFSentence :: (Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> Sentence v p f
 toCNFSentence s0 = let
  		     s1 = eliminateImplication s0
@@ -68,7 +69,7 @@ toCNFSentence s0 = let
 		     s6 = distributeAndOverOr s5
 		   in
 		     s6
-
+{-
 showCNFDerivation :: (Show (Sentence v p f), Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> String
 showCNFDerivation s0 = let
 		         s1 = eliminateImplication s0
@@ -92,7 +93,7 @@ showCNFDerivation s0 = let
 			 (show s5 ++ "\n") ++
 			 "Distribute AND over OR:\t" ++
 			 (show s6 ++ "\n")
-
+-}
 toINF :: (Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> [ImplicativeNormalForm v p f]
 toINF s =
     let
@@ -122,7 +123,7 @@ toINF' s =
 	  INF neg []
 	else
 	  INF neg pos
-
+{-
 toINFSentence :: (Ord v, IsString v, Eq p, Eq f, Skolem f, Boolean p, Show v, Show p, Show f) => Sentence v p f -> Sentence v p f
 toINFSentence s0 = let
 		     s1 = toCNFSentence s0
@@ -138,7 +139,7 @@ showINFDerivation s0 = let
 		         showCNFDerivation s0 ++
 			 "Convert disjunctions to implications:\t" ++
 			 (show s2 ++ "\n")
-
+-}
 {-- 
    Invariants:
    P => Q           becomes       (NOT P) OR Q
@@ -376,7 +377,7 @@ substituteCh (Function f terms) xs =
  -
  - Invariants: The input Sentence is in CNF
  --}
-
+{-
 disjunctionToImplication :: Boolean p => Sentence v p f -> Sentence v p f
 disjunctionToImplication s =
     let
@@ -400,11 +401,11 @@ disjunctionToImplication' s =
 		             _ -> True) norm
     in
       Connective (denormalize And neg) Imply (denormalize Or pos)
-
+-}
 collectCnf :: Sentence v p f -> [Sentence v p f]
 collectCnf (Connective s1 And s2) = collectCnf s1 ++ collectCnf s2
 collectCnf s = [s]
-
+{-
 denormalize :: Boolean p => Connective -> [NormalSentence v p f] -> Sentence v p f
 denormalize Imply _ = error "denormalizing =>"
 denormalize Equiv _ = error "denormalizing <=>"
@@ -417,7 +418,7 @@ denormalize' :: NormalSentence v p f -> Sentence v p f
 denormalize' (NFNot s) = denormalize' s
 denormalize' (NFPredicate p ts) = Predicate p ts
 denormalize' (NFEqual t1 t2) = Equal t1 t2
-
+-}
 normalize :: Sentence v p f -> [NormalSentence v p f]
 normalize (Connective s1 And s2) = (normalize s1) ++ (normalize s2)
 normalize (Connective s1 Or s2) = (normalize s1) ++ (normalize s2)

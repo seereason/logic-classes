@@ -8,6 +8,7 @@ import qualified Data.Set as S
 import Logic.FirstOrder
 import Logic.Logic
 
+-- |A simple type of formula uses for the clauses in CNF and INF.
 class (Ord v, Ord p, Ord f) => NormalLogic formula term v p f where
     nlNot :: formula -> formula
     nlPred :: p -> [term] -> formula
