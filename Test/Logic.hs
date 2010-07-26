@@ -206,25 +206,25 @@ testFormulas =
                N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])),
                A (pApp ("q") [var ("x"),var ("y")])]],
 -}
-       CJ [DJ [N (A (pApp ("q") [var ("x"),var ("y")])),
-               N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])),
-               A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])],
-           DJ [N (A (pApp ("q") [var ("x"),var ("y")])),
-               N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])),
-               A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])],
-           DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]),
-               A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")]),
-               A (pApp ("q") [var ("x"),var ("y")])],
-           DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])),
-               A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")]),
-               A (pApp ("q") [var ("x"),var ("y")])],
-           DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]),
-               N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])),
-               A (pApp ("q") [var ("x"),var ("y")])],
-           DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])),
-               N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])),
-               A (pApp ("q") [var ("x"),var ("y")])]],
-       (for_all ["x"] (for_all ["x"] (for_all ["y"] (q [x, y] .<=>. for_all ["z"] (f [z, x] .<=>. f [z, y]))))))
+       CJ [DJ [N (A (pApp ("q") [var (V "x"),var (V "y")])),
+               N (A (pApp ("f") [var (V "z"),var (V "x")])),
+               A (pApp ("f") [var (V "z"),var (V "y")])],
+           DJ [N (A (pApp ("q") [var (V "x"),var (V "y")])),
+               N (A (pApp ("f") [var (V "z"),var (V "y")])),
+               A (pApp ("f") [var (V "z"),var (V "x")])],
+           DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "x")]),
+               A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "y")]),
+               A (pApp ("q") [var (V "x"),var (V "y")])],
+           DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "y")])),
+               A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "y")]),
+               A (pApp ("q") [var (V "x"),var (V "y")])],
+           DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "x")]),
+               N (A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "x")])),
+               A (pApp ("q") [var (V "x"),var (V "y")])],
+           DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "y")])),
+               N (A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "x")])),
+               A (pApp ("q") [var (V "x"),var (V "y")])]],
+       (for_all ["x"] (for_all ["x"] (for_all ["y"] (q [x, y] .<=>. for_all [(V "z")] (f [z, x] .<=>. f [z, y]))))))
     , ("cnf test 10",
 {-
        -- This is what we get from the polymorphic code - the place
@@ -235,10 +235,10 @@ testFormulas =
            DJ [N (A (pApp ("r") [fApp (SkolemFunction 1) [var ("x")]])),
                A (pApp ("p") [var ("x"),fApp (SkolemFunction 1) [var ("x")]])]]
 -}
-       CJ [DJ [A (pApp ("q") [fApp (SkolemFunction 1) [var ("x")],fApp (SkolemFunction 2) [var ("x")],fApp (SkolemFunction 3) [var ("x")]]),
-               A (pApp ("p") [fApp (SkolemFunction 2) [var ("x")],fApp (SkolemFunction 1) [var ("x")]])],
-           DJ [N (A (pApp ("r") [fApp (SkolemFunction 1) [var ("x")]])),
-               A (pApp ("p") [fApp (SkolemFunction 2) [var ("x")],fApp (SkolemFunction 1) [var ("x")]])]],
+       CJ [DJ [A (pApp ("q") [fApp (SkolemFunction 1) [var (V "x")],fApp (SkolemFunction 2) [var (V "x")],fApp (SkolemFunction 2) [var (V "x")]]),
+               A (pApp ("p") [var (V "x"),fApp (SkolemFunction 1) [var (V "x")]])],
+           DJ [N (A (pApp ("r") [fApp (SkolemFunction 1) [var (V "x")]])),
+               A (pApp ("p") [var (V "x"),fApp (SkolemFunction 1) [var (V "x")]])]],
        (for_all ["x"] (exists ["y"] ((p [x, y] .<=. for_all ["x"] (exists ["z"] (q [y, x, z]) .=>. r [y]))))))
     , ("cnf test 11",
        -- This one didn't come with a solution - here's ours
@@ -287,11 +287,11 @@ test9a = TestCase
       q = pApp "q"
       expected :: PropForm TestFormula
       expected = CJ [DJ [N (A (pApp ("q") [var (V "x"),var (V "y")])),
-                         N (A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "y"),var (V "z")],var (V "x")])),
-                         A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "y"),var (V "z")],var (V "y")])],
+                         N (A (pApp ("f") [var (V "z"),var (V "x")])),
+                         A (pApp ("f") [var (V "z"),var (V "y")])],
                      DJ [N (A (pApp ("q") [var (V "x"),var (V "y")])),
-                         N (A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "y"),var (V "z")],var (V "y")])),
-                         A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "y"),var (V "z")],var (V "x")])],
+                         N (A (pApp ("f") [var (V "z"),var (V "y")])),
+                         A (pApp ("f") [var (V "z"),var (V "x")])],
                      DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "y"),var (V "z")],var (V "x")]),
                          A (pApp ("f") [fApp (SkolemFunction 1) [var (V "x"),var (V "y"),var (V "z")],var (V "y")]),
                          A (pApp ("q") [var (V "x"),var (V "y")])],
@@ -444,7 +444,7 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                    ([True,True,True,True,True],True)]))
                 
                 (let formula = (for_all ["x"] ((s [x] .=>. h [x]) .&. (h [x] .=>. m [x]))) .=>.
-                               (for_all ["x"] (s [x] .=>. m [x])) in
+                               (for_all ["y"] (s [y] .=>. m [y])) in
                  (theorem' formula, inconsistant' formula, table' formula)))
                 
     , TestCase (assertEqual "Logic - socrates is mortal, truth table"
@@ -581,20 +581,68 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                                        (m [x] .=>. ((.~.) (s [x])))) .&.
                          (s [fApp "socrates" []]) in
                  (theorem' formula, inconsistant' formula, table' formula, disjunctiveNormalForm formula)))
-    , let formula = (for_all [fromString "x"] (pApp "L" [var (fromString "x")] .=>. pApp "F" [var (fromString "x")]) .&. -- All logicians are funny
-                     exists [fromString "x"] (pApp "L" [var (fromString "x")])) .=>.                            -- Someone is a logician
-                    (.~.) (exists [fromString "x"] (pApp "F" [var (fromString "x")]))                           -- Someone / Nobody is funny
+    , let formula = (for_all ["x"] (pApp "L" [var "x"] .=>. pApp "F" [var "x"]) .&. -- All logicians are funny
+                     exists ["x"] (pApp "L" [var "x"])) .=>.                            -- Someone is a logician
+                    (.~.) (exists ["x"] (pApp "F" [var "x"]))                           -- Someone / Nobody is funny
           input = table' formula
-          expected = ([(pApp ("F") [var (V "x")]),(pApp ("L") [var (V "x")])],
-                      Just (CJ [DJ [DJ [A (pApp ("L") [var (V "x")]),N (A (pApp ("L") [var (V "x")]))],
-                                    N (A (pApp ("F") [var (V "x")]))],
-                                DJ [DJ [N (A (pApp ("F") [var (V "x")])),N (A (pApp ("L") [var (V "x")]))],
-                                    N (A (pApp ("F") [var (V "x")]))]]),
-                      [([False,False],True),
-                       ([False,True],True),
-                       ([True,False],True),
-                       ([True,True],False)])
+          expected = ([(pApp ("F") [var (V "z")]),
+                       (pApp ("F") [fApp (SkolemFunction 1) []]),
+                       (pApp ("L") [var (V "y")]),
+                       (pApp ("L") [fApp (SkolemFunction 1) []])],
+                      Just (CJ [DJ [DJ [A (pApp ("L") [fApp (SkolemFunction 1) []]),
+                                        N (A (pApp ("L") [var (V "y")]))],
+                                    N (A (pApp ("F") [var (V "z")]))],
+                                DJ [DJ [N (A (pApp ("F") [fApp (SkolemFunction 1) []])),
+                                          N (A (pApp ("L") [var (V "y")]))],
+                                    N (A (pApp ("F") [var (V "z")]))]]),
+                      [([False,False,False,False],True),
+                       ([False,False,False,True],True),
+                       ([False,False,True,False],True),
+                       ([False,False,True,True],True),
+                       ([False,True,False,False],True),
+                       ([False,True,False,True],True),
+                       ([False,True,True,False],True),
+                       ([False,True,True,True],True),
+                       ([True,False,False,False],True),
+                       ([True,False,False,True],True),
+                       ([True,False,True,False],False),
+                       ([True,False,True,True],True),
+                       ([True,True,False,False],True),
+                       ([True,True,False,True],True),
+                       ([True,True,True,False],False),
+                       ([True,True,True,True],False)])
       in TestCase (assertEqual "Logic - gensler189" expected input)
+    , let formula = (for_all ["x"] (pApp "L" [var "x"] .=>. pApp "F" [var "x"]) .&. -- All logicians are funny
+                     exists ["y"] (pApp "L" [var (fromString "y")])) .=>.           -- Someone is a logician
+                    (.~.) (exists ["z"] (pApp "F" [var "z"]))                       -- Someone / Nobody is funny
+          input = table' formula
+          expected = ([(pApp ("F") [var (V "z")]),
+                       (pApp ("F") [fApp (SkolemFunction 1) []]),
+                       (pApp ("L") [var (V "y")]),
+                       (pApp ("L") [fApp (SkolemFunction 1) []])],
+                      Just (CJ [DJ [DJ [A (pApp ("L") [fApp (SkolemFunction 1) []]),
+                                        N (A (pApp ("L") [var (V "y")]))],
+                                    N (A (pApp ("F") [var (V "z")]))],
+                                DJ [DJ [N (A (pApp ("F") [fApp (SkolemFunction 1) []])),
+                                        N (A (pApp ("L") [var (V "y")]))],
+                                    N (A (pApp ("F") [var (V "z")]))]]),
+                      [([False,False,False,False],True),
+                       ([False,False,False,True],True),
+                       ([False,False,True,False],True),
+                       ([False,False,True,True],True),
+                       ([False,True,False,False],True),
+                       ([False,True,False,True],True),
+                       ([False,True,True,False],True),
+                       ([False,True,True,True],True),
+                       ([True,False,False,False],True),
+                       ([True,False,False,True],True),
+                       ([True,False,True,False],False),
+                       ([True,False,True,True],True),
+                       ([True,True,False,False],True),
+                       ([True,True,False,True],True),
+                       ([True,True,True,False],False),
+                       ([True,True,True,True],False)])
+      in TestCase (assertEqual "Logic - gensler189 renamed" expected input)
     ]
 
 {-

@@ -40,7 +40,6 @@ module Logic.NormalForm
     , implicativeNormalForm
     , moveQuantifiersOut
     -- * New normalization functions
-    , moveQuantifiersLeft
     , eliminateImplication
     , moveNotInwards
     ) where
@@ -198,11 +197,7 @@ moveNotInwards formula =
 -- this new variable.  We could instead modify Q, but that looks
 -- slightly more tedious.
 prenexNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Show formula) => formula -> formula
-prenexNormalForm = moveQuantifiers . negationNormalForm
-
-moveQuantifiers :: forall formula term v p f. (FirstOrderLogic formula term v p f, Eq formula, Show formula) =>
-                   formula -> formula
-moveQuantifiers = moveQuantifiersLeft
+prenexNormalForm = moveQuantifiersOut . negationNormalForm
 
 moveQuantifiersOut :: forall formula term v p f. (FirstOrderLogic formula term v p f, Eq formula, Show formula) =>
                       formula -> formula
@@ -252,28 +247,6 @@ moveQuantifiersOut formula =
       doBinOp f1 (:&:) f2 = f1 .&. f2
       doBinOp f1 (:|:) f2 = f1 .|. f2
       doBinOp _ op _ = error $ "moveQuantifierOut: unexpected BinOp " ++ show op
-
-moveQuantifiersLeft :: FirstOrderLogic formula term v p f =>
-                       formula -> formula
-moveQuantifiersLeft formula = 
-    prependQuantifiers' (collectQuantifiers' formula)
-
-collectQuantifiers' :: FirstOrderLogic formula term v p f =>
-                       formula -> (formula, [(Quant, [v])])
-collectQuantifiers' =
-    foldF n q  b i p
-    where n s = let (s', qs') = collectQuantifiers' s in ((.~.) s', qs')
-          q op vs f = let (f', qs') = collectQuantifiers' f in (f', ((op, vs) : qs'))
-          b f1 op f2 = let (f1', qs1') = collectQuantifiers' f1 
-                           (f2', qs2') = collectQuantifiers' f2 in
-                       (binOp f1' op f2', qs1' ++ qs2')
-          i t1 op t2 = (infixPred t1 op t2, [])
-          p pr ts = (pApp pr ts, [])
-
-prependQuantifiers' :: FirstOrderLogic formula term v p f =>
-                       (formula, [(Quant, [v])]) -> formula
-prependQuantifiers' (s, []) = s
-prependQuantifiers' (s, ((q, vs) : qs)) = quant q vs (prependQuantifiers' (s, qs))
 
 -- |Find new variables that are not in the set and substitute free
 -- occurrences in the formula.
@@ -406,7 +379,7 @@ cnf = clauseNormalForm
 -- |Nickname for clauseNormalForm.
 cnfTraced :: (FirstOrderLogic formula term v p f, HasSkolem m, Eq formula, Show formula) => formula -> m formula
 cnfTraced f =
-    (skolemize [] . t4 . distributeDisjuncts . t3 . moveQuantifiers . t2 . moveNegationsIn . simplify . t1 $ f) >>= return . t6 . removeUniversal . t5
+    (skolemize [] . t4 . distributeDisjuncts . t3 . moveQuantifiersOut . t2 . moveNegationsIn . simplify . t1 $ f) >>= return . t6 . removeUniversal . t5
     where
       t1 x = trace ("\ninput: " ++ show x) x
       t2 x = trace ("NNF:   " ++ show x) x

@@ -25,7 +25,7 @@ import Logic.FirstOrder (FirstOrderLogic(..), Boolean(..), Skolem(..), convertFO
 import Logic.Implicative (Implicative(..))
 import Logic.Instances.Chiou ()
 import Logic.Logic (Logic(..))
-import Logic.NormalForm (moveQuantifiersLeft, eliminateImplication, moveNotInwards)
+import Logic.NormalForm (moveQuantifiersOut, eliminateImplication, moveNotInwards)
 
 data ConjunctiveNormalForm v p f =
     CNF [NormalSentence v p f]
@@ -61,7 +61,7 @@ toCNFSentence s0 = let
  		     s1 = eliminateImplication s0
 		     s2 = moveNotInwards s1
 		     s3 = standardizeVariables s2
-		     s4 = moveQuantifiersLeft s3
+		     s4 = moveQuantifiersOut s3
 		     s5 = skolemize s4
 		     s6 = distributeAndOverOr s5
 		   in
@@ -72,7 +72,7 @@ showCNFDerivation s0 = let
 		         s1 = eliminateImplication s0
 			 s2 = moveNotInwards s1
 			 s3 = standardizeVariables s2
-			 s4 = moveQuantifiersLeft s3
+			 s4 = moveQuantifiersOut s3
 			 s5 = skolemize s4
 			 s6 = distributeAndOverOr s5
 		       in
