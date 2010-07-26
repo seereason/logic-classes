@@ -1,3 +1,9 @@
+haskell-logic (0.17) unstable; urgency=low
+
+  * Make all the normal form code polymorphic.
+
+ -- David Fox <dsf@seereason.com>  Mon, 26 Jul 2010 08:05:24 -0700
+
 haskell-logic (0.16) unstable; urgency=low
 
   * Move important super classes from the individual functions to the type

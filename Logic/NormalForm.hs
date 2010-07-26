@@ -54,7 +54,6 @@ import Debug.Trace
 import Logic.FirstOrder
 import Logic.Implicative (Implicative(..))
 import Logic.Logic
---import Logic.Instances.Chiou ()
 
 -- |Simplify:
 -- 
