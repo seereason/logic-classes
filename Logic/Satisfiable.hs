@@ -10,23 +10,23 @@ module Logic.Satisfiable
     , invalid
     ) where
 
-import Logic.FirstOrder (FirstOrderLogic(..), toPropositional, HasSkolem(..))
+import Logic.FirstOrder (FirstOrderLogic(..), toPropositional)
 import Logic.Logic ((.~.))
 import Logic.NormalForm (clauseNormalForm)
 import Logic.Instances.PropLogic ()
 import PropLogic (PropForm(..), satisfiable)
 
-clauses :: (FirstOrderLogic formula term v p f, Ord formula, Show formula, HasSkolem m) => formula -> m (PropForm formula)
-clauses f = clauseNormalForm f >>= return . toPropositional A
+clauses :: (FirstOrderLogic formula term v p f, Ord formula, Show formula) => formula -> PropForm formula
+clauses = toPropositional A . clauseNormalForm
 
-inconsistant :: (FirstOrderLogic formula term v p f, Ord formula, Show formula, HasSkolem m) =>
-                formula -> m Bool
-inconsistant f = clauses f >>= return . not . satisfiable
+inconsistant :: (FirstOrderLogic formula term v p f, Ord formula, Show formula) =>
+                formula -> Bool
+inconsistant =  not . satisfiable . clauses
 
-theorem :: (FirstOrderLogic formula term v p f, Ord formula, Show formula, HasSkolem m) =>
-           formula -> m Bool
+theorem :: (FirstOrderLogic formula term v p f, Ord formula, Show formula) =>
+           formula -> Bool
 theorem f = inconsistant ((.~.) f)
 
-invalid :: (FirstOrderLogic formula term v p f, Ord formula, Show formula, HasSkolem m) =>
-           formula -> m Bool
-invalid f = theorem f >>= \ t -> inconsistant f >>= \ i -> return (not (t || i))
+invalid :: (FirstOrderLogic formula term v p f, Ord formula, Show formula) =>
+           formula -> Bool
+invalid f = not (inconsistant f || theorem f)

@@ -1,23 +1,16 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings,
-             TypeSynonymInstances, UndecidableInstances #-}
+             ScopedTypeVariables, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wall -Wwarn -fno-warn-name-shadowing -fno-warn-orphans #-}
 module Test.Logic (tests) where
 
---import Debug.Trace
-import Control.Monad.Identity (Identity(..), runIdentity)
-import Control.Monad.State (MonadState(..), StateT, evalStateT)
---import Data.List (intercalate)
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
---import qualified Logic.Chiou.FirstOrderLogic as C
 import qualified Logic.Chiou.NormalForm as C
---import Logic.Implicative (Implicative(..))
---import qualified Logic.Instances.Chiou as C
 import qualified Logic.Instances.Parameterized as P
 import Logic.Instances.PropLogic (flatten)
 import Logic.Logic (Logic(..))
 import Logic.NormalForm (prenexNormalForm, skolemNormalForm, disjunctiveNormalForm, cnf {-, implicativeNormalForm-})
-import Logic.FirstOrder (Skolem(..), Boolean(..), FirstOrderLogic(..), toPropositional, showForm, freeVars, substitute, convertFOF, HasSkolem(..))
+import Logic.FirstOrder (Skolem(..), Boolean(..), FirstOrderLogic(..), toPropositional, showForm, freeVars, substitute, convertFOF)
 import Logic.Satisfiable (clauses, theorem, inconsistant)
 import PropLogic (PropForm(..), TruthTable, truthTable)
 import qualified TextDisplay as TD
@@ -44,7 +37,7 @@ formCase s expected input = TestCase (assertEqual s expected input)
 
 precTests :: [Test]
 precTests =
-    [ formCase "prec test 1"
+    [ formCase "Logic - prec test 1"
                -- Note that the result of cnf is a conjunction of disjunctions, which
                -- will not group properly without parentheses.
                ((a .&. b) .|. c)
@@ -52,14 +45,14 @@ precTests =
       -- You can't apply .~. without parens:
       -- :type (.~. a)   -> (FormulaPF -> t) -> t
       -- :type ((.~.) a) -> FormulaPF
-    , formCase "prec test 2"
+    , formCase "Logic - prec test 2"
                (((.~.) a) .&. b)
                ((.~.) a .&. b)
     -- I switched the precedence of .&. and .|. from infixl to infixr to get
     -- some of the test cases to match the answers given on the miami.edu site,
     -- but maybe I should switch them back and adjust the answer given in the
     -- test case.
-    , formCase "prec test 3"
+    , formCase "Logic - prec test 3"
                ((a .&. b) .&. c) -- infixl, with infixr we get (a .&. (b .&. c))
                (a .&. b .&. c)
     , TestCase (assertEqual "Logic - Find a free variable"
@@ -119,25 +112,11 @@ w = var (fromString "w")
 
 -- Test cases from http://www.cs.miami.edu/~geoff/Courses/CS63S-09S/Content/FOFToCNF.shtml
 
-type SkolemT = StateT Int
-
-instance HasSkolem (StateT Int Identity) where
-    skolem = get >>= \ n -> put (n + 1) >> return n
-
 cnf' :: TestFormula -> PropForm TestFormula
 cnf' f = toPropositional A (convertFOF id id id (let s = convertFOF id id id f in (C.toCNFSentence s)))
 
 snf' :: TestFormula -> TestFormula
-snf' f = runIdentity (evalStateT (skolemNormalForm f :: SkolemT Identity (TestFormula)) 1)
-
-theorem' :: TestFormula -> Bool
-theorem' f = runIdentity (evalStateT (theorem f :: SkolemT Identity Bool) 1)
-
-inconsistant' :: TestFormula -> Bool
-inconsistant' f = runIdentity (evalStateT (inconsistant f :: SkolemT Identity Bool) 1)
-
-table' :: TestFormula -> TruthTable TestFormula
-table' f = runIdentity (evalStateT (table f :: SkolemT Identity (TruthTable TestFormula)) 1)
+snf' f = skolemNormalForm f
 
 testFormulas :: [(String, PropForm TestFormula, TestFormula)]
 testFormulas =
@@ -171,7 +150,7 @@ testFormulas =
        -- This is what was given by the source
        -- (((.~.) p) .|. f skX .&. p .|. ((.~.) (f skX)))
        -- This is what we are currently getting from our
-       -- code, which is different but still may be correct.  However, we may
+       -- code, which is different but still may be correct.
        --flatten (toPropositional A ((((.~.) p) .|. (f [skX])) .&. (((.~.) (f [skX])) .|. p))),
        CJ [DJ [N (A (pApp ("p") [])),A (pApp ("f") [fApp (SkolemFunction 1) []])],DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) []])),A (pApp ("p") [])]],
        -- (((p []) .|. (p [])) .&. ((((.~.) (f [x])) .|. ((.~.) (f [x]))) .|. (p [])))
@@ -185,27 +164,6 @@ testFormulas =
            DJ [N (A (pApp ("f") [var ("x"),var ("z")])),A (pApp ("f") [var ("x"),var ("x")]),A (pApp ("f") [var ("x"),fApp (SkolemFunction 1) [var ("z")]])]],
        (for_all ["z"] (exists ["y"] (for_all ["x"] (f [x, y] .<=>. (f [x, z] .&. ((.~.) (f [x, x]))))))))
     , ("cnf test 9",
-{-
-       -- This is what we get from the polymorphic code
-       CJ [DJ [N (A (pApp ("q") [var ("x"),var ("y")])),
-               N (A (pApp ("f") [var ("z"),var ("x")])),
-               A (pApp ("f") [var ("z"),var ("y")])],
-           DJ [N (A (pApp ("q") [var ("x"),var ("y")])),
-               N (A (pApp ("f") [var ("z"),var ("y")])),
-               A (pApp ("f") [var ("z"),var ("x")])],
-           DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]),
-               A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")]),
-               A (pApp ("q") [var ("x"),var ("y")])],
-           DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])),
-               A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")]),
-               A (pApp ("q") [var ("x"),var ("y")])],
-           DJ [A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")]),
-               N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])),
-               A (pApp ("q") [var ("x"),var ("y")])],
-           DJ [N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("y")])),
-               N (A (pApp ("f") [fApp (SkolemFunction 1) [var ("x"),var ("x"),var ("y"),var ("z")],var ("x")])),
-               A (pApp ("q") [var ("x"),var ("y")])]],
--}
        CJ [DJ [N (A (pApp ("q") [var (V "x"),var (V "y")])),
                N (A (pApp ("f") [var (V "z"),var (V "x")])),
                A (pApp ("f") [var (V "z"),var (V "y")])],
@@ -226,16 +184,7 @@ testFormulas =
                A (pApp ("q") [var (V "x"),var (V "y")])]],
        (for_all ["x"] (for_all ["x"] (for_all ["y"] (q [x, y] .<=>. for_all [(V "z")] (f [z, x] .<=>. f [z, y]))))))
     , ("cnf test 10",
-{-
-       -- This is what we get from the polymorphic code - the place
-       -- where we have skolem 3 instead of 2 looks wrong.  And the
-       -- missing second skolem function.
-       CJ [DJ [A (pApp ("q") [fApp (SkolemFunction 1) [var ("x")],fApp (SkolemFunction 3) [var ("x")],fApp (SkolemFunction 3) [var ("x")]]),
-               A (pApp ("p") [var ("x"),fApp (SkolemFunction 1) [var ("x")]])],
-           DJ [N (A (pApp ("r") [fApp (SkolemFunction 1) [var ("x")]])),
-               A (pApp ("p") [var ("x"),fApp (SkolemFunction 1) [var ("x")]])]]
--}
-       CJ [DJ [A (pApp ("q") [fApp (SkolemFunction 1) [var (V "x")],fApp (SkolemFunction 2) [var (V "x")],fApp (SkolemFunction 2) [var (V "x")]]),
+       CJ [DJ [A (pApp ("q") [fApp (SkolemFunction 1) [var (V "x")],fApp (SkolemFunction 3) [var (V "x")],fApp (SkolemFunction 3) [var (V "x")]]),
                A (pApp ("p") [var (V "x"),fApp (SkolemFunction 1) [var (V "x")]])],
            DJ [N (A (pApp ("r") [fApp (SkolemFunction 1) [var (V "x")]])),
                A (pApp ("p") [var (V "x"),fApp (SkolemFunction 1) [var (V "x")]])]],
@@ -270,7 +219,7 @@ pairTest :: (String, PropForm TestFormula, TestFormula) -> [Test]
 pairTest (s, f1, f2) =
     [ TestCase (assertEqual ("Logic - " ++ s ++ ", Chiou cnf") f1 (flatten (cnf' f2)))
     , TestCase (assertEqual ("Logic - " ++ s ++ ", Parameterized cnf")
-                f1 (flatten (toPropositional A (runIdentity (evalStateT (cnf f2) (1 :: Int)))))) ]
+                f1 (flatten (toPropositional A (cnf f2)))) ]
 
 -- |Here is an example of automatic conversion from a FirstOrderLogic
 -- instance to a PropositionalLogic instance.  The result is PropForm
@@ -307,41 +256,41 @@ test9a = TestCase
 
 moveQuantifiersOut1 :: Test
 moveQuantifiersOut1 =
-    formCase "moveQuantifiersOut1"
+    formCase "Logic - moveQuantifiersOut1"
              (for_all ["y"] ((pApp ("p") [var ("y")]) .&. ((pApp ("q") [var ("x")]))))
              (prenexNormalForm (for_all ["x"] (pApp (fromString "p") [x]) .&. (pApp (fromString "q") [x])))
 
 skolemize1 :: Test
 skolemize1 =
-    formCase "skolemize1" expected formula
+    formCase "Logic - skolemize1" expected formula
     where
       expected :: TestFormula
-      expected = for_all ["y","z"] (for_all ["v"] (pApp "P" [fApp (toSkolem 1) [], y, z, fApp ((toSkolem 2)) [y, z], v, fApp (toSkolem 3) [y, z, v]]))
+      expected = pApp "P" [fApp (toSkolem 1) [], y, z, fApp ((toSkolem 2)) [y, z], v, fApp (toSkolem 3) [y, z, v]]
       formula :: TestFormula
       formula = (snf' (exists ["x"] (for_all ["y", "z"] (exists ["u"] (for_all ["v"] (exists ["w"] (pApp "P" [x, y, z, u, v, w])))))))
 
 skolemize2 :: Test
 skolemize2 =
-    formCase "skolemize2" expected formula
+    formCase "Logic - skolemize2" expected formula
     where
       expected :: TestFormula
-      expected = for_all [fromString "y"] (pApp ("loves") [fApp (toSkolem 1) [],y])
+      expected = pApp ("loves") [fApp (toSkolem 1) [],y]
       formula :: TestFormula
       formula = snf' (exists ["x"] (for_all ["y"] (pApp "loves" [x, y])))
 
 skolemize3 :: Test
 skolemize3 =
-    formCase "skolemize3" expected formula
+    formCase "Logic - skolemize3" expected formula
     where
       expected :: TestFormula
-      expected = for_all [fromString "y"] (pApp ("loves") [fApp (toSkolem 1) [y],y])
+      expected = pApp ("loves") [fApp (toSkolem 1) [y],y]
       formula :: TestFormula
       formula = snf' (for_all ["y"] (exists ["x"] (pApp "loves" [x, y])))
 
 {-
 inf1 :: Test
 inf1 =
-    formCase "inf1" expected formula
+    formCase "Logic - inf1" expected formula
     where
       expected :: TestFormula
       expected = ((pApp ("p") [var ("x")]) .=>. (((pApp ("q") [var ("x")]) .|. ((pApp ("r") [var ("x")])))))
@@ -375,7 +324,7 @@ theoremTests =
                    ([True,False,True],True),
                    ([True,True,False],True),
                    ([True,True,True],True)]))
-                (theorem' formula, table' formula))
+                (theorem formula, table formula))
     , TestCase (assertEqual "Logic - theorem test 1a"
 {-
 input:               ((.~.) ((for_all ["x"] (((S [x]) .=>. ((H [x]))) .&. (((H [x]) .=>. ((M [x])))))) .=>. ((for_all ["x"] ((S [x]) .=>. ((M [x])))))))
@@ -445,7 +394,7 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                 
                 (let formula = (for_all ["x"] ((s [x] .=>. h [x]) .&. (h [x] .=>. m [x]))) .=>.
                                (for_all ["y"] (s [y] .=>. m [y])) in
-                 (theorem' formula, inconsistant' formula, table' formula)))
+                 (theorem formula, inconsistant formula, table formula)))
                 
     , TestCase (assertEqual "Logic - socrates is mortal, truth table"
                 ([(pApp ("H") [var (V "x")]),
@@ -526,7 +475,7 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                 -- we would wrap a single exists around them all and
                 -- remove the existing ones, substituting that one
                 -- variable into each formula.
-                (table' (for_all ["x"] (s [x] .=>. h [x]) .&.
+                (table (for_all ["x"] (s [x] .=>. h [x]) .&.
                          for_all ["y"] (h [y] .=>. m [y]) .&.
                          for_all ["z"] (s [z] .=>. m [z]))))
 
@@ -575,16 +524,17 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                 -- M(x) is false, the remaining lines would all be zero,
                 -- the argument would be inconsistant (an anti-theorem.)
                 -- How can we modify the formula to make these lines 0?
-                (let formula =
+                (let (formula :: TestFormula) =
                          for_all ["x"] ((s [x] .=>. h [x]) .&.
-                                       (h [x] .=>. m [x]) .&.
-                                       (m [x] .=>. ((.~.) (s [x])))) .&.
+                                        (h [x] .=>. m [x]) .&.
+                                        (m [x] .=>. ((.~.) (s [x])))) .&.
                          (s [fApp "socrates" []]) in
-                 (theorem' formula, inconsistant' formula, table' formula, disjunctiveNormalForm formula)))
-    , let formula = (for_all ["x"] (pApp "L" [var "x"] .=>. pApp "F" [var "x"]) .&. -- All logicians are funny
-                     exists ["x"] (pApp "L" [var "x"])) .=>.                            -- Someone is a logician
-                    (.~.) (exists ["x"] (pApp "F" [var "x"]))                           -- Someone / Nobody is funny
-          input = table' formula
+                 (theorem formula, inconsistant formula, table formula, disjunctiveNormalForm formula)))
+    , let (formula :: TestFormula) =
+              (for_all ["x"] (pApp "L" [var "x"] .=>. pApp "F" [var "x"]) .&. -- All logicians are funny
+               exists ["x"] (pApp "L" [var "x"])) .=>.                            -- Someone is a logician
+              (.~.) (exists ["x"] (pApp "F" [var "x"]))                           -- Someone / Nobody is funny
+          input = table formula
           expected = ([(pApp ("F") [var (V "z")]),
                        (pApp ("F") [fApp (SkolemFunction 1) []]),
                        (pApp ("L") [var (V "y")]),
@@ -612,10 +562,11 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                        ([True,True,True,False],False),
                        ([True,True,True,True],False)])
       in TestCase (assertEqual "Logic - gensler189" expected input)
-    , let formula = (for_all ["x"] (pApp "L" [var "x"] .=>. pApp "F" [var "x"]) .&. -- All logicians are funny
-                     exists ["y"] (pApp "L" [var (fromString "y")])) .=>.           -- Someone is a logician
-                    (.~.) (exists ["z"] (pApp "F" [var "z"]))                       -- Someone / Nobody is funny
-          input = table' formula
+    , let (formula :: TestFormula) =
+              (for_all ["x"] (pApp "L" [var "x"] .=>. pApp "F" [var "x"]) .&. -- All logicians are funny
+               exists ["y"] (pApp "L" [var (fromString "y")])) .=>.           -- Someone is a logician
+              (.~.) (exists ["z"] (pApp "F" [var "z"]))                       -- Someone / Nobody is funny
+          input = table formula
           expected = ([(pApp ("F") [var (V "z")]),
                        (pApp ("F") [fApp (SkolemFunction 1) []]),
                        (pApp ("L") [var (V "y")]),
@@ -697,6 +648,6 @@ prepare formula = ({- flatten . -} fromJust . toPropositional convertA . cnf . (
 convertA = Just . A
 -}
 
-table :: (FirstOrderLogic formula term v p f, Show formula, Ord formula, Eq term, HasSkolem m, Skolem f, IsString v, TD.Display formula) =>
-         formula -> m (TruthTable formula)
-table f = clauses f >>= return . truthTable
+table :: (FirstOrderLogic formula term v p f, Show formula, Ord formula, Eq term, Skolem f, IsString v, TD.Display formula) =>
+         formula -> TruthTable formula
+table = truthTable . clauses

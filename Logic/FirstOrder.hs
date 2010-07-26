@@ -12,7 +12,6 @@
 module Logic.FirstOrder
     ( Skolem(..)
     , Boolean(..)
-    , HasSkolem(..)
     , FirstOrderLogic(..)
     , Quant(..)
     , quant
@@ -52,12 +51,6 @@ class Skolem f where
 -- and False elements.
 class Boolean p where
     fromBool :: Bool -> p
-
--- |This class shows how to use monad m to create a new unique skolem
--- function of the type f.  This is intended to correspond to the
--- AtomicFunction parameter named f in the FirstOrderLogic class.
-class Monad m => HasSkolem m where
-    skolem :: m Int
 
 -- |The 'PropositionalLogic' type class.  Minimal implementation:
 -- @for_all, exists, foldF, foldT, (.=.), pApp, fApp, var@.  The

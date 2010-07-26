@@ -40,11 +40,13 @@ module Logic.NormalForm
     , implicativeNormalForm
     , moveQuantifiersOut
     -- * New normalization functions
+    , skolemize
     , eliminateImplication
     , moveNotInwards
     ) where
 
 import Data.Char (isDigit)
+import qualified Data.Map as Map
 import Data.String (IsString(..))
 import qualified Data.Set as S
 import Debug.Trace
@@ -323,37 +325,41 @@ distributeDisjuncts =
 -- functions applied to the list of variables which are universally
 -- quantified in the context where the existential quantifier
 -- appeared.
-skolemNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Show formula, HasSkolem m) =>
-                    formula -> m formula
-skolemNormalForm = skolemize [] . disjunctiveNormalForm
+skolemNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Show formula) =>
+                    formula -> formula
+skolemNormalForm = skolemize . disjunctiveNormalForm
 
-skolemize :: (FirstOrderLogic formula term v p f, HasSkolem m) => [v] -> formula -> m formula
-skolemize uq f =
-    foldF n q b i a f
+skolemize :: forall formula term v p f. (FirstOrderLogic formula term v p f, Eq v) =>
+             formula -> formula
+skolemize =
+    skolemize' 1 [] Map.empty
     where
-      n x = skolemize uq x >>= return . (.~.)
-      -- ∃x: p x is satisfiable <=> p x is satisfiable, so we can discard outermost.
-      q Exists [] x = skolemize uq x
-      -- We see an exists v, replace occurrences of var v with a skolem function
-      q Exists (v:vs) x =
-          skolem >>= \ skf ->
-          skolemize uq (quant Exists vs (x' skf))
-          where x' skf = substitute v (sk skf) x
-                -- Only add arguments for the variables which are free in x
-                sk skf = fApp (toSkolem skf) (map var (filter free uq))
-                free v' = S.member v' (freeVars x)
-      q All vs x = skolemize (uq ++ vs) x >>= return . quant All vs
-      b f1 op f2 = return $ binOp f1 op f2
-      i t1 op t2 = return $ infixPred t1 op t2
-      a p ts = return $ pApp p ts
+      skolemize' :: FirstOrderLogic formula term v p f => Int -> [v] -> Map.Map v term -> formula -> formula
+      skolemize' cnt univ skmap formula =
+          foldF n q b i p formula
+          where
+            n s = (.~.) (skolemize' cnt univ skmap s)
+            q All vs = skolemize' cnt (univ ++ vs) skmap
+            q Exists vs = skolemize' (cnt + length vs) univ (skolemCh cnt vs univ skmap)
+            b s1 op s2 = binOp (skolemize' cnt univ skmap s1) op (skolemize' cnt univ skmap s2)
+            i t1 op t2 = infixPred (substituteCh skmap t1) op (substituteCh skmap t2)
+            p pr ts = pApp pr (map (substituteCh skmap) ts)
+
+      skolemCh i (v:vs) u skmap = skolemCh (i+1) vs u (Map.insert v (fApp (toSkolem i) (map var u)) skmap)
+      skolemCh _i [] _u skmap = skmap
+
+      substituteCh skmap t =
+          foldT (\ v -> maybe (var v) id (Map.lookup v skmap))
+                (\ f ts -> fApp f (map (substituteCh skmap) ts))
+                t
 
 -- |Convert to Skolem Normal Form and then remove the outermost
 -- universal quantifiers.  Due to the nature of Skolem Normal Form,
 -- this is actually all the remaining quantifiers, the result is
 -- effectively a propositional logic formula.
-clauseNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Show formula, HasSkolem m) =>
-                    formula -> m formula
-clauseNormalForm f = skolemNormalForm f >>= return . removeUniversal
+clauseNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Show formula) =>
+                    formula -> formula
+clauseNormalForm = removeUniversal . skolemNormalForm
 
 implicativeNormalForm :: forall inf formula term v p f. 
                          Implicative inf formula term v p f =>
@@ -372,14 +378,14 @@ removeUniversal formula =
       removeAll Exists vs f = exists vs (removeUniversal f)
 
 -- |Nickname for clauseNormalForm.
-cnf :: (FirstOrderLogic formula term v p f, Eq formula, Show formula, HasSkolem m) =>
-       formula -> m formula
+cnf :: (FirstOrderLogic formula term v p f, Eq formula, Show formula) =>
+       formula -> formula
 cnf = clauseNormalForm
 
 -- |Nickname for clauseNormalForm.
-cnfTraced :: (FirstOrderLogic formula term v p f, HasSkolem m, Eq formula, Show formula) => formula -> m formula
-cnfTraced f =
-    (skolemize [] . t4 . distributeDisjuncts . t3 . moveQuantifiersOut . t2 . moveNegationsIn . simplify . t1 $ f) >>= return . t6 . removeUniversal . t5
+cnfTraced :: (FirstOrderLogic formula term v p f, Eq formula, Show formula) => formula -> formula
+cnfTraced =
+    t6 . removeUniversal . t5 . skolemize . t4 . distributeDisjuncts . t3 . moveQuantifiersOut . t2 . moveNegationsIn . simplify . t1
     where
       t1 x = trace ("\ninput: " ++ show x) x
       t2 x = trace ("NNF:   " ++ show x) x

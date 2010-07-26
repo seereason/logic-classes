@@ -25,7 +25,7 @@ import Logic.FirstOrder (FirstOrderLogic(..), Boolean(..), Skolem(..), convertFO
 import Logic.Implicative (Implicative(..))
 import Logic.Instances.Chiou ()
 import Logic.Logic (Logic(..))
-import Logic.NormalForm (moveQuantifiersOut, eliminateImplication, moveNotInwards)
+import Logic.NormalForm (skolemize, moveQuantifiersOut, eliminateImplication, moveNotInwards)
 
 data ConjunctiveNormalForm v p f =
     CNF [NormalSentence v p f]
@@ -328,6 +328,7 @@ distributeAndOverOr (Quantifier q vs s) =
  - Skolemization is tge process of removing existential quantifiers by
  - elimination.
 -}
+{-
 skolemize :: (Eq v, Skolem f) => Sentence v p f -> Sentence v p f
 skolemize s = skolemize' 1 s [] []
 
@@ -364,7 +365,7 @@ substituteCh var@(Variable v) ((v', t):xs) =
       substituteCh var xs
 substituteCh (Function f terms) xs =
     Function f (map (\x -> substituteCh x xs) terms)
-
+-}
 
 {--
  - Convert disjunctions to implication:
