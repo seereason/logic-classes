@@ -5,7 +5,6 @@ module Test.Logic (tests) where
 
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
-import qualified Logic.Chiou.NormalForm as C
 import qualified Logic.Instances.Parameterized as P
 import Logic.Instances.PropLogic (flatten)
 import Logic.Logic (Logic(..))
@@ -113,7 +112,7 @@ w = var (fromString "w")
 -- Test cases from http://www.cs.miami.edu/~geoff/Courses/CS63S-09S/Content/FOFToCNF.shtml
 
 cnf' :: TestFormula -> PropForm TestFormula
-cnf' f = toPropositional A (convertFOF id id id (let s = convertFOF id id id f in (C.toCNFSentence s)))
+cnf' f = toPropositional A (convertFOF id id id (let (s :: TestFormula) = convertFOF id id id f in (cnf s)))
 
 snf' :: TestFormula -> TestFormula
 snf' f = skolemNormalForm f

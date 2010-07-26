@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes, UndecidableInstances #-}
-{-# OPTIONS -Wall -Werror -fno-warn-name-shadowing #-}
+{-# OPTIONS -Wall -Wwarn -fno-warn-name-shadowing #-}
 
 {- NormalForm.hs -}
 {- Charles Chiou -}
@@ -13,9 +13,11 @@ module Logic.Chiou.NormalForm
     ( ConjunctiveNormalForm(..)
     , ImplicativeNormalForm(..)
     , NormalSentence(..)
+{-
     , toCNF, toCNFSentence, showCNFDerivation
     , toINF, toINFSentence, showINFDerivation
     , distributeAndOverOr
+-}
     ) where
 
 import qualified Data.Set as S

@@ -38,11 +38,12 @@ module Logic.NormalForm
     , cnf
     , cnfTraced
     , implicativeNormalForm
+    , toINF
     , moveQuantifiersOut
-    -- * New normalization functions
     , skolemize
     , eliminateImplication
     , moveNotInwards
+    , distributeDisjuncts
     ) where
 
 import Data.Char (isDigit)
@@ -53,7 +54,7 @@ import Debug.Trace
 import Logic.FirstOrder
 import Logic.Implicative (Implicative(..))
 import Logic.Logic
-import Logic.Instances.Chiou ()
+--import Logic.Instances.Chiou ()
 
 -- |Simplify:
 -- 
@@ -359,7 +360,10 @@ skolemize =
 -- effectively a propositional logic formula.
 clauseNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Show formula) =>
                     formula -> formula
-clauseNormalForm = removeUniversal . skolemNormalForm
+clauseNormalForm = {- removeUniversal . -} skolemNormalForm
+
+toINF :: forall inf formula term v p f. Implicative inf formula term v p f => formula -> [inf]
+toINF formula = toImplicative formula :: [inf]
 
 implicativeNormalForm :: forall inf formula term v p f. 
                          Implicative inf formula term v p f =>

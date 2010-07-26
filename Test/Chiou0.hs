@@ -8,10 +8,11 @@ import Control.Monad.Trans (MonadIO, liftIO)
 import Data.String (IsString(..))
 import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Quantifier(..), Connective(..))
 import Logic.Chiou.Monad (ProverT, runProverT)
-import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), {-ConjunctiveNormalForm(..),-} distributeAndOverOr)
+import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..){-, ConjunctiveNormalForm(..), distributeAndOverOr -})
 import Logic.Chiou.KnowledgeBase (loadKB, theoremKB {-, askKB, showKB-})
 import Logic.Chiou.Resolution (SetOfSupport)
 import Logic.FirstOrder (Skolem(..), Boolean(..))
+import Logic.NormalForm (distributeDisjuncts)
 import Test.HUnit
 
 newtype V = V String deriving (Eq, Ord, Show)
@@ -24,7 +25,7 @@ data Pr
     = Pr String
     | T
     | F
-    deriving (Eq, Show)
+    deriving (Eq, Ord, Show)
 
 instance IsString Pr where
     fromString = Pr
@@ -36,7 +37,7 @@ instance Boolean Pr where
 data AtomicFunction
     = Fn String
     | Skolem Int
-    deriving (Eq, Show)
+    deriving (Eq, Ord, Show)
 
 instance Skolem AtomicFunction where
     toSkolem = Skolem
@@ -99,7 +100,7 @@ distributeTest =
         And
         (Connective (Connective (Not (Predicate (Pr "f") [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "y")])) Or (Not (Predicate (Pr "f") [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "x")]))) Or (Predicate (Pr "q") [Variable (V "x"),Variable (V "y")])))))
 
-     (distributeAndOverOr
+     (distributeDisjuncts
       (Connective
        (Connective
         (Not (Predicate "q" [Variable (V "x"),Variable (V "y")]))
