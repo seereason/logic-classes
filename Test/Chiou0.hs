@@ -57,7 +57,7 @@ main = runTestTT (TestList [loadTest, distributeTest, proofTest1, proofTest2]) >
 
 loadTest :: Test
 loadTest =
-    TestCase (assertEqual "loadKB test" expected (runIdentity (runProverT (loadKB sentences))))
+    TestCase (assertEqual "Chiuo0 - loadKB test" expected (runIdentity (runProverT (loadKB sentences))))
     where
       expected :: [(Maybe Bool, [ImplicativeNormalForm V Pr AtomicFunction])]
       expected = [(Nothing,[INF [] [NFPredicate (Pr "Dog") [Function (Skolem 1) []]],INF [] [NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Function (Skolem 1) []]]]),
@@ -81,7 +81,7 @@ testLoad ss =
 distributeTest :: Test
 distributeTest =
     TestCase
-    (assertEqual "distribute test" 
+    (assertEqual "Chiuo0 - distribute test" 
 
      (Connective
       (Connective 
@@ -130,14 +130,14 @@ distributeTest =
         (Predicate "q" [Variable (V "x"),Variable (V "y")])) :: Sentence V Pr AtomicFunction)))
 
 proofTest1 :: Test
-proofTest1 = TestCase (assertEqual "proof test 1" proof1 (runIdentity (runProverT (loadKB sentences >> theoremKB (Predicate "Kills" [Function (Fn "Jack") [], Function (Fn "Tuna") []])))))
+proofTest1 = TestCase (assertEqual "Chiuo0 - proof test 1" proof1 (runIdentity (runProverT (loadKB sentences >> theoremKB (Predicate "Kills" [Function (Fn "Jack") [], Function (Fn "Tuna") []])))))
 
 proof1 :: (Bool, SetOfSupport V Pr AtomicFunction {-[ImplicativeNormalForm V Pr AtomicFunction]-})
 proof1 = ( False
          , [(INF [NFPredicate (Pr "Kills") [Function (Fn "Jack") [],Function (Fn "Tuna") []]] [],[]),(INF [] [NFPredicate (Pr "Kills") [Function (Fn "Curiosity") [],Function (Fn "Tuna") []]],[]),(INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []],NFPredicate (Pr "AnimalLover") [Function (Fn "Curiosity") []]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")],NFPredicate (Pr "Animal") [Function (Fn "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "AnimalLover") [Function (Fn "Curiosity") []]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Function (Skolem 1) []],NFPredicate (Pr "Animal") [Function (Fn "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")],NFPredicate (Pr "Dog") [Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")],NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]] [],[]),(INF [NFPredicate (Pr "AnimalLover") [Function (Fn "Curiosity") []]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Function (Skolem 1) []]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Function (Skolem 1) []],NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")],NFPredicate (Pr "Dog") [Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Function (Skolem 1) []]] [],[])] )
 
 proofTest2 :: Test
-proofTest2 = TestCase (assertEqual "proof test 2" proof2 (runIdentity (runProverT (loadKB sentences >> theoremKB (Predicate "Kills" [Function (Fn "Curiosity") [], Function (Fn "Tuna") []])))))
+proofTest2 = TestCase (assertEqual "Chiuo0 - proof test 2" proof2 (runIdentity (runProverT (loadKB sentences >> theoremKB (Predicate "Kills" [Function (Fn "Curiosity") [], Function (Fn "Tuna") []])))))
 
 proof2 :: (Bool, SetOfSupport V Pr AtomicFunction)
 proof2 = ( True
