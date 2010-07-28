@@ -1,3 +1,10 @@
+haskell-logic (0.18) unstable; urgency=low
+
+  * Remove the Predicate and Proposition synonyms for Formula, they
+    seem likely to confuse.
+
+ -- David Fox <dsf@seereason.com>  Wed, 28 Jul 2010 09:30:41 -0700
+
 haskell-logic (0.17) unstable; urgency=low
 
   * Make all the normal form code polymorphic.

@@ -7,8 +7,6 @@
 -- with some constructors like :~&: omitted.
 module Logic.Instances.Parameterized
     ( Formula(..)
-    , Predicate
-    , Proposition
     , Term(..)
     ) where
 
@@ -31,9 +29,6 @@ data Formula v p f
     -- A derived Eq instance is not going to tell us that a&b
     -- is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).
     deriving (Eq,Ord,Read,Data,Typeable)
-
-type Predicate = Formula
-type Proposition = Formula
 
 -- | The range of a term is an element of a set.
 data Term v f
