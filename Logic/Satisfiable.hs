@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleContexts, OverloadedStrings #-}
 module Logic.Satisfiable
     ( clauses
+    , satisfiable
     , theorem
     , inconsistant
     , invalid
@@ -14,14 +15,18 @@ import Logic.FirstOrder (FirstOrderLogic(..), toPropositional)
 import Logic.Logic ((.~.))
 import Logic.NormalForm (clausalNormalForm)
 import Logic.Instances.PropLogic ()
-import PropLogic (PropForm(..), satisfiable)
+import qualified PropLogic as PL
 
-clauses :: (FirstOrderLogic formula term v p f, Ord formula) => formula -> PropForm formula
-clauses = toPropositional A . clausalNormalForm
+satisfiable :: (FirstOrderLogic formula term v p f, Ord formula) =>
+                formula -> Bool
+satisfiable =  PL.satisfiable . clauses
+
+clauses :: (FirstOrderLogic formula term v p f, Ord formula) => formula -> PL.PropForm formula
+clauses = toPropositional PL.A . clausalNormalForm
 
 inconsistant :: (FirstOrderLogic formula term v p f, Ord formula) =>
                 formula -> Bool
-inconsistant =  not . satisfiable . clauses
+inconsistant =  not . satisfiable
 
 theorem :: (FirstOrderLogic formula term v p f, Ord formula) =>
            formula -> Bool

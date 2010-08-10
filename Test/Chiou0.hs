@@ -48,8 +48,8 @@ instance Skolem AtomicFunction where
 instance IsString AtomicFunction where
     fromString = Fn
 
-tests :: [Test]
-tests = [loadTest, distributeTest, proofTest1, proofTest2]
+tests :: Test
+tests = TestLabel "Chiou0" $ TestList [loadTest, distributeTest, proofTest1, proofTest2]
 
 {-
 main :: IO ()

@@ -74,8 +74,8 @@ pairTest (s, f1, f2) =
     [ TestCase (assertEqual ("Chiou - " ++ s ++ ", Chiou to FormulaPF") f1 (convertFOF id id id f2)),
       TestCase (assertEqual ("Chiou - " ++ s ++ ", FormulaPF to Chiou") f2 (convertFOF id id id f1)) ]
 
-tests :: [Test]
-tests = concatMap pairTest testFormulas ++ testProver
+tests :: Test
+tests = TestLabel "Chiou" $ TestList (concatMap pairTest testFormulas ++ testProver)
 
 -- |A newtype for the Primitive Predicate parameter.
 data Pr

@@ -27,8 +27,8 @@ instance Boolean String where
 type TestFormula = P.Formula V String AtomicFunction
 type TestTerm = P.Term V AtomicFunction
 
-tests :: [Test]
-tests = precTests ++ cnfTests ++ theoremTests
+tests :: Test
+tests = TestLabel "Logic" $ TestList (precTests ++ cnfTests ++ theoremTests)
 
 formCase :: FirstOrderLogic (P.Formula V String AtomicFunction) (P.Term V AtomicFunction) V String AtomicFunction =>
             String -> TestFormula -> TestFormula -> Test

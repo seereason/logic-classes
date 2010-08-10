@@ -34,6 +34,7 @@ module Logic.NormalForm
     , disjunctiveNormalForm
     , skolemNormalForm
     , clausalNormalForm
+    , clausalNormalForm'
     , implicativeNormalForm
     ) where
 
@@ -303,6 +304,41 @@ skolemize =
 clausalNormalForm :: (FirstOrderLogic formula term v p f, Eq formula) =>
                      formula -> formula
 clausalNormalForm = {- removeUniversal . -} skolemNormalForm
+
+clausalNormalForm' :: (FirstOrderLogic formula term v p f, Eq formula) =>
+                     formula -> [[formula]]
+clausalNormalForm' = {- removeUniversal . -} clausal . skolemNormalForm
+
+clausal :: forall formula term v p f. (FirstOrderLogic formula term v p f, Eq formula {-, Pretty v, Pretty p, Pretty f-}) =>
+           formula -> [[formula]]
+clausal =
+    {- map rename . -}
+    filter (not . any isTrue) . map doClause . flatten
+    where
+      flatten f =
+          foldF (\ _ -> [[f]])
+                (\ _ _ f' -> flatten f')
+                (\ f1 op f2 -> case op of
+                                 (:&:) -> flatten f1 ++ flatten f2
+                                 (:|:) -> [flatten' f1 ++ flatten' f2]
+                                 _ -> e0)
+                (\ _ _ _ -> [[f]])
+                (\ _ _ -> [[f]])
+                f
+      flatten' :: formula -> [formula]
+      flatten' f =
+          foldF (\ _ -> [f])
+                (\ _ _ _ -> [f])
+                (\ f1 op f2 -> case op of
+                                 (:|:) -> flatten' f1 ++ flatten' f2
+                                 _ -> e0)
+                (\ _ _ _ -> [f])
+                (\ _ _ -> [f])
+                f
+      doClause fs = filter (not . isFalse) fs
+      isFalse f = foldF isTrue e3 e3 e3 (\ p _ -> p == fromBool False) f where e3 _ _ _ = error ("clausal: " {- ++ show (prettyForm 0 f) -})
+      isTrue f = foldF isFalse e3 e3 e3 (\ p _ -> p == fromBool True) f where e3 _ _ _ = error ("clausal: "  {- ++ show (prettyForm 0 f) -})
+      e0 = error "clausal"
 
 implicativeNormalForm :: forall inf formula term v p f. 
                          Implicative inf formula term v p f =>
