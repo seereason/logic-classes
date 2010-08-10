@@ -23,10 +23,10 @@ module Logic.Chiou.NormalForm
 import qualified Data.Set as S
 import Data.String (IsString)
 import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Connective(..), Quantifier(..))
-import Logic.FirstOrder (FirstOrderLogic(..), Boolean(..), Skolem(..), convertFOF)
+import Logic.FirstOrder (FirstOrderLogic(..), Skolem(..), convertFOF)
 import Logic.Implicative (Implicative(..))
 import Logic.Instances.Chiou ()
-import Logic.Logic (Logic(..))
+import Logic.Logic (Logic(..), Boolean(..))
 import Logic.NormalForm (skolemize, moveQuantifiersOut, eliminateImplication, moveNotInwards)
 
 data ConjunctiveNormalForm v p f =

@@ -8,6 +8,7 @@ module Logic.Logic
     ( Logic(..)
     , BinOp(..)
     , binOp
+    , Boolean(..)
     ) where
 
 import Data.Data (Data)
@@ -90,6 +91,11 @@ binOp f1 (:&:) f2 = f1 .&. f2
 binOp f1 (:|:) f2 = f1 .|. f2
 
 instance Version BinOp
+
+-- |For some functions the atomic predicate type needs to have True
+-- and False elements.
+class Boolean p where
+    fromBool :: Bool -> p
 
 $(deriveSerialize ''BinOp)
 

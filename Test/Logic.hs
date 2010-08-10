@@ -7,9 +7,9 @@ import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 import qualified Logic.Instances.Parameterized as P
 import Logic.Instances.PropLogic (flatten)
-import Logic.Logic (Logic(..))
+import Logic.Logic (Logic(..), Boolean(..))
 import Logic.NormalForm (prenexNormalForm, skolemNormalForm, disjunctiveNormalForm, cnf {-, implicativeNormalForm-})
-import Logic.FirstOrder (Skolem(..), Boolean(..), FirstOrderLogic(..), toPropositional, showForm, freeVars, substitute, convertFOF)
+import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), toPropositional, showForm, freeVars, substitute, convertFOF)
 import Logic.Satisfiable (clauses, theorem, inconsistant)
 import PropLogic (PropForm(..), TruthTable, truthTable)
 import qualified TextDisplay as TD

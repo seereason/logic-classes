@@ -12,8 +12,8 @@ import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..))
 import Logic.Instances.Chiou ()
 import Logic.Implicative (Implicative(fromImplicative))
 import qualified Logic.Instances.Parameterized as P
-import Logic.Logic (Logic(..))
-import Logic.FirstOrder (Skolem(..), Boolean(..), FirstOrderLogic(..), convertFOF, showForm)
+import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), convertFOF, showForm)
+import Logic.Logic (Logic(..), Boolean(..))
 import Test.HUnit
 
 -- | Variable names

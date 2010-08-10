@@ -11,7 +11,8 @@ import Logic.Chiou.Monad (ProverT, runProverT)
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..){-, ConjunctiveNormalForm(..), distributeAndOverOr -})
 import Logic.Chiou.KnowledgeBase (loadKB, theoremKB {-, askKB, showKB-})
 import Logic.Chiou.Resolution (SetOfSupport)
-import Logic.FirstOrder (Skolem(..), Boolean(..))
+import Logic.FirstOrder (Skolem(..))
+import Logic.Logic (Boolean(..))
 import Logic.NormalForm (distributeDisjuncts)
 import Test.HUnit
 

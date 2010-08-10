@@ -32,7 +32,7 @@ Library
                    Logic.Prover
                    Logic.Satisfiable
  Build-Depends:    base, containers, fgl, happstack-data, happstack-state,
-                   mtl, syb-with-class, text, logic-TPTP, PropLogic
+                   mtl, syb-with-class, text, logic-TPTP, PropLogic, pretty
 
 Executable tests
  Main-Is: Test/Test.hs

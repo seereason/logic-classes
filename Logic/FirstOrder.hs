@@ -11,7 +11,6 @@
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
 module Logic.FirstOrder
     ( Skolem(..)
-    , Boolean(..)
     , FirstOrderLogic(..)
     , Quant(..)
     , quant
@@ -27,11 +26,13 @@ module Logic.FirstOrder
     , convertFOF
     , convertTerm
     , toPropositional
+    , Pretty(..)
+    , prettyForm
     ) where
 
 import Data.Data (Data)
 import Data.Function (on)
-import Data.List (isPrefixOf, intercalate)
+import Data.List (isPrefixOf, intercalate, intersperse)
 import Data.Monoid (mappend)
 import qualified Data.Set as S
 import Data.String (IsString(..))
@@ -40,17 +41,16 @@ import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
 import Logic.Logic
 import Logic.Propositional (PropositionalLogic(..))
+import Text.PrettyPrint
+
+class Pretty x where
+    pretty :: x -> Doc
 
 -- |This class shows how to convert between atomic Skolem functions
 -- and Ints.
 class Skolem f where
     toSkolem :: Int -> f
     fromSkolem  :: f -> Maybe Int
-
--- |For some functions the atomic predicate type needs to have True
--- and False elements.
-class Boolean p where
-    fromBool :: Bool -> p
 
 -- |The 'PropositionalLogic' type class.  Minimal implementation:
 -- @for_all, exists, foldF, foldT, (.=.), pApp, fApp, var@.  The
@@ -140,7 +140,36 @@ showForm formula =
           where
             v v' = "var (" ++ show v' ++ ")"
             f fn ts = "fApp (" ++ show fn ++ ") [" ++ intercalate "," (map showTerm ts) ++ "]"
-                       
+
+prettyForm :: forall formula term v p f. (FirstOrderLogic formula term v p f, Pretty v, Pretty p, Pretty f) => Int -> formula -> Doc
+prettyForm n formula =
+    pf n formula
+    where
+      -- pf :: Int -> formula -> Doc
+      pf prec =
+          foldF (\ f -> text {-"¬"-} "~" <> pf 4 f)
+                (\ qop vs f -> parensIf (prec > 1) $ hcat (map (prettyQuant qop) vs) <+> pf 1 f)
+                (\ f1 op f2 -> parensIf (prec > 2) $ (pf 2 f1 <+> formOp op <+> pf 2 f2))
+                (\ t1 op t2 -> parensIf (prec > 3) (term t1 <+> termOp op <+> term t2))
+                (\ p ts -> pretty p <> case ts of
+                                         [] -> empty
+                                         _ -> parens (hcat (intersperse (text ",") (map term ts))))
+      -- parenForm x = parens (pf x)
+      -- parenTerm x = parens (term x)
+      parensIf True = parens
+      parensIf False = id
+      prettyQuant All v = text "∀" <> pretty v
+      prettyQuant Exists v = text "∃" <> pretty v
+      formOp (:<=>:) = text "<=>"
+      formOp (:=>:) = text "=>"
+      formOp (:&:) = text "&"
+      formOp (:|:) = text "|"
+      termOp (:=:) = text "="
+      termOp (:!=:) = text "!="
+      term =
+          foldT (\ v' -> pretty v')
+                (\ fn ts -> pretty fn <> brackets (hcat (intersperse (text ",") (map term ts))))
+
 -- |The 'Quant' and 'InfixPred' types, like the BinOp type in
 -- 'Logic.Propositional', could be additional parameters to the type
 -- class, but it would add additional complexity with unclear

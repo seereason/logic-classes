@@ -26,7 +26,8 @@ import Logic.Chiou.Monad (ProverT, ProverState(..), zeroKB, SkolemCount, Knowled
 import Logic.Chiou.NormalForm (ImplicativeNormalForm)
 import Logic.Chiou.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Logic.Chiou.Skolem (assignSkolemL)
-import Logic.FirstOrder (Skolem(..), Boolean(..))
+import Logic.FirstOrder (Skolem(..))
+import Logic.Logic (Boolean(..))
 import Logic.NormalForm (toINF)
 
 -- |Reset the knowledgebase to empty.
