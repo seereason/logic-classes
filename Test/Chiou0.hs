@@ -13,7 +13,7 @@ import Logic.Chiou.KnowledgeBase (loadKB, theoremKB {-, askKB, showKB-})
 import Logic.Chiou.Resolution (SetOfSupport)
 import Logic.FirstOrder (Skolem(..))
 import Logic.Logic (Boolean(..))
-import Logic.NormalForm (distributeDisjuncts)
+import Logic.NormalForm (disjunctiveNormalForm)
 import Test.HUnit
 
 newtype V = V String deriving (Eq, Ord, Show)
@@ -101,7 +101,7 @@ distributeTest =
         And
         (Connective (Connective (Not (Predicate (Pr "f") [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "y")])) Or (Not (Predicate (Pr "f") [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "x")]))) Or (Predicate (Pr "q") [Variable (V "x"),Variable (V "y")])))))
 
-     (distributeDisjuncts
+     (disjunctiveNormalForm
       (Connective
        (Connective
         (Not (Predicate "q" [Variable (V "x"),Variable (V "y")]))

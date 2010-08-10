@@ -28,7 +28,7 @@ import Logic.Chiou.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Logic.Chiou.Skolem (assignSkolemL)
 import Logic.FirstOrder (Skolem(..))
 import Logic.Logic (Boolean(..))
-import Logic.NormalForm (toINF)
+import Logic.Implicative (toImplicative)
 
 -- |Reset the knowledgebase to empty.
 emptyKB :: Monad m => ProverT v p f m ()
@@ -70,14 +70,14 @@ theoremKB s = inconsistantKB (Not s)
 -- with a disproof.
 inconsistantKB :: (Monad m, Ord v, IsString v, Eq p, Ord f, Skolem f, Ord p, Boolean p, Show v, Show p, Show f) =>
                   Sentence v p f -> ProverT v p f m (Bool, SetOfSupport v p f)
-inconsistantKB s = getKB >>= return . prove [] (getSetOfSupport (toINF s))
+inconsistantKB s = getKB >>= return . prove [] (getSetOfSupport (toImplicative s))
 
 -- |Validate a sentence and insert it into the knowledgebase.  Returns
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
 tellKB :: (Monad m, Ord v, IsString v, Ord p, Boolean p, Ord f, Skolem f, Show v, Show p, Show f) =>
           Sentence v p f -> ProverT v p f m (Maybe Bool, [ImplicativeNormalForm v p f])
-tellKB s = do (inf, sc) <-  assignSkolemL (toINF s) 0
+tellKB s = do (inf, sc) <-  assignSkolemL (toImplicative s) 0
               (valid, _, _) <- validKB s
               case valid of
                 Just False -> return ()

@@ -8,7 +8,7 @@ import Data.String (IsString(fromString))
 import qualified Logic.Instances.Parameterized as P
 import Logic.Instances.PropLogic (flatten)
 import Logic.Logic (Logic(..), Boolean(..))
-import Logic.NormalForm (prenexNormalForm, skolemNormalForm, disjunctiveNormalForm, cnf {-, implicativeNormalForm-})
+import Logic.NormalForm (prenexNormalForm, skolemNormalForm, disjunctiveNormalForm, clausalNormalForm {-, implicativeNormalForm-})
 import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), toPropositional, showForm, freeVars, substitute, convertFOF)
 import Logic.Satisfiable (clauses, theorem, inconsistant)
 import PropLogic (PropForm(..), TruthTable, truthTable)
@@ -112,7 +112,7 @@ w = var (fromString "w")
 -- Test cases from http://www.cs.miami.edu/~geoff/Courses/CS63S-09S/Content/FOFToCNF.shtml
 
 cnf' :: TestFormula -> PropForm TestFormula
-cnf' f = toPropositional A (convertFOF id id id (let (s :: TestFormula) = convertFOF id id id f in (cnf s)))
+cnf' f = toPropositional A (convertFOF id id id (let (s :: TestFormula) = convertFOF id id id f in (clausalNormalForm s)))
 
 snf' :: TestFormula -> TestFormula
 snf' f = skolemNormalForm f
@@ -218,7 +218,7 @@ pairTest :: (String, PropForm TestFormula, TestFormula) -> [Test]
 pairTest (s, f1, f2) =
     [ TestCase (assertEqual ("Logic - " ++ s ++ ", Chiou cnf") f1 (flatten (cnf' f2)))
     , TestCase (assertEqual ("Logic - " ++ s ++ ", Parameterized cnf")
-                f1 (flatten (toPropositional A (cnf f2)))) ]
+                f1 (flatten (toPropositional A (clausalNormalForm f2)))) ]
 
 -- |Here is an example of automatic conversion from a FirstOrderLogic
 -- instance to a PropositionalLogic instance.  The result is PropForm

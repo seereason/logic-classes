@@ -22,12 +22,12 @@ module Logic.Chiou.NormalForm
 
 import qualified Data.Set as S
 import Data.String (IsString)
-import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Connective(..), Quantifier(..))
+import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Connective(..))
 import Logic.FirstOrder (FirstOrderLogic(..), Skolem(..), convertFOF)
 import Logic.Implicative (Implicative(..))
 import Logic.Instances.Chiou ()
 import Logic.Logic (Logic(..), Boolean(..))
-import Logic.NormalForm (skolemize, moveQuantifiersOut, eliminateImplication, moveNotInwards)
+import Logic.NormalForm (clausalNormalForm {-skolemize, moveQuantifiersOut, eliminateImplication, moveNotInwards-})
 
 data ConjunctiveNormalForm v p f =
     CNF [NormalSentence v p f]
@@ -60,6 +60,10 @@ toCNF :: (Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Sh
 toCNF s = CNF (normalize (toCNFSentence s))
 -}
 toCNFSentence :: (Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> Sentence v p f
+toCNFSentence s =
+    clausalNormalForm s
+
+{-
 toCNFSentence s0 = let
  		     s1 = eliminateImplication s0
 		     s2 = moveNotInwards s1
@@ -69,6 +73,7 @@ toCNFSentence s0 = let
 		     s6 = distributeAndOverOr s5
 		   in
 		     s6
+-}
 {-
 showCNFDerivation :: (Show (Sentence v p f), Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> String
 showCNFDerivation s0 = let
@@ -188,15 +193,10 @@ moveNotInwards (Not (Quantifier ExistsCh vs s)) =
 moveNotInwards (Not (Not s)) = moveNotInwards s
 moveNotInwards (Not s) = Not (moveNotInwards s)
 moveNotInwards s = s
--}
 
 standardizeVariables :: Sentence v p f -> Sentence v p f
 standardizeVariables s = s
 
-{--
- 
- -}
-{-
 moveQuantifiersLeft :: Sentence v p f -> Sentence v p f
 moveQuantifiersLeft s =
     let
@@ -233,6 +233,7 @@ prependQuantifiers' (s, ((q, vs):qs)) = Quantifier q vs (prependQuantifiers' (s,
    (A AND B) OR C     becomes    (A OR C) AND (B OR C)
    A OR (B AND C)     becomes    (A OR B) AND (B OR C)
   -}
+{-
 distributeDisjuncts :: (Eq f, Eq p, Eq v) => Sentence v p f -> Sentence v p f
 distributeDisjuncts =
     foldFCh Not q b Equal Predicate
@@ -287,7 +288,7 @@ foldFCh n q b i a formula =
 
 distributeAndOverOr :: (Eq v, Eq p, Eq f) => Sentence v p f -> Sentence v p f
 distributeAndOverOr = distributeDisjuncts
-
+-}
 {-
 distributeAndOverOr (Connective (Connective s1 And s2) Or s3) =
     let

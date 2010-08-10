@@ -29,21 +29,12 @@
 -- @
 -- 
 module Logic.NormalForm
-    ( simplify
-    , negationNormalForm
+    ( negationNormalForm
     , prenexNormalForm
     , disjunctiveNormalForm
     , skolemNormalForm
     , clausalNormalForm
-    , cnf
-    -- , cnfTraced
     , implicativeNormalForm
-    , toINF
-    , moveQuantifiersOut
-    , skolemize
-    , eliminateImplication
-    , moveNotInwards
-    , distributeDisjuncts
     ) where
 
 import Data.Char (isDigit)
@@ -65,23 +56,6 @@ import Logic.Logic
 -- 
 simplify :: FirstOrderLogic formula term v p f => formula -> formula
 simplify = eliminateImplication
-{-
-simplify :: FirstOrderLogic formula term v p f => formula -> formula
-simplify =
-    foldF n q b i a
-    where
-      q All vs f = for_all vs (simplify f)
-      q Exists vs f = exists vs (simplify f)
-      b :: FirstOrderLogic formula term v p f => formula -> BinOp -> formula -> formula
-      b f1 (:&:) f2 = simplify f1 .&. simplify f2
-      b f1 (:|:) f2 = simplify f1 .|. simplify f2
-      b f1 (:=>:) f2 = ((.~.) (simplify f1)) .|. simplify f2
-      b f1 (:<=>:) f2 = simplify ((f1 .=>. f2) .&. (f2 .=>. f1))
-      n f = (.~.) (simplify f)
-      i t1 (:=:) t2 = t1 .=. t2
-      i t1 (:!=:) t2 = t1 .!=. t2
-      a p ts = pApp p ts
--}
 
 {-- 
    Invariants:
@@ -116,38 +90,7 @@ eliminateImplication =
 -- @
 -- 
 negationNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
-negationNormalForm = moveNegationsIn . simplify
-
-moveNegationsIn :: FirstOrderLogic formula term v p f => formula -> formula
-moveNegationsIn = moveNotInwards
-{-
-moveNegationsIn =
-    foldF n q b i a
-    where
-      n f = doNegation f
-      q All vs f = for_all vs (moveNegationsIn f)
-      q Exists vs f = exists vs (moveNegationsIn f)
-      b f1 (:&:) f2 = moveNegationsIn f1 .&. moveNegationsIn f2
-      b f1 (:|:) f2 = moveNegationsIn f1 .|. moveNegationsIn f2
-      -- These are already gone
-      b _ op _ = error $ "moveNegationsIn: Unexpected BinOp " ++ show op
-      -- b f1 op f2 = binOp f1 op f2
-      i = infixPred
-      a p ts = pApp p ts
-      -- Helper function for moveNegationsIn, for already negated formulae
-      doNegation :: FirstOrderLogic formula term v p f => formula -> formula
-      doNegation =
-          foldF n' q' b' i' a'
-          where
-            n' f = moveNegationsIn f -- double negation
-            q' All vs f = exists vs (moveNegationsIn ((.~.) f))
-            q' Exists vs f = for_all vs (moveNegationsIn ((.~.) f))
-            b' f1 (:|:) f2 = moveNegationsIn ((.~.) f1) .&. moveNegationsIn ((.~.) f2)
-            b' f1 (:&:) f2 = moveNegationsIn ((.~.) f1) .|. moveNegationsIn ((.~.) f2)
-            b' _ op _ = error $ "moveNegationsIn: Unexpected BinOp " ++ show op
-            i' t1 op t2 = (.~.) (infixPred t1 op t2)
-            a' p ts = (.~.) (pApp p ts)
--}
+negationNormalForm = moveNotInwards . simplify
 
 {--
    Invariants:
@@ -361,9 +304,6 @@ clausalNormalForm :: (FirstOrderLogic formula term v p f, Eq formula) =>
                      formula -> formula
 clausalNormalForm = {- removeUniversal . -} skolemNormalForm
 
-toINF :: forall inf formula term v p f. Implicative inf formula term v p f => formula -> [inf]
-toINF formula = toImplicative formula :: [inf]
-
 implicativeNormalForm :: forall inf formula term v p f. 
                          Implicative inf formula term v p f =>
                          formula -> formula
@@ -380,13 +320,8 @@ removeUniversal formula =
       removeAll All _ f = removeUniversal f
       removeAll Exists vs f = exists vs (removeUniversal f)
 
--- |Nickname for clausalNormalForm.
-cnf :: (FirstOrderLogic formula term v p f, Eq formula) =>
-       formula -> formula
-cnf = clausalNormalForm
-
--- |Nickname for clausalNormalForm.
 {-
+-- |Nickname for clausalNormalForm.
 cnfTraced :: (FirstOrderLogic formula term v p f, Eq formula, Show formula) => formula -> formula
 cnfTraced =
     t6 . removeUniversal . t5 . skolemize . t4 . distributeDisjuncts . t3 . moveQuantifiersOut . t2 . moveNegationsIn . simplify . t1
