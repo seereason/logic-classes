@@ -13,7 +13,7 @@ instance Logic (PropForm a) where
     x .&.   y = CJ [x, y]
     (.~.) x   = N x
 
-instance (Logic (PropForm a), Show a) => PropositionalLogic (PropForm a) a where
+instance Logic (PropForm a) => PropositionalLogic (PropForm a) a where
     atomic = A
     foldF0 n b a formula =
         case formula of

@@ -34,9 +34,9 @@ module Logic.NormalForm
     , prenexNormalForm
     , disjunctiveNormalForm
     , skolemNormalForm
-    , clauseNormalForm
+    , clausalNormalForm
     , cnf
-    , cnfTraced
+    -- , cnfTraced
     , implicativeNormalForm
     , toINF
     , moveQuantifiersOut
@@ -50,7 +50,7 @@ import Data.Char (isDigit)
 import qualified Data.Map as Map
 import Data.String (IsString(..))
 import qualified Data.Set as S
-import Debug.Trace
+--import Debug.Trace
 import Logic.FirstOrder
 import Logic.Implicative (Implicative(..))
 import Logic.Logic
@@ -198,10 +198,10 @@ moveNotInwards formula =
 -- variable which does not appear and change occurrences of X in P to
 -- this new variable.  We could instead modify Q, but that looks
 -- slightly more tedious.
-prenexNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Show formula) => formula -> formula
+prenexNormalForm :: (FirstOrderLogic formula term v p f, Eq formula) => formula -> formula
 prenexNormalForm = moveQuantifiersOut . negationNormalForm
 
-moveQuantifiersOut :: forall formula term v p f. (FirstOrderLogic formula term v p f, Eq formula, Show formula) =>
+moveQuantifiersOut :: forall formula term v p f. (FirstOrderLogic formula term v p f, Eq formula) =>
                       formula -> formula
 moveQuantifiersOut formula =
     foldF n q b i a formula
@@ -279,7 +279,7 @@ renameFreeVars s vs f =
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-disjunctiveNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Show formula) => formula -> formula
+disjunctiveNormalForm :: (FirstOrderLogic formula term v p f, Eq formula) => formula -> formula
 disjunctiveNormalForm = distributeDisjuncts . prenexNormalForm
 
 distributeDisjuncts :: FirstOrderLogic formula term v p f => formula -> formula
@@ -325,7 +325,7 @@ distributeDisjuncts =
 -- functions applied to the list of variables which are universally
 -- quantified in the context where the existential quantifier
 -- appeared.
-skolemNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Show formula) =>
+skolemNormalForm :: (FirstOrderLogic formula term v p f, Eq formula) =>
                     formula -> formula
 skolemNormalForm = skolemize . disjunctiveNormalForm
 
@@ -357,9 +357,9 @@ skolemize =
 -- universal quantifiers.  Due to the nature of Skolem Normal Form,
 -- this is actually all the remaining quantifiers, the result is
 -- effectively a propositional logic formula.
-clauseNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Show formula) =>
-                    formula -> formula
-clauseNormalForm = {- removeUniversal . -} skolemNormalForm
+clausalNormalForm :: (FirstOrderLogic formula term v p f, Eq formula) =>
+                     formula -> formula
+clausalNormalForm = {- removeUniversal . -} skolemNormalForm
 
 toINF :: forall inf formula term v p f. Implicative inf formula term v p f => formula -> [inf]
 toINF formula = toImplicative formula :: [inf]
@@ -380,12 +380,13 @@ removeUniversal formula =
       removeAll All _ f = removeUniversal f
       removeAll Exists vs f = exists vs (removeUniversal f)
 
--- |Nickname for clauseNormalForm.
-cnf :: (FirstOrderLogic formula term v p f, Eq formula, Show formula) =>
+-- |Nickname for clausalNormalForm.
+cnf :: (FirstOrderLogic formula term v p f, Eq formula) =>
        formula -> formula
-cnf = clauseNormalForm
+cnf = clausalNormalForm
 
--- |Nickname for clauseNormalForm.
+-- |Nickname for clausalNormalForm.
+{-
 cnfTraced :: (FirstOrderLogic formula term v p f, Eq formula, Show formula) => formula -> formula
 cnfTraced =
     t6 . removeUniversal . t5 . skolemize . t4 . distributeDisjuncts . t3 . moveQuantifiersOut . t2 . moveNegationsIn . simplify . t1
@@ -396,3 +397,4 @@ cnfTraced =
       t4 x = trace ("DNF:   " ++ show x) x
       t5 x = trace ("SNF:   " ++ show x) x
       t6 x = trace ("CNF:   " ++ show x) x
+-}

@@ -647,6 +647,6 @@ prepare formula = ({- flatten . -} fromJust . toPropositional convertA . cnf . (
 convertA = Just . A
 -}
 
-table :: (FirstOrderLogic formula term v p f, Show formula, Ord formula, Eq term, Skolem f, IsString v, TD.Display formula) =>
+table :: (FirstOrderLogic formula term v p f, Ord formula, Eq term, Skolem f, IsString v, TD.Display formula) =>
          formula -> TruthTable formula
 table = truthTable . clauses

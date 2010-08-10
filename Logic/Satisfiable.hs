@@ -12,21 +12,21 @@ module Logic.Satisfiable
 
 import Logic.FirstOrder (FirstOrderLogic(..), toPropositional)
 import Logic.Logic ((.~.))
-import Logic.NormalForm (clauseNormalForm)
+import Logic.NormalForm (clausalNormalForm)
 import Logic.Instances.PropLogic ()
 import PropLogic (PropForm(..), satisfiable)
 
-clauses :: (FirstOrderLogic formula term v p f, Ord formula, Show formula) => formula -> PropForm formula
-clauses = toPropositional A . clauseNormalForm
+clauses :: (FirstOrderLogic formula term v p f, Ord formula) => formula -> PropForm formula
+clauses = toPropositional A . clausalNormalForm
 
-inconsistant :: (FirstOrderLogic formula term v p f, Ord formula, Show formula) =>
+inconsistant :: (FirstOrderLogic formula term v p f, Ord formula) =>
                 formula -> Bool
 inconsistant =  not . satisfiable . clauses
 
-theorem :: (FirstOrderLogic formula term v p f, Ord formula, Show formula) =>
+theorem :: (FirstOrderLogic formula term v p f, Ord formula) =>
            formula -> Bool
 theorem f = inconsistant ((.~.) f)
 
-invalid :: (FirstOrderLogic formula term v p f, Ord formula, Show formula) =>
+invalid :: (FirstOrderLogic formula term v p f, Ord formula) =>
            formula -> Bool
 invalid f = not (inconsistant f || theorem f)
