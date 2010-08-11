@@ -55,10 +55,10 @@ animalKB =
      , TestFormula
        { formula = for_all [V "x"] (((exists ["y"] (dog [y])) .&. (owns [x, y])) .=>. (animalLover [x])) -- [[Neg 1,Neg 2,Pos 3]]
        , name = "dog owners are animal lovers"
-       , expected = [ PrenexNormalForm (for_all [V "x"] (for_all [V "y"] ((((.~.) (pApp (Pr "Dog") [var (V "y")])) .|.
-                                                                           (((.~.) (pApp (Pr "Owns") [var (V "x"),var (V "y")])))) .|.
-                                                                          ((pApp (Pr "AnimalLover") [var (V "x")])))))
-                    , ClausalNormalForm [[((.~.) (pApp (Pr "Dog") [var (V "y")])),((.~.) (pApp (Pr "Owns") [var (V "x"),var (V "y")])),(pApp (Pr "AnimalLover") [var (V "x")])]] ]
+       , expected = [ PrenexNormalForm (for_all [V "x"] (for_all [V "y2"] ((((.~.) (pApp (Pr "Dog") [var (V "y2")])) .|.
+                                                                            (((.~.) (pApp (Pr "Owns") [var (V "x"),var (V "y")])))) .|.
+                                                                           ((pApp (Pr "AnimalLover") [var (V "x")])))))
+                    , ClausalNormalForm [[((.~.) (pApp (Pr "Dog") [var (V "y2")])),((.~.) (pApp (Pr "Owns") [var (V "x"),var (V "y")])),(pApp (Pr "AnimalLover") [var (V "x")])]] ]
        -- animalLover(X0) | ~owns(X0,sK1(X0)) | ~dog(sK1(X0))
        }
      , TestFormula
@@ -98,7 +98,14 @@ animalConjectures =
        { formula = (.~.) (kills [jack, tuna]) -- [[Neg 5]]            -- Inconsistant
        , name = "not (jack kills tuna)"
        , expected =
-           [ ClausalNormalForm  [[(.~.) (pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])]]
+           [ ClausalNormalForm  [[(pApp (Pr "Dog") [fApp (Skolem 1) []])],
+                                 [(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])],
+                                 [((.~.) (pApp (Pr "Dog") [var (V "y2")])),((.~.) (pApp (Pr "Owns") [var (V "x2"),var (V "y")])),(pApp (Pr "AnimalLover") [var (V "x2")])],
+                                 [((.~.) (pApp (Pr "AnimalLover") [var (V "x2")])),((.~.) (pApp (Pr "Animal") [var (V "y3")])),((.~.) (pApp (Pr "Kills") [var (V "x2"),var (V "y3")]))],
+                                 [(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []]),(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []])],
+                                 [(pApp (Pr "Cat") [fApp (Fn "Tuna") []])],
+                                 [((.~.) (pApp (Pr "Cat") [var (V "x2")])),(pApp (Pr "Animal") [var (V "x2")])],
+                                 [(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])]]
            , SatResult True ]
        -- negated_conjecture: ~kills(jack,tuna)
        }
@@ -106,7 +113,14 @@ animalConjectures =
        { formula = (.~.) (kills [curiosity, tuna])        -- Theorem
        , name = "not (curiosity kills tuna)"
        , expected =
-           [ ClausalNormalForm  [[(.~.) (pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []])]]
+           [ ClausalNormalForm  [[(pApp (Pr "Dog") [fApp (Skolem 1) []])],
+                                 [(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])],
+                                 [((.~.) (pApp (Pr "Dog") [var (V "y2")])),((.~.) (pApp (Pr "Owns") [var (V "x2"),var (V "y")])),(pApp (Pr "AnimalLover") [var (V "x2")])],
+                                 [((.~.) (pApp (Pr "AnimalLover") [var (V "x2")])),((.~.) (pApp (Pr "Animal") [var (V "y3")])),((.~.) (pApp (Pr "Kills") [var (V "x2"),var (V "y3")]))],
+                                 [(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []]),(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []])],
+                                 [(pApp (Pr "Cat") [fApp (Fn "Tuna") []])],
+                                 [((.~.) (pApp (Pr "Cat") [var (V "x2")])),(pApp (Pr "Animal") [var (V "x2")])],
+                                 [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []])]]
            , SatResult False ]
        -- negated_conjecture: ~kills(curiosity,tuna)
        }

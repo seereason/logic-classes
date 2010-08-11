@@ -38,9 +38,9 @@ module Logic.NormalForm
     , implicativeNormalForm
     ) where
 
-import Data.Char (isDigit)
+--import Data.Char (isDigit)
 import qualified Data.Map as Map
-import Data.String (IsString(..))
+--import Data.String (IsString(..))
 import qualified Data.Set as S
 --import Debug.Trace
 import Logic.FirstOrder
@@ -142,10 +142,10 @@ moveNotInwards formula =
 -- variable which does not appear and change occurrences of X in P to
 -- this new variable.  We could instead modify Q, but that looks
 -- slightly more tedious.
-prenexNormalForm :: (FirstOrderLogic formula term v p f, Eq formula) => formula -> formula
+prenexNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Enum v) => formula -> formula
 prenexNormalForm = moveQuantifiersOut . negationNormalForm
 
-moveQuantifiersOut :: forall formula term v p f. (FirstOrderLogic formula term v p f, Eq formula) =>
+moveQuantifiersOut :: forall formula term v p f. (FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
                       formula -> formula
 moveQuantifiersOut formula =
     foldF n q b i a formula
@@ -159,7 +159,7 @@ moveQuantifiersOut formula =
       a p ts = pApp p ts
       -- We found :&: or :|: above, look for quantifiers to move out, first examine f1
       -- f1=(∀X P), f2=Q
-      doLHS :: formula -> BinOp -> formula -> formula
+      -- doLHS :: formula -> BinOp -> formula -> formula
       doLHS f1 op f2 =
           foldF n' q' b' i' a' f1
           where
@@ -178,7 +178,7 @@ moveQuantifiersOut formula =
             i' _ _ _ = doRHS f1 op f2
             a' _ _ = doRHS f1 op f2
       -- We reached a point where f1 was not a quantifier, try f2
-      doRHS :: formula -> BinOp -> formula -> formula
+      -- doRHS :: formula -> BinOp -> formula -> formula
       doRHS f1 op f2 =
           foldF n' q' b' i' a' f2
           where
@@ -196,24 +196,27 @@ moveQuantifiersOut formula =
 
 -- |Find new variables that are not in the set and substitute free
 -- occurrences in the formula.
-renameFreeVars :: forall formula term v p f. FirstOrderLogic formula term v p f =>
+renameFreeVars :: forall formula term v p f. (FirstOrderLogic formula term v p f, Enum v) =>
                   S.Set v -> [v] -> formula -> ([v], formula)
 renameFreeVars s vs f =
     (vs'', substitutePairs (zip vs (map var vs'')) f)
     where
       (vs'', _) = foldr (\ v (vs', s') ->
                              if S.member v s'
-                             then let v' = fromString (findName s' "x") in (v' : vs', S.insert v' s')
+                             then let v' = findName s' v in (v' : vs', S.insert v' s')
                              else (v : vs', S.insert v s')) ([], s) vs
-      findName :: S.Set v -> String -> String
-      findName s' v = if S.member (fromString v) s' then findName s' (nextName v) else v
+      findName :: S.Set v -> v -> v
+      findName s' v = if S.member v s' then findName s' (succ v) else v
+{-
       nextName :: String -> String
+      nextName 
       nextName "x" = "y"
       nextName "y" = "z"
       nextName v =
           reverse (show (1 + read (if n == "" then "1" else n) :: Int) ++
                    {- (if a == "" then "x" else a) -} "x")
               where (n, _a) = break (not . isDigit) (reverse v)
+-}
 
 -- |Convert to Prenex Normal Form and then distribute the disjunctions over the conjunctions:
 -- 
@@ -223,7 +226,7 @@ renameFreeVars s vs f =
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-disjunctiveNormalForm :: (FirstOrderLogic formula term v p f, Eq formula) => formula -> formula
+disjunctiveNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Enum v) => formula -> formula
 disjunctiveNormalForm = distributeDisjuncts . prenexNormalForm
 
 distributeDisjuncts :: FirstOrderLogic formula term v p f => formula -> formula
@@ -269,7 +272,7 @@ distributeDisjuncts =
 -- functions applied to the list of variables which are universally
 -- quantified in the context where the existential quantifier
 -- appeared.
-skolemNormalForm :: (FirstOrderLogic formula term v p f, Eq formula) =>
+skolemNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
                     formula -> formula
 skolemNormalForm = skolemize . disjunctiveNormalForm
 
@@ -301,11 +304,11 @@ skolemize =
 -- universal quantifiers.  Due to the nature of Skolem Normal Form,
 -- this is actually all the remaining quantifiers, the result is
 -- effectively a propositional logic formula.
-clausalNormalForm :: (FirstOrderLogic formula term v p f, Eq formula) =>
+clausalNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
                      formula -> formula
 clausalNormalForm = {- removeUniversal . -} skolemNormalForm
 
-clausalNormalForm' :: (FirstOrderLogic formula term v p f, Eq formula) =>
+clausalNormalForm' :: (FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
                      formula -> [[formula]]
 clausalNormalForm' = {- removeUniversal . -} clausal . skolemNormalForm
 

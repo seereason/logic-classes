@@ -43,7 +43,7 @@ data NormalSentence v p f
     | NFEqual (Term v f) (Term v f)
     deriving (Eq, Ord)
 
-instance (FirstOrderLogic (Sentence v p f) (Term v f) v p f, Ord p, Ord f, Show v, Show p, Show f) => Implicative (ImplicativeNormalForm v p f) (Sentence v p f) (Term v f) v p f where
+instance (FirstOrderLogic (Sentence v p f) (Term v f) v p f, Enum v, Ord p, Ord f, Show v, Show p, Show f) => Implicative (ImplicativeNormalForm v p f) (Sentence v p f) (Term v f) v p f where
     neg (INF x _) = S.fromList (map toSentence x)
     pos (INF _ x) = S.fromList (map toSentence x)
     toImplicative formula =
@@ -59,7 +59,7 @@ toSentence (NFPredicate p ts) = pApp p ts
 toCNF :: (Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> ConjunctiveNormalForm v p f
 toCNF s = CNF (normalize (toCNFSentence s))
 -}
-toCNFSentence :: (Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> Sentence v p f
+toCNFSentence :: (Ord v, IsString v, Enum v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> Sentence v p f
 toCNFSentence s =
     clausalNormalForm s
 
@@ -99,7 +99,7 @@ showCNFDerivation s0 = let
 			 "Distribute AND over OR:\t" ++
 			 (show s6 ++ "\n")
 -}
-toINF :: (Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> [ImplicativeNormalForm v p f]
+toINF :: (Ord v, IsString v, Enum v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> [ImplicativeNormalForm v p f]
 toINF s =
     let
       cnf = toCNFSentence s

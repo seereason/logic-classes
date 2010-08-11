@@ -17,21 +17,21 @@ import Logic.NormalForm (clausalNormalForm)
 import Logic.Instances.PropLogic ()
 import qualified PropLogic as PL
 
-satisfiable :: (FirstOrderLogic formula term v p f, Ord formula) =>
+satisfiable :: (FirstOrderLogic formula term v p f, Ord formula, Enum v) =>
                 formula -> Bool
 satisfiable =  PL.satisfiable . clauses
 
-clauses :: (FirstOrderLogic formula term v p f, Ord formula) => formula -> PL.PropForm formula
+clauses :: (FirstOrderLogic formula term v p f, Ord formula, Enum v) => formula -> PL.PropForm formula
 clauses = toPropositional PL.A . clausalNormalForm
 
-inconsistant :: (FirstOrderLogic formula term v p f, Ord formula) =>
+inconsistant :: (FirstOrderLogic formula term v p f, Ord formula, Enum v) =>
                 formula -> Bool
 inconsistant =  not . satisfiable
 
-theorem :: (FirstOrderLogic formula term v p f, Ord formula) =>
+theorem :: (FirstOrderLogic formula term v p f, Ord formula, Enum v) =>
            formula -> Bool
 theorem f = inconsistant ((.~.) f)
 
-invalid :: (FirstOrderLogic formula term v p f, Ord formula) =>
+invalid :: (FirstOrderLogic formula term v p f, Ord formula, Enum v) =>
            formula -> Bool
 invalid f = not (inconsistant f || theorem f)

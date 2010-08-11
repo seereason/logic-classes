@@ -181,7 +181,7 @@ testFormulas =
                A (pApp ("q") [var (V "x"),var (V "y")])]],
        (for_all ["x"] (for_all ["x"] (for_all ["y"] (q [x, y] .<=>. for_all [(V "z")] (f [z, x] .<=>. f [z, y]))))))
     , ("cnf test 10",
-       CJ [DJ [A (pApp ("q") [fApp (SkolemFunction 1) [var (V "x")],fApp (SkolemFunction 3) [var (V "x")],fApp (SkolemFunction 3) [var (V "x")]]),
+       CJ [DJ [A (pApp ("q") [fApp (SkolemFunction 1) [var (V "x")],fApp (SkolemFunction 2) [var (V "x")],fApp (SkolemFunction 3) [var (V "x")]]),
                A (pApp ("p") [var (V "x"),fApp (SkolemFunction 1) [var (V "x")]])],
            DJ [N (A (pApp ("r") [fApp (SkolemFunction 1) [var (V "x")]])),
                A (pApp ("p") [var (V "x"),fApp (SkolemFunction 1) [var (V "x")]])]],
@@ -254,7 +254,7 @@ test9a = TestCase
 moveQuantifiersOut1 :: Test
 moveQuantifiersOut1 =
     formCase "Logic - moveQuantifiersOut1"
-             (for_all ["y"] ((pApp ("p") [var ("y")]) .&. ((pApp ("q") [var ("x")]))))
+             (for_all ["x2"] ((pApp ("p") [var ("x2")]) .&. ((pApp ("q") [var ("x")]))))
              (prenexNormalForm (for_all ["x"] (pApp (fromString "p") [x]) .&. (pApp (fromString "q") [x])))
 
 skolemize1 :: Test
@@ -532,16 +532,16 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                exists ["x"] (pApp "L" [var "x"])) .=>.                            -- Someone is a logician
               (.~.) (exists ["x"] (pApp "F" [var "x"]))                           -- Someone / Nobody is funny
           input = table formula
-          expected = ([(pApp ("F") [var (V "z")]),
+          expected = ([(pApp ("F") [var (V "x3")]),
                        (pApp ("F") [fApp (SkolemFunction 1) []]),
-                       (pApp ("L") [var (V "y")]),
+                       (pApp ("L") [var (V "x2")]),
                        (pApp ("L") [fApp (SkolemFunction 1) []])],
                       Just (CJ [DJ [DJ [A (pApp ("L") [fApp (SkolemFunction 1) []]),
-                                        N (A (pApp ("L") [var (V "y")]))],
-                                    N (A (pApp ("F") [var (V "z")]))],
+                                        N (A (pApp ("L") [var (V "x2")]))],
+                                    N (A (pApp ("F") [var (V "x3")]))],
                                 DJ [DJ [N (A (pApp ("F") [fApp (SkolemFunction 1) []])),
-                                          N (A (pApp ("L") [var (V "y")]))],
-                                    N (A (pApp ("F") [var (V "z")]))]]),
+                                          N (A (pApp ("L") [var (V "x2")]))],
+                                    N (A (pApp ("F") [var (V "x3")]))]]),
                       [([False,False,False,False],True),
                        ([False,False,False,True],True),
                        ([False,False,True,False],True),
@@ -645,6 +645,6 @@ prepare formula = ({- flatten . -} fromJust . toPropositional convertA . cnf . (
 convertA = Just . A
 -}
 
-table :: (FirstOrderLogic formula term v p f, Ord formula, Eq term, Skolem f, IsString v, TD.Display formula) =>
+table :: (FirstOrderLogic formula term v p f, Ord formula, Eq term, Skolem f, IsString v, Enum v, TD.Display formula) =>
          formula -> TruthTable formula
 table = truthTable . clauses

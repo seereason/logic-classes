@@ -16,11 +16,11 @@ import Logic.Implicative (Implicative(fromImplicative))
 import Logic.Instances.Chiou ()
 import Logic.Instances.Parameterized ()
 
-load :: (FirstOrderLogic formula term v p f, Ord p, Ord f, Monad m, Show v, Show p, Show f) =>
+load :: (FirstOrderLogic formula term v p f, Enum v, Ord p, Ord f, Monad m, Show v, Show p, Show f) =>
           [formula] -> C.ProverT v p f m [(Maybe Bool, [formula])]
 load xs = C.loadKB (map f2s xs) >>= return . map fromINF'
 
-load' :: (FirstOrderLogic formula term v p f, Ord p, Ord f, Show v, Show p, Show f) =>
+load' :: (FirstOrderLogic formula term v p f, Enum v, Ord p, Ord f, Show v, Show p, Show f) =>
          [formula] -> [(Maybe Bool, [formula])]
 load' = runIdentity . C.runProverT . load
 
@@ -36,7 +36,7 @@ load' = runIdentity . C.runProverT . load
 -- The list of formulas is the proof or disproof or attempted proof
 -- that was generated.  The new formula is added to the knowledge base
 -- in all cases except for disproof.
-tell :: (FirstOrderLogic formula term v p f, Ord p, Ord f, Monad m, Show v, Show p, Show f) =>
+tell :: (FirstOrderLogic formula term v p f, Enum v, Ord p, Ord f, Monad m, Show v, Show p, Show f) =>
         formula -> C.ProverT v p f m (Maybe Bool, [formula])
 tell x = C.tellKB (f2s x) >>= return . fromINF'
 
