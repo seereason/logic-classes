@@ -22,7 +22,7 @@ satisfiable :: (FirstOrderLogic formula term v p f, Ord formula, Enum v) =>
 satisfiable =  PL.satisfiable . clauses
 
 clauses :: (FirstOrderLogic formula term v p f, Ord formula, Enum v) => formula -> PL.PropForm formula
-clauses = toPropositional PL.A . clausalNormalForm
+clauses f = PL.CJ (map (PL.DJ . map (toPropositional PL.A)) (clausalNormalForm f))
 
 inconsistant :: (FirstOrderLogic formula term v p f, Ord formula, Enum v) =>
                 formula -> Bool

@@ -9,7 +9,7 @@ import qualified Logic.Chiou.KnowledgeBase as C
 import Logic.FirstOrder (convertFOF)
 import Logic.Logic (Logic(..))
 import Logic.Monad (runSkolem, runLiteralMap)
-import Logic.NormalForm (clausalNormalForm, clausalNormalForm', prenexNormalForm, disjunctiveNormalForm, skolemNormalForm, negationNormalForm)
+import Logic.NormalForm (clausalNormalForm, prenexNormalForm, disjunctiveNormalForm, skolemNormalForm, negationNormalForm)
 import Logic.Satisfiable (satisfiable) 
 --import PropLogic (PropForm(..), TruthTable, truthTable)
 import Test.Data
@@ -33,7 +33,7 @@ tests = TestLabel "New" $ TestList (concatMap doFormula (formulas ++ gFind (anim
 doTest f (FirstOrderFormula f') =
     [TestCase (assertEqual (name f) f' (formula f))]
 doTest f (ClausalNormalForm fss) =
-    [TestCase (assertEqual (name f ++ " clausal normal form") fss ({-runSkolem-} (clausalNormalForm' (formula f))))]
+    [TestCase (assertEqual (name f ++ " clausal normal form") fss ({-runSkolem-} (clausalNormalForm (formula f))))]
 doTest f (PrenexNormalForm f') =
     [TestCase (assertEqual (name f ++ " prenex normal form") f' (prenexNormalForm (formula f)))]
 doTest f (DisjunctiveNormalForm f') =

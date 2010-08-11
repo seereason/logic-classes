@@ -34,7 +34,6 @@ module Logic.NormalForm
     , disjunctiveNormalForm
     , skolemNormalForm
     , clausalNormalForm
-    , clausalNormalForm'
     , implicativeNormalForm
     ) where
 
@@ -305,12 +304,8 @@ skolemize =
 -- this is actually all the remaining quantifiers, the result is
 -- effectively a propositional logic formula.
 clausalNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
-                     formula -> formula
-clausalNormalForm = removeUniversal . skolemNormalForm
-
-clausalNormalForm' :: (FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
                      formula -> [[formula]]
-clausalNormalForm' = clausal . clausalNormalForm
+clausalNormalForm = clausal . removeUniversal . skolemNormalForm
 
 clausal :: forall formula term v p f. (FirstOrderLogic formula term v p f, Eq formula {-, Pretty v, Pretty p, Pretty f-}) =>
            formula -> [[formula]]

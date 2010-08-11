@@ -71,7 +71,7 @@ fromSentence = foldF (\ f -> case fromSentence f of
 toCNF :: (Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> ConjunctiveNormalForm v p f
 toCNF s = CNF (normalize (toCNFSentence s))
 -}
-toCNFSentence :: (Ord v, IsString v, Enum v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> Sentence v p f
+toCNFSentence :: (Ord v, IsString v, Enum v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> [[Sentence v p f]]
 toCNFSentence s =
     clausalNormalForm s
 
@@ -112,12 +112,7 @@ showCNFDerivation s0 = let
 			 (show s6 ++ "\n")
 -}
 toINF :: (Ord v, IsString v, Enum v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> [ImplicativeNormalForm v p f]
-toINF s =
-    let
-      cnf = toCNFSentence s
-      cnfL = collectCnf cnf
-    in
-      map toINF' cnfL
+toINF = map toINF' . collectCnf . toCNFSentence
 
 toINF' :: (Eq v, Eq p, Eq f, Boolean p) => Sentence v p f -> ImplicativeNormalForm v p f
 toINF' s =
@@ -415,9 +410,20 @@ disjunctionToImplication' s =
     in
       Connective (denormalize And neg) Imply (denormalize Or pos)
 -}
+
+{-
 collectCnf :: Sentence v p f -> [Sentence v p f]
 collectCnf (Connective s1 And s2) = collectCnf s1 ++ collectCnf s2
 collectCnf s = [s]
+-}
+
+collectCnf :: [[Sentence v p f]] -> [Sentence v p f]
+collectCnf xss = map disj xss
+    where
+      disj [] = error "collectCnf"
+      disj [x] = x
+      disj (x:xs) = x .|. disj xs
+
 {-
 denormalize :: Boolean p => Connective -> [NormalSentence v p f] -> Sentence v p f
 denormalize Imply _ = error "denormalizing =>"
