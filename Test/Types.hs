@@ -92,6 +92,7 @@ data TestFormula
 -- |Some values that we might expect after transforming the formula.
 data Expected
     = ClausalNormalForm [[Formula]]
+    | DisjunctiveNormalForm Formula
     | PrenexNormalForm Formula
     | NegationNormalForm Formula
     | SkolemNormalForm Formula

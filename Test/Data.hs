@@ -11,27 +11,107 @@ module Test.Data
     , chang43ConjectureRenamed
     ) where
 
-import Logic.FirstOrder (FirstOrderLogic(..))
+import Logic.FirstOrder (FirstOrderLogic(..), Skolem(toSkolem))
 import Logic.Logic (Logic(..), Boolean(..))
 import Test.Types
 
 formulas :: [TestFormula]
 formulas =
-    [ let n = (.~.) :: Logic formula => formula -> formula
-          p = pApp (Pr "p") :: [Term] -> Formula
-          q = pApp (Pr "q") :: [Term] -> Formula
-          r = pApp (Pr "r") :: [Term] -> Formula
-          s = pApp (Pr "s") :: [Term] -> Formula
-          t = pApp (Pr "t") :: [Term] -> Formula
-          p0 = p []
-          q0 = q []
-          r0 = r []
-          s0 = s []
-          t0 = t [] in
+    let n = (.~.) :: Logic formula => formula -> formula
+        p = pApp (Pr "p") :: [Term] -> Formula
+        q = pApp (Pr "q") :: [Term] -> Formula
+        r = pApp (Pr "r") :: [Term] -> Formula
+        s = pApp (Pr "s") :: [Term] -> Formula
+        t = pApp (Pr "t") :: [Term] -> Formula
+        p0 = p []
+        q0 = q []
+        r0 = r []
+        s0 = s []
+        t0 = t []
+        (x, y, z, u, v, w) = (var "x", var "y", var "z", var "u", var "v", var "w") in
+    [ 
       TestFormula
       { formula = p0 .|. q0 .&. r0 .|. n s0 .&. n t0
       , name = "operator precedence"
       , expected = [ FirstOrderFormula ((p0 .|. q0) .&. (r0 .|. (n s0)) .&. (n t0)) ] }
+    , TestFormula
+      { formula = pApp (fromBool True) []
+      , name = "True"
+      , expected = [ClausalNormalForm  []] }
+    , TestFormula
+      { formula = pApp (fromBool False) []
+      , name = "False"
+      , expected = [ClausalNormalForm  [[]]] }
+    , TestFormula
+      { formula = pApp (Pr "p") []
+      , name = "p"
+      , expected = [ClausalNormalForm  [[pApp (Pr "p") []]]] }
+    , TestFormula
+      { formula = pApp (Pr "p") [] .&. ((.~.) (pApp (Pr "p") []))
+      , name = "p&~p"
+      , expected = [ClausalNormalForm  [[(pApp (Pr "p") [])],[((.~.) (pApp (Pr "p") []))]]] }
+    , TestFormula
+      { formula = pApp (Pr "p") [var "x"]
+      , name = "p[x]"
+      , expected = [ClausalNormalForm  [[pApp (Pr "p") [x]]]] }
+    , TestFormula
+      { formula = exists ["x"] (for_all ["y", "z"] (exists ["u"] (for_all ["v"] (exists ["w"] (pApp (Pr "P") [x, y, z, u, v, w])))))
+      , name = "chang example 4.1"
+      , expected = [ SkolemNormalForm (for_all ["y","z"] (for_all ["v"] (pApp (Pr "P") [fApp (Skolem 1) [], y, z, fApp (Skolem 2) [y, z], v, fApp (Skolem 3) [y, z, v]]))) ] }
+    , TestFormula
+      { name = "chang example 4.2"
+      -- ∀x ∃y∃z ~P(x,y) & Q(x,z) | R(x,y,z)
+      , formula = for_all ["x"] (exists ["y", "z"] (((((.~.) (pApp "P" [x, y])) .&. pApp "Q" [x, z]) .|. pApp "R" [x, y, z])))
+      -- ∀x ~P(x,Sk1[x]) | R(x,Sk1[x],Sk2[x]) & Q(x,Sk2[x]) | R(x,Sk1[x],Sk2[x])
+      , expected = [ SkolemNormalForm (for_all ["x"] ((((.~.) (pApp "P" [x, fApp (Skolem 1) [x]])) .|.
+                                                       (pApp "R" [x, fApp (Skolem 1) [x], fApp (Skolem 2) [x]])) .&.
+                                                      ((pApp "Q" [x, fApp (Skolem 2) [x]]) .|.
+                                                       (pApp "R" [x, fApp (Skolem 1) [x], fApp (Skolem 2) [x]])))) ]
+      }
+    , TestFormula
+      { formula = n p0 .|. q0 .&. p0 .|. r0 .&. n q0 .&. n r0
+      , name = "chang 7.2.1a - unsat"
+      , expected = [SatResult False] }
+    , TestFormula
+      { formula = p0 .|. q0 .|. r0 .&. n p0 .&. n q0 .&. n r0 .|. s0 .&. n s0
+      , name = "chang 7.2.1b - unsat"
+      , expected = [SatResult False] }
+    , TestFormula
+      { formula = p0 .|. q0 .&. q0 .|. r0 .&. r0 .|. s0 .&. n r0 .|. n p0 .&. n s0 .|. n q0 .&. n q0 .|. n r0
+      , name = "chang 7.2.1c - unsat"
+      , expected = [SatResult False] }
+    , TestFormula
+      { name = "distribute bug test"
+      , formula = ((((.~.) (pApp "q" [var "x",var "y"])) .|.
+                    ((((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"])) .|.
+                      (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"])) .&.
+                     (((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"])) .|.
+                      (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"])))) .&.
+                   ((((pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"]) .&.
+                      ((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"]))) .|. 
+                     ((pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"]) .&.
+                      ((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"])))) .|.
+                    (pApp "q" [var "x",var "y"])) {- :: Sentence V Pr AtomicFunction -})
+      , expected = [DisjunctiveNormalForm
+                    (((((.~.) (pApp (Pr "q") [var "x",var "y"])) .|.
+                       (((.~.) (pApp (Pr "f") [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"])) .|.
+                        (pApp (Pr "f") [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"]))) .&.
+                      (((.~.) (pApp (Pr "q") [var "x",var "y"])) .|.
+                       (((.~.) (pApp (Pr "f") [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"])) .|.
+                        (pApp (Pr "f") [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"])))) .&. 
+                     (((((pApp (Pr "f") [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"]) .|.
+                         (pApp (Pr "f") [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"])) .|.
+                        (pApp (Pr "q") [var "x",var "y"])) .&.
+                       ((((.~.) (pApp (Pr "f") [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"])) .|.
+                         (pApp (Pr "f") [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"])) .|.
+                        (pApp (Pr "q") [var "x",var "y"]))) .&.
+                      ((((pApp (Pr "f") [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"]) .|.
+                         ((.~.) (pApp (Pr "f") [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"]))) .|.
+                        (pApp (Pr "q") [var "x",var "y"])) .&.
+                       ((((.~.) (pApp (Pr "f") [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"])) .|.
+                         ((.~.) (pApp (Pr "f") [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"]))) .|.
+                        (pApp (Pr "q") [var "x",var "y"])))))]
+      }
     ]
 
 animalKB :: (String, [TestFormula])
@@ -232,28 +312,7 @@ chang43Conjecture =
                                    (((pApp (Pr "P") [var (V "u3"),var (V "v3"),var (V "w3")]) .&.
                                      (((.~.) (pApp (Pr "P") [var (V "v3"),var (V "u3"),var (V "w3")]))))))))))))))))))
                     , SkolemNormalForm
-                      (((pApp (Pr "P") [var (V "x"),var (V "y"),fApp (Skolem 1) [var (V "x"),var (V "y")]]) .&.
-                        ((((((((.~.) (pApp (Pr "P") [var (V "x2"),var (V "y2"),var (V "u")])) .|.
-                              (((.~.) (pApp (Pr "P") [var (V "y2"),var (V "z2"),var (V "v")])))) .|.
-                             (((.~.) (pApp (Pr "P") [var (V "u"),var (V "z2"),var (V "w")])))) .|.
-                            ((pApp (Pr "P") [var (V "x2"),var (V "v"),var (V "w")]))) .&.
-                           ((((((.~.) (pApp (Pr "P") [var (V "x2"),var (V "y2"),var (V "u2")])) .|.
-                               (((.~.) (pApp (Pr "P") [var (V "y2"),var (V "z2"),var (V "v2")])))) .|.
-                              (((.~.) (pApp (Pr "P") [var (V "x2"),var (V "v2"),var (V "w2")])))) .|.
-                             ((pApp (Pr "P") [var (V "u2"),var (V "z2"),var (V "w2")]))))) .&.
-                          ((((pApp (Pr "P") [var (V "x3"),var (V "e"),var (V "x3")]) .&.
-                             ((pApp (Pr "P") [var (V "e"),var (V "x3"),var (V "x3")]))) .&.
-                            (((pApp (Pr "P") [var (V "x3"),fApp (Fn "i") [var (V "x3")],var (V "e")]) .&.
-                              ((pApp (Pr "P") [fApp (Fn "i") [var (V "x3")],var (V "x3"),var (V "e")]))))))))) .&.
-                       (((pApp (Pr "P") [fApp (Skolem 2) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],
-                                         fApp (Skolem 2) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],
-                                         var (V "e")]) .&.
-                         (((pApp (Pr "P") [fApp (Skolem 3) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],
-                                           fApp (Skolem 4) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],
-                                           fApp (Skolem 5) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")]]) .&.
-                           (((.~.) (pApp (Pr "P") [fApp (Skolem 4) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],
-                                                   fApp (Skolem 3) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],
-                                                   fApp (Skolem 5) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")]]))))))))
+                      (for_all [V "x",V "y"] (for_all [V "x2",V "y2",V "z2",V "u",V "v",V "w"] (for_all [V "x2",V "y2",V "z2",V "u2",V "v2",V "w2"] (for_all [V "x3"] (for_all [V "x3"] (for_all [V "x3"] (for_all [V "x3"] (((pApp (Pr "P") [var (V "x"),var (V "y"),fApp (Skolem 1) [var (V "x"),var (V "y")]]) .&. ((((((((.~.) (pApp (Pr "P") [var (V "x2"),var (V "y2"),var (V "u")])) .|. (((.~.) (pApp (Pr "P") [var (V "y2"),var (V "z2"),var (V "v")])))) .|. (((.~.) (pApp (Pr "P") [var (V "u"),var (V "z2"),var (V "w")])))) .|. ((pApp (Pr "P") [var (V "x2"),var (V "v"),var (V "w")]))) .&. ((((((.~.) (pApp (Pr "P") [var (V "x2"),var (V "y2"),var (V "u2")])) .|. (((.~.) (pApp (Pr "P") [var (V "y2"),var (V "z2"),var (V "v2")])))) .|. (((.~.) (pApp (Pr "P") [var (V "x2"),var (V "v2"),var (V "w2")])))) .|. ((pApp (Pr "P") [var (V "u2"),var (V "z2"),var (V "w2")]))))) .&. ((((pApp (Pr "P") [var (V "x3"),var (V "e"),var (V "x3")]) .&. ((pApp (Pr "P") [var (V "e"),var (V "x3"),var (V "x3")]))) .&. (((pApp (Pr "P") [var (V "x3"),fApp (Fn "i") [var (V "x3")],var (V "e")]) .&. ((pApp (Pr "P") [fApp (Fn "i") [var (V "x3")],var (V "x3"),var (V "e")]))))))))) .&. (((pApp (Pr "P") [fApp (Skolem 2) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],fApp (Skolem 2) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],var (V "e")]) .&. (((pApp (Pr "P") [fApp (Skolem 3) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],fApp (Skolem 4) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],fApp (Skolem 5) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")]]) .&. (((.~.) (pApp (Pr "P") [fApp (Skolem 4) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],fApp (Skolem 3) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],fApp (Skolem 5) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")]])))))))))))))))
                     -- From our algorithm
                     , let a = fApp (Skolem 3) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")]
                           b = fApp (Skolem 4) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")]

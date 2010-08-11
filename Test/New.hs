@@ -6,7 +6,7 @@ import Control.Monad.Reader (MonadPlus(..), msum)
 import Data.Generics (Data, Typeable, listify)
 import Logic.Logic (Logic(..))
 import Logic.Monad (runSkolem, runLiteralMap)
-import Logic.NormalForm (clausalNormalForm, clausalNormalForm', prenexNormalForm, skolemNormalForm, negationNormalForm)
+import Logic.NormalForm (clausalNormalForm, clausalNormalForm', prenexNormalForm, disjunctiveNormalForm, skolemNormalForm, negationNormalForm)
 import Logic.Satisfiable (satisfiable) 
 --import PropLogic (PropForm(..), TruthTable, truthTable)
 import Test.Data
@@ -31,6 +31,8 @@ doTest f (ClausalNormalForm fss) =
     [TestCase (assertEqual (name f ++ " clausal normal form") fss ({-runSkolem-} (clausalNormalForm' (formula f))))]
 doTest f (PrenexNormalForm f') =
     [TestCase (assertEqual (name f ++ " prenex normal form") f' (prenexNormalForm (formula f)))]
+doTest f (DisjunctiveNormalForm f') =
+    [TestCase (assertEqual (name f ++ " disjunctive normal form") f' (disjunctiveNormalForm (formula f)))]
 doTest f (NegationNormalForm f') =
     [TestCase (assertEqual (name f ++ " negation normal form") f' (negationNormalForm (formula f)))]
 doTest f (SkolemNormalForm f') =

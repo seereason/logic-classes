@@ -286,7 +286,7 @@ skolemize =
           foldF n q b i p formula
           where
             n s = (.~.) (skolemize' cnt univ skmap s)
-            q All vs = skolemize' cnt (univ ++ vs) skmap
+            q All vs = for_all vs . skolemize' cnt (univ ++ vs) skmap
             q Exists vs = skolemize' (cnt + length vs) univ (skolemCh cnt vs univ skmap)
             b s1 op s2 = binOp (skolemize' cnt univ skmap s1) op (skolemize' cnt univ skmap s2)
             i t1 op t2 = infixPred (substituteCh skmap t1) op (substituteCh skmap t2)
@@ -306,11 +306,11 @@ skolemize =
 -- effectively a propositional logic formula.
 clausalNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
                      formula -> formula
-clausalNormalForm = {- removeUniversal . -} skolemNormalForm
+clausalNormalForm = removeUniversal . skolemNormalForm
 
 clausalNormalForm' :: (FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
                      formula -> [[formula]]
-clausalNormalForm' = {- removeUniversal . -} clausal . skolemNormalForm
+clausalNormalForm' = clausal . clausalNormalForm
 
 clausal :: forall formula term v p f. (FirstOrderLogic formula term v p f, Eq formula {-, Pretty v, Pretty p, Pretty f-}) =>
            formula -> [[formula]]

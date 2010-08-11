@@ -11,47 +11,14 @@ import Logic.Chiou.Monad (ProverT, runProverT)
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..){-, ConjunctiveNormalForm(..), distributeAndOverOr -})
 import Logic.Chiou.KnowledgeBase (loadKB, theoremKB {-, askKB, showKB-})
 import Logic.Chiou.Resolution (SetOfSupport)
-import Logic.FirstOrder (Skolem(..))
-import Logic.Logic (Boolean(..))
+import Logic.FirstOrder (FirstOrderLogic(..), Skolem(..))
+import Logic.Logic (Logic(..), Boolean(..))
 import Logic.NormalForm (disjunctiveNormalForm)
 import Test.HUnit
-import Test.Types (V(..))
-
--- |A newtype for the Primitive Predicate parameter.
-data Pr
-    = Pr String
-    | T
-    | F
-    deriving (Eq, Ord, Show)
-
-instance IsString Pr where
-    fromString = Pr
-
-instance Boolean Pr where
-    fromBool True = T
-    fromBool False = F
-
-data AtomicFunction
-    = Fn String
-    | Skolem Int
-    deriving (Eq, Ord, Show)
-
-instance Skolem AtomicFunction where
-    toSkolem = Skolem
-    fromSkolem (Skolem n) = Just n
-    fromSkolem _ = Nothing
-
-instance IsString AtomicFunction where
-    fromString = Fn
+import Test.Types (V(..), Pr(..), AtomicFunction(..))
 
 tests :: Test
-tests = TestLabel "Chiou0" $ TestList [loadTest, distributeTest, proofTest1, proofTest2]
-
-{-
-main :: IO ()
-main = runTestTT (TestList [loadTest, distributeTest, proofTest1, proofTest2]) >>= \ counts ->
-       exitWith (if errors counts /= 0 || failures counts /= 0 then ExitFailure 1 else ExitSuccess)
--}
+tests = TestLabel "Chiou0" $ TestList [loadTest, proofTest1, proofTest2]
 
 loadTest :: Test
 loadTest =
@@ -64,68 +31,6 @@ loadTest =
                   (Nothing,[INF [] [NFPredicate (Pr "Kills") [Function (Fn "Jack") [],Function (Fn "Tuna") []],NFPredicate (Pr "Kills") [Function (Fn "Curiosity") [],Function (Fn "Tuna") []]]]),
                   (Nothing,[INF [] [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]]]),
                   (Nothing,[INF [NFPredicate (Pr "Cat") [Variable (V "x")]] [NFPredicate (Pr "Animal") [Variable (V "x")]]])]
-      
-{-
-testLoad :: Monad m => [(Sentence V Pr AtomicFunction, Maybe [ImplicativeNormalForm V Pr AtomicFunction])] -> ProverT V Pr AtomicFunction m ()
-testLoad ss =
-    if actual /= expected
-    then error ("Expected:\n " ++ show expected ++ "\nActual:\n " ++ show actual)
-    else return () -- liftIO (putStrLn "testLoad ok")
-    where
-      actual :: [Maybe [ImplicativeNormalForm V Pr AtomicFunction]]
-      actual = map snd ss
--}
-
-distributeTest :: Test
-distributeTest =
-    TestCase
-    (assertEqual "Chiuo0 - distribute test" 
-
-     (Connective
-      (Connective 
-       (Connective (Not (Predicate (Pr "q") [Variable (V "x"),Variable (V "y")])) Or (Connective (Not (Predicate (Pr "f") [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "x")])) Or (Predicate (Pr "f") [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "y")])))
-       And
-       (Connective (Not (Predicate (Pr "q") [Variable (V "x"),Variable (V "y")])) Or (Connective (Not (Predicate (Pr "f") [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "y")])) Or (Predicate (Pr "f") [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "x")]))))
-      And 
-      (Connective
-       (Connective (Connective (Connective (Predicate (Pr "f") [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "x")]) Or (Predicate (Pr "f") [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "y")])) Or (Predicate (Pr "q") [Variable (V "x"),Variable (V "y")]))
-        And
-        (Connective (Connective (Not (Predicate (Pr "f") [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "y")])) Or (Predicate (Pr "f") [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "y")])) Or (Predicate (Pr "q") [Variable (V "x"),Variable (V "y")])))
-       And
-       (Connective
-        (Connective (Connective (Predicate (Pr "f") [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "x")]) Or (Not (Predicate (Pr "f") [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "x")]))) Or (Predicate (Pr "q") [Variable (V "x"),Variable (V "y")]))
-        And
-        (Connective (Connective (Not (Predicate (Pr "f") [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "y")])) Or (Not (Predicate (Pr "f") [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "x")]))) Or (Predicate (Pr "q") [Variable (V "x"),Variable (V "y")])))))
-
-     (disjunctiveNormalForm
-      (Connective
-       (Connective
-        (Not (Predicate "q" [Variable (V "x"),Variable (V "y")]))
-        Or
-        (Connective
-         (Connective
-          (Not (Predicate "f" [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "x")]))
-          Or
-          (Predicate "f" [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "y")]))
-         And
-         (Connective
-          (Not (Predicate "f" [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "y")]))
-          Or
-          (Predicate "f" [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "x")]))))
-       And
-       (Connective
-        (Connective
-         (Connective
-          (Predicate "f" [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "x")])
-          And
-          (Not (Predicate "f" [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "y")])))
-         Or
-         (Connective
-          (Predicate "f" [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "y")])
-          And
-          (Not (Predicate "f" [Function (toSkolem 1) [Variable (V "x"),Variable (V "x"),Variable (V "y"),Variable (V "z")],Variable (V "x")]))))
-        Or
-        (Predicate "q" [Variable (V "x"),Variable (V "y")])) :: Sentence V Pr AtomicFunction)))
 
 proofTest1 :: Test
 proofTest1 = TestCase (assertEqual "Chiuo0 - proof test 1" proof1 (runIdentity (runProverT (loadKB sentences >> theoremKB (Predicate "Kills" [Function (Fn "Jack") [], Function (Fn "Tuna") []])))))
