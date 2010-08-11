@@ -43,7 +43,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as S
 --import Debug.Trace
 import Logic.FirstOrder
-import Logic.Implicative (Implicative(..))
+--import Logic.Implicative (Implicative(..))
 import Logic.Logic
 
 -- |Simplify:
@@ -338,14 +338,28 @@ clausal =
       isTrue f = foldF isFalse e3 e3 e3 (\ p _ -> p == fromBool True) f where e3 _ _ _ = error ("clausal: "  {- ++ show (prettyForm 0 f) -})
       e0 = error "clausal"
 
-implicativeNormalForm :: forall inf formula term v p f. 
-                         Implicative inf formula term v p f =>
-                         formula -> formula
+implicativeNormalForm :: forall formula term v p f. 
+                         (FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
+                         formula -> [([formula], [formula])]
 implicativeNormalForm formula =
+    map (imply . foldl collect ([], [])) $ clausalNormalForm formula
+    where
+      collect :: ([formula], [formula]) -> formula -> ([formula], [formula])
+      collect (n, p) f =
+          foldF (\ f' -> (f' : n, p))
+                (\ _ _ _ -> error "collect 1")
+                (\ _ _ _ -> error "collect 2")
+                (\ _ _ _ -> (n, f : p))
+                (\ _ _ -> (n, f : p))
+                f
+      imply :: ([formula], [formula]) -> ([formula], [formula])
+      imply (n, p) = (reverse n, reverse p)
+{-    
     conjunctList . map fromImplicative $ (toImplicative formula :: [inf])
     where
       conjunctList (x : xs) = foldl (.&.) x xs
       conjunctList [] = pApp (fromBool True) []
+-}
 
 removeUniversal :: FirstOrderLogic formula term v p f => formula -> formula
 removeUniversal formula =
