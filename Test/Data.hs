@@ -1,9 +1,8 @@
 {-# LANGUAGE DeriveDataTypeable, OverloadedStrings  #-}
 {-# OPTIONS -fno-warn-name-shadowing -fno-warn-missing-signatures #-}
 module Test.Data
-    ( TestFormula(..)
-    , Expected(..)
-    , formulas
+    ( formulas
+    , proofs
     , animalKB
     , animalConjectures
     , chang43KB
@@ -11,7 +10,9 @@ module Test.Data
     , chang43ConjectureRenamed
     ) where
 
-import Logic.FirstOrder (FirstOrderLogic(..), Skolem(toSkolem))
+import qualified Logic.Chiou.FirstOrderLogic as C
+import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..))
+import Logic.FirstOrder (FirstOrderLogic(..), Skolem(toSkolem), convertFOF)
 import Logic.Logic (Logic(..), Boolean(..))
 import Test.Types
 
@@ -54,6 +55,51 @@ formulas =
       { formula = pApp (Pr "p") [var "x"]
       , name = "p[x]"
       , expected = [ClausalNormalForm  [[pApp (Pr "p") [x]]]] }
+    , let f = pApp "f"
+          q = pApp "q" in
+      TestFormula
+      { name = "iff"
+      , formula = for_all ["x"] (for_all ["y"] (q [x, y] .<=>. for_all ["z"] (f [z, x] .<=>. f [z, y])))
+      , expected = [ClausalNormalForm
+                    [[((.~.) (pApp (Pr "q") [var (V "x"),var (V "y")])),
+                      ((.~.) (pApp (Pr "f") [var (V "z"),var (V "x")])),
+                      (pApp (Pr "f") [var (V "z"),var (V "y")])],
+                     [((.~.) (pApp (Pr "q") [var (V "x"),var (V "y")])),
+                      ((.~.) (pApp (Pr "f") [var (V "z"),var (V "y")])),
+                      (pApp (Pr "f") [var (V "z"),var (V "x")])],
+                     [(pApp (Pr "f") [fApp (Skolem 1) [var (V "x"),var (V "y"),var (V "z")],var (V "x")]),
+                      (pApp (Pr "f") [fApp (Skolem 1) [var (V "x"),var (V "y"),var (V "z")],var (V "y")]),
+                      (pApp (Pr "q") [var (V "x"),var (V "y")])],
+                     [((.~.) (pApp (Pr "f") [fApp (Skolem 1) [var (V "x"),var (V "y"),var (V "z")],var (V "y")])),
+                      (pApp (Pr "f") [fApp (Skolem 1) [var (V "x"),var (V "y"),var (V "z")],var (V "y")]),
+                      (pApp (Pr "q") [var (V "x"),var (V "y")])],
+                     [(pApp (Pr "f") [fApp (Skolem 1) [var (V "x"),var (V "y"),var (V "z")],var (V "x")]),
+                      ((.~.) (pApp (Pr "f") [fApp (Skolem 1) [var (V "x"),var (V "y"),var (V "z")],var (V "x")])),
+                      (pApp (Pr "q") [var (V "x"),var (V "y")])],
+                     [((.~.) (pApp (Pr "f") [fApp (Skolem 1) [var (V "x"),var (V "y"),var (V "z")],var (V "y")])),
+                      ((.~.) (pApp (Pr "f") [fApp (Skolem 1) [var (V "x"),var (V "y"),var (V "z")],var (V "x")])),
+                      (pApp (Pr "q") [var (V "x"),var (V "y")])]]]
+      }
+    , TestFormula
+      { name = "move quantifiers out"
+      , formula = (for_all ["x"] (pApp "p" [x]) .&. (pApp "q" [x]))
+      , expected = [PrenexNormalForm (for_all ["x2"] ((pApp ("p") [var ("x2")]) .&. ((pApp ("q") [var ("x")]))))]
+      }
+    , TestFormula
+      { name = "skolemize1"
+      , formula = (exists ["x"] (for_all ["y", "z"] (exists ["u"] (for_all ["v"] (exists ["w"] (pApp "P" [x, y, z, u, v, w]))))))
+      , expected = [SkolemNormalForm (for_all [V "y",V "z"] (for_all [V "v"] (pApp "P" [fApp (toSkolem 1) [], y, z, fApp ((toSkolem 2)) [y, z], v, fApp (toSkolem 3) [y, z, v]])))]
+      }
+    , TestFormula
+      { name = "skolemize2"
+      , formula = exists ["x"] (for_all ["y"] (pApp "loves" [x, y]))
+      , expected = [SkolemNormalForm (for_all [V "y"] (pApp ("loves") [fApp (toSkolem 1) [],y]))]
+      }
+    , TestFormula
+      { name = "skolemize3"
+      , formula = for_all ["y"] (exists ["x"] (pApp "loves" [x, y]))
+      , expected = [SkolemNormalForm (for_all [V "y"] (pApp ("loves") [fApp (toSkolem 1) [y],y]))]
+      }
     , TestFormula
       { formula = exists ["x"] (for_all ["y", "z"] (exists ["u"] (for_all ["v"] (exists ["w"] (pApp (Pr "P") [x, y, z, u, v, w])))))
       , name = "chang example 4.1"
@@ -111,6 +157,126 @@ formulas =
                        ((((.~.) (pApp (Pr "f") [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"])) .|.
                          ((.~.) (pApp (Pr "f") [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"]))) .|.
                         (pApp (Pr "q") [var "x",var "y"])))))]
+      }
+    , let (x, y) = (var "x", var "y")
+          (x', y') = (var "x", var "y") in
+      TestFormula
+      { name = "convert to Chiou 1"
+      , formula = exists ["x"] (x .=. y)
+      , expected = [ConvertToChiou (exists ["x"] (x' .=. y'))]
+      }
+    , let s :: [Term] -> Formula
+          s = pApp "s"
+          s' :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+          s' = pApp "s"
+          x' :: C.Term V AtomicFunction
+          x' = var "x"
+          y' :: C.Term V AtomicFunction
+          y' = var "y" in
+      TestFormula
+      { name = "convert to Chiou 2"
+      , formula = s [fApp ("a") [x, y]]
+      , expected = [ConvertToChiou (s' [fApp "a" [x', y']])]
+      }
+    , let s :: [Term] -> Formula
+          s = pApp "s"
+          h :: [Term] -> Formula
+          h = pApp "h"
+          m :: [Term] -> Formula
+          m = pApp "m"
+          s' :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+          s' = pApp "s"
+          h' :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+          h' = pApp "h"
+          m' :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+          m' = pApp "m"
+          x' :: C.Term V AtomicFunction
+          x' = var "x" in
+      TestFormula
+      { name = "convert to Chiou 3"
+      , formula = for_all ["x"] (((s [x] .=>. h [x]) .&. (h [x] .=>. m [x])) .=>. (s [x] .=>. m [x]))
+      , expected = [ConvertToChiou (for_all ["x"] (((s' [x'] .=>. h' [x']) .&. (h' [x'] .=>. m' [x'])) .=>. (s' [x'] .=>. m' [x'])))]
+      }
+    , let taller a b = pApp "taller" [a, b]
+          wise a = pApp "wise" [a] in
+      TestFormula
+      { name = "cnf test 1"
+      , formula = for_all ["y"] (for_all ["x"] (taller y x .|. wise x) .=>. wise y)
+      , expected = [ClausalNormalForm
+                    [[((.~.) (pApp (Pr "taller") [var (V "y"),fApp (Skolem 1) [var (V "y")]])),(pApp (Pr "wise") [var (V "y")])],
+                     [((.~.) (pApp (Pr "wise") [fApp (Skolem 1) [var (V "y")]])),(pApp (Pr "wise") [var (V "y")])]]]
+      }
+    , TestFormula
+      { name = "cnf test 2"
+      , formula = ((.~.) (exists ["x"] (pApp "s" [x] .&. pApp "q" [x])))
+      , expected = [ClausalNormalForm [[((.~.) (pApp (Pr "s") [var (V "x")])),((.~.) (pApp (Pr "q") [var (V "x")]))]]]
+      }
+    , TestFormula
+      { name = "cnf test 3"
+      , formula = (for_all ["x"] (p [x] .=>. (q [x] .|. r [x])))
+      , expected = [ClausalNormalForm [[((.~.) (pApp (Pr "p") [var (V "x")])),(pApp (Pr "q") [var (V "x")]),(pApp (Pr "r") [var (V "x")])]]]
+      }
+    , TestFormula
+      { name = "cnf test 4"
+      , formula = ((.~.) (exists ["x"] (p [x] .=>. exists ["y"] (q [y]))))
+      , expected = [ClausalNormalForm [[(pApp (Pr "p") [var (V "x")])],[((.~.) (pApp (Pr "q") [var (V "y")]))]]]
+      }
+    , TestFormula
+      { name = "cnf test 5"
+      , formula = (for_all ["x"] (q [x] .|. r [x] .=>. s [x]))
+      , expected = [ClausalNormalForm [[((.~.) (pApp (Pr "q") [var (V "x")])),(pApp (Pr "s") [var (V "x")])],[((.~.) (pApp (Pr "r") [var (V "x")])),(pApp (Pr "s") [var (V "x")])]]]
+      }
+    , TestFormula
+      { name = "cnf test 6"
+      , formula = (exists ["x"] (p0 .=>. pApp "f" [x]))
+      , expected = [ClausalNormalForm [[((.~.) (pApp (Pr "p") [])),(pApp (Pr "f") [fApp (Skolem 1) []])]]]
+      }
+    , TestFormula
+      { name = "cnf test 7"
+      , formula = (exists ["x"] (p0 .<=>. pApp "f" [x]))
+      , expected = [ClausalNormalForm [[((.~.) (pApp (Pr "p") [])),(pApp (Pr "f") [fApp (Skolem 1) []])],[((.~.) (pApp (Pr "f") [fApp (Skolem 1) []])),(pApp (Pr "p") [])]]]
+      }
+    , TestFormula
+      { name = "cnf test 8"
+      , formula = (for_all ["z"] (exists ["y"] (for_all ["x"] (pApp "f" [x, y] .<=>. (pApp "f" [x, z] .&. ((.~.) (pApp "f" [x, x])))))))
+      , expected = [ClausalNormalForm 
+                    [[((.~.) (pApp (Pr "f") [var (V "x"),fApp (Skolem 1) [var (V "z")]])),(pApp (Pr "f") [var (V "x"),var (V "z")])],
+                     [((.~.) (pApp (Pr "f") [var (V "x"),fApp (Skolem 1) [var (V "z")]])),((.~.) (pApp (Pr "f") [var (V "x"),var (V "x")]))],
+                     [((.~.) (pApp (Pr "f") [var (V "x"),var (V "z")])),(pApp (Pr "f") [var (V "x"),var (V "x")]),(pApp (Pr "f") [var (V "x"),fApp (Skolem 1) [var (V "z")]])]]]
+      }
+    , TestFormula
+      { name = "cnf test 9"
+      , formula = (for_all ["x"] (for_all ["x"] (for_all ["y"] (q [x, y] .<=>. for_all [(V "z")] (pApp "f" [z, x] .<=>. pApp "f" [z, y])))))
+      , expected = [ClausalNormalForm
+                    [[((.~.) (pApp (Pr "q") [var (V "x"),var (V "y")])),((.~.) (pApp (Pr "f") [var (V "z"),var (V "x")])),(pApp (Pr "f") [var (V "z"),var (V "y")])],
+                     [((.~.) (pApp (Pr "q") [var (V "x"),var (V "y")])),((.~.) (pApp (Pr "f") [var (V "z"),var (V "y")])),(pApp (Pr "f") [var (V "z"),var (V "x")])],
+                     [(pApp (Pr "f") [fApp (Skolem 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "x")]),(pApp (Pr "f") [fApp (Skolem 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "y")]),(pApp (Pr "q") [var (V "x"),var (V "y")])],
+                     [((.~.) (pApp (Pr "f") [fApp (Skolem 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "y")])),(pApp (Pr "f") [fApp (Skolem 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "y")]),(pApp (Pr "q") [var (V "x"),var (V "y")])],
+                     [(pApp (Pr "f") [fApp (Skolem 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "x")]),((.~.) (pApp (Pr "f") [fApp (Skolem 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "x")])),(pApp (Pr "q") [var (V "x"),var (V "y")])],
+                     [((.~.) (pApp (Pr "f") [fApp (Skolem 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "y")])),((.~.) (pApp (Pr "f") [fApp (Skolem 1) [var (V "x"),var (V "x"),var (V "y"),var (V "z")],var (V "x")])),(pApp (Pr "q") [var (V "x"),var (V "y")])]]]
+      }
+    , TestFormula
+      { name = "cnf test 10"
+      , formula = (for_all ["x"] (exists ["y"] ((p [x, y] .<=. for_all ["x"] (exists ["z"] (q [y, x, z]) .=>. r [y])))))
+      , expected = [ClausalNormalForm
+                    [[(pApp (Pr "q") [fApp (Skolem 1) [var (V "x")],fApp (Skolem 2) [var (V "x")],fApp (Skolem 3) [var (V "x")]]),(pApp (Pr "p") [var (V "x"),fApp (Skolem 1) [var (V "x")]])],
+                     [((.~.) (pApp (Pr "r") [fApp (Skolem 1) [var (V "x")]])),(pApp (Pr "p") [var (V "x"),fApp (Skolem 1) [var (V "x")]])]]]
+      }
+    , TestFormula
+      { name = "cnf test 11"
+      , formula = (for_all ["x"] (for_all ["z"] (p [x, z] .=>. exists ["y"] ((.~.) (q [x, y] .|. ((.~.) (r [y, z])))))))
+      , expected = [ClausalNormalForm
+                    [[((.~.) (pApp (Pr "p") [var (V "x"),var (V "z")])),((.~.) (pApp (Pr "q") [var (V "x"),fApp (Skolem 1) [var (V "x"),var (V "z")]]))],
+                     [((.~.) (pApp (Pr "p") [var (V "x"),var (V "z")])),(pApp (Pr "r") [fApp (Skolem 1) [var (V "x"),var (V "z")],var (V "z")])]]]
+      }
+    , TestFormula
+      { name = "cnf test 12"
+      , formula = ((p0 .=>. q0) .=>. (((.~.) r0) .=>. (s0 .&. t0)))
+      , expected = [ClausalNormalForm
+                    [[(pApp (Pr "p") []),(pApp (Pr "r") []),(pApp (Pr "s") [])],
+                     [((.~.) (pApp (Pr "q") [])),(pApp (Pr "r") []),(pApp (Pr "s") [])],
+                     [(pApp (Pr "p") []),(pApp (Pr "r") []),(pApp (Pr "t") [])],
+                     [((.~.) (pApp (Pr "q") [])),(pApp (Pr "r") []),(pApp (Pr "t") [])]]]
       }
     ]
 
@@ -208,6 +374,56 @@ animalConjectures =
        -- negated_conjecture: ~kills(curiosity,tuna)
        }
      ]
+
+socratesKB =
+    let x = var "x"
+        socrates x = pApp (Pr "Socrates") [x]
+        human x = pApp "Human" [x]
+        mortal x = pApp "Mortal" [x] in
+    ("socrates"
+    , [ TestFormula
+       { name = "all humans are mortal"
+       , formula = for_all [V "x"] (human x .=>. mortal x)
+       , expected = [ClausalNormalForm  [[((.~.) (human x)), mortal x]]] }
+     , TestFormula
+       { name = "socrates is human"
+       , formula = for_all [V "x"] (socrates x .=>. human x)
+       , expected = [ClausalNormalForm  [[(.~.) (socrates x), human x]]] }
+     ])
+
+{-
+socratesConjectures =
+    map (withKB socratesKB)
+     [ TestFormula
+       { formula = for_all [V "x"] (socrates x .=>. mortal x)
+       , name = "socrates is mortal"
+       , expected = [ FirstOrderFormula ((.~.) (((for_all [V "x"] ((pApp (Pr "Human") [var (V "x")]) .=>. ((pApp (Pr "Mortal") [var (V "x")])))) .&.
+                                                 ((for_all [V "x"] ((pApp (Pr "Socrates") [var (V "x")]) .=>. ((pApp (Pr "Human") [var (V "x")])))))) .=>.
+                                                ((for_all [V "x"] ((pApp (Pr "Socrates") [var (V "x")]) .=>. ((pApp (Pr "Mortal") [var (V "x")])))))))
+                    , ClausalNormalForm  [[((.~.) (pApp (Pr "Human") [var (V "x2")])),(pApp (Pr "Mortal") [var (V "x2")])],
+                                          [((.~.) (pApp (Pr "Socrates") [var (V "x2")])),(pApp (Pr "Human") [var (V "x2")])],
+                                          [(pApp (Pr "Socrates") [fApp (Skolem 1) [var (V "x2"),var (V "x2")]])],
+                                          [((.~.) (pApp (Pr "Mortal") [fApp (Skolem 1) [var (V "x2"),var (V "x2")]]))]]
+                    , SatResult True ]
+       }
+     , TestFormula
+       { formula = (.~.) (for_all [V "x"] (socrates x .=>. mortal x))
+       , name = "not (socrates is mortal)"
+       , expected = [ SatResult False
+                    , FirstOrderFormula ((.~.) (((for_all [V "x"] ((pApp (Pr "Human") [var (V "x")]) .=>. ((pApp (Pr "Mortal") [var (V "x")])))) .&.
+                                                 ((for_all [V "x"] ((pApp (Pr "Socrates") [var (V "x")]) .=>. ((pApp (Pr "Human") [var (V "x")])))))) .=>.
+                                                (((.~.) (for_all [V "x"] ((pApp (Pr "Socrates") [var (V "x")]) .=>. ((pApp (Pr "Mortal") [var (V "x")]))))))))
+                    -- [~human(x) | mortal(x)], [~socrates(Sk1(x,y)) | human(Sk1(x,y))], socrates(Sk1(x,y)), ~mortal(Sk1(x,y))
+                    -- ~1 | 2, ~3 | 4, 3, ~5?
+                    , ClausalNormalForm [[((.~.) (pApp (Pr "Human") [x])), (pApp (Pr "Mortal") [x])],
+                                         [((.~.) (pApp (Pr "Socrates") [fApp (Skolem 1) [x,y]])), (pApp (Pr "Human") [fApp (Skolem 1) [x,y]])],
+                                         [(pApp (Pr "Socrates") [fApp (Skolem 1) [x,y]])], [((.~.) (pApp (Pr "Mortal") [fApp (Skolem 1) [x,y]]))]]
+                    , ClausalNormalForm [[((.~.) (pApp (Pr "Human") [var (V "x2")])), (pApp (Pr "Mortal") [var (V "x2")])],
+                                         [((.~.) (pApp (Pr "Socrates") [var (V "x2")])), (pApp (Pr "Human") [var (V "x2")])],
+                                         [((.~.) (pApp (Pr "Socrates") [var (V "x")])), (pApp (Pr "Mortal") [var (V "x")])]] ]
+       }
+     ]
+-}
 
 chang43KB = 
     let e = var (V "e")
@@ -431,3 +647,119 @@ withKB (kbName, knowledge) conjecture =
       conj [] = error "conj []"
       conj [x] = x
       conj (x:xs) = x .&. conj xs
+
+proofs =
+    let dog = pApp "Dog" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        cat = pApp "Cat" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        owns = pApp "Owns" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        kills = pApp "Kills" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        animal = pApp "Animal" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        animalLover = pApp "AnimalLover" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        socrates = pApp "Socrates" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        human = pApp "Human" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        mortal = pApp "Mortal" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+
+        jack :: C.Term V AtomicFunction
+        jack = fApp "Jack" []
+        tuna :: C.Term V AtomicFunction
+        tuna = fApp "Tuna" []
+        curiosity :: C.Term V AtomicFunction
+        curiosity = fApp "Curiosity" [] in
+
+    [ TestProof
+      { proofName = "jack kills tuna"
+      , proofKnowledge = (fst animalKB, map (convertFOF id id id . formula) (snd animalKB))
+      , conjecture = kills [jack, tuna]
+      , proofExpected = 
+          [ ChiouResult (False,
+                         [(INF [NFPredicate (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []]] [],[]),
+                          (INF [] [NFPredicate (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []]],[]),
+                          (INF [NFPredicate (Pr "Animal") [fApp (Fn "Tuna") []],NFPredicate (Pr "AnimalLover") [fApp (Fn "Curiosity") []]] [],[]),
+                          (INF [NFPredicate (Pr "Dog") [var (V "y2")],NFPredicate (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")],NFPredicate (Pr "Animal") [fApp (Fn "Tuna") []]] [],[]),
+                          (INF [NFPredicate (Pr "Cat") [fApp (Fn "Tuna") []],NFPredicate (Pr "AnimalLover") [fApp (Fn "Curiosity") []]] [],[]),
+                          (INF [NFPredicate (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")],NFPredicate (Pr "Animal") [fApp (Fn "Tuna") []]] [],[]),
+                          (INF [NFPredicate (Pr "Cat") [fApp (Fn "Tuna") []],NFPredicate (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")],NFPredicate (Pr "Dog") [var (V "y2")]] [],[]),
+                          (INF [NFPredicate (Pr "Dog") [var (V "y2")],NFPredicate (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")],NFPredicate (Pr "Cat") [fApp (Fn "Tuna") []]] [],[]),
+                          (INF [NFPredicate (Pr "AnimalLover") [fApp (Fn "Curiosity") []]] [],[]),
+                          (INF [NFPredicate (Pr "Cat") [fApp (Fn "Tuna") []],NFPredicate (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")]] [],[]),
+                          (INF [NFPredicate (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")],NFPredicate (Pr "Cat") [fApp (Fn "Tuna") []]] [],[]),
+                          (INF [NFPredicate (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")],NFPredicate (Pr "Dog") [var (V "y2")]] [],[]),
+                          (INF [NFPredicate (Pr "Dog") [var (V "y2")],NFPredicate (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")]] [],[]),
+                          (INF [NFPredicate (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")]] [],[])])
+          ]
+      }
+    , TestProof
+      { proofName = "curiosity kills tuna"
+      , proofKnowledge = (fst animalKB, map (convertFOF id id id . formula) (snd animalKB))
+      , conjecture = kills [curiosity, tuna]
+      , proofExpected =
+          [ ChiouResult (True,
+                         [(INF [NFPredicate (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []]] [],[]),
+                          (INF [] [NFPredicate (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []]],[]),(INF [NFPredicate (Pr "Animal") [fApp (Fn "Tuna") []],NFPredicate (Pr "AnimalLover") [fApp (Fn "Jack") []]] [],[]),
+                          (INF [NFPredicate (Pr "Dog") [var (V "y2")],NFPredicate (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")],NFPredicate (Pr "Animal") [fApp (Fn "Tuna") []]] [],[]),
+                          (INF [NFPredicate (Pr "Cat") [fApp (Fn "Tuna") []],NFPredicate (Pr "AnimalLover") [fApp (Fn "Jack") []]] [],[]),
+                          (INF [NFPredicate (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")],NFPredicate (Pr "Animal") [fApp (Fn "Tuna") []]] [],[]),
+                          (INF [NFPredicate (Pr "Dog") [var (V "y2")],NFPredicate (Pr "Animal") [fApp (Fn "Tuna") []]] [],[]),
+                          (INF [NFPredicate (Pr "Cat") [fApp (Fn "Tuna") []],NFPredicate (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")],NFPredicate (Pr "Dog") [var (V "y2")]] [],[]),
+                          (INF [NFPredicate (Pr "Dog") [var (V "y2")],NFPredicate (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")],NFPredicate (Pr "Cat") [fApp (Fn "Tuna") []]] [],[]),
+                          (INF [NFPredicate (Pr "AnimalLover") [fApp (Fn "Jack") []]] [],[]),
+                          (INF [NFPredicate (Pr "Animal") [fApp (Fn "Tuna") []]] [],[]),
+                          (INF [NFPredicate (Pr "Cat") [fApp (Fn "Tuna") []],NFPredicate (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")]] [],[]),
+                          (INF [NFPredicate (Pr "Cat") [fApp (Fn "Tuna") []],NFPredicate (Pr "Dog") [var (V "y2")]] [],[]),
+                          (INF [NFPredicate (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")],NFPredicate (Pr "Cat") [fApp (Fn "Tuna") []]] [],[]),
+                          (INF [NFPredicate (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")],NFPredicate (Pr "Dog") [var (V "y2")]] [],[]),
+                          (INF [NFPredicate (Pr "Dog") [var (V "y2")],NFPredicate (Pr "Cat") [fApp (Fn "Tuna") []]] [],[]),
+                          (INF [NFPredicate (Pr "Dog") [var (V "y2")],NFPredicate (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")]] [],[]),
+                          (INF [NFPredicate (Pr "Cat") [fApp (Fn "Tuna") []]] [],[]),
+                          (INF [NFPredicate (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")]] [],[]),
+                          (INF [NFPredicate (Pr "Dog") [var (V "y2")]] [],[]),(INF [] [],[])]) ]
+      }
+{-
+  -- Seems not to terminate
+    , let (x, u, v, w, e) = (var "x", var "u", var "v", var "w", var "e") in
+      TestProof
+      { proofName = "chang example 4.3"
+      , proofKnowledge = (fst chang43KB, map (convertFOF id id id . formula) (snd chang43KB))
+      , conjecture = for_all ["x"] (pApp "P" [x, x, e] .=>. (for_all ["u", "v", "w"] (pApp "P" [u, v, w] .=>. pApp "P" [v, u, w])))
+      , proofExpected =
+          [ChiouResult (True, [])]
+      }
+-}
+    , let x = var "x" in
+      TestProof
+      { proofName = "socrates is mortal"
+      , proofKnowledge = (fst socratesKB, map (convertFOF id id id . formula) (snd socratesKB))
+      , conjecture = for_all ["x"] (socrates [x] .=>. mortal [x])
+      , proofExpected = 
+          [ChiouResult (True,
+                        [(INF [] [NFPredicate (Pr "Socrates") [fApp (Skolem 1) []]],[]),
+                         (INF [NFPredicate (Pr "Mortal") [fApp (Skolem 1) []]] [],[]),
+                         (INF [] [NFPredicate (Pr "Human") [fApp (Skolem 1) []]],[]),
+                         (INF [NFPredicate (Pr "Human") [fApp (Skolem 1) []]] [],[]),
+                         (INF [] [NFPredicate (Pr "Mortal") [fApp (Skolem 1) []]],[]),
+                         (INF [] [],[])])]
+      }
+    , let x = var "x" in
+      TestProof
+      { proofName = "socrates is not mortal"
+      , proofKnowledge = (fst socratesKB, map (convertFOF id id id . formula) (snd socratesKB))
+      , conjecture = (.~.) (for_all ["x"] (socrates [x] .=>. mortal [x]))
+      , proofExpected = 
+          [ChiouResult (False
+                       ,[(INF [NFPredicate (Pr "Socrates") [var (V "x")]]
+                              [NFPredicate (Pr "Mortal") [var (V "x")]],
+                          [(V "x",var (V "x"))])])]
+      }
+    , let x = var "x" in
+      TestProof
+      { proofName = "socrates exists and is is not mortal"
+      , proofKnowledge = (fst socratesKB, map (convertFOF id id id . formula) (snd socratesKB))
+      , conjecture = (.~.) (exists ["x"] (socrates [x]) .&. for_all ["x"] (socrates [x] .=>. mortal [x]))
+      , proofExpected = 
+          [ChiouResult (False,
+                        [(INF []                                           [NFPredicate (Pr "Socrates") [fApp (Skolem 1) []]], []),
+                         (INF [NFPredicate (Pr "Socrates") [var (V "x2")]] [NFPredicate (Pr "Mortal") [var (V "x2")]],         [(V "x2",var (V "x2"))]),
+                         (INF []                                           [NFPredicate (Pr "Human") [fApp (Skolem 1) []]],    []),
+                         (INF []                                           [NFPredicate (Pr "Mortal") [fApp (Skolem 1) []]],   [(V "x2",fApp (Skolem 1) [])])])]
+      }
+    ]

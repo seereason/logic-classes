@@ -4,6 +4,9 @@ module Test.New where
 
 import Control.Monad.Reader (MonadPlus(..), msum)
 import Data.Generics (Data, Typeable, listify)
+import Logic.Chiou.Monad (runProver)
+import qualified Logic.Chiou.KnowledgeBase as C
+import Logic.FirstOrder (convertFOF)
 import Logic.Logic (Logic(..))
 import Logic.Monad (runSkolem, runLiteralMap)
 import Logic.NormalForm (clausalNormalForm, clausalNormalForm', prenexNormalForm, disjunctiveNormalForm, skolemNormalForm, negationNormalForm)
@@ -21,9 +24,11 @@ import Test.Types
 gFind :: (MonadPlus m, Data a, Typeable b) => a -> m b
 gFind = msum . map return . listify (const True)
 
-tests = TestLabel "New" $ TestList (concatMap doFormula (formulas ++ gFind (animalKB, chang43KB) ++ animalConjectures ++ [chang43Conjecture, chang43ConjectureRenamed]))
+tests = TestLabel "New" $ TestList (concatMap doFormula (formulas ++ gFind (animalKB, chang43KB) ++ animalConjectures ++ [chang43Conjecture, chang43ConjectureRenamed]) ++
+                                    concatMap doProofs proofs)
     where
       doFormula f = concatMap (doTest f) (expected f)
+      doProofs p = map (doProof p) (proofExpected p) 
 
 doTest f (FirstOrderFormula f') =
     [TestCase (assertEqual (name f) f' (formula f))]
@@ -39,6 +44,14 @@ doTest f (SkolemNormalForm f') =
     [TestCase (assertEqual (name f ++ " skolem normal form") f' ({-runSkolem-} (skolemNormalForm (formula f))))]
 doTest f (SatResult result) =
     [TestCase (assertEqual (name f ++ " satisfiable") result ({-runLiteralMap-} (satisfiable (formula f))))]
+doTest f (ConvertToChiou result) =
+    [TestCase (assertEqual (name f ++ " converted to Chiou") result (convertFOF id id id (formula f)))]
+
+doProof p (ChiouResult result) =
+    TestLabel (proofName p ++ " with " ++ fst (proofKnowledge p)) . TestList $
+    [TestCase (assertEqual (proofName p ++ " with " ++ fst (proofKnowledge p))
+                           result
+                           (runProver (C.loadKB (snd (proofKnowledge p)) >> C.theoremKB (conjecture p))))]
 
 -- Knowledge Base tests.
 kbTests :: (String, [TestFormula], [TestFormula]) -> [Test]

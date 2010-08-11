@@ -10,11 +10,15 @@ module Test.Types
       -- * Test case types
     , TestFormula(..)
     , Expected(..)
+    , TestProof(..)
+    , ProofExpected(..)
     ) where
 
 import Data.Char (isDigit)
 import Data.Generics (Data, Typeable)
 import Data.String (IsString(fromString))
+import Logic.Chiou.FirstOrderLogic (Sentence)
+import Logic.Chiou.Resolution (SetOfSupport)
 import Logic.FirstOrder (Skolem(..), Pretty(..), showForm)
 import qualified Logic.Instances.Parameterized as P
 import Logic.Logic (Boolean(..))
@@ -98,4 +102,17 @@ data Expected
     | SkolemNormalForm Formula
     | SatResult Bool
     | FirstOrderFormula Formula
+    | ConvertToChiou (Sentence V Pr AtomicFunction)
     deriving (Data, Typeable)
+
+data TestProof
+    = TestProof
+      { proofName :: String
+      , proofKnowledge :: (String, [Sentence V Pr AtomicFunction])
+      , conjecture :: Sentence V Pr AtomicFunction
+      , proofExpected :: [ProofExpected]
+      } deriving (Data, Typeable)
+
+data ProofExpected
+    = ChiouResult (Bool, SetOfSupport V Pr AtomicFunction)
+      deriving (Data, Typeable)

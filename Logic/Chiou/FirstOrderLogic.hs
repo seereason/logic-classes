@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveDataTypeable, MultiParamTypeClasses #-}
 {-# OPTIONS -Wall -Werror #-}
 
 {- FirstOrderLogic.hs -}
@@ -45,27 +45,29 @@ module Logic.Chiou.FirstOrderLogic
     , Quantifier(..)
     ) where
 
+import Data.Generics (Data, Typeable)
+
 data Sentence v p f
     = Connective (Sentence v p f) Connective (Sentence v p f)
     | Quantifier Quantifier [v] (Sentence v p f)
     | Not (Sentence v p f)
     | Predicate p [Term v f]
     | Equal (Term v f) (Term v f)
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Data, Typeable)
 
 data Term v f
     = Function f [Term v f]
     | Variable v
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Data, Typeable)
 
 data Connective
     = Imply
     | Equiv
     | And
     | Or
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Data, Typeable)
 
 data Quantifier
     = ForAll
     | ExistsCh
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Data, Typeable)

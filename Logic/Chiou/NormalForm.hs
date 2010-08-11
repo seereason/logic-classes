@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes, UndecidableInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes, UndecidableInstances #-}
 {-# OPTIONS -Wall -Wwarn -fno-warn-name-shadowing #-}
 
 {- NormalForm.hs -}
@@ -20,6 +20,7 @@ module Logic.Chiou.NormalForm
 -}
     ) where
 
+import Data.Generics (Data, Typeable)
 import qualified Data.Set as S
 import Data.String (IsString)
 import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Connective(..))
@@ -35,13 +36,13 @@ data ConjunctiveNormalForm v p f =
 
 data ImplicativeNormalForm v p f
     = INF [NormalSentence v p f] [NormalSentence v p f]
-    deriving (Eq)
+    deriving (Eq, Show, Data, Typeable)
 
 data NormalSentence v p f
     = NFNot (NormalSentence v p f)
     | NFPredicate p [Term v f]
     | NFEqual (Term v f) (Term v f)
-    deriving (Eq, Ord)
+    deriving (Eq, Ord, Show, Data, Typeable)
 
 instance (FirstOrderLogic (Sentence v p f) (Term v f) v p f, Enum v, Ord p, Ord f, Show v, Show p, Show f) => Implicative (ImplicativeNormalForm v p f) (Sentence v p f) (Term v f) v p f where
     neg (INF x _) = S.fromList (map toSentence x)

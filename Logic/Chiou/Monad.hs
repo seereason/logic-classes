@@ -8,8 +8,10 @@ module Logic.Chiou.Monad
     , ProverT
     , zeroKB
     , runProverT
+    , runProver
     ) where
 
+import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.State (MonadState, StateT, evalStateT, get, put)
 import Logic.Chiou.NormalForm (ImplicativeNormalForm)
 
@@ -36,6 +38,8 @@ type ProverT v p f = StateT (ProverState v p f)
 
 runProverT :: Monad m => StateT (ProverState v p f) m a -> m a
 runProverT action = evalStateT action zeroKB
+runProver :: StateT (ProverState v p f) Identity a -> a
+runProver = runIdentity . runProverT
 
 class MonadState (ProverState v p f) m => Skolem v p f m where
     skolem :: m Int
