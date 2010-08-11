@@ -23,7 +23,7 @@ module Logic.Chiou.NormalForm
 import Data.Generics (Data, Typeable)
 import Data.String (IsString)
 import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Connective(..))
-import Logic.FirstOrder (FirstOrderLogic(..), Skolem(..), convertFOF)
+import Logic.FirstOrder (FirstOrderLogic(..), InfixPred(..), Skolem(..), convertFOF)
 import Logic.Implicative (Implicative(..))
 import Logic.Instances.Chiou ()
 import Logic.Logic (Logic(..), Boolean(..))
@@ -46,6 +46,7 @@ data NormalSentence v p f
 instance (FirstOrderLogic (Sentence v p f) (Term v f) v p f, Enum v, Ord p, Ord f, Show v, Show p, Show f) => Implicative (ImplicativeNormalForm v p f) (Sentence v p f) (Term v f) v p f where
     neg (INF x _) = map toSentence x
     pos (INF _ x) = map toSentence x
+    makeINF lhs rhs = INF (map fromSentence lhs) (map fromSentence rhs)
     toImplicative formula =
         toINF (convert formula)
         where convert formula = convertFOF id id id formula
@@ -54,6 +55,17 @@ toSentence :: FirstOrderLogic (Sentence v p f) (Term v f) v p f => NormalSentenc
 toSentence (NFNot s) = (.~.) (toSentence s)
 toSentence (NFEqual t1 t2) = t1 .=. t2
 toSentence (NFPredicate p ts) = pApp p ts
+
+fromSentence :: FirstOrderLogic (Sentence v p f) (Term v f) v p f => Sentence v p f -> NormalSentence v p f
+fromSentence = foldF (\ f -> case fromSentence f of 
+                               NFNot f' -> f'
+                               f' -> NFNot f')
+                     (error "fromSentence")
+                     (error "fromSentence")
+                     (\ t1 op t2 -> case op of
+                                      (:=:) -> NFEqual t1 t2
+                                      (:!=:) -> NFNot (NFEqual t1 t2))
+                     NFPredicate
 
 {-
 toCNF :: (Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> ConjunctiveNormalForm v p f

@@ -24,6 +24,7 @@ class FirstOrderLogic formula term v p f => Implicative inf formula term v p f |
     pos :: inf -> [formula]  -- ^ Return the literals that are
                              -- conjuncted on the right side of the
                              -- implies.
+    makeINF :: [formula] -> [formula] -> inf
     toImplicative :: formula -> [inf] -- ^ Convert a first order logic formula to implicative normal form
     fromImplicative :: inf -> formula -- ^ Convert implicative to first order
     fromImplicative inf =
