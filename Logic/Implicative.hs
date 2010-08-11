@@ -33,14 +33,7 @@ toImplicative :: forall formula term v p f inf clause. (FirstOrderLogic formula 
                  (formula -> clause) -> [([formula], [formula])] -> [inf]
 toImplicative clause = map (\ (n, p) -> makeINF (map clause n) (map clause p))
 
-fromImplicative :: (FirstOrderLogic formula term v p f, Implicative inf clause) =>
-                   (clause -> formula) -> inf -> formula -- ^ Convert implicative to first order
+fromImplicative :: (FirstOrderLogic formula term v p f, Implicative inf lit) =>
+                   (lit -> formula) -> inf -> formula -- ^ Convert implicative to first order
 fromImplicative clause inf =
     (disj (map clause (neg inf))) .=>. (conj (map clause (pos inf)))
-    where
-      conj [] = pApp (fromBool True) []
-      conj [x] = x
-      conj (x:xs) = (x) .&. (conj xs)
-      disj [] = pApp (fromBool False) []
-      disj [x] = x
-      disj (x:xs) = (x) .|. (disj xs)

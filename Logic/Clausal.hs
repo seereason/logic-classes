@@ -53,13 +53,7 @@ toClausalM lit formula =
 fromClausal :: forall formula term v p f cnf lit. (FirstOrderLogic formula term v p f, Clausal cnf lit, Show lit) =>
                    (lit -> formula) -> cnf -> formula
 fromClausal lit cform =
-    conj (map disj (clauses cform))
+    conj (map (disj . map lit') (clauses cform))
     where
-      disj [] = pApp (fromBool False) []
-      disj [x] = lit' x
-      disj (x:xs) = lit' x .|. disj xs
-      conj [] = pApp (fromBool True) []
-      conj [x] = x
-      conj (x:xs) = x .&. conj xs
       lit' x | negated x =  (.~.) (lit (negate x))
       lit' x = lit x

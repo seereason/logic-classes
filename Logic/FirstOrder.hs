@@ -28,6 +28,8 @@ module Logic.FirstOrder
     , toPropositional
     , Pretty(..)
     , prettyForm
+    , disj
+    , conj
     ) where
 
 import Data.Data (Data)
@@ -102,6 +104,17 @@ class (Logic formula, Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f) => Fir
     -- (atomic function) is one of the type parameters, this package
     -- is mostly indifferent to its internal structure.
     fApp :: f -> [term] -> term
+
+-- | Functions to 
+disj :: (FirstOrderLogic formula term v p f, Boolean p) => [formula] -> formula
+disj [] = pApp (fromBool False) []
+disj [x] = x
+disj (x:xs) = x .|. disj xs
+
+conj :: (FirstOrderLogic formula term v p f, Boolean p) => [formula] -> formula
+conj [] = pApp (fromBool True) []
+conj [x] = x
+conj (x:xs) = x .|. conj xs
 
 -- | Helper function for building folds.
 quant :: FirstOrderLogic formula term v p f => 
