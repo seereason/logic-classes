@@ -53,8 +53,8 @@ class Logic formula where
     x .~&. y = (.~.) (x .&. y)
 
 infixl 2  .<=>. ,  .=>. ,  .<~>.
-infixl 3  .|.
-infixl 4  .&.
+infixl 3  .&.
+infixl 4  .|.  -- a & b | c means a & (b | c), which in cnf would be [[a], [b, c]]
 
 -- | The 'BinOp' type (and in 'Logic.FirstOrder' the 'InfixPred' and
 -- 'Quant' types) could be parameters of the type class instead of

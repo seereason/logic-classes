@@ -37,9 +37,7 @@ formCase s expected input = TestCase (assertEqual s expected input)
 precTests :: [Test]
 precTests =
     [ formCase "Logic - prec test 1"
-               -- Note that the result of cnf is a conjunction of disjunctions, which
-               -- will not group properly without parentheses.
-               ((a .&. b) .|. c)
+               (a .&. (b .|. c))
                (a .&. b .|. c)
       -- You can't apply .~. without parens:
       -- :type (.~. a)   -> (FormulaPF -> t) -> t
