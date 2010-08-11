@@ -6,6 +6,9 @@ module Test.Data
     , formulas
     , animalKB
     , animalConjectures
+    , chang43KB
+    , chang43Conjecture
+    , chang43ConjectureRenamed
     ) where
 
 import Logic.FirstOrder (FirstOrderLogic(..))
@@ -125,6 +128,237 @@ animalConjectures =
        -- negated_conjecture: ~kills(curiosity,tuna)
        }
      ]
+
+chang43KB = 
+    let e = var (V "e")
+        (x, y, z, u, v, w) = (var "x", var "y", var "z", var "u", var "v", var "w") in
+    ("chang example 4.3"
+    , [ TestFormula { name = "closure property"
+                    , formula = for_all ["x", "y"] (exists ["z"] (pApp "P" [x,y,z]))
+                    , expected = [] }
+      , TestFormula { name = "associativity property"
+                    , formula = for_all ["x", "y", "z", "u", "v", "w"] (pApp "P" [x, y, u] .&. pApp "P" [y, z, v] .&. pApp "P" [u, z, w] .=>. pApp "P" [x, v, w]) .&.
+                                for_all ["x", "y", "z", "u", "v", "w"] (pApp "P" [x, y, u] .&. pApp "P" [y, z, v] .&. pApp "P" [x, v, w] .=>. pApp "P" [u, z, w])
+                    , expected = [] }
+      , TestFormula { name = "identity property"
+                    , formula = (for_all ["x"] (pApp "P" [x,e,x])) .&. (for_all ["x"] (pApp "P" [e,x,x]))
+                    , expected = [] }
+      , TestFormula { name = "inverse property"
+                    , formula = (for_all ["x"] (pApp "P" [x,fApp "i" [x], e])) .&. (for_all ["x"] (pApp "P" [fApp "i" [x], x, e]))
+                    , expected = [] }
+      ])
+
+chang43Conjecture =
+    let e = (var (V "e"))
+        (x, u, v, w) = (var "x", var "u", var "v", var "w") in
+    withKB chang43KB $
+    TestFormula { name = "G is commutative"
+                , formula = for_all ["x"] (pApp "P" [x, x, e] .=>. (for_all ["u", "v", "w"] (pApp "P" [u, v, w] .=>. pApp "P" [v, u, w]))) 
+                , expected =
+                    [ FirstOrderFormula 
+                      ((.~.) (((for_all [V "x",V "y"] (exists [V "z"] (pApp (Pr "P") [var (V "x"),var (V "y"),var (V "z")]))) .&.
+                               ((((for_all [V "x",V "y",V "z",V "u",V "v",V "w"]
+                                   ((((pApp (Pr "P") [var (V "x"),var (V "y"),var (V "u")]) .&.
+                                      ((pApp (Pr "P") [var (V "y"),var (V "z"),var (V "v")]))) .&.
+                                     ((pApp (Pr "P") [var (V "u"),var (V "z"),var (V "w")]))) .=>.
+                                    ((pApp (Pr "P") [var (V "x"),var (V "v"),var (V "w")])))) .&.
+                                  ((for_all [V "x",V "y",V "z",V "u",V "v",V "w"]
+                                    ((((pApp (Pr "P") [var (V "x"),var (V "y"),var (V "u")]) .&.
+                                       ((pApp (Pr "P") [var (V "y"),var (V "z"),var (V "v")]))) .&.
+                                      ((pApp (Pr "P") [var (V "x"),var (V "v"),var (V "w")]))) .=>.
+                                     ((pApp (Pr "P") [var (V "u"),var (V "z"),var (V "w")])))))) .&.
+                                 ((((for_all [V "x"] (pApp (Pr "P") [var (V "x"),var (V "e"),var (V "x")])) .&.
+                                    ((for_all [V "x"] (pApp (Pr "P") [var (V "e"),var (V "x"),var (V "x")])))) .&.
+                                   (((for_all [V "x"] (pApp (Pr "P") [var (V "x"),fApp (Fn "i") [var (V "x")],var (V "e")])) .&.
+                                     ((for_all [V "x"] (pApp (Pr "P") [fApp (Fn "i") [var (V "x")],var (V "x"),var (V "e")])))))))))) .=>.
+                              ((for_all [V "x"]
+                                ((pApp (Pr "P") [var (V "x"),var (V "x"),var (V "e")]) .=>.
+                                 ((for_all [V "u",V "v",V "w"]
+                                   ((pApp (Pr "P") [var (V "u"),var (V "v"),var (V "w")]) .=>.
+                                    ((pApp (Pr "P") [var (V "v"),var (V "u"),var (V "w")]))))))))))
+                      -- (∀x ∀y ∃z P(x,y,z)) &
+                      -- (∀x∀y∀z∀u∀v∀w ~P(x,y,u) | ~P(y,z,v) | ~P(u,z,w) | P(x,v,w)) &
+                      -- (∀x∀y∀z∀u∀v∀w ~P(x,y,u) | ~P(y,z,v) | ~P(x,v,w) | P(u,z,w)) &
+                      -- (∀x P(x,e,x)) &
+                      -- (∀x P(e,x,x)) &
+                      -- (∀x P(x,i[x],e)) &
+                      -- (∀x P(i[x],x,e)) &
+                      -- (∃x P(x,x,e) & (∃u∃v∃w P(u,v,w) & ~P(v,u,w)))
+                    , NegationNormalForm 
+                      (((for_all [V "x",V "y"] (exists [V "z"] (pApp (Pr "P") [var (V "x"),var (V "y"),var (V "z")]))) .&.
+                        ((((for_all [V "x",V "y",V "z",V "u",V "v",V "w"]
+                            (((((.~.) (pApp (Pr "P") [var (V "x"),var (V "y"),var (V "u")])) .|.
+                               (((.~.) (pApp (Pr "P") [var (V "y"),var (V "z"),var (V "v")])))) .|.
+                              (((.~.) (pApp (Pr "P") [var (V "u"),var (V "z"),var (V "w")])))) .|.
+                             ((pApp (Pr "P") [var (V "x"),var (V "v"),var (V "w")])))) .&.
+                           ((for_all [V "x",V "y",V "z",V "u",V "v",V "w"]
+                             (((((.~.) (pApp (Pr "P") [var (V "x"),var (V "y"),var (V "u")])) .|.
+                                (((.~.) (pApp (Pr "P") [var (V "y"),var (V "z"),var (V "v")])))) .|.
+                               (((.~.) (pApp (Pr "P") [var (V "x"),var (V "v"),var (V "w")])))) .|.
+                              ((pApp (Pr "P") [var (V "u"),var (V "z"),var (V "w")])))))) .&.
+                          ((((for_all [V "x"] (pApp (Pr "P") [var (V "x"),var (V "e"),var (V "x")])) .&.
+                             ((for_all [V "x"] (pApp (Pr "P") [var (V "e"),var (V "x"),var (V "x")])))) .&.
+                            (((for_all [V "x"] (pApp (Pr "P") [var (V "x"),fApp (Fn "i") [var (V "x")],var (V "e")])) .&.
+                              ((for_all [V "x"] (pApp (Pr "P") [fApp (Fn "i") [var (V "x")],var (V "x"),var (V "e")])))))))))) .&.
+                       ((exists [V "x"] ((pApp (Pr "P") [var (V "x"),var (V "x"),var (V "e")]) .&.
+                                         ((exists [V "u",V "v",V "w"]
+                                           ((pApp (Pr "P") [var (V "u"),var (V "v"),var (V "w")]) .&.
+                                            (((.~.) (pApp (Pr "P") [var (V "v"),var (V "u"),var (V "w")]))))))))))
+                    , PrenexNormalForm
+                      (for_all [V "x",V "y"]
+                       (exists [V "z"]
+                        (for_all [V "x2",V "y2",V "z2",V "u",V "v",V "w"]
+                         (for_all [V "x2",V "y2",V "z2",V "u2",V "v2",V "w2"] 
+                          (for_all [V "x3"]
+                           (for_all [V "x3"]
+                            (for_all [V "x3"]
+                             (for_all [V "x3"]
+                              (exists [V "x4"]
+                               (exists [V "u3",V "v3",V "w3"]
+                                (((pApp (Pr "P") [var (V "x"),var (V "y"),var (V "z")]) .&.
+                                  ((((((((.~.) (pApp (Pr "P") [var (V "x2"),var (V "y2"),var (V "u")])) .|.
+                                        (((.~.) (pApp (Pr "P") [var (V "y2"),var (V "z2"),var (V "v")])))) .|.
+                                       (((.~.) (pApp (Pr "P") [var (V "u"),var (V "z2"),var (V "w")])))) .|.
+                                      ((pApp (Pr "P") [var (V "x2"),var (V "v"),var (V "w")]))) .&.
+                                     ((((((.~.) (pApp (Pr "P") [var (V "x2"),var (V "y2"),var (V "u2")])) .|.
+                                         (((.~.) (pApp (Pr "P") [var (V "y2"),var (V "z2"),var (V "v2")])))) .|.
+                                        (((.~.) (pApp (Pr "P") [var (V "x2"),var (V "v2"),var (V "w2")])))) .|.
+                                       ((pApp (Pr "P") [var (V "u2"),var (V "z2"),var (V "w2")]))))) .&.
+                                    ((((pApp (Pr "P") [var (V "x3"),var (V "e"),var (V "x3")]) .&.
+                                       ((pApp (Pr "P") [var (V "e"),var (V "x3"),var (V "x3")]))) .&.
+                                      (((pApp (Pr "P") [var (V "x3"),fApp (Fn "i") [var (V "x3")],var (V "e")]) .&.
+                                        ((pApp (Pr "P") [fApp (Fn "i") [var (V "x3")],var (V "x3"),var (V "e")]))))))))) .&.
+                                 (((pApp (Pr "P") [var (V "x4"),var (V "x4"),var (V "e")]) .&.
+                                   (((pApp (Pr "P") [var (V "u3"),var (V "v3"),var (V "w3")]) .&.
+                                     (((.~.) (pApp (Pr "P") [var (V "v3"),var (V "u3"),var (V "w3")]))))))))))))))))))
+                    , SkolemNormalForm
+                      (((pApp (Pr "P") [var (V "x"),var (V "y"),fApp (Skolem 1) [var (V "x"),var (V "y")]]) .&.
+                        ((((((((.~.) (pApp (Pr "P") [var (V "x2"),var (V "y2"),var (V "u")])) .|.
+                              (((.~.) (pApp (Pr "P") [var (V "y2"),var (V "z2"),var (V "v")])))) .|.
+                             (((.~.) (pApp (Pr "P") [var (V "u"),var (V "z2"),var (V "w")])))) .|.
+                            ((pApp (Pr "P") [var (V "x2"),var (V "v"),var (V "w")]))) .&.
+                           ((((((.~.) (pApp (Pr "P") [var (V "x2"),var (V "y2"),var (V "u2")])) .|.
+                               (((.~.) (pApp (Pr "P") [var (V "y2"),var (V "z2"),var (V "v2")])))) .|.
+                              (((.~.) (pApp (Pr "P") [var (V "x2"),var (V "v2"),var (V "w2")])))) .|.
+                             ((pApp (Pr "P") [var (V "u2"),var (V "z2"),var (V "w2")]))))) .&.
+                          ((((pApp (Pr "P") [var (V "x3"),var (V "e"),var (V "x3")]) .&.
+                             ((pApp (Pr "P") [var (V "e"),var (V "x3"),var (V "x3")]))) .&.
+                            (((pApp (Pr "P") [var (V "x3"),fApp (Fn "i") [var (V "x3")],var (V "e")]) .&.
+                              ((pApp (Pr "P") [fApp (Fn "i") [var (V "x3")],var (V "x3"),var (V "e")]))))))))) .&.
+                       (((pApp (Pr "P") [fApp (Skolem 2) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],
+                                         fApp (Skolem 2) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],
+                                         var (V "e")]) .&.
+                         (((pApp (Pr "P") [fApp (Skolem 3) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],
+                                           fApp (Skolem 4) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],
+                                           fApp (Skolem 5) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")]]) .&.
+                           (((.~.) (pApp (Pr "P") [fApp (Skolem 4) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],
+                                                   fApp (Skolem 3) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],
+                                                   fApp (Skolem 5) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")]]))))))))
+                    -- From our algorithm
+                    , let a = fApp (Skolem 3) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")]
+                          b = fApp (Skolem 4) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")]
+                          c = fApp (Skolem 5) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")]
+                      in 
+                      ClausalNormalForm
+                      [[(pApp (Pr "P") [var (V "x"),var (V "y"),fApp (Skolem 1) [var (V "x"),var (V "y")]])],
+                       [((.~.) (pApp (Pr "P") [var (V "x2"),var (V "y2"),var (V "u")])),
+                        ((.~.) (pApp (Pr "P") [var (V "y2"),var (V "z2"),var (V "v")])),
+                        ((.~.) (pApp (Pr "P") [var (V "u"),var (V "z2"),var (V "w")])),
+                        (pApp (Pr "P") [var (V "x2"),var (V "v"),var (V "w")])],
+                       [((.~.) (pApp (Pr "P") [var (V "x2"),var (V "y2"),var (V "u2")])),
+                        ((.~.) (pApp (Pr "P") [var (V "y2"),var (V "z2"),var (V "v2")])),
+                        ((.~.) (pApp (Pr "P") [var (V "x2"),var (V "v2"),var (V "w2")])),
+                        (pApp (Pr "P") [var (V "u2"),var (V "z2"),var (V "w2")])],
+                       [(pApp (Pr "P") [var (V "x3"),var (V "e"),var (V "x3")])],
+                       [(pApp (Pr "P") [var (V "e"),var (V "x3"),var (V "x3")])],
+                       [(pApp (Pr "P") [var (V "x3"),fApp (Fn "i") [var (V "x3")],var (V "e")])],
+                       [(pApp (Pr "P") [fApp (Fn "i") [var (V "x3")],var (V "x3"),var (V "e")])],
+                       [(pApp (Pr "P") [fApp (Skolem 2) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],
+                                        fApp (Skolem 2) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x3"),var (V "x3"),var (V "x3"),var (V "x3")],
+                                        var (V "e")])],
+                       [(pApp (Pr "P") [a, b, c])],
+                       [((.~.) (pApp (Pr "P") [b, a, c]))]]
+                    -- From the book
+{-
+                    , let (a, b, c) = (fApp (V "a") [], fApp (V "b") [], fApp (V "c") []) in
+                      ClausalNormalForm
+                      [[(pApp "P" [var (V "x"),var (V "y"),fApp (Skolem 1) [var (V "x"),var (V "y")]])],
+                       [((.~.) (pApp "P" [var (V "x"),var (V "y"),var (V "u")])),
+                        ((.~.) (pApp "P" [var (V "y"),var (V "z"),var (V "v")])),
+                        ((.~.) (pApp "P" [var (V "u"),var (V "z"),var (V "w")])),
+                        (pApp "P" [var (V "x"),var (V "v"),var (V "w")])],
+                       [((.~.) (pApp "P" [var (V "x"),var (V "y"),var (V "u")])),
+                        ((.~.) (pApp "P" [var (V "y"),var (V "z"),var (V "v")])),
+                        ((.~.) (pApp "P" [var (V "x"),var (V "v"),var (V "w")])),
+                        (pApp "P" [var (V "u"),var (V "z"),var (V "w")])],
+                       [(pApp "P" [var (V "x"),var (V "e"),var (V "x")])],
+                       [(pApp "P" [var (V "e"),var (V "x"),var (V "x")])],
+                       [(pApp "P" [var (V "x"),fApp (Fn "i") [var (V "x")],var (V "e")])],
+                       [(pApp "P" [fApp (Fn "i") [var (V "x")],var (V "x"),var (V "e")])],
+                       [(pApp "P" [var (V "x"),var (V "x"),var (V "e")])],
+                       [(pApp "P" [a, b, c])],
+                       [((.~.) (pApp "P" [b, a, c]))]]
+-}
+                    ]
+                }
+
+chang43ConjectureRenamed =
+    let e = fApp "e" []
+        (x, y, z, u, v, w) = (var "x", var "y", var "z", var "u", var "v", var "w")
+        (u2, v2, w2, x2, y2, z2, u3, v3, w3, x3, y3, z3, x4, x5, x6, x7, x8) =
+            (var "u2", var "v2", var "w2", var "x2", var "y2", var "z2", var "u3", var "v3", var "w3", var "x3", var "y3", var "z3", var "x4", var "x5", var "x6", var "x7", var "x8") in
+    TestFormula { name = "chang 43 renamed"
+                , formula = (.~.) ((for_all ["x", "y"] (exists ["z"] (pApp "P" [x,y,z])) .&.
+                                    for_all ["x2", "y2", "z2", "u", "v", "w"] (pApp "P" [x2, y2, u] .&. pApp "P" [y2, z2, v] .&. pApp "P" [u, z2, w] .=>. pApp "P" [x2, v, w]) .&.
+                                    for_all ["x3", "y3", "z3", "u2", "v2", "w2"] (pApp "P" [x3, y3, u2] .&. pApp "P" [y3, z3, v2] .&. pApp "P" [x3, v2, w2] .=>. pApp "P" [u2, z3, w2]) .&.
+                                    for_all ["x4"] (pApp "P" [x4,e,x4]) .&.
+                                    for_all ["x5"] (pApp "P" [e,x5,x5]) .&.
+                                    for_all ["x6"] (pApp "P" [x6,fApp "i" [x6], e]) .&.
+                                    for_all ["x7"] (pApp "P" [fApp "i" [x7], x7, e])) .=>.
+                                   (for_all ["x8"] (pApp "P" [x8, x8, e] .=>. (for_all ["u3", "v3", "w3"] (pApp "P" [u3, v3, w3] .=>. pApp "P" [v3, u3, w3])))))
+                , expected =
+                    [ FirstOrderFormula
+                      ((.~.) ((((((((for_all [V "x",V "y"] (exists [V "z"] (pApp (Pr "P") [var (V "x"),var (V "y"),var (V "z")]))) .&.
+                                    ((for_all [V "x2",V "y2",V "z2",V "u",V "v",V "w"] ((((pApp (Pr "P") [var (V "x2"),var (V "y2"),var (V "u")]) .&.
+                                                                                          ((pApp (Pr "P") [var (V "y2"),var (V "z2"),var (V "v")]))) .&.
+                                                                                         ((pApp (Pr "P") [var (V "u"),var (V "z2"),var (V "w")]))) .=>.
+                                                                                        ((pApp (Pr "P") [var (V "x2"),var (V "v"),var (V "w")])))))) .&.
+                                   ((for_all [V "x3",V "y3",V "z3",V "u2",V "v2",V "w2"] ((((pApp (Pr "P") [var (V "x3"),var (V "y3"),var (V "u2")]) .&.
+                                                                                            ((pApp (Pr "P") [var (V "y3"),var (V "z3"),var (V "v2")]))) .&.
+                                                                                           ((pApp (Pr "P") [var (V "x3"),var (V "v2"),var (V "w2")]))) .=>.
+                                                                                          ((pApp (Pr "P") [var (V "u2"),var (V "z3"),var (V "w2")])))))) .&.
+                                  ((for_all [V "x4"] (pApp (Pr "P") [var (V "x4"),fApp "e" [],var (V "x4")])))) .&.
+                                 ((for_all [V "x5"] (pApp (Pr "P") [fApp "e" [],var (V "x5"),var (V "x5")])))) .&.
+                                ((for_all [V "x6"] (pApp (Pr "P") [var (V "x6"),fApp (Fn "i") [var (V "x6")],fApp "e" []])))) .&.
+                               ((for_all [V "x7"] (pApp (Pr "P") [fApp (Fn "i") [var (V "x7")],var (V "x7"),fApp "e" []])))) .=>.
+                              ((for_all [V "x8"] ((pApp (Pr "P") [var (V "x8"),var (V "x8"),fApp "e" []]) .=>.
+                                                  ((for_all [V "u3",V "v3",V "w3"] ((pApp (Pr "P") [var (V "u3"),var (V "v3"),var (V "w3")]) .=>.
+                                                                                    ((pApp (Pr "P") [var (V "v3"),var (V "u3"),var (V "w3")]))))))))))
+                    , ClausalNormalForm
+                      [[(pApp (Pr "P") [var (V "x"),var (V "y"),fApp (Skolem 1) [var (V "x"),var (V "y")]])],
+                       [((.~.) (pApp (Pr "P") [var (V "x2"),var (V "y2"),var (V "u")])),
+                        ((.~.) (pApp (Pr "P") [var (V "y2"),var (V "z2"),var (V "v")])),
+                        ((.~.) (pApp (Pr "P") [var (V "u"),var (V "z2"),var (V "w")])),
+                        (pApp (Pr "P") [var (V "x2"),var (V "v"),var (V "w")])],
+                       [((.~.) (pApp (Pr "P") [var (V "x3"),var (V "y3"),var (V "u2")])),
+                        ((.~.) (pApp (Pr "P") [var (V "y3"),var (V "z3"),var (V "v2")])),
+                        ((.~.) (pApp (Pr "P") [var (V "x3"),var (V "v2"),var (V "w2")])),
+                        (pApp (Pr "P") [var (V "u2"),var (V "z3"),var (V "w2")])],
+                       [(pApp (Pr "P") [var (V "x4"),fApp "e" [],var (V "x4")])],
+                       [(pApp (Pr "P") [fApp "e" [],var (V "x5"),var (V "x5")])],
+                       [(pApp (Pr "P") [var (V "x6"),fApp (Fn "i") [var (V "x6")],fApp "e" []])],
+                       [(pApp (Pr "P") [fApp (Fn "i") [var (V "x7")],var (V "x7"),fApp "e" []])],
+                       [(pApp (Pr "P") [fApp (Skolem 2) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x3"),var (V "y3"),var (V "z3"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x4"),var (V "x5"),var (V "x6"),var (V "x7")],
+                                        fApp (Skolem 2) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x3"),var (V "y3"),var (V "z3"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x4"),var (V "x5"),var (V "x6"),var (V "x7")],
+                                        fApp "e" []])],
+                       [(pApp (Pr "P") [fApp (Skolem 3) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x3"),var (V "y3"),var (V "z3"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x4"),var (V "x5"),var (V "x6"),var (V "x7")],
+                                        fApp (Skolem 4) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x3"),var (V "y3"),var (V "z3"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x4"),var (V "x5"),var (V "x6"),var (V "x7")],
+                                        fApp (Skolem 5) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x3"),var (V "y3"),var (V "z3"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x4"),var (V "x5"),var (V "x6"),var (V "x7")]])],
+                       [((.~.) (pApp (Pr "P") [fApp (Skolem 4) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x3"),var (V "y3"),var (V "z3"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x4"),var (V "x5"),var (V "x6"),var (V "x7")],
+                                               fApp (Skolem 3) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x3"),var (V "y3"),var (V "z3"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x4"),var (V "x5"),var (V "x6"),var (V "x7")],
+                                               fApp (Skolem 5) [var (V "x"),var (V "y"),var (V "x2"),var (V "y2"),var (V "z2"),var (V "u"),var (V "v"),var (V "w"),var (V "x3"),var (V "y3"),var (V "z3"),var (V "u2"),var (V "v2"),var (V "w2"),var (V "x4"),var (V "x5"),var (V "x6"),var (V "x7")]]))]]
+                    ]
+                }
 
 withKB :: (String, [TestFormula]) -> TestFormula -> TestFormula
 withKB (kbName, knowledge) conjecture =

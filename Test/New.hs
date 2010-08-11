@@ -21,7 +21,7 @@ import Test.Types
 gFind :: (MonadPlus m, Data a, Typeable b) => a -> m b
 gFind = msum . map return . listify (const True)
 
-tests = TestLabel "New" $ TestList (concatMap doFormula (formulas ++ gFind (animalKB) ++ animalConjectures))
+tests = TestLabel "New" $ TestList (concatMap doFormula (formulas ++ gFind (animalKB, chang43KB) ++ animalConjectures ++ [chang43Conjecture, chang43ConjectureRenamed]))
     where
       doFormula f = concatMap (doTest f) (expected f)
 
