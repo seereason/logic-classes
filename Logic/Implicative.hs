@@ -6,7 +6,6 @@ module Logic.Implicative
     ( Implicative(..)
     ) where
 
-import qualified Data.Set as S
 import Logic.FirstOrder
 import Logic.Logic
 
@@ -16,12 +15,19 @@ import Logic.Logic
 -- implied by the type is that no literal can appear in both the pos
 -- set and the neg set.  Minimum implementation: pos, neg, toINF
 class FirstOrderLogic formula term v p f => Implicative inf formula term v p f | inf -> formula, inf -> term where
-    neg :: inf -> S.Set formula  -- ^ Return the literals that are negated and disjuncted on the left side of the implies
-    pos :: inf -> S.Set formula  -- ^ Return the literals that are conjuncted on the right side of the implies
+    neg :: inf -> [formula]  -- ^ Return the literals that are negated
+                             -- and disjuncted on the left side of the
+                             -- implies.  @neg@ and @pos@ are sets in
+                             -- some sense, but we don't (yet) have
+                             -- suitable Eq and Ord instances that
+                             -- understand renaming.
+    pos :: inf -> [formula]  -- ^ Return the literals that are
+                             -- conjuncted on the right side of the
+                             -- implies.
     toImplicative :: formula -> [inf] -- ^ Convert a first order logic formula to implicative normal form
     fromImplicative :: inf -> formula -- ^ Convert implicative to first order
     fromImplicative inf =
-        (disj (S.elems (neg inf))) .=>. (conj (S.elems (pos inf)))
+        (disj (neg inf)) .=>. (conj (pos inf))
         where
           conj :: [formula] -> formula
           conj [] = pApp (fromBool True) []

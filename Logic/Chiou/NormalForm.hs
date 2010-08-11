@@ -21,7 +21,6 @@ module Logic.Chiou.NormalForm
     ) where
 
 import Data.Generics (Data, Typeable)
-import qualified Data.Set as S
 import Data.String (IsString)
 import Logic.Chiou.FirstOrderLogic (Sentence(..), Term(..), Connective(..))
 import Logic.FirstOrder (FirstOrderLogic(..), Skolem(..), convertFOF)
@@ -45,8 +44,8 @@ data NormalSentence v p f
     deriving (Eq, Ord, Show, Data, Typeable)
 
 instance (FirstOrderLogic (Sentence v p f) (Term v f) v p f, Enum v, Ord p, Ord f, Show v, Show p, Show f) => Implicative (ImplicativeNormalForm v p f) (Sentence v p f) (Term v f) v p f where
-    neg (INF x _) = S.fromList (map toSentence x)
-    pos (INF _ x) = S.fromList (map toSentence x)
+    neg (INF x _) = map toSentence x
+    pos (INF _ x) = map toSentence x
     toImplicative formula =
         toINF (convert formula)
         where convert formula = convertFOF id id id formula
