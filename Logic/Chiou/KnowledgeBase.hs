@@ -87,7 +87,7 @@ tellKB s = do inf <- lift (implicativeNormalForm s)
               case valid of
                 Just False -> return ()
                 _ -> modify (\ st -> st { knowledgeBase = knowledgeBase st ++ inf'
-                                        , skolemCount = skolemCount st + sc })
+                                        , skolemOffset = skolemOffset st + sc })
               return (valid, map fst inf')
 
 loadKB :: (Monad m, Ord v, IsString v, Enum v, Ord p, Boolean p, Ord f, Skolem f, Show v, Show p, Show f) =>

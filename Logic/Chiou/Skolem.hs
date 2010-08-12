@@ -6,7 +6,7 @@ module Logic.Chiou.Skolem
 
 import Control.Monad.State (get)
 import Logic.Chiou.FirstOrderLogic (Term(..))
-import Logic.Chiou.Monad (ProverT, SkolemCount, ProverState(skolemCount))
+import Logic.Chiou.Monad (ProverT, SkolemCount, ProverState(skolemOffset))
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..))
 import Logic.FirstOrder (Skolem(..))
 
@@ -78,7 +78,7 @@ skSubstitute t = case t of
                          Just n ->
                              do (ts', n') <- skSubstituteL ts
                                 st <- get
-			        return ((Function (toSkolem (n + skolemCount st)) ts'),
+			        return ((Function (toSkolem (n + skolemOffset st)) ts'),
 				        max n n')
 {-
 		   Constant f ->

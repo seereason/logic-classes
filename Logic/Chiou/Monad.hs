@@ -22,13 +22,13 @@ type KnowledgeBase v p f = [(ImplicativeNormalForm v p f, SkolemCount)]
 data ProverState v p f
     = ProverState
       { knowledgeBase :: KnowledgeBase v p f
-      , skolemCount :: SkolemCount
+      , skolemOffset :: SkolemCount
       , modules :: [FolModule] }
 
 zeroKB :: ProverState v p f
 zeroKB = ProverState
          { knowledgeBase = []
-         , skolemCount = 0
+         , skolemOffset = 0
          , modules = [("user", 0)] }
 
 type FolModule = (String, SkolemCount)
