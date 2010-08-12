@@ -39,7 +39,7 @@ instance Literal (NormalSentence v p f) where
     negated (NFNot x) = not (negated x)
     negated _ = False
 
-instance (FirstOrderLogic (Sentence v p f) (Term v f) v p f, Enum v, Ord p, Ord f, Show v, Show p, Show f) => Implicative (ImplicativeNormalForm v p f) (NormalSentence v p f) where
+instance (FirstOrderLogic (Sentence v p f) (Term v f) v p f, Enum v, Ord p, Ord f) => Implicative (ImplicativeNormalForm v p f) (NormalSentence v p f) where
     neg (INF x _) = x
     pos (INF _ x) = x
     makeINF lhs rhs = INF lhs rhs

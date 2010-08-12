@@ -53,12 +53,12 @@ getKB = get >>= return . map fst . knowledgeBase
 -- |Try to prove a sentence, return the result and the proof.
 -- askKB should be in KnowledgeBase module. However, since resolution
 -- is here functions are here, it is also placed in this module.
-askKB :: (Monad m, Ord v, IsString v, Enum v, Boolean p, Ord p, Ord f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> ProverT v p f (SkolemT v (C.Term v f) m) Bool
+askKB :: (Monad m, Ord v, IsString v, Enum v, Boolean p, Ord p, Ord f, Skolem f) => Sentence v p f -> ProverT v p f (SkolemT v (C.Term v f) m) Bool
 askKB s = theoremKB s >>= return . fst
 
 -- |See whether the sentence is true, false or invalid.  Return proofs
 -- for truth and falsity.
-validKB :: (Monad m, Ord v, IsString v, Enum v, Ord p, Boolean p, Ord f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> ProverT v p f (SkolemT v (C.Term v f) m) (Maybe Bool, SetOfSupport v p f, SetOfSupport v p f)
+validKB :: (Monad m, Ord v, IsString v, Enum v, Ord p, Boolean p, Ord f, Skolem f) => Sentence v p f -> ProverT v p f (SkolemT v (C.Term v f) m) (Maybe Bool, SetOfSupport v p f, SetOfSupport v p f)
 validKB s =
     theoremKB s >>= \ (proved, proof1) ->
     inconsistantKB s >>= \ (disproved, proof2) ->
@@ -66,13 +66,13 @@ validKB s =
 
 -- |Return a flag indicating whether sentence was proved, along with a
 -- proof.
-theoremKB :: (Monad m, Ord v, IsString v, Enum v, Ord p, Boolean p, Ord f, Skolem f, Show v, Show p, Show f) =>
+theoremKB :: (Monad m, Ord v, IsString v, Enum v, Ord p, Boolean p, Ord f, Skolem f) =>
              Sentence v p f -> ProverT v p f (SkolemT v (C.Term v f) m) (Bool, SetOfSupport v p f)
 theoremKB s = inconsistantKB (Not s)
 
 -- |Return a flag indicating whether sentence was disproved, along
 -- with a disproof.
-inconsistantKB :: (Monad m, Ord v, IsString v, Eq p, Enum v, Ord f, Skolem f, Ord p, Boolean p, Show v, Show p, Show f) =>
+inconsistantKB :: (Monad m, Ord v, IsString v, Eq p, Enum v, Ord f, Skolem f, Ord p, Boolean p) =>
                   Sentence v p f -> ProverT v p f (SkolemT v (C.Term v f) m) (Bool, SetOfSupport v p f)
 inconsistantKB s = lift (implicativeNormalForm s) >>= \ inf -> getKB >>= return . prove [] (getSetOfSupport (toImplicative toNormal inf))
 
