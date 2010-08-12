@@ -37,14 +37,12 @@ module Logic.NormalForm
     , implicativeNormalForm
     ) where
 
---import Data.Char (isDigit)
+import Control.Monad.State (get, put)
 import qualified Data.Map as Map
---import Data.String (IsString(..))
 import qualified Data.Set as S
---import Debug.Trace
 import Logic.FirstOrder
---import Logic.Implicative (Implicative(..))
 import Logic.Logic
+import Logic.Monad (SkolemT, LogicState(..))
 
 -- |Simplify:
 -- 
@@ -271,41 +269,78 @@ distributeDisjuncts =
 -- functions applied to the list of variables which are universally
 -- quantified in the context where the existential quantifier
 -- appeared.
-skolemNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
-                    formula -> formula
+skolemNormalForm :: (Monad m, FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
+                    formula -> SkolemT v term m formula
 skolemNormalForm = skolemize . disjunctiveNormalForm
 
-skolemize :: forall formula term v p f. (FirstOrderLogic formula term v p f, Eq v) =>
-             formula -> formula
+skolemize :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f, Eq v) =>
+             formula -> SkolemT v term m formula
 skolemize =
-    skolemize' 1 [] Map.empty
+    return . skolemize' (LogicState { skolemCount = 1
+                                    , skolemMap = Map.empty
+                                    , univQuant = [] })
     where
-      skolemize' :: FirstOrderLogic formula term v p f => Int -> [v] -> Map.Map v term -> formula -> formula
-      skolemize' cnt univ skmap formula =
+      skolemize' :: FirstOrderLogic formula term v p f => LogicState v term -> formula -> formula
+      skolemize' logicState formula =
           foldF n q b i p formula
           where
-            n s = (.~.) (skolemize' cnt univ skmap s)
-            q All vs = for_all vs . skolemize' cnt (univ ++ vs) skmap
-            q Exists vs = skolemize' (cnt + length vs) univ (skolemCh cnt vs univ skmap)
-            b s1 op s2 = binOp (skolemize' cnt univ skmap s1) op (skolemize' cnt univ skmap s2)
-            i t1 op t2 = infixPred (substituteCh skmap t1) op (substituteCh skmap t2)
-            p pr ts = pApp pr (map (substituteCh skmap) ts)
+            n s = (.~.) (skolemize' logicState s)
+            q All vs = for_all vs . skolemize' (logicState {univQuant = univQuant logicState ++ vs})
+            q Exists vs = skolemize' (skolemCh logicState vs)
+            b s1 op s2 = binOp (skolemize' logicState s1) op (skolemize' logicState s2)
+            i t1 op t2 = infixPred (substituteCh logicState t1) op (substituteCh logicState t2)
+            p pr ts = pApp pr (map (substituteCh logicState) ts)
 
-      skolemCh i (v:vs) u skmap = skolemCh (i+1) vs u (Map.insert v (fApp (toSkolem i) (map var u)) skmap)
-      skolemCh _i [] _u skmap = skmap
+      skolemCh logicState (v:vs) =
+               skolemCh (logicState { skolemCount = skolemCount logicState + 1
+                                    , skolemMap = Map.insert v (fApp (toSkolem (skolemCount logicState)) (map var (univQuant logicState))) (skolemMap logicState) }) vs
+      skolemCh logicState [] = logicState
 
-      substituteCh skmap t =
-          foldT (\ v -> maybe (var v) id (Map.lookup v skmap))
-                (\ f ts -> fApp f (map (substituteCh skmap) ts))
+      substituteCh logicState t =
+          foldT (\ v -> maybe (var v) id (Map.lookup v (skolemMap logicState)))
+                (\ f ts -> fApp f (map (substituteCh logicState) ts))
                 t
+{-
+    foldF n q b i p
+    where
+      n :: formula -> SkolemT v term m formula
+      n s = skolemize s >>= \ (s' :: formula) -> return ((.~.) s')
+      q All vs f =
+          do logicState <- get
+             -- Add these variables to the list while we are in the
+             -- scope where they are universally quantified.
+             put (logicState {univQuant = univQuant logicState ++ vs})
+             result <- skolemize f >>= return . quant All vs
+             put (logicState {univQuant = univQuant logicState})
+             return result
+      q Exists vs f =
+          do logicState <- get
+             let skolemMap' = foldr (\ (v, c) -> Map.insert v (fApp (toSkolem c) (map var (univQuant logicState)))) (skolemMap logicState) (zip vs [skolemCount logicState ..])
+             put (logicState { skolemCount = skolemCount logicState + length vs
+                             , skolemMap = skolemMap' })
+             skolemize f
+      b s1 op s2 = skolemize s1 >>= \ s1' -> 
+                   skolemize s2 >>= \ s2' -> return (binOp s1' op s2')
+      i t1 op t2 =
+          substituteCh t1 >>= \ t1' ->
+          substituteCh t2 >>= \ t2' -> return (infixPred t1' op t2')
+      p pr ts = mapM substituteCh ts >>= return . pApp pr
+      -- Look up sko
+      substituteCh :: term -> SkolemT v term m term
+      substituteCh t =
+          get >>= \ logicState ->
+          foldT (\ v -> return (maybe (var v) id (Map.lookup v (skolemMap logicState))))
+                (\ f ts -> mapM substituteCh ts >>= return . fApp f)
+                t
+-}
 
 -- |Convert to Skolem Normal Form and then remove the outermost
 -- universal quantifiers.  Due to the nature of Skolem Normal Form,
 -- this is actually all the remaining quantifiers, the result is
 -- effectively a propositional logic formula.
-clausalNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
-                     formula -> [[formula]]
-clausalNormalForm = clausal . removeUniversal . skolemNormalForm
+clausalNormalForm :: (Monad m, FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
+                     formula -> SkolemT v term m [[formula]]
+clausalNormalForm f = skolemNormalForm f >>= return . clausal . removeUniversal
 
 clausal :: forall formula term v p f. (FirstOrderLogic formula term v p f, Eq formula {-, Pretty v, Pretty p, Pretty f-}) =>
            formula -> [[formula]]
@@ -338,11 +373,11 @@ clausal =
       isTrue f = foldF isFalse e3 e3 e3 (\ p _ -> p == fromBool True) f where e3 _ _ _ = error ("clausal: "  {- ++ show (prettyForm 0 f) -})
       e0 = error "clausal"
 
-implicativeNormalForm :: forall formula term v p f. 
-                         (FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
-                         formula -> [([formula], [formula])]
+implicativeNormalForm :: forall m formula term v p f. 
+                         (Monad m, FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
+                         formula -> SkolemT v term m [([formula], [formula])]
 implicativeNormalForm formula =
-    map (imply . foldl collect ([], [])) $ clausalNormalForm formula
+    clausalNormalForm formula >>= return . map (imply . foldl collect ([], []))
     where
       collect :: ([formula], [formula]) -> formula -> ([formula], [formula])
       collect (n, p) f =

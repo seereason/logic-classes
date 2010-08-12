@@ -13,25 +13,26 @@ module Logic.Satisfiable
 
 import Logic.FirstOrder (FirstOrderLogic(..), toPropositional)
 import Logic.Logic ((.~.))
+import Logic.Monad (SkolemT)
 import Logic.NormalForm (clausalNormalForm)
 import Logic.Instances.PropLogic ()
 import qualified PropLogic as PL
 
-satisfiable :: (FirstOrderLogic formula term v p f, Ord formula, Enum v) =>
-                formula -> Bool
-satisfiable =  PL.satisfiable . clauses
+satisfiable :: (Monad m, FirstOrderLogic formula term v p f, Ord formula, Enum v) =>
+                formula -> SkolemT v term m Bool
+satisfiable f = clauses f >>= return . PL.satisfiable
 
-clauses :: (FirstOrderLogic formula term v p f, Ord formula, Enum v) => formula -> PL.PropForm formula
-clauses f = PL.CJ (map (PL.DJ . map (toPropositional PL.A)) (clausalNormalForm f))
+clauses :: (Monad m, FirstOrderLogic formula term v p f, Ord formula, Enum v) => formula -> SkolemT v term m (PL.PropForm formula)
+clauses f = clausalNormalForm f >>= return . PL.CJ . map (PL.DJ . map (toPropositional PL.A))
 
-inconsistant :: (FirstOrderLogic formula term v p f, Ord formula, Enum v) =>
-                formula -> Bool
-inconsistant =  not . satisfiable
+inconsistant :: (Monad m, FirstOrderLogic formula term v p f, Ord formula, Enum v) =>
+                formula -> SkolemT v term m Bool
+inconsistant f =  satisfiable f >>= return . not
 
-theorem :: (FirstOrderLogic formula term v p f, Ord formula, Enum v) =>
-           formula -> Bool
+theorem :: (Monad m, FirstOrderLogic formula term v p f, Ord formula, Enum v) =>
+           formula -> SkolemT v term m Bool
 theorem f = inconsistant ((.~.) f)
 
-invalid :: (FirstOrderLogic formula term v p f, Ord formula, Enum v) =>
-           formula -> Bool
-invalid f = not (inconsistant f || theorem f)
+invalid :: (Monad m, FirstOrderLogic formula term v p f, Ord formula, Enum v) =>
+           formula -> SkolemT v term m Bool
+invalid f = inconsistant f >>= \ fi -> theorem f >>= \ ft -> return (not (fi || ft))

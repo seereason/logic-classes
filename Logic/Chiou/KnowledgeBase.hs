@@ -19,16 +19,19 @@ module Logic.Chiou.KnowledgeBase
     ) where
 
 import Control.Monad.State (MonadState(get, put), modify)
+import Control.Monad.Trans (lift)
 import Data.List (partition)
 import Data.String (IsString)
+import qualified Logic.Chiou.FirstOrderLogic as C
 import Logic.Chiou.FirstOrderLogic (Sentence(..))
 import Logic.Chiou.Monad (ProverT, ProverState(..), zeroKB, SkolemCount, KnowledgeBase, FolModule)
 import Logic.Chiou.NormalForm (ImplicativeNormalForm, toNormal)
 import Logic.Chiou.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Logic.Chiou.Skolem (assignSkolemL)
 import Logic.FirstOrder (Skolem(..))
-import Logic.Logic (Boolean(..))
 import Logic.Implicative (toImplicative)
+import Logic.Logic (Boolean(..))
+import Logic.Monad (SkolemT)
 import Logic.NormalForm (implicativeNormalForm)
 
 -- |Reset the knowledgebase to empty.
@@ -50,12 +53,12 @@ getKB = get >>= return . map fst . knowledgeBase
 -- |Try to prove a sentence, return the result and the proof.
 -- askKB should be in KnowledgeBase module. However, since resolution
 -- is here functions are here, it is also placed in this module.
-askKB :: (Monad m, Ord v, IsString v, Enum v, Boolean p, Ord p, Ord f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> ProverT v p f m Bool
+askKB :: (Monad m, Ord v, IsString v, Enum v, Boolean p, Ord p, Ord f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> ProverT v p f (SkolemT v (C.Term v f) m) Bool
 askKB s = theoremKB s >>= return . fst
 
 -- |See whether the sentence is true, false or invalid.  Return proofs
 -- for truth and falsity.
-validKB :: (Monad m, Ord v, IsString v, Enum v, Ord p, Boolean p, Ord f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> ProverT v p f m (Maybe Bool, SetOfSupport v p f, SetOfSupport v p f)
+validKB :: (Monad m, Ord v, IsString v, Enum v, Ord p, Boolean p, Ord f, Skolem f, Show v, Show p, Show f) => Sentence v p f -> ProverT v p f (SkolemT v (C.Term v f) m) (Maybe Bool, SetOfSupport v p f, SetOfSupport v p f)
 validKB s =
     theoremKB s >>= \ (proved, proof1) ->
     inconsistantKB s >>= \ (disproved, proof2) ->
@@ -64,30 +67,31 @@ validKB s =
 -- |Return a flag indicating whether sentence was proved, along with a
 -- proof.
 theoremKB :: (Monad m, Ord v, IsString v, Enum v, Ord p, Boolean p, Ord f, Skolem f, Show v, Show p, Show f) =>
-             Sentence v p f -> ProverT v p f m (Bool, SetOfSupport v p f)
+             Sentence v p f -> ProverT v p f (SkolemT v (C.Term v f) m) (Bool, SetOfSupport v p f)
 theoremKB s = inconsistantKB (Not s)
 
 -- |Return a flag indicating whether sentence was disproved, along
 -- with a disproof.
 inconsistantKB :: (Monad m, Ord v, IsString v, Eq p, Enum v, Ord f, Skolem f, Ord p, Boolean p, Show v, Show p, Show f) =>
-                  Sentence v p f -> ProverT v p f m (Bool, SetOfSupport v p f)
-inconsistantKB s = getKB >>= return . prove [] (getSetOfSupport (toImplicative toNormal (implicativeNormalForm s)))
+                  Sentence v p f -> ProverT v p f (SkolemT v (C.Term v f) m) (Bool, SetOfSupport v p f)
+inconsistantKB s = lift (implicativeNormalForm s) >>= \ inf -> getKB >>= return . prove [] (getSetOfSupport (toImplicative toNormal inf))
 
 -- |Validate a sentence and insert it into the knowledgebase.  Returns
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
 tellKB :: (Monad m, Ord v, IsString v, Enum v, Ord p, Boolean p, Ord f, Skolem f, Show v, Show p, Show f) =>
-          Sentence v p f -> ProverT v p f m (Maybe Bool, [ImplicativeNormalForm v p f])
-tellKB s = do (inf, sc) <-  assignSkolemL (toImplicative toNormal (implicativeNormalForm s)) 0
+          Sentence v p f -> ProverT v p f (SkolemT v (C.Term v f) m) (Maybe Bool, [ImplicativeNormalForm v p f])
+tellKB s = do inf <- lift (implicativeNormalForm s)
+              (inf', sc) <- assignSkolemL (toImplicative toNormal inf) 0
               (valid, _, _) <- validKB s
               case valid of
                 Just False -> return ()
-                _ -> modify (\ st -> st { knowledgeBase = knowledgeBase st ++ inf
+                _ -> modify (\ st -> st { knowledgeBase = knowledgeBase st ++ inf'
                                         , skolemCount = skolemCount st + sc })
-              return (valid, map fst inf)
+              return (valid, map fst inf')
 
 loadKB :: (Monad m, Ord v, IsString v, Enum v, Ord p, Boolean p, Ord f, Skolem f, Show v, Show p, Show f) =>
-          [Sentence v p f] -> ProverT v p f m [(Maybe Bool, [ImplicativeNormalForm v p f])]
+          [Sentence v p f] -> ProverT v p f (SkolemT v (C.Term v f) m) [(Maybe Bool, [ImplicativeNormalForm v p f])]
 loadKB sentences = emptyKB >> mapM tellKB sentences
 
 -- |Delete an entry from the KB.

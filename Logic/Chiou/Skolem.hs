@@ -10,6 +10,10 @@ import Logic.Chiou.Monad (ProverT, SkolemCount, ProverState(skolemCount))
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..))
 import Logic.FirstOrder (Skolem(..))
 
+-- |This function is used to change the skolem number of a collection
+-- of formulas so they are all non-overlapping.  Add the offset i to
+-- the skolem numbers in the formula, returning the resulting formula
+-- and the number of the highest skolem number encountered.
 assignSkolemL :: (Monad m, Skolem f) => [ImplicativeNormalForm v p f] -> SkolemCount -> ProverT v p f m ([(ImplicativeNormalForm v p f, SkolemCount)], SkolemCount)
 assignSkolemL [] _ = return ([], 0)
 assignSkolemL (x:xs) i = do (x', n1) <- assignSkolem x i

@@ -13,9 +13,10 @@ import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.State (StateT(runStateT))
 import qualified Data.Map as Map
 
--- |The logic monad contains several types of state to support the
--- operations done on logic formulas: Skolemization, literal
--- substitution, and the set of support during a proof procedure.
+-- |The logic monad contains (will contain) several types of state to
+-- support the operations done on logic formulas: Skolemization,
+-- literal substitution, and the set of support during a proof
+-- procedure.
 data LogicState v term
     = LogicState
       { skolemCount :: Int

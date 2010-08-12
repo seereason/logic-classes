@@ -12,7 +12,7 @@ module Logic.Chiou.Monad
     ) where
 
 import Control.Monad.Identity (Identity(runIdentity))
-import Control.Monad.State (MonadState, StateT, evalStateT, get, put)
+import Control.Monad.State (StateT, evalStateT {-, MonadState, get, put-})
 import Logic.Chiou.NormalForm (ImplicativeNormalForm)
 
 type SkolemCount = Int
@@ -41,11 +41,13 @@ runProverT action = evalStateT action zeroKB
 runProver :: StateT (ProverState v p f) Identity a -> a
 runProver = runIdentity . runProverT
 
+{-
 class MonadState (ProverState v p f) m => Skolem v p f m where
-    skolem :: m Int
+    skolem' :: m Int
 
 instance Monad m => Skolem v p f (ProverT v p f m) where
-    skolem =
+    skolem' =
         get >>= \ st ->
-        put (st {skolemCount = skolemCount st + 1}) >>
+        put (st {skolemCount = skolemCount' st + 1}) >>
         return (skolemCount st) 
+-}
