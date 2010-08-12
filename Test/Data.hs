@@ -117,15 +117,15 @@ formulas =
     , TestFormula
       { formula = n p0 .|. q0 .&. p0 .|. r0 .&. n q0 .&. n r0
       , name = "chang 7.2.1a - unsat"
-      , expected = [SatResult False] }
+      , expected = [ SatPropLogic False ] }
     , TestFormula
       { formula = p0 .|. q0 .|. r0 .&. n p0 .&. n q0 .&. n r0 .|. s0 .&. n s0
       , name = "chang 7.2.1b - unsat"
-      , expected = [SatResult False] }
+      , expected = [SatPropLogic False] }
     , TestFormula
       { formula = p0 .|. q0 .&. q0 .|. r0 .&. r0 .|. s0 .&. n r0 .|. n p0 .&. n s0 .|. n q0 .&. n q0 .|. n r0
       , name = "chang 7.2.1c - unsat"
-      , expected = [SatResult False] }
+      , expected = [SatPropLogic False] }
     , TestFormula
       { name = "distribute bug test"
       , formula = ((((.~.) (pApp "q" [var "x",var "y"])) .|.
@@ -355,7 +355,7 @@ animalConjectures =
                                  [(pApp (Pr "Cat") [fApp (Fn "Tuna") []])],
                                  [((.~.) (pApp (Pr "Cat") [var (V "x2")])),(pApp (Pr "Animal") [var (V "x2")])],
                                  [(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])]]
-           , SatResult True ]
+           , SatPropLogic True ]
        -- negated_conjecture: ~kills(jack,tuna)
        }
      , TestFormula
@@ -370,7 +370,7 @@ animalConjectures =
                                  [(pApp (Pr "Cat") [fApp (Fn "Tuna") []])],
                                  [((.~.) (pApp (Pr "Cat") [var (V "x2")])),(pApp (Pr "Animal") [var (V "x2")])],
                                  [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []])]]
-           , SatResult False ]
+           , SatPropLogic False ]
        -- negated_conjecture: ~kills(curiosity,tuna)
        }
      ]
@@ -404,12 +404,12 @@ socratesConjectures =
                                           [((.~.) (pApp (Pr "Socrates") [var (V "x2")])),(pApp (Pr "Human") [var (V "x2")])],
                                           [(pApp (Pr "Socrates") [fApp (Skolem 1) [var (V "x2"),var (V "x2")]])],
                                           [((.~.) (pApp (Pr "Mortal") [fApp (Skolem 1) [var (V "x2"),var (V "x2")]]))]]
-                    , SatResult True ]
+                    , SatPropLogic True ]
        }
      , TestFormula
        { formula = (.~.) (for_all [V "x"] (socrates x .=>. mortal x))
        , name = "not (socrates is mortal)"
-       , expected = [ SatResult False
+       , expected = [ SatPropLogic False
                     , FirstOrderFormula ((.~.) (((for_all [V "x"] ((pApp (Pr "Human") [var (V "x")]) .=>. ((pApp (Pr "Mortal") [var (V "x")])))) .&.
                                                  ((for_all [V "x"] ((pApp (Pr "Socrates") [var (V "x")]) .=>. ((pApp (Pr "Human") [var (V "x")])))))) .=>.
                                                 (((.~.) (for_all [V "x"] ((pApp (Pr "Socrates") [var (V "x")]) .=>. ((pApp (Pr "Mortal") [var (V "x")]))))))))

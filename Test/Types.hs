@@ -18,6 +18,7 @@ import Data.Char (isDigit)
 import Data.Generics (Data, Typeable)
 import Data.String (IsString(fromString))
 import Logic.Chiou.FirstOrderLogic (Sentence)
+import Logic.Chiou.NormalForm (ImplicativeNormalForm(..))
 import Logic.Chiou.Resolution (SetOfSupport)
 import Logic.FirstOrder (Skolem(..), Pretty(..), showForm)
 import qualified Logic.Instances.Parameterized as P
@@ -100,9 +101,10 @@ data Expected
     | PrenexNormalForm Formula
     | NegationNormalForm Formula
     | SkolemNormalForm Formula
-    | SatResult Bool
     | FirstOrderFormula Formula
     | ConvertToChiou (Sentence V Pr AtomicFunction)
+    | SatChiou (Maybe Bool, [ImplicativeNormalForm V Pr AtomicFunction])
+    | SatPropLogic Bool
     deriving (Data, Typeable)
 
 data TestProof

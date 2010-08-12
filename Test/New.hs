@@ -42,10 +42,12 @@ doTest f (NegationNormalForm f') =
     [TestCase (assertEqual (name f ++ " negation normal form") f' (negationNormalForm (formula f)))]
 doTest f (SkolemNormalForm f') =
     [TestCase (assertEqual (name f ++ " skolem normal form") f' (runSkolem (skolemNormalForm (formula f))))]
-doTest f (SatResult result) =
-    [TestCase (assertEqual (name f ++ " satisfiable") result (runSkolem (satisfiable (formula f))))]
 doTest f (ConvertToChiou result) =
     [TestCase (assertEqual (name f ++ " converted to Chiou") result (convertFOF id id id (formula f)))]
+doTest f (SatChiou result) =
+    [TestCase (assertEqual (name f ++ " Chiou.satisfiable") result (head (runSkolem (runProverT (C.loadKB [convertFOF id id id (formula f)])))))]
+doTest f (SatPropLogic result) =
+    [TestCase (assertEqual (name f ++ " satisfiable") result (runSkolem (satisfiable (formula f))))]
 
 doProof p (ChiouResult result) =
     TestLabel (proofName p ++ " with " ++ fst (proofKnowledge p)) . TestList $
