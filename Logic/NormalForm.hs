@@ -37,7 +37,8 @@ module Logic.NormalForm
     , implicativeNormalForm
     ) where
 
-import Control.Monad.State (get, put)
+import Control.Monad.State (MonadPlus, msum)
+import Data.Generics (Data, Typeable, listify)
 import qualified Data.Map as Map
 import qualified Data.Set as S
 import Logic.FirstOrder

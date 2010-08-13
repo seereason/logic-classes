@@ -37,7 +37,6 @@ import Data.Function (on)
 import Data.List (isPrefixOf, intercalate, intersperse)
 import Data.Monoid (mappend)
 import qualified Data.Set as S
-import Data.String (IsString(..))
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
@@ -61,7 +60,10 @@ class Skolem f where
 -- without them the univquant_free_vars function gives the error @No
 -- instance for (FirstOrderLogic Formula term V p f)@ because the
 -- function doesn't mention the Term type.
-class (Logic formula, Ord v, IsString v, Eq p, Boolean p, Eq f, Skolem f) => FirstOrderLogic formula term v p f
+class (Logic formula,
+       Ord v, Enum v, Data v,
+       Eq p, Boolean p, Data p,
+       Eq f, Skolem f, Data f) => FirstOrderLogic formula term v p f
                        | formula -> term
                        , formula -> v
                        , formula -> p

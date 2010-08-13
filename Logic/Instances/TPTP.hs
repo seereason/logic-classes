@@ -1,10 +1,11 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes, ScopedTypeVariables, TypeSynonymInstances, UndecidableInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes, ScopedTypeVariables, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-missing-signatures -fno-warn-orphans #-}
 module Logic.Instances.TPTP where
 
 import Control.Monad.Identity (Identity(..))
 import Codec.TPTP
 import Data.Char (isDigit, ord, chr)
+import Data.Generics (Data, Typeable)
 import qualified Logic.FirstOrder as Logic
 import qualified Logic.Logic as Logic
 import qualified Logic.Propositional as Logic
@@ -35,7 +36,7 @@ data AtomicFunction
     | StringLit String
     | NumberLit Double
     | Skolem V
-    deriving Show
+    deriving (Show, Data, Typeable)
 
 -- |This is not a safe way to implement booleans.
 instance Logic.Boolean AtomicWord where
