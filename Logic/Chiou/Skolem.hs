@@ -28,13 +28,7 @@ assignSkolem (INF lhs rhs) =
     do i <- get >>= return . sentenceCount
        (lhs', n1) <- assignSkolem' lhs
        (rhs', n2) <- assignSkolem' rhs
-       -- After the skolem numbers are adjusted, split up the RHS of
-       -- any INFs whose right hand side contain skolem functions.
-       -- (dsf: Why?  I don't know.)
-       let infs = if n2 > 0
-                  then splitSkolem (INF lhs' rhs')
-                  else [INF lhs' rhs']
-       return (map (withId i) infs, max n1 n2)
+       return (map (withId i) [INF lhs' rhs'], max n1 n2)
 
 assignSkolem' :: (Monad m, Skolem f) => [NormalSentence v p f] -> ProverT v p f m ([NormalSentence v p f], SkolemCount)
 assignSkolem' xs = mapM assignSkolem'' xs >>= return . collect id (foldr max 0)
@@ -64,19 +58,3 @@ skSubstitute t = case t of
                                 offset <- get >>= return . skolemOffset
 			        return ((Function (toSkolem (n + offset)) ts'), max n n')
                    Variable _ -> return (t, 0)
-
--- |Split up the rhs of an INF formula:
--- 
--- @
---   (a | b | c) => (d & e & f)
--- @
--- 
--- becomes
--- 
--- @
---    a | b | c => d
---    a | b | c => e
---    a | b | c => f
--- @
-splitSkolem :: ImplicativeNormalForm v p f -> [ImplicativeNormalForm v p f]
-splitSkolem (INF lhs rhs) = map (\ x -> INF lhs [x]) rhs

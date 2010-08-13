@@ -40,6 +40,7 @@ module Logic.NormalForm
 import Control.Monad.State (MonadPlus, msum)
 import Data.Generics (Data, Typeable, listify)
 import qualified Data.Map as Map
+import Data.Maybe (isJust)
 import qualified Data.Set as S
 import Logic.FirstOrder
 import Logic.Logic
@@ -338,7 +339,12 @@ skolemize =
 -- |Convert to Skolem Normal Form and then remove the outermost
 -- universal quantifiers.  Due to the nature of Skolem Normal Form,
 -- this is actually all the remaining quantifiers, the result is
--- effectively a propositional logic formula.
+-- effectively a propositional logic formula.  The result is a
+-- conjuncted list of clauses, where each clause is a list of
+-- disjuncted literals:
+-- @@
+--   [[a, ~b], [c, ~d]] <-> ((a | ~b) & (c | ~d))
+-- @@
 clausalNormalForm :: (Monad m, FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
                      formula -> SkolemT v term m [[formula]]
 clausalNormalForm f = skolemNormalForm f >>= return . clausal . removeUniversal
@@ -346,7 +352,6 @@ clausalNormalForm f = skolemNormalForm f >>= return . clausal . removeUniversal
 clausal :: forall formula term v p f. (FirstOrderLogic formula term v p f, Eq formula {-, Pretty v, Pretty p, Pretty f-}) =>
            formula -> [[formula]]
 clausal =
-    {- map rename . -}
     filter (not . any isTrue) . map doClause . flatten
     where
       flatten f =
@@ -374,11 +379,31 @@ clausal =
       isTrue f = foldF isFalse e3 e3 e3 (\ p _ -> p == fromBool True) f where e3 _ _ _ = error ("clausal: "  {- ++ show (prettyForm 0 f) -})
       e0 = error "clausal"
 
+-- |Take the clause normal form, and turn it into implicative form,
+-- where each clauses becomes an (LHS, RHS) pair with the negated
+-- literals on the LHS and the non-negated literals on the RHS:
+-- @
+--   (a | ~b | c | ~d) becomes (b & d) => (a | c)
+--   (~b | ~d) | (a | c)
+--   ~~(~b | ~d) | (a | c)
+--   ~(b & d) | (a | c)
+-- @
+-- If there are skolem functions on the RHS, split the formula using
+-- this identity:
+-- @
+--   (a | b | c) => (d & e & f)
+-- @
+-- becomes
+-- @
+--    a | b | c => d
+--    a | b | c => e
+--    a | b | c => f
+-- @
 implicativeNormalForm :: forall m formula term v p f. 
-                         (Monad m, FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
+                         (Monad m, FirstOrderLogic formula term v p f, Eq formula, Data formula, Typeable f, Enum v) =>
                          formula -> SkolemT v term m [([formula], [formula])]
 implicativeNormalForm formula =
-    clausalNormalForm formula >>= return . map (imply . foldl collect ([], []))
+    clausalNormalForm formula >>= return . concatMap split . map (imply . foldl collect ([], []))
     where
       collect :: ([formula], [formula]) -> formula -> ([formula], [formula])
       collect (n, p) f =
@@ -390,12 +415,11 @@ implicativeNormalForm formula =
                 f
       imply :: ([formula], [formula]) -> ([formula], [formula])
       imply (n, p) = (reverse n, reverse p)
-{-    
-    conjunctList . map fromImplicative $ (toImplicative formula :: [inf])
-    where
-      conjunctList (x : xs) = foldl (.&.) x xs
-      conjunctList [] = pApp (fromBool True) []
--}
+      split :: ([formula], [formula]) -> [([formula], [formula])]
+      split (lhs, rhs) =
+          if any isJust (map fromSkolem (gFind rhs :: [f]))
+          then map (\ x -> (lhs, [x])) rhs
+          else [(lhs, rhs)]
 
 removeUniversal :: FirstOrderLogic formula term v p f => formula -> formula
 removeUniversal formula =
@@ -404,16 +428,9 @@ removeUniversal formula =
       removeAll All _ f = removeUniversal f
       removeAll Exists vs f = exists vs (removeUniversal f)
 
-{-
--- |Nickname for clausalNormalForm.
-cnfTraced :: (FirstOrderLogic formula term v p f, Eq formula, Show formula) => formula -> formula
-cnfTraced =
-    t6 . removeUniversal . t5 . skolemize . t4 . distributeDisjuncts . t3 . moveQuantifiersOut . t2 . moveNegationsIn . simplify . t1
-    where
-      t1 x = trace ("\ninput: " ++ show x) x
-      t2 x = trace ("NNF:   " ++ show x) x
-      t3 x = trace ("PNF:   " ++ show x) x
-      t4 x = trace ("DNF:   " ++ show x) x
-      t5 x = trace ("SNF:   " ++ show x) x
-      t6 x = trace ("CNF:   " ++ show x) x
--}
+-- | @gFind a@ will extract any elements of type @b@ from
+-- @a@'s structure in accordance with the MonadPlus
+-- instance, e.g. Maybe Foo will return the first Foo
+-- found while [Foo] will return the list of Foos found.
+gFind :: (MonadPlus m, Data a, Typeable b) => a -> m b
+gFind = msum . map return . listify (const True)
