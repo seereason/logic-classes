@@ -25,10 +25,9 @@ import Data.List (partition)
 import Data.String (IsString)
 import qualified Logic.Chiou.FirstOrderLogic as C
 import Logic.Chiou.FirstOrderLogic (Sentence(..))
-import Logic.Chiou.Monad (ProverT, ProverState(..), zeroKB, KnowledgeBase, WithId(..), SentenceCount(..))
+import Logic.Chiou.Monad (ProverT, ProverState(..), zeroKB, KnowledgeBase, WithId(..), SentenceCount, withId)
 import Logic.Chiou.NormalForm (ImplicativeNormalForm, toNormal)
 import Logic.Chiou.Resolution (prove, SetOfSupport, getSetOfSupport)
-import Logic.Chiou.Skolem (assignSkolemL)
 import Logic.FirstOrder (Skolem(..))
 import Logic.Implicative (toImplicative)
 import Logic.Logic (Boolean(..))
@@ -86,14 +85,13 @@ tellKB :: (Monad m, Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skol
 tellKB s =
     do st <- get
        inf <- lift (implicativeNormalForm s)
-       (inf', sc) <- assignSkolemL (toImplicative toNormal inf)
+       -- (inf', sc) <- assignSkolemL (toImplicative toNormal inf)
+       let inf' = map (withId (sentenceCount st)) (toImplicative toNormal inf)
        (valid, _, _) <- validKB s
        case valid of
          Just False -> return ()
-         _ -> let (SC n) = sentenceCount st in
-              put st { knowledgeBase = knowledgeBase st ++ inf'
-                     , skolemOffset = skolemOffset st + sc
-                     , sentenceCount = SC (n + 1) }
+         _ -> put st { knowledgeBase = knowledgeBase st ++ inf'
+                     , sentenceCount = sentenceCount st + 1 }
        return (valid, map wiItem inf')
 
 loadKB :: (Monad m, Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f) =>
@@ -126,7 +124,7 @@ showKB = get >>= return . reportKB
 
 reportKB :: (Show (ImplicativeNormalForm v p f), Show v, Show p, Show f) => ProverState v p f -> String
 reportKB (ProverState {knowledgeBase = []}) = "Nothing in Knowledge Base\n"
-reportKB (ProverState {knowledgeBase = [WithId {wiItem = x, wiIdent = SC n}] {-, modules = m-}}) =
+reportKB (ProverState {knowledgeBase = [WithId {wiItem = x, wiIdent = n}]}) =
     show n ++ ") " ++ "\t" ++ show x ++ "\n"
-reportKB st@(ProverState {knowledgeBase = (WithId {wiItem = x, wiIdent = SC n}:xs)}) =
+reportKB st@(ProverState {knowledgeBase = (WithId {wiItem = x, wiIdent = n}:xs)}) =
     show n ++ ") " ++ "\t" ++ show x ++ "\n" ++ reportKB (st {knowledgeBase = xs})

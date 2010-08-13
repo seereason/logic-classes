@@ -1,9 +1,8 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, TypeSynonymInstances #-}
 -- |A monad to manage the knowledge base.
 module Logic.Chiou.Monad
-    ( SkolemCount
-    , WithId(..)
-    , SentenceCount(..)
+    ( WithId(..)
+    , SentenceCount
     , withId
     , wiLookupItem
     , wiLookupId
@@ -20,24 +19,23 @@ import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.State (StateT, evalStateT {-, MonadState, get, put-})
 import Logic.Chiou.NormalForm (ImplicativeNormalForm)
 
-type SkolemCount = Int
-newtype SentenceCount = SC Int deriving (Eq, Show)
+type SentenceCount = Int
 
-data WithId a = WithId {wiItem :: a, wiIdent :: SentenceCount}
+data WithId a = WithId {wiItem :: a, wiIdent :: Int}
 
-withId :: SentenceCount -> a -> WithId a
+withId :: Int -> a -> WithId a
 withId i x = WithId {wiIdent = i, wiItem = x}
 
-withIdPairs :: [WithId a] -> [(a, SentenceCount)]
+withIdPairs :: [WithId a] -> [(a, Int)]
 withIdPairs = map (\ x -> (wiItem x, wiIdent x))
 
-wiLookupId :: Eq a => a -> [WithId a] -> Maybe SentenceCount
+wiLookupId :: Eq a => a -> [WithId a] -> Maybe Int
 wiLookupId x xs = lookup x (withIdPairs xs)
 
-withIdPairs' :: [WithId a] -> [(SentenceCount, a)]
+withIdPairs' :: [WithId a] -> [(Int, a)]
 withIdPairs' = map (\ x -> (wiIdent x, wiItem x))
 
-wiLookupItem :: SentenceCount -> [WithId a] -> Maybe a
+wiLookupItem :: Int -> [WithId a] -> Maybe a
 wiLookupItem i xs = lookup i (withIdPairs' xs)
 
 type KnowledgeBase v p f = [WithId (ImplicativeNormalForm v p f)]
@@ -45,16 +43,12 @@ type KnowledgeBase v p f = [WithId (ImplicativeNormalForm v p f)]
 data ProverState v p f
     = ProverState
       { knowledgeBase :: KnowledgeBase v p f
-      , skolemOffset :: SkolemCount
-      , sentenceCount :: SentenceCount
-      {- , modules :: [FolModule] -} }
+      , sentenceCount :: Int }
 
 zeroKB :: ProverState v p f
 zeroKB = ProverState
          { knowledgeBase = []
-         , skolemOffset = 0
-         , sentenceCount = SC 1
-         {- , modules = [withId (SC 0) "user"] -} }
+         , sentenceCount = 1 }
 
 type FolModule = WithId String
 

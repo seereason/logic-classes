@@ -19,7 +19,6 @@ Library
                    Logic.Chiou.Monad
                    Logic.Chiou.NormalForm
                    Logic.Chiou.Resolution
-                   Logic.Chiou.Skolem
                    Logic.FirstOrder
                    Logic.Implicative
                    Logic.Instances.Chiou
