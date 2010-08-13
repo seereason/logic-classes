@@ -14,11 +14,11 @@ module Logic.Chiou.Resolution
 import Logic.Chiou.FirstOrderLogic
 import Logic.Chiou.NormalForm
 
-type Subst v f = [(v, Term v f)]
+type Subst v term = [(v, term)]
 
 type SetOfSupport v p f = [Unification v p f]
 
-type Unification v p f = (ImplicativeNormalForm v p f, Subst v f)
+type Unification v p f = (ImplicativeNormalForm v p f, Subst v (Term v f))
 
 prove :: (Eq v, Eq p, Eq f) => SetOfSupport v p f -> SetOfSupport v p f -> [ImplicativeNormalForm v p f] ->
          (Bool, SetOfSupport v p f)
@@ -64,7 +64,7 @@ getSetOfSupport :: Eq v => [ImplicativeNormalForm v p f] -> SetOfSupport v p f
 getSetOfSupport [] = []
 getSetOfSupport (x:xs) = (x, getSubsts x []):getSetOfSupport xs
 
-getSubsts :: Eq v => ImplicativeNormalForm v p f -> Subst v f -> Subst v f
+getSubsts :: Eq v => ImplicativeNormalForm v p f -> Subst v (Term v f) -> Subst v (Term v f)
 getSubsts (INF lhs rhs) theta =
     let
       theta' = getSubstSentences lhs theta
@@ -72,7 +72,7 @@ getSubsts (INF lhs rhs) theta =
     in
       theta''
 
-getSubstSentences :: Eq v => [NormalSentence v p f] -> Subst v f -> Subst v f
+getSubstSentences :: Eq v => [NormalSentence v p f] -> Subst v (Term v f) -> Subst v (Term v f)
 getSubstSentences [] theta = theta
 getSubstSentences (x:xs) theta =
     let
@@ -81,7 +81,7 @@ getSubstSentences (x:xs) theta =
     in
       theta''
 
-getSubstSentence :: Eq v => NormalSentence v p f -> Subst v f -> Subst v f
+getSubstSentence :: Eq v => NormalSentence v p f -> Subst v (Term v f) -> Subst v (Term v f)
 getSubstSentence (NFPredicate _ terms) theta = getSubstsTerms terms theta
 getSubstSentence (NFNot s) theta = getSubstSentence s theta
 getSubstSentence (NFEqual t1 t2) theta =
@@ -91,7 +91,7 @@ getSubstSentence (NFEqual t1 t2) theta =
     in
       theta''
 
-getSubstsTerms :: Eq v => [Term v f] -> Subst v f -> Subst v f
+getSubstsTerms :: Eq v => [Term v f] -> Subst v (Term v f) -> Subst v (Term v f)
 getSubstsTerms [] theta = theta
 getSubstsTerms (x:xs) theta =
     let
@@ -100,7 +100,7 @@ getSubstsTerms (x:xs) theta =
     in
       theta''
 
-getSubstsTerm :: Eq v => Term v f -> Subst v f -> Subst v f
+getSubstsTerm :: Eq v => Term v f -> Subst v (Term v f) -> Subst v (Term v f)
 getSubstsTerm (Function _f terms) theta = getSubstsTerms terms theta
 getSubstsTerm (Variable v) theta =
     if elem v (map fst theta) then
@@ -183,11 +183,11 @@ demodulate (INF [] [NFEqual t1 t2], theta1) (INF lhs2 rhs2, theta2) =
 demodulate _ _ = Nothing
 
 -- |Unification: unifies two sentences.
-unify :: (Eq v, Eq p, Eq f) => NormalSentence v p f -> NormalSentence v p f -> Maybe (Subst v f, Subst v f)
+unify :: (Eq v, Eq p, Eq f) => NormalSentence v p f -> NormalSentence v p f -> Maybe (Subst v (Term v f), Subst v (Term v f))
 unify s1 s2 = unify' s1 s2 [] []
 
-unify' :: (Eq v, Eq p, Eq f) => NormalSentence v p f -> NormalSentence v p f -> Subst v f -> Subst v f ->
-          Maybe (Subst v f, Subst v f)
+unify' :: (Eq v, Eq p, Eq f) => NormalSentence v p f -> NormalSentence v p f -> Subst v (Term v f) -> Subst v (Term v f) ->
+          Maybe (Subst v (Term v f), Subst v (Term v f))
 unify' (NFPredicate p1 ts1) (NFPredicate p2 ts2) theta1 theta2 =
     if p1 == p2 then
       unifyTerms ts1 ts2 theta1 theta2
@@ -201,7 +201,7 @@ unify' (NFEqual xt1 xt2) (NFEqual yt1 yt2) theta1 theta2 =
                    Nothing -> Nothing
 unify' _ _ _ _ = Nothing
 
-unifyTerm :: (Eq v, Eq f) => Term v f -> Term v f -> Subst v f -> Subst v f -> Maybe (Subst v f, Subst v f)
+unifyTerm :: (Eq v, Eq f) => Term v f -> Term v f -> Subst v (Term v f) -> Subst v (Term v f) -> Maybe (Subst v (Term v f), Subst v (Term v f))
 unifyTerm (Function f1 ts1) (Function f2 ts2) theta1 theta2 =
     if f1 == f2 then
       unifyTerms ts1 ts2 theta1 theta2
@@ -230,7 +230,7 @@ unifyTerm t1 (Variable v2) theta1 theta2 =
       Just (theta1, (v2,t1):theta2)
 --unifyTerm _ _ _ _  = Nothing
 
-unifyTerms :: (Eq v, Eq f) => [Term v f] -> [Term v f] -> Subst v f -> Subst v f -> Maybe (Subst v f, Subst v f)
+unifyTerms :: (Eq v, Eq f) => [Term v f] -> [Term v f] -> Subst v (Term v f) -> Subst v (Term v f) -> Maybe (Subst v (Term v f), Subst v (Term v f))
 unifyTerms [] [] theta1 theta2 = Just (theta1, theta2)
 unifyTerms (t1:ts1) (t2:ts2) theta1 theta2 =
     case (unifyTerm t1 t2 theta1 theta2) of
@@ -239,11 +239,11 @@ unifyTerms (t1:ts1) (t2:ts2) theta1 theta2 =
 unifyTerms _ _ _ _ = Nothing
 
 tryUnify :: (Eq v, Eq p, Eq f) => [NormalSentence v p f] -> [NormalSentence v p f] ->
-	    Maybe (([NormalSentence v p f], Subst v f), ([NormalSentence v p f], Subst v f))
+	    Maybe (([NormalSentence v p f], Subst v (Term v f)), ([NormalSentence v p f], Subst v (Term v f)))
 tryUnify lhs rhs = tryUnify' lhs rhs []
 
 tryUnify' :: (Eq v, Eq p, Eq f) => [NormalSentence v p f] -> [NormalSentence v p f] -> [NormalSentence v p f] -> 
-             Maybe (([NormalSentence v p f], Subst v f), ([NormalSentence v p f], Subst v f))
+             Maybe (([NormalSentence v p f], Subst v (Term v f)), ([NormalSentence v p f], Subst v (Term v f)))
 tryUnify' [] _ _ = Nothing
 tryUnify' (lhs:lhss) rhss lhss' =
     case tryUnify'' lhs rhss [] of
@@ -252,7 +252,7 @@ tryUnify' (lhs:lhss) rhss lhss' =
 	Just ((lhss' ++ lhss, theta1), (rhss', theta2))
 
 tryUnify'' :: (Eq v, Eq p, Eq f) => NormalSentence v p f -> [NormalSentence v p f] -> [NormalSentence v p f] -> 
-              Maybe ([NormalSentence v p f], Subst v f, Subst v f)
+              Maybe ([NormalSentence v p f], Subst v (Term v f), Subst v (Term v f))
 tryUnify'' _x [] _ = Nothing
 tryUnify'' x (rhs:rhss) rhss' =
     case unify x rhs of
@@ -260,7 +260,7 @@ tryUnify'' x (rhs:rhss) rhss' =
       Just (theta1, theta2) -> Just (rhss' ++ rhss, theta1, theta2)
 
 findUnify :: (Eq v, Eq f) => Term v f -> Term v f -> [NormalSentence v p f] ->
-	     Maybe ((Term v f, Term v f), Subst v f, Subst v f)
+	     Maybe ((Term v f, Term v f), Subst v (Term v f), Subst v (Term v f))
 findUnify tl tr s =
     let
       terms = foldl (++) [] (map getTerms s)
@@ -303,12 +303,12 @@ replaceTerm' t (tl, tr) =
         (Function f ts) -> Function f (map (\t' -> replaceTerm' t' (tl, tr)) ts)
         _  -> t
 
-subst :: Eq v => NormalSentence v p f -> Subst v f -> NormalSentence v p f
+subst :: Eq v => NormalSentence v p f -> Subst v (Term v f) -> NormalSentence v p f
 subst (NFPredicate p ts) theta = NFPredicate p (substTerms ts theta)
 subst (NFEqual t1 t2) theta = NFEqual (substTerm t1 theta) (substTerm t2 theta)
 subst s _ = s
 
-substTerm :: Eq v => Term v f -> Subst v f -> Term v f
+substTerm :: Eq v => Term v f -> Subst v (Term v f) -> Term v f
 substTerm (Function f ts) theta = Function f (substTerms ts theta)
 
 substTerm (Variable v) ((sv,st):xs) =
@@ -318,10 +318,10 @@ substTerm (Variable v) ((sv,st):xs) =
       substTerm (Variable v) xs
 substTerm t _ = t
 
-substTerms :: Eq v => [Term v f] -> Subst v f -> [Term v f]
+substTerms :: Eq v => [Term v f] -> Subst v (Term v f) -> [Term v f]
 substTerms ts theta = map (\t -> substTerm t theta) ts
 
-updateSubst :: Eq v => Subst v f -> Subst v f -> Subst v f
+updateSubst :: Eq v => Subst v (Term v f) -> Subst v (Term v f) -> Subst v (Term v f)
 updateSubst [] _ = []
 updateSubst ((v1,term1):xs) theta =
   case term1 of
