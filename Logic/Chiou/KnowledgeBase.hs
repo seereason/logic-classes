@@ -24,7 +24,7 @@ import Data.List (partition)
 import Data.String (IsString)
 import qualified Logic.Chiou.FirstOrderLogic as C
 import Logic.Chiou.FirstOrderLogic (Sentence(..))
-import Logic.Chiou.Monad (ProverT, ProverState(..), zeroKB, SkolemCount, KnowledgeBase, FolModule)
+import Logic.Chiou.Monad (ProverT, ProverState(..), zeroKB, KnowledgeBase, WithId(..), SentenceCount(..))
 import Logic.Chiou.NormalForm (ImplicativeNormalForm, toNormal)
 import Logic.Chiou.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Logic.Chiou.Skolem (assignSkolemL)
@@ -38,17 +38,17 @@ import Logic.NormalForm (implicativeNormalForm)
 emptyKB :: Monad m => ProverT v p f m ()
 emptyKB = put zeroKB
 
-unloadKB :: Monad m => String -> ProverT v p f m (Maybe (KnowledgeBase v p f))
-unloadKB name =
-    get >>= \ st -> maybe (return Nothing) (unload st) (lookup name (modules st))
+unloadKB :: Monad m => SentenceCount -> ProverT v p f m (Maybe (KnowledgeBase v p f))
+unloadKB n =
+    get >>= \ st -> unload st
     where
-      unload st n =
-          let (discard, keep) = partition ((== n) . snd) (knowledgeBase st) in
+      unload st =
+          let (discard, keep) = partition ((== n) . wiIdent) (knowledgeBase st) in
           put (st {knowledgeBase = keep}) >> return (Just discard)
 
 -- |Return the contents of the knowledgebase.
 getKB :: Monad m => ProverT v p f m [ImplicativeNormalForm v p f]
-getKB = get >>= return . map fst . knowledgeBase
+getKB = get >>= return . map wiItem . knowledgeBase
 
 -- |Try to prove a sentence, return the result and the proof.
 -- askKB should be in KnowledgeBase module. However, since resolution
@@ -81,14 +81,18 @@ inconsistantKB s = lift (implicativeNormalForm s) >>= \ inf -> getKB >>= return 
 -- new sentence is inconsistant with the current knowledgebase.
 tellKB :: (Monad m, Ord v, IsString v, Enum v, Ord p, Boolean p, Ord f, Skolem f, Show v, Show p, Show f) =>
           Sentence v p f -> ProverT v p f (SkolemT v (C.Term v f) m) (Maybe Bool, [ImplicativeNormalForm v p f])
-tellKB s = do inf <- lift (implicativeNormalForm s)
-              (inf', sc) <- assignSkolemL 0 (toImplicative toNormal inf)
-              (valid, _, _) <- validKB s
-              case valid of
-                Just False -> return ()
-                _ -> modify (\ st -> st { knowledgeBase = knowledgeBase st ++ inf'
-                                        , skolemOffset = skolemOffset st + sc })
-              return (valid, map fst inf')
+tellKB s =
+    do st <- get
+       inf <- lift (implicativeNormalForm s)
+       (inf', sc) <- assignSkolemL (toImplicative toNormal inf)
+       (valid, _, _) <- validKB s
+       case valid of
+         Just False -> return ()
+         _ -> let (SC n) = sentenceCount st in
+              put st { knowledgeBase = knowledgeBase st ++ inf'
+                     , skolemOffset = skolemOffset st + sc
+                     , sentenceCount = SC (n + 1) }
+       return (valid, map wiItem inf')
 
 loadKB :: (Monad m, Ord v, IsString v, Enum v, Ord p, Boolean p, Ord f, Skolem f, Show v, Show p, Show f) =>
           [Sentence v p f] -> ProverT v p f (SkolemT v (C.Term v f) m) [(Maybe Bool, [ImplicativeNormalForm v p f])]
@@ -116,18 +120,11 @@ deleteElement i l
 
 -- |Return a text description of the contents of the knowledgebase.
 showKB :: (Show (ImplicativeNormalForm v p f), Monad m, Show v, Show p, Show f) => ProverT v p f m String
-showKB = get >>= return . reportKB 1
+showKB = get >>= return . reportKB
 
-reportKB :: (Show (ImplicativeNormalForm v p f), Show v, Show p, Show f) => SkolemCount -> ProverState v p f -> String
-reportKB _ (ProverState {knowledgeBase = []}) = "Nothing in Knowledge Base\n"
-reportKB i (ProverState {knowledgeBase = [x], modules = m}) =
-    show i ++ ") " ++ reportKB' (snd x) m ++ "\t" ++ show (fst x) ++ "\n"
-reportKB i st@(ProverState {knowledgeBase = (x:xs), modules = m}) =
-    show i ++ ") " ++ reportKB' (snd x) m ++  "\t" ++ show (fst x) ++ "\n" ++ reportKB (i + 1) (st {knowledgeBase = xs})
-
-reportKB' :: SkolemCount -> [FolModule] -> String
-reportKB' 0 _m = "[USER]"
-reportKB' i m =
-    case lookup i (map (\(a, b) -> (b, a)) m) of
-      Just x -> "[MOD:" ++ x ++ "]"
-      Nothing -> "ERROR"
+reportKB :: (Show (ImplicativeNormalForm v p f), Show v, Show p, Show f) => ProverState v p f -> String
+reportKB (ProverState {knowledgeBase = []}) = "Nothing in Knowledge Base\n"
+reportKB (ProverState {knowledgeBase = [WithId {wiItem = x, wiIdent = SC n}] {-, modules = m-}}) =
+    show n ++ ") " ++ "\t" ++ show x ++ "\n"
+reportKB st@(ProverState {knowledgeBase = (WithId {wiItem = x, wiIdent = SC n}:xs)}) =
+    show n ++ ") " ++ "\t" ++ show x ++ "\n" ++ reportKB (st {knowledgeBase = xs})

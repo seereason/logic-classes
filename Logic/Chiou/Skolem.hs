@@ -9,7 +9,7 @@ module Logic.Chiou.Skolem
 --import Debug.Trace
 import Control.Monad.State (get)
 import Logic.Chiou.FirstOrderLogic (Term(..))
-import Logic.Chiou.Monad (ProverT, SkolemCount, ProverState(skolemOffset))
+import Logic.Chiou.Monad (ProverT, SkolemCount, ProverState(skolemOffset, sentenceCount), WithId(..), withId)
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..))
 import Logic.FirstOrder (Skolem(..))
 
@@ -20,21 +20,21 @@ collect fx fy pairs = let (xs, ys) = unzip pairs in (fx xs, fy ys)
 -- of formulas so they are all non-overlapping.  Add the offset i to
 -- the skolem numbers in the formula, returning the resulting formula
 -- and the number of the highest skolem number encountered.
-assignSkolemL :: forall m v p f. (Monad m, Skolem f) => SkolemCount -> [ImplicativeNormalForm v p f] -> ProverT v p f m ([(ImplicativeNormalForm v p f, SkolemCount)], SkolemCount)
-assignSkolemL i xs = mapM (assignSkolem i) ({- trace ("skolems: " ++ show (skolemList xs)) -} xs) >>= return . collect concat (foldr max 0)
+assignSkolemL :: forall m v p f. (Monad m, Skolem f) => [ImplicativeNormalForm v p f] -> ProverT v p f m ([WithId (ImplicativeNormalForm v p f)], SkolemCount)
+assignSkolemL xs = mapM assignSkolem xs >>= return . collect concat (foldr max 0)
 
-assignSkolem :: (Monad m, Skolem f) => SkolemCount -> ImplicativeNormalForm v p f -> ProverT v p f m ([(ImplicativeNormalForm v p f, SkolemCount)], SkolemCount)
-assignSkolem i (INF lhs rhs) =
-    do (lhs', n1) <- assignSkolem' lhs
+assignSkolem :: (Monad m, Skolem f) => ImplicativeNormalForm v p f -> ProverT v p f m ([WithId (ImplicativeNormalForm v p f)], SkolemCount)
+assignSkolem (INF lhs rhs) =
+    do i <- get >>= return . sentenceCount
+       (lhs', n1) <- assignSkolem' lhs
        (rhs', n2) <- assignSkolem' rhs
        -- After the skolem numbers are adjusted, split up the RHS of
        -- any INFs whose right hand side contain skolem functions.
        -- (dsf: Why?  I don't know.)
-       let inf =
-               if n2 > 0
-               then map (\x -> (x, i)) (splitSkolem (INF lhs' rhs'))
-	       else [((INF lhs' rhs'), i)]
-       return (inf, max n1 n2)
+       let infs = if n2 > 0
+                  then splitSkolem (INF lhs' rhs')
+                  else [INF lhs' rhs']
+       return (map (withId i) infs, max n1 n2)
 
 assignSkolem' :: (Monad m, Skolem f) => [NormalSentence v p f] -> ProverT v p f m ([NormalSentence v p f], SkolemCount)
 assignSkolem' xs = mapM assignSkolem'' xs >>= return . collect id (foldr max 0)
