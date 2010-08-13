@@ -16,6 +16,7 @@ module Test.Types
 
 import Data.Char (isDigit)
 import Data.Generics (Data, Typeable)
+import qualified Data.Set as S
 import Data.String (IsString(fromString))
 import Logic.Chiou.FirstOrderLogic (Sentence)
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..))
@@ -101,6 +102,7 @@ data Expected
     | PrenexNormalForm Formula
     | NegationNormalForm Formula
     | SkolemNormalForm Formula
+    | SkolemNumbers (S.Set Int)
     | FirstOrderFormula Formula
     | ConvertToChiou (Sentence V Pr AtomicFunction)
     | SatChiou (Maybe Bool, [ImplicativeNormalForm V Pr AtomicFunction])

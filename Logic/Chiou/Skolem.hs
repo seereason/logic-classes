@@ -1,72 +1,56 @@
+{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
+{-# OPTIONS -Wwarn #-}
 -- |Assign Skolem numbers to the terms of a formula in implicative
 -- normal form.
 module Logic.Chiou.Skolem
     ( assignSkolemL
     ) where
 
+--import Debug.Trace
 import Control.Monad.State (get)
 import Logic.Chiou.FirstOrderLogic (Term(..))
 import Logic.Chiou.Monad (ProverT, SkolemCount, ProverState(skolemOffset))
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..))
 import Logic.FirstOrder (Skolem(..))
 
+collect :: ([a] -> c) -> ([b] -> d) -> [(a, b)] -> (c, d)
+collect fx fy pairs = let (xs, ys) = unzip pairs in (fx xs, fy ys)
+
 -- |This function is used to change the skolem number of a collection
 -- of formulas so they are all non-overlapping.  Add the offset i to
 -- the skolem numbers in the formula, returning the resulting formula
 -- and the number of the highest skolem number encountered.
-assignSkolemL :: (Monad m, Skolem f) => [ImplicativeNormalForm v p f] -> SkolemCount -> ProverT v p f m ([(ImplicativeNormalForm v p f, SkolemCount)], SkolemCount)
-assignSkolemL [] _ = return ([], 0)
-assignSkolemL (x:xs) i = do (x', n1) <- assignSkolem x i
-			    (xs', n2) <- assignSkolemL xs i
-			    return (x' ++ xs', max n1 n2)
+assignSkolemL :: forall m v p f. (Monad m, Skolem f) => SkolemCount -> [ImplicativeNormalForm v p f] -> ProverT v p f m ([(ImplicativeNormalForm v p f, SkolemCount)], SkolemCount)
+assignSkolemL i xs = mapM (assignSkolem i) ({- trace ("skolems: " ++ show (skolemList xs)) -} xs) >>= return . collect concat (foldr max 0)
 
-assignSkolem :: (Monad m, Skolem f) => ImplicativeNormalForm v p f -> SkolemCount -> ProverT v p f m ([(ImplicativeNormalForm v p f, SkolemCount)], SkolemCount)
-assignSkolem (INF lhs rhs) i =
+assignSkolem :: (Monad m, Skolem f) => SkolemCount -> ImplicativeNormalForm v p f -> ProverT v p f m ([(ImplicativeNormalForm v p f, SkolemCount)], SkolemCount)
+assignSkolem i (INF lhs rhs) =
     do (lhs', n1) <- assignSkolem' lhs
        (rhs', n2) <- assignSkolem' rhs
-       let inf = if n2 > 0 then
-	           map (\x -> (x, i)) (splitSkolem (INF lhs' rhs'))
-		 else
-		   [((INF lhs' rhs'), i)]
+       -- After the skolem numbers are adjusted, split up the RHS of
+       -- any INFs whose right hand side contain skolem functions.
+       -- (dsf: Why?  I don't know.)
+       let inf =
+               if n2 > 0
+               then map (\x -> (x, i)) (splitSkolem (INF lhs' rhs'))
+	       else [((INF lhs' rhs'), i)]
        return (inf, max n1 n2)
 
 assignSkolem' :: (Monad m, Skolem f) => [NormalSentence v p f] -> ProverT v p f m ([NormalSentence v p f], SkolemCount)
-assignSkolem' [] = return ([], 0)
-assignSkolem' (x:xs) = do (x', n1) <- assignSkolem'' x
-			  (xs', n2) <- assignSkolem' xs
-			  return ((x':xs'), max n1 n2)
+assignSkolem' xs = mapM assignSkolem'' xs >>= return . collect id (foldr max 0)
 
 assignSkolem'' :: (Monad m, Skolem f) => NormalSentence v p f -> ProverT v p f m (NormalSentence v p f, SkolemCount)
-assignSkolem'' (NFNot s) = do (s', n) <- assignSkolem'' s
-			      return (NFNot s', n)
-assignSkolem'' (NFPredicate p ts) = do (ts', n) <- skSubstituteL ts
-				       return (NFPredicate p ts', n)
-assignSkolem'' (NFEqual t1 t2) = do (t1', n1) <- skSubstitute t1
-				    (t2', n2) <- skSubstitute t2
-				    return (NFEqual t1' t2', max n1 n2)
+assignSkolem'' (NFNot s) =
+    assignSkolem'' s >>= \ (s', n) -> return (NFNot s', n)
+assignSkolem'' (NFPredicate p ts) =
+    skSubstituteL ts >>= \ (ts', n) -> return (NFPredicate p ts', n)
+assignSkolem'' (NFEqual t1 t2) =
+    skSubstitute t1 >>= \ (t1', n1) ->
+    skSubstitute t2 >>= \ (t2', n2) ->
+    return (NFEqual t1' t2', max n1 n2)
 
 skSubstituteL :: (Monad m, Skolem f) => [Term v f] -> ProverT v p f m ([Term v f], SkolemCount)
-skSubstituteL [] = return ([], 0)
-skSubstituteL (t:ts) = do (t', n1) <- skSubstitute t
-			  (ts', n2) <- skSubstituteL ts
-			  return (t':ts', max n1 n2)
-
-{-
-skSubstitute :: (Monad m, Enum f) => Term v f -> ProverT v p f m (Term v f, SkolemCount)
-skSubstitute t = case t of
-	           (Function f ts) ->
-		       do (ts', n) <- skSubstituteL ts
-			  return (Function f ts', n)
-		   (SkolemFunction n ts) ->
-		       do (ts', n') <- skSubstituteL ts
-                          st <- get
-			  return ((Function (toEnum (fromEnum (toEnum n + skolemCount st))) ts'),
-				   max (toEnum n) n')
-		   (SkolemConstant n) ->
-		       do st <- get
-			  return (Constant (toEnum (fromEnum (toEnum n + skolemCount st))), toEnum n)
-		   _ -> return (t, 0)
--}
+skSubstituteL ts = mapM skSubstitute ts >>= return . collect id (foldr max 0)
 
 skSubstitute :: (Monad m, Skolem f) => Term v f -> ProverT v p f m (Term v f, SkolemCount)
 skSubstitute t = case t of
@@ -77,20 +61,22 @@ skSubstitute t = case t of
 			        return (Function f ts', n)
                          Just n ->
                              do (ts', n') <- skSubstituteL ts
-                                st <- get
-			        return ((Function (toSkolem (n + skolemOffset st)) ts'),
-				        max n n')
-{-
-		   Constant f ->
-                       case fromSkolem f of
-                         Nothing -> return (t, 0)
-                         Just n ->
-                             do st <- get
-			        return (Constant (toSkolem (n + skolemCount st)), n)
--}
+                                offset <- get >>= return . skolemOffset
+			        return ((Function (toSkolem (n + offset)) ts'), max n n')
                    Variable _ -> return (t, 0)
 
+-- |Split up the rhs of an INF formula:
+-- 
+-- @
+--   (a | b | c) => (d & e & f)
+-- @
+-- 
+-- becomes
+-- 
+-- @
+--    a | b | c => d
+--    a | b | c => e
+--    a | b | c => f
+-- @
 splitSkolem :: ImplicativeNormalForm v p f -> [ImplicativeNormalForm v p f]
-splitSkolem (INF lhs []) = [INF lhs []]
-splitSkolem (INF lhs (x:[])) = [INF lhs [x]]
-splitSkolem (INF lhs (x:xs)) = (INF lhs [x]):(splitSkolem (INF lhs xs))
+splitSkolem (INF lhs rhs) = map (\ x -> INF lhs [x]) rhs

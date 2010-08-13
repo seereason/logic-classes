@@ -3,10 +3,11 @@
 module Test.New where
 
 import Control.Monad.Reader (MonadPlus(..), msum)
-import Data.Generics (Data, Typeable, listify)
+import Data.Generics (Data, Typeable, listify, everything, mkQ)
+import qualified Data.Set as S
 import Logic.Chiou.Monad (runProverT)
 import qualified Logic.Chiou.KnowledgeBase as C
-import Logic.FirstOrder (convertFOF)
+import Logic.FirstOrder (FirstOrderLogic, convertFOF, fromSkolem)
 import Logic.Logic (Logic(..))
 import Logic.Monad (runSkolem, runLiteralMap)
 import Logic.NormalForm (clausalNormalForm, prenexNormalForm, disjunctiveNormalForm, skolemNormalForm, negationNormalForm)
@@ -30,6 +31,22 @@ tests = TestLabel "New" $ TestList (concatMap doFormula (formulas ++ gFind (anim
       doFormula f = concatMap (doTest f) (expected f)
       doProofs p = map (doProof p) (proofExpected p) 
 
+-- mkQ :: (Typeable a, Typeable b) => r -> (b -> r) -> a -> r
+
+skolemSet :: (FirstOrderLogic formula term v p f, Data f, Typeable f, Data formula) => formula -> S.Set Int
+skolemSet formula =
+    foldr ins S.empty (skolemList formula)
+    where
+      ins f s = case fromSkolem f of
+                  Just n -> S.insert n s
+                  Nothing -> s
+      skolemList :: (FirstOrderLogic formula term v p f, Data f, Typeable f, Data formula) => formula -> [f]
+      skolemList inf = gFind inf :: (Typeable f => [f])
+
+--skolemNumber :: (Data v, Typeable v, Data f, Typeable f, Skolem f) => Term v f -> [Int]
+skolemNumber :: FirstOrderLogic formula term v p f => f -> [Int]
+skolemNumber f = maybe [] (: []) (fromSkolem f)
+
 doTest f (FirstOrderFormula f') =
     [TestCase (assertEqual (name f) f' (formula f))]
 doTest f (ClausalNormalForm fss) =
@@ -42,6 +59,8 @@ doTest f (NegationNormalForm f') =
     [TestCase (assertEqual (name f ++ " negation normal form") f' (negationNormalForm (formula f)))]
 doTest f (SkolemNormalForm f') =
     [TestCase (assertEqual (name f ++ " skolem normal form") f' (runSkolem (skolemNormalForm (formula f))))]
+doTest f (SkolemNumbers f') =
+    [TestCase (assertEqual (name f ++ " skolem numbers") f' (skolemSet (runSkolem (skolemNormalForm (formula f)))))]
 doTest f (ConvertToChiou result) =
     [TestCase (assertEqual (name f ++ " converted to Chiou") result (convertFOF id id id (formula f)))]
 doTest f (SatChiou result) =

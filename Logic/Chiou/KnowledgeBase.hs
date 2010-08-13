@@ -82,7 +82,7 @@ inconsistantKB s = lift (implicativeNormalForm s) >>= \ inf -> getKB >>= return 
 tellKB :: (Monad m, Ord v, IsString v, Enum v, Ord p, Boolean p, Ord f, Skolem f, Show v, Show p, Show f) =>
           Sentence v p f -> ProverT v p f (SkolemT v (C.Term v f) m) (Maybe Bool, [ImplicativeNormalForm v p f])
 tellKB s = do inf <- lift (implicativeNormalForm s)
-              (inf', sc) <- assignSkolemL (toImplicative toNormal inf) 0
+              (inf', sc) <- assignSkolemL 0 (toImplicative toNormal inf)
               (valid, _, _) <- validKB s
               case valid of
                 Just False -> return ()
