@@ -7,11 +7,13 @@
 -- predicate type and an @f@ parameter to represent the type of the
 -- atomic function type.
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
-             GeneralizedNewtypeDeriving, MultiParamTypeClasses, RankNTypes, TemplateHaskell, UndecidableInstances #-}
+             GeneralizedNewtypeDeriving, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables,
+             TemplateHaskell, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
 module Logic.FirstOrder
     ( Skolem(..)
     , FirstOrderLogic(..)
+    , Term(..)
     , Quant(..)
     , quant
     , InfixPred(..)
@@ -53,6 +55,18 @@ class Skolem f where
     toSkolem :: Int -> f
     fromSkolem  :: f -> Maybe Int
 
+class (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term term v f | term -> v, term -> f where
+    var :: v -> term
+    -- ^ Build a term which is a variable reference.
+    fApp :: f -> [term] -> term
+    -- ^ Build a term by applying terms to an atomic function.  @f@
+    -- (atomic function) is one of the type parameters, this package
+    -- is mostly indifferent to its internal structure.
+    foldT :: (v -> r) -> (f -> [term] -> r) -> term -> r
+    -- ^ A fold for the term data type, which understands terms built
+    -- from a variable and a term built from the application of a
+    -- primitive function to other terms.
+
 -- |The 'PropositionalLogic' type class.  Minimal implementation:
 -- @for_all, exists, foldF, foldT, (.=.), pApp, fApp, var@.  The
 -- functional dependencies are necessary here so we can write
@@ -61,9 +75,8 @@ class Skolem f where
 -- instance for (FirstOrderLogic Formula term V p f)@ because the
 -- function doesn't mention the Term type.
 class (Logic formula,
-       Ord v, Enum v, Data v,
-       Eq p, Boolean p, Data p,
-       Eq f, Skolem f, Data f) => FirstOrderLogic formula term v p f
+       Term term v f,
+       Eq p, Boolean p, Data p) => FirstOrderLogic formula term v p f
                        | formula -> term
                        , formula -> v
                        , formula -> p
@@ -86,13 +99,6 @@ class (Logic formula,
           -> (p -> [term] -> r)
           -> (formula)
           -> r
-    -- |A fold for the term data type, which understands terms built
-    -- from a variable and a term built from the application of a
-    -- primitive function to other terms.
-    foldT :: (v -> r)
-          -> (f -> [term] -> r)
-          -> term
-          -> r
     -- | Equality of Terms
     (.=.) :: term -> term -> formula
     -- | Inequality of Terms
@@ -100,12 +106,6 @@ class (Logic formula,
     a .!=. b = (.~.) (a .=. b)
     -- | Build a formula by applying terms to an atomic predicate.
     pApp :: p -> [term] -> formula
-    -- | Build a term which is a variable reference.
-    var :: v -> term
-    -- | Build a term by applying terms to an atomic function.  @f@
-    -- (atomic function) is one of the type parameters, this package
-    -- is mostly indifferent to its internal structure.
-    fApp :: f -> [term] -> term
 
 -- | Functions to 
 disj :: (FirstOrderLogic formula term v p f, Boolean p) => [formula] -> formula
@@ -131,7 +131,7 @@ infixPred t1 (:=:) t2 = t1 .=. t2
 infixPred t1 (:!=:) t2 = t1 .!=. t2
 
 -- | Display a formula in a format that can be read into the interpreter.
-showForm :: (FirstOrderLogic formula term v p f, Show v, Show p, Show f) => 
+showForm :: forall formula term v p f. (FirstOrderLogic formula term v p f, Show v, Show p, Show f) => 
             formula -> String
 showForm formula =
     foldF n q b i a formula
@@ -140,9 +140,12 @@ showForm formula =
       q All vs f = "(for_all " ++ show vs ++ " " ++ showForm f ++ ")"
       q Exists vs f = "(exists " ++ show vs ++ " " ++ showForm f ++ ")"
       b f1 op f2 = "(" ++ showForm f1 ++ " " ++ showFormOp op ++ " " ++ parenForm f2 ++ ")"
+      i :: term -> InfixPred -> term -> String
       i t1 op t2 = "(" ++ parenTerm t1 ++ " " ++ showTermOp op ++ " " ++ parenTerm t2 ++ ")"
+      a :: p -> [term] -> String
       a p ts = "(pApp (" ++ show p ++ ") [" ++ intercalate "," (map showTerm ts) ++ "])"
       parenForm x = "(" ++ showForm x ++ ")"
+      parenTerm :: term -> String
       parenTerm x = "(" ++ showTerm x ++ ")"
       showFormOp (:<=>:) = ".<=>."
       showFormOp (:=>:) = ".=>."
@@ -150,26 +153,33 @@ showForm formula =
       showFormOp (:|:) = ".|."
       showTermOp (:=:) = ".=."
       showTermOp (:!=:) = ".!=."
+      -- showTerm :: term -> String
       showTerm term =
           foldT v f term
           where
+            v :: v -> String
             v v' = "var (" ++ show v' ++ ")"
+            f :: f -> [term] -> String
             f fn ts = "fApp (" ++ show fn ++ ") [" ++ intercalate "," (map showTerm ts) ++ "]"
 
-prettyForm :: forall formula term v p f. (FirstOrderLogic formula term v p f, Pretty v, Pretty p, Pretty f) => Int -> formula -> Doc
+prettyForm :: forall formula term v p f.
+              (FirstOrderLogic formula term v p f, Term term v f, Pretty v, Pretty f, Pretty p) =>
+              Int -> formula -> Doc
 prettyForm n formula =
-    pf n formula
+    foldF (\ f -> text {-"¬"-} "~" <> prettyForm 4 f)
+          (\ qop vs f -> parensIf (n > 1) $ hcat (map (prettyQuant qop) vs) <+> prettyForm 1 f)
+          (\ f1 op f2 -> parensIf (n > 2) $ (prettyForm 2 f1 <+> formOp op <+> prettyForm 2 f2))
+          i
+          pr
+          formula
     where
-      -- pf :: Int -> formula -> Doc
-      pf prec =
-          foldF (\ f -> text {-"¬"-} "~" <> pf 4 f)
-                (\ qop vs f -> parensIf (prec > 1) $ hcat (map (prettyQuant qop) vs) <+> pf 1 f)
-                (\ f1 op f2 -> parensIf (prec > 2) $ (pf 2 f1 <+> formOp op <+> pf 2 f2))
-                (\ t1 op t2 -> parensIf (prec > 3) (term t1 <+> termOp op <+> term t2))
-                (\ p ts -> pretty p <> case ts of
-                                         [] -> empty
-                                         _ -> parens (hcat (intersperse (text ",") (map term ts))))
-      -- parenForm x = parens (pf x)
+      i :: term -> InfixPred -> term -> Doc
+      i t1 op t2 = parensIf (n > 3) (prettyTerm t1 <+> termOp op <+> prettyTerm t2)
+      pr :: p -> [term] -> Doc
+      pr p ts = pretty p <> case ts of
+                              [] -> empty
+                              _ -> parens (hcat (intersperse (text ",") (map prettyTerm ts)))
+      -- parenForm x = parens (prettyForm x)
       -- parenTerm x = parens (term x)
       parensIf True = parens
       parensIf False = id
@@ -181,9 +191,9 @@ prettyForm n formula =
       formOp (:|:) = text "|"
       termOp (:=:) = text "="
       termOp (:!=:) = text "!="
-      term =
-          foldT (\ v' -> pretty v')
-                (\ fn ts -> pretty fn <> brackets (hcat (intersperse (text ",") (map term ts))))
+
+prettyTerm :: forall v f term. (Pretty f, Pretty v, Term term v f) => term -> Doc
+prettyTerm t = foldT (pretty :: v -> Doc) (\ fn _ -> (pretty :: f -> Doc) fn) t
 
 -- |The 'Quant' and 'InfixPred' types, like the BinOp type in
 -- 'Logic.Propositional', could be additional parameters to the type
@@ -206,12 +216,13 @@ instance Read InfixPred where
 
 -- |Find the free (unquantified) variables in a formula.
 freeVars :: FirstOrderLogic formula term v p f => formula -> S.Set v
-freeVars =
+freeVars f =
     foldF freeVars   
           (\_ vars x -> S.difference (freeVars x) (S.fromList vars))                    
           (\x _ y -> (mappend `on` freeVars) x y)
           (\x _ y -> (mappend `on` freeVarsOfTerm) x y)
           (\_ args -> S.unions (fmap freeVarsOfTerm args))
+          f
     where
       freeVarsOfTerm = foldT S.singleton (\ _ args -> S.unions (fmap freeVarsOfTerm args))
 
@@ -226,12 +237,13 @@ quantVars =
 
 -- |Find the free and quantified variables in a formula.
 allVars :: FirstOrderLogic formula term v p f => formula -> S.Set v
-allVars =
+allVars f =
     foldF freeVars   
           (\_ vars x -> S.union (allVars x) (S.fromList vars))
           (\x _ y -> (mappend `on` allVars) x y)
           (\x _ y -> (mappend `on` allVarsOfTerm) x y)
           (\_ args -> S.unions (fmap allVarsOfTerm args))
+          f
     where
       allVarsOfTerm = foldT S.singleton (\ _ args -> S.unions (fmap allVarsOfTerm args))
 
@@ -304,32 +316,6 @@ toPropositional convertAtom formula =
       b f1 op f2 = binOp (convert' f1) op (convert' f2)
       i _ _ _ = convertAtom formula
       p _ _ = convertAtom formula
-
-{-
--- |Choose a "standard" order for the commutative and associative
--- operations such as &, |, and =.
--- Rewrite a & (b & c) -> (a & b) & c
---         a | (b | c) -> (a | b) | c
--- Sort commutative pairs using the Ord instance.
-reassociate :: (FirstOrderLogic formula term v p f, Ord formula, Ord term) => formula -> formula
-reassociate =
-    foldF ((.~.) . reassociate)
-          (\ op vs f -> quant op vs (reassociate f))
-          (\ f1 op f2 -> foldF (binOp (reassociate f1) op . (.~.))
-                               (\ qop vs f2' -> binOp (reassociate f1) op (quant qop vs (reassociate f2')))
-                               (b f1 op)
-                               (\ t1 op2 t2 -> binOp (reassociate f1) op (infixPred t1 op2 t2))
-                               (\ fn ts -> binOp (reassociate f1) op (pApp fn ts))
-                               f2)
-          infixPred
-          pApp
-    where
-      -- This is some sweet folding goodness!
-      b f1 op f2a op2 f2b =
-           if op == op2 && (op == (:&:) || op == (:|:))
-           then reassociate (binOp (binOp f1 op f2a) op f2b)
-           else binOp (reassociate f1) op (reassociate (binOp f2a op2 f2b))
--}
 
 instance Version InfixPred
 instance Version Quant

@@ -89,17 +89,19 @@ instance (PropositionalLogic (Sentence v p f) (Sentence v p f), Ord v, Enum v, D
           Connective f1 Or f2 -> b f1 (:|:) f2
           Predicate name ts -> p name ts
           Equal t1 t2 -> i t1 (:=:) t2
-    foldT v fn t =
-        case t of
-          Variable x -> v x
-          Function f ts -> fn f ts
     pApp x args = Predicate x args
-    var = Variable
-    fApp f ts = Function f ts
     -- fApp (AtomicSkolemFunction n) [] = SkolemConstant n
     -- fApp (AtomicSkolemFunction n) ts = SkolemFunction n ts
     x .=. y = Equal x y
     x .!=. y = Not (Equal x y)
+
+instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Logic.Term (Term v f) v f where
+    foldT v fn t =
+        case t of
+          Variable x -> v x
+          Function f ts -> fn f ts
+    var = Variable
+    fApp f ts = Function f ts
 
 {-
 cnf2 :: FirstOrderLogic formula term v p f =>

@@ -13,18 +13,18 @@ module Test.Data
 import qualified Data.Set as S
 import qualified Logic.Chiou.FirstOrderLogic as C
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..))
-import Logic.FirstOrder (FirstOrderLogic(..), Skolem(toSkolem), convertFOF)
+import Logic.FirstOrder (FirstOrderLogic(..), Term(..), Skolem(toSkolem), convertFOF)
 import Logic.Logic (Logic(..), Boolean(..))
 import Test.Types
 
 formulas :: [TestFormula]
 formulas =
     let n = (.~.) :: Logic formula => formula -> formula
-        p = pApp (Pr "p") :: [Term] -> Formula
-        q = pApp (Pr "q") :: [Term] -> Formula
-        r = pApp (Pr "r") :: [Term] -> Formula
-        s = pApp (Pr "s") :: [Term] -> Formula
-        t = pApp (Pr "t") :: [Term] -> Formula
+        p = pApp (Pr "p") :: [ATerm] -> Formula
+        q = pApp (Pr "q") :: [ATerm] -> Formula
+        r = pApp (Pr "r") :: [ATerm] -> Formula
+        s = pApp (Pr "s") :: [ATerm] -> Formula
+        t = pApp (Pr "t") :: [ATerm] -> Formula
         p0 = p []
         q0 = q []
         r0 = r []
@@ -166,7 +166,7 @@ formulas =
       , formula = exists ["x"] (x .=. y)
       , expected = [ConvertToChiou (exists ["x"] (x' .=. y'))]
       }
-    , let s :: [Term] -> Formula
+    , let s :: [ATerm] -> Formula
           s = pApp "s"
           s' :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
           s' = pApp "s"
@@ -179,11 +179,11 @@ formulas =
       , formula = s [fApp ("a") [x, y]]
       , expected = [ConvertToChiou (s' [fApp "a" [x', y']])]
       }
-    , let s :: [Term] -> Formula
+    , let s :: [ATerm] -> Formula
           s = pApp "s"
-          h :: [Term] -> Formula
+          h :: [ATerm] -> Formula
           h = pApp "h"
-          m :: [Term] -> Formula
+          m :: [ATerm] -> Formula
           m = pApp "m"
           s' :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
           s' = pApp "s"
@@ -285,15 +285,15 @@ animalKB :: (String, [TestFormula])
 animalKB =
     let x = var "x"
         y = var "y"
-        dog = pApp "Dog" :: [Term] -> Formula
-        cat = pApp "Cat" :: [Term] -> Formula
-        owns = pApp "Owns" :: [Term] -> Formula
-        kills = pApp "Kills" :: [Term] -> Formula
-        animal = pApp "Animal" :: [Term] -> Formula
-        animalLover = pApp "AnimalLover" :: [Term] -> Formula
-        jack = fApp "Jack" [] :: Term
-        tuna = fApp "Tuna" [] :: Term
-        curiosity = fApp "Curiosity" [] :: Term in
+        dog = pApp "Dog" :: [ATerm] -> Formula
+        cat = pApp "Cat" :: [ATerm] -> Formula
+        owns = pApp "Owns" :: [ATerm] -> Formula
+        kills = pApp "Kills" :: [ATerm] -> Formula
+        animal = pApp "Animal" :: [ATerm] -> Formula
+        animalLover = pApp "AnimalLover" :: [ATerm] -> Formula
+        jack = fApp "Jack" [] :: ATerm
+        tuna = fApp "Tuna" [] :: ATerm
+        curiosity = fApp "Curiosity" [] :: ATerm in
     ("animal"
     , [ TestFormula
        { formula = exists [V "x"] (dog [x] .&. owns [jack, x]) -- [[Pos 1],[Pos 2]]
@@ -338,10 +338,10 @@ animalKB =
      ])
 
 animalConjectures =
-    let kills = pApp "Kills" :: [Term] -> Formula
-        jack = fApp "Jack" [] :: Term
-        tuna = fApp "Tuna" [] :: Term
-        curiosity = fApp "Curiosity" [] :: Term in
+    let kills = pApp "Kills" :: [ATerm] -> Formula
+        jack = fApp "Jack" [] :: ATerm
+        tuna = fApp "Tuna" [] :: ATerm
+        curiosity = fApp "Curiosity" [] :: ATerm in
 
     map (withKB animalKB) $
      [ TestFormula

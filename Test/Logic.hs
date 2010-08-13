@@ -9,7 +9,7 @@ import qualified Logic.Instances.Parameterized as P
 import Logic.Logic (Logic(..), Boolean(..))
 import Logic.Monad (runSkolem)
 import Logic.NormalForm (disjunctiveNormalForm)
-import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), showForm, freeVars, substitute)
+import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), Term(..), showForm, freeVars, substitute)
 import Logic.Satisfiable (clauses, theorem, inconsistant)
 import PropLogic (PropForm(..), TruthTable, truthTable)
 import qualified TextDisplay as TD
@@ -29,7 +29,7 @@ type TestFormula = P.Formula V String AtomicFunction
 tests :: Test
 tests = TestLabel "Logic" $ TestList (precTests ++ theoremTests)
 
-formCase :: FirstOrderLogic (P.Formula V String AtomicFunction) (P.Term V AtomicFunction) V String AtomicFunction =>
+formCase :: FirstOrderLogic (P.Formula V String AtomicFunction) (P.PTerm V AtomicFunction) V String AtomicFunction =>
             String -> TestFormula -> TestFormula -> Test
 formCase s expected input = TestCase (assertEqual s expected input)
 

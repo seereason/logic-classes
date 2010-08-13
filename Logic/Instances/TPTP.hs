@@ -110,6 +110,11 @@ instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.FirstOrderLog
               i' t1 (:=:) t2 = i t1 (Logic.:=:) t2
               i' _t1 (:!=:) _t2 = undefined
               unwrapF' (F x) = F x -- copoint x
+    x .=. y   = x .=. y
+    x .!=. y  = x .!=. y
+    pApp x args = pApp x args
+
+instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.Term Term V AtomicFunction where
     foldT v fa term =
         -- We call the foldT function from the TPTP package here, which
         -- has a different signature from the foldT method we are
@@ -120,9 +125,6 @@ instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.FirstOrderLog
               string s = fa (StringLit s) []
               double n = fa (NumberLit n) []
               unwrapT' (T x) = T x -- copoint x
-    x .=. y   = x .=. y
-    x .!=. y  = x .!=. y
-    pApp x args = pApp x args
     var = var
     fApp x args = 
         case x of

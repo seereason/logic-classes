@@ -1,11 +1,20 @@
 {-# LANGUAGE FlexibleContexts, RankNTypes #-}
 module Logic.Prover 
-    ( load
+    ( KnowledgeBaseClass(..)
+{-
+    , load
     , load'
     , tell
     , empty
+-}
     ) where
 
+type KnowledgeBase v p f = [WithId (ImplicativeNormalForm v p f)]
+type Subst v term = [(v, term)]
+type SetOfSupport v p f = [Unification v p f]
+type Unification v p f = (ImplicativeNormalForm v p f, Subst v f)
+
+{-
 import qualified Logic.Chiou.FirstOrderLogic as C
 import qualified Logic.Chiou.KnowledgeBase as C
 import qualified Logic.Chiou.Monad as C
@@ -61,3 +70,4 @@ f2s = convertFOF id id id
 fromINF' :: (FirstOrderLogic formula term v p f, Ord p, Ord f, Implicative (C.ImplicativeNormalForm v p f) (C.NormalSentence v p f)) =>
            (t, [C.ImplicativeNormalForm v p f]) -> (t, [formula])
 fromINF' (flag, infs) = (flag, map (s2f . fromImplicative C.toSentence) infs)
+-}

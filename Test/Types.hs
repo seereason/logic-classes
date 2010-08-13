@@ -6,7 +6,7 @@ module Test.Types
     , AtomicFunction(..)
       -- * Formula and term aliases
     , Formula
-    , Term
+    , ATerm
       -- * Test case types
     , TestFormula(..)
     , Expected(..)
@@ -80,7 +80,7 @@ instance Pretty AtomicFunction where
     pretty (Skolem n) = text "Sk" <> text (show n)
 
 type Formula = P.Formula V Pr AtomicFunction
-type Term = P.Term V AtomicFunction
+type ATerm = P.PTerm V AtomicFunction
 
 instance Boolean Formula where
     fromBool = undefined
