@@ -1,5 +1,6 @@
 module Logic.Monad
     ( LogicState(..)
+    , newLogicState
     , SkolemT
     , runSkolemT
     , runSkolem

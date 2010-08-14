@@ -37,14 +37,14 @@ module Logic.NormalForm
     , implicativeNormalForm
     ) where
 
-import Control.Monad.State (MonadPlus, msum)
+import Control.Monad.State (MonadPlus, msum, get, put)
 import Data.Generics (Data, Typeable, listify)
 import qualified Data.Map as Map
 import Data.Maybe (isJust)
 import qualified Data.Set as S
 import Logic.FirstOrder
 import Logic.Logic
-import Logic.Monad (SkolemT, LogicState(..))
+import Logic.Monad (SkolemT, LogicState(..), newLogicState)
 
 -- |Simplify:
 -- 
@@ -273,36 +273,13 @@ distributeDisjuncts =
 -- appeared.
 skolemNormalForm :: (Monad m, FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
                     formula -> SkolemT v term m formula
-skolemNormalForm = skolemize . disjunctiveNormalForm
+skolemNormalForm formula =
+    put newLogicState >>  -- This is wrong, but it won't work without it :(
+    skolemize (disjunctiveNormalForm formula)
 
 skolemize :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f, Eq v) =>
-             formula -> SkolemT v term m formula
+              formula -> SkolemT v term m formula
 skolemize =
-    return . skolemize' (LogicState { skolemCount = 1
-                                    , skolemMap = Map.empty
-                                    , univQuant = [] })
-    where
-      skolemize' :: FirstOrderLogic formula term v p f => LogicState v term -> formula -> formula
-      skolemize' logicState formula =
-          foldF n q b i p formula
-          where
-            n s = (.~.) (skolemize' logicState s)
-            q All vs = for_all vs . skolemize' (logicState {univQuant = univQuant logicState ++ vs})
-            q Exists vs = skolemize' (skolemCh logicState vs)
-            b s1 op s2 = binOp (skolemize' logicState s1) op (skolemize' logicState s2)
-            i t1 op t2 = infixPred (substituteCh logicState t1) op (substituteCh logicState t2)
-            p pr ts = pApp pr (map (substituteCh logicState) ts)
-
-      skolemCh logicState (v:vs) =
-               skolemCh (logicState { skolemCount = skolemCount logicState + 1
-                                    , skolemMap = Map.insert v (fApp (toSkolem (skolemCount logicState)) (map var (univQuant logicState))) (skolemMap logicState) }) vs
-      skolemCh logicState [] = logicState
-
-      substituteCh logicState t =
-          foldT (\ v -> maybe (var v) id (Map.lookup v (skolemMap logicState)))
-                (\ f ts -> fApp f (map (substituteCh logicState) ts))
-                t
-{-
     foldF n q b i p
     where
       n :: formula -> SkolemT v term m formula
@@ -312,8 +289,8 @@ skolemize =
              -- Add these variables to the list while we are in the
              -- scope where they are universally quantified.
              put (logicState {univQuant = univQuant logicState ++ vs})
-             result <- skolemize f >>= return . quant All vs
-             put (logicState {univQuant = univQuant logicState})
+             result <- skolemize f >>= return . for_all vs
+             put logicState
              return result
       q Exists vs f =
           do logicState <- get
@@ -324,17 +301,17 @@ skolemize =
       b s1 op s2 = skolemize s1 >>= \ s1' -> 
                    skolemize s2 >>= \ s2' -> return (binOp s1' op s2')
       i t1 op t2 =
-          substituteCh t1 >>= \ t1' ->
-          substituteCh t2 >>= \ t2' -> return (infixPred t1' op t2')
+          do t1' <- substituteCh t1
+             t2' <- substituteCh t2
+             return (infixPred t1' op t2')
       p pr ts = mapM substituteCh ts >>= return . pApp pr
-      -- Look up sko
+
       substituteCh :: term -> SkolemT v term m term
       substituteCh t =
           get >>= \ logicState ->
           foldT (\ v -> return (maybe (var v) id (Map.lookup v (skolemMap logicState))))
                 (\ f ts -> mapM substituteCh ts >>= return . fApp f)
                 t
--}
 
 -- |Convert to Skolem Normal Form and then remove the outermost
 -- universal quantifiers.  Due to the nature of Skolem Normal Form,
