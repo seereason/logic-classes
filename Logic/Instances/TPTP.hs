@@ -110,6 +110,7 @@ instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.FirstOrderLog
               i' t1 (:=:) t2 = i t1 (Logic.:=:) t2
               i' _t1 (:!=:) _t2 = undefined
               unwrapF' (F x) = F x -- copoint x
+    zipF = error "Unimplemented: Logic.Instances.TPTP.zipF"
     x .=. y   = x .=. y
     x .!=. y  = x .!=. y
     pApp x args = pApp x args
@@ -125,6 +126,7 @@ instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.Term Term V A
               string s = fa (StringLit s) []
               double n = fa (NumberLit n) []
               unwrapT' (T x) = T x -- copoint x
+    zipT = error "Unimplemented: Logic.Instances.TPTP.zipT"
     var = var
     fApp x args = 
         case x of

@@ -62,6 +62,11 @@ instance (Logic (Formula v p f), Ord v, Enum v, Data v, Eq p, Boolean p, Data p,
 
 instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term (PTerm v f) v f where
     foldT = foldTerm
+    zipT v f t1 t2 =
+        case (t1, t2) of
+          (Var v1, Var v2) -> v v1 v2
+          (FunApp f1 ts1, FunApp f2 ts2) -> f f1 ts1 f2 ts2
+          _ -> Nothing
     var = Var
     fApp x args = FunApp x args
 
@@ -70,6 +75,14 @@ instance (PropositionalLogic (Formula v p f) (Formula v p f), Term (PTerm v f) v
     for_all vars x = Quant All vars x
     exists vars x = Quant Exists vars x
     foldF = foldFormula
+    zipF n q b i p f1 f2 =
+        case (f1, f2) of
+          ((:~:) f1', (:~:) f2') -> n f1' f2' 
+          (Quant q1 vs1 f1', Quant q2 vs2 f2') -> q q1 vs1 f1' q2 vs2 f2'
+          (BinOp l1 op1 r1, BinOp l2 op2 r2) -> b l1 op1 r1 l2 op2 r2
+          (InfixPred l1 op1 r1, InfixPred l2 op2 r2) -> i l1 op1 r1 l2 op2 r2
+          (PredApp p1 ts1, PredApp p2 ts2) -> p p1 ts1 p2 ts2
+          _ -> Nothing
     pApp x args = PredApp x args
     x .=. y = InfixPred x (:=:) y
     x .!=. y = InfixPred x (:!=:) y

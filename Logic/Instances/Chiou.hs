@@ -89,6 +89,7 @@ instance (PropositionalLogic (Sentence v p f) (Sentence v p f), Ord v, Enum v, D
           Connective f1 Or f2 -> b f1 (:|:) f2
           Predicate name ts -> p name ts
           Equal t1 t2 -> i t1 (:=:) t2
+    zipF = error "Unimplemented: Logic.Instances.Chiou.zipF"
     pApp x args = Predicate x args
     -- fApp (AtomicSkolemFunction n) [] = SkolemConstant n
     -- fApp (AtomicSkolemFunction n) ts = SkolemFunction n ts
@@ -100,6 +101,7 @@ instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Logic.Term (Term v f
         case t of
           Variable x -> v x
           Function f ts -> fn f ts
+    zipT = error "Unimplemented: Logic.Instances.Chiou.zipT"
     var = Variable
     fApp f ts = Function f ts
 

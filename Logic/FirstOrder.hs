@@ -66,6 +66,7 @@ class (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term term v f | term ->
     -- ^ A fold for the term data type, which understands terms built
     -- from a variable and a term built from the application of a
     -- primitive function to other terms.
+    zipT :: (v -> v -> Maybe r) -> (f -> [term] -> f -> [term] -> Maybe r) -> term -> term -> Maybe r
 
 -- |The 'PropositionalLogic' type class.  Minimal implementation:
 -- @for_all, exists, foldF, foldT, (.=.), pApp, fApp, var@.  The
@@ -99,6 +100,12 @@ class (Logic formula,
           -> (p -> [term] -> r)
           -> (formula)
           -> r
+    zipF :: (formula -> formula -> Maybe r)
+         -> (Quant -> [v] -> formula -> Quant -> [v] -> formula -> Maybe r)
+         -> (formula -> BinOp -> formula -> formula -> BinOp -> formula -> Maybe r)
+         -> (term -> InfixPred -> term -> term -> InfixPred -> term -> Maybe r)
+         -> (p -> [term] -> p -> [term] -> Maybe r)
+         -> formula -> formula -> Maybe r
     -- | Equality of Terms
     (.=.) :: term -> term -> formula
     -- | Inequality of Terms
