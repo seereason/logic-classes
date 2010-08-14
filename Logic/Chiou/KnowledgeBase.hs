@@ -34,25 +34,25 @@ import Logic.NormalForm (implicativeNormalForm)
 import Logic.Resolution (prove, getSetOfSupport)
 
 -- |Reset the knowledgebase to empty.
-emptyKB :: Monad m => ProverT v p f m ()
+emptyKB :: Monad m => ProverT inf m ()
 emptyKB = put zeroKB
 
 -- |Remove a particular sentence from the knowledge base
-unloadKB :: Monad m => SentenceCount -> ProverT v p f m (Maybe (KnowledgeBase v p f))
+unloadKB :: Monad m => SentenceCount -> ProverT inf m (Maybe (KnowledgeBase inf))
 unloadKB n =
     do st <- get
        let (discard, keep) = partition ((== n) . wiIdent) (knowledgeBase st)
        put (st {knowledgeBase = keep}) >> return (Just discard)
 
 -- |Return the contents of the knowledgebase.
-getKB :: Monad m => ProverT v p f m [WithId (ImplicativeNormalForm v p f)]
+getKB :: Monad m => ProverT inf m [WithId inf]
 getKB = get >>= return . knowledgeBase
 
 -- |Try to prove a sentence, return the result and the proof.
 -- askKB should be in KnowledgeBase module. However, since resolution
 -- is here functions are here, it is also placed in this module.
 askKB :: (Monad m, Ord v, IsString v, Enum v, Data v, Boolean p, Ord p, Data p, Ord f, Skolem f, Data f, Pretty v, Pretty p, Pretty f, Term (NormalTerm v f) v f, Logic (NormalSentence v p f)) =>
-         Sentence v p f -> ProverT' (C.Term v f) v p f m Bool
+         Sentence v p f -> ProverT' v (C.Term v f) (ImplicativeNormalForm v p f) m Bool
 askKB s = theoremKB s >>= return . fst
 
 -- |See whether the sentence is true, false or invalid.  Return proofs
@@ -86,7 +86,7 @@ inconsistantKB s = lift (implicativeNormalForm s) >>= \ inf -> getKB >>= return 
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
 tellKB :: (Monad m, Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f, Pretty v, Pretty p, Pretty f, Term (NormalTerm v f) v f, Logic (NormalSentence v p f)) =>
-          Sentence v p f -> ProverT' (C.Term v f) v p f m (Maybe Bool, [ImplicativeNormalForm v p f])
+          Sentence v p f -> ProverT' v (C.Term v f) (ImplicativeNormalForm v p f) m (Maybe Bool, [ImplicativeNormalForm v p f])
 tellKB s =
     do st <- get
        inf <- lift (implicativeNormalForm s)
@@ -100,11 +100,11 @@ tellKB s =
        return (valid, map wiItem inf')
 
 loadKB :: (Monad m, Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f, Pretty v, Pretty p, Pretty f, Term (NormalTerm v f) v f, Logic (NormalSentence v p f)) =>
-          [Sentence v p f] -> ProverT' (C.Term v f) v p f m [(Maybe Bool, [ImplicativeNormalForm v p f])]
+          [Sentence v p f] -> ProverT' v (C.Term v f) (ImplicativeNormalForm v p f) m [(Maybe Bool, [ImplicativeNormalForm v p f])]
 loadKB sentences = mapM tellKB sentences
 
 -- |Delete an entry from the KB.
-deleteKB :: Monad m => Int -> ProverT v p f m String
+deleteKB :: Monad m => Int -> ProverT inf m String
 deleteKB i = do st <- get
                 modify (\ st' -> st' {knowledgeBase = deleteElement i (knowledgeBase st')})
                 st' <- get
@@ -124,10 +124,10 @@ deleteElement i l
 			       _ -> tail p2)
 
 -- |Return a text description of the contents of the knowledgebase.
-showKB :: (Show (ImplicativeNormalForm v p f), Monad m, Show v, Show p, Show f) => ProverT v p f m String
+showKB :: (Show inf, Monad m) => ProverT inf m String
 showKB = get >>= return . reportKB
 
-reportKB :: (Show (ImplicativeNormalForm v p f), Show v, Show p, Show f) => ProverState v p f -> String
+reportKB :: (Show inf) => ProverState inf -> String
 reportKB (ProverState {knowledgeBase = []}) = "Nothing in Knowledge Base\n"
 reportKB (ProverState {knowledgeBase = [WithId {wiItem = x, wiIdent = n}]}) =
     show n ++ ") " ++ "\t" ++ show x ++ "\n"

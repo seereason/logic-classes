@@ -21,7 +21,7 @@ module Logic.Chiou.Monad
 import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.State (StateT, evalStateT {-, MonadState, get, put-})
 import Data.Generics (Data, Typeable)
-import Logic.Chiou.NormalForm (ImplicativeNormalForm)
+--import Logic.Chiou.NormalForm (ImplicativeNormalForm)
 import Logic.Monad (SkolemT, runSkolemT)
 
 type SentenceCount = Int
@@ -43,14 +43,14 @@ withIdPairs' = map (\ x -> (wiIdent x, wiItem x))
 wiLookupItem :: Int -> [WithId a] -> Maybe a
 wiLookupItem i xs = lookup i (withIdPairs' xs)
 
-type KnowledgeBase v p f = [WithId (ImplicativeNormalForm v p f)]
+type KnowledgeBase inf = [WithId inf]
 
-data ProverState v p f
+data ProverState inf
     = ProverState
-      { knowledgeBase :: KnowledgeBase v p f
+      { knowledgeBase :: KnowledgeBase inf
       , sentenceCount :: Int }
 
-zeroKB :: ProverState v p f
+zeroKB :: ProverState inf
 zeroKB = ProverState
          { knowledgeBase = []
          , sentenceCount = 1 }
@@ -58,16 +58,16 @@ zeroKB = ProverState
 type FolModule = WithId String
 
 -- |A monad for running the knowledge base.
-type ProverT v p f = StateT (ProverState v p f)
-type ProverT' term v p f m a = ProverT v p f (SkolemT v term m) a
+type ProverT inf = StateT (ProverState inf)
+type ProverT' v term inf m a = ProverT inf (SkolemT v term m) a
 
-runProverT' :: Monad m => ProverT' term v p f m a -> m a
+runProverT' :: Monad m => ProverT' v term inf m a -> m a
 runProverT' = runSkolemT . runProverT
-runProverT :: Monad m => StateT (ProverState v p f) m a -> m a
+runProverT :: Monad m => StateT (ProverState inf) m a -> m a
 runProverT action = evalStateT action zeroKB
-runProver' :: ProverT' term v p f Identity a -> a
+runProver' :: ProverT' v term inf Identity a -> a
 runProver' = runIdentity . runProverT'
-runProver :: StateT (ProverState v p f) Identity a -> a
+runProver :: StateT (ProverState inf) Identity a -> a
 runProver = runIdentity . runProverT
 
 {-
