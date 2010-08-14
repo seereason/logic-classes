@@ -8,7 +8,7 @@
 -- atomic function type.
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
              GeneralizedNewtypeDeriving, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables,
-             TemplateHaskell, UndecidableInstances #-}
+             TemplateHaskell, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
 module Logic.FirstOrder
     ( Skolem(..)
@@ -49,6 +49,9 @@ import Text.PrettyPrint
 class Pretty x where
     pretty :: x -> Doc
 
+instance Pretty String where
+    pretty = text
+
 -- |This class shows how to convert between atomic Skolem functions
 -- and Ints.
 class Skolem f where
@@ -75,9 +78,10 @@ class (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term term v f | term ->
 -- without them the univquant_free_vars function gives the error @No
 -- instance for (FirstOrderLogic Formula term V p f)@ because the
 -- function doesn't mention the Term type.
-class (Logic formula,
-       Term term v f,
-       Eq p, Boolean p, Data p) => FirstOrderLogic formula term v p f
+class (Eq p, Boolean p, Data p,
+       Pretty v, Pretty p, Pretty f, -- For debugging
+       Logic formula,
+       Term term v f) => FirstOrderLogic formula term v p f
                        | formula -> term
                        , formula -> v
                        , formula -> p

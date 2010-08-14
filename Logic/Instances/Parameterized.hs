@@ -14,7 +14,7 @@ import Data.Data (Data)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
-import Logic.FirstOrder (Term(..), FirstOrderLogic(..), Quant(..), InfixPred(..), Skolem(..))
+import Logic.FirstOrder (Term(..), FirstOrderLogic(..), Quant(..), InfixPred(..), Skolem(..), Pretty)
 import Logic.Logic (Logic(..), BinOp(..), Boolean(..))
 import Logic.Propositional (PropositionalLogic(..))
     
@@ -46,7 +46,7 @@ instance Logic (Formula v p f) where
     x .&.   y = BinOp  x (:&:)   y
     (.~.) x   = (:~:) x
 
-instance (Logic (Formula v p f), Ord v, Enum v, Data v, Eq p, Boolean p, Data p, Eq f, Skolem f, Data f) =>
+instance (Logic (Formula v p f), Ord v, Enum v, Data v, Eq p, Boolean p, Data p, Eq f, Skolem f, Data f, Pretty v, Pretty p, Pretty f) =>
          PropositionalLogic (Formula v p f) (Formula v p f) where
     atomic (InfixPred t1 (:=:) t2) = t1 .=. t2
     atomic (InfixPred t1 (:!=:) t2) = t1 .!=. t2
@@ -70,7 +70,7 @@ instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term (PTerm v f) v f
     var = Var
     fApp x args = FunApp x args
 
-instance (PropositionalLogic (Formula v p f) (Formula v p f), Term (PTerm v f) v f, Ord v, Enum v, Data v, Eq p, Boolean p, Data p, Eq f, Skolem f, Data f) =>
+instance (PropositionalLogic (Formula v p f) (Formula v p f), Term (PTerm v f) v f, Ord v, Enum v, Data v, Eq p, Boolean p, Data p, Eq f, Skolem f, Data f, Pretty v, Pretty p, Pretty f) =>
           FirstOrderLogic (Formula v p f) (PTerm v f) v p f where
     for_all vars x = Quant All vars x
     exists vars x = Quant Exists vars x

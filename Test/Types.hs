@@ -19,6 +19,7 @@ import Data.Generics (Data, Typeable)
 import qualified Data.Set as S
 import Data.String (IsString(fromString))
 import Logic.Chiou.FirstOrderLogic (Sentence)
+import Logic.Chiou.Monad (WithId)
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..))
 import Logic.Chiou.Resolution (SetOfSupport)
 import Logic.FirstOrder (Skolem(..), Pretty(..), showForm)
@@ -119,4 +120,5 @@ data TestProof
 
 data ProofExpected
     = ChiouResult (Bool, SetOfSupport V Pr AtomicFunction)
-      deriving (Data, Typeable)
+    | ChiouKB [WithId (ImplicativeNormalForm V Pr AtomicFunction)]
+    deriving (Data, Typeable)

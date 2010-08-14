@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, TypeSynonymInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, TypeSynonymInstances #-}
 -- |A monad to manage the knowledge base.
 module Logic.Chiou.Monad
     ( WithId(..)
@@ -20,12 +20,13 @@ module Logic.Chiou.Monad
 
 import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.State (StateT, evalStateT {-, MonadState, get, put-})
+import Data.Generics (Data, Typeable)
 import Logic.Chiou.NormalForm (ImplicativeNormalForm)
 import Logic.Monad (SkolemT, runSkolemT)
 
 type SentenceCount = Int
 
-data WithId a = WithId {wiItem :: a, wiIdent :: Int}
+data WithId a = WithId {wiItem :: a, wiIdent :: Int} deriving (Eq, Show, Data, Typeable)
 
 withId :: Int -> a -> WithId a
 withId i x = WithId {wiIdent = i, wiItem = x}

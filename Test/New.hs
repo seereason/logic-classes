@@ -1,15 +1,15 @@
 {-# LANGUAGE DeriveDataTypeable, OverloadedStrings, ScopedTypeVariables, TypeSynonymInstances #-}
-{-# OPTIONS -Wwarn -fno-warn-missing-signatures #-}
+{-# OPTIONS -Wall -fno-warn-missing-signatures #-}
 module Test.New where
 
 import Control.Monad.Reader (MonadPlus(..), msum)
-import Data.Generics (Data, Typeable, listify, everything, mkQ)
+import Data.Generics (Data, Typeable, listify)
 import qualified Data.Set as S
 import Logic.Chiou.Monad (runProver')
 import qualified Logic.Chiou.KnowledgeBase as C
 import Logic.FirstOrder (FirstOrderLogic, convertFOF, fromSkolem)
 import Logic.Logic (Logic(..))
-import Logic.Monad (runSkolem, runLiteralMap)
+import Logic.Monad (runSkolem)
 import Logic.NormalForm (clausalNormalForm, prenexNormalForm, disjunctiveNormalForm, skolemNormalForm, negationNormalForm)
 import Logic.Satisfiable (satisfiable) 
 --import PropLogic (PropForm(..), TruthTable, truthTable)
@@ -25,7 +25,10 @@ import Test.Types
 gFind :: (MonadPlus m, Data a, Typeable b) => a -> m b
 gFind = msum . map return . listify (const True)
 
-tests = TestLabel "New" $ TestList (concatMap doFormula (formulas ++ gFind (animalKB, chang43KB) ++ animalConjectures ++ [chang43Conjecture, chang43ConjectureRenamed]) ++
+tests = TestLabel "New" $ TestList (concatMap doFormula (formulas ++
+                                                         gFind (animalKB, chang43KB) ++
+                                                         animalConjectures ++
+                                                         [chang43Conjecture, chang43ConjectureRenamed]) ++
                                     concatMap doProofs proofs)
     where
       doFormula f = concatMap (doTest f) (expected f)
@@ -34,8 +37,8 @@ tests = TestLabel "New" $ TestList (concatMap doFormula (formulas ++ gFind (anim
 -- mkQ :: (Typeable a, Typeable b) => r -> (b -> r) -> a -> r
 
 skolemSet :: (FirstOrderLogic formula term v p f, Data f, Typeable f, Data formula) => formula -> S.Set Int
-skolemSet formula =
-    foldr ins S.empty (skolemList formula)
+skolemSet =
+    foldr ins S.empty . skolemList
     where
       ins f s = case fromSkolem f of
                   Just n -> S.insert n s
@@ -73,16 +76,21 @@ doProof p (ChiouResult result) =
     [TestCase (assertEqual (proofName p ++ " with " ++ fst (proofKnowledge p) ++ " using Chiou prover")
                            result
                            (runProver' (C.loadKB (snd (proofKnowledge p)) >> C.theoremKB (conjecture p))))]
+doProof p (ChiouKB result) =
+    TestLabel (proofName p ++ " with " ++ fst (proofKnowledge p)) . TestList $
+    [TestCase (assertEqual (proofName p ++ " with " ++ fst (proofKnowledge p) ++ " Chiou knowledge base")
+                           result
+                           (runProver' (C.loadKB (snd (proofKnowledge p)) >> C.getKB)))]
 
 -- Knowledge Base tests.
 kbTests :: (String, [TestFormula], [TestFormula]) -> [Test]
 kbTests (kbname, knowledge, conjectures) =
     concatMap conjectureTests conjectures
     where
-      conjectureTests conjecture = concatMap (conjectureTest conjecture) (expected conjecture)
-      conjectureTest conjecture expect =
-          doTest (conjecture { name = name conjecture ++ " with " ++ kbname ++ " knowledge base"
-                             , formula = conj (map formula knowledge) .=>. formula conjecture }) expect
+      conjectureTests c = concatMap (conjectureTest c) (expected c)
+      conjectureTest c expect =
+          doTest (c { name = name c ++ " with " ++ kbname ++ " knowledge base"
+                    , formula = conj (map formula knowledge) .=>. formula c }) expect
 {-
           [TestCase (assertEqual
                      (name f ++ " conjecture")

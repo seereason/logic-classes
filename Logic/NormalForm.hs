@@ -37,6 +37,8 @@ module Logic.NormalForm
     , implicativeNormalForm
     ) where
 
+import Debug.Trace
+
 import Control.Monad.State (MonadPlus, msum, get, put)
 import Data.Generics (Data, Typeable, listify)
 import qualified Data.Map as Map
@@ -271,11 +273,14 @@ distributeDisjuncts =
 -- functions applied to the list of variables which are universally
 -- quantified in the context where the existential quantifier
 -- appeared.
-skolemNormalForm :: (Monad m, FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
+skolemNormalForm :: (Monad m, FirstOrderLogic formula term v p f, Eq formula, Enum v, Pretty v, Pretty p, Pretty f) =>
                     formula -> SkolemT v term m formula
 skolemNormalForm formula =
-    put newLogicState >>  -- This is wrong, but it won't work without it :(
-    skolemize (disjunctiveNormalForm formula)
+    do s <- get
+       result1 <- put newLogicState >> skolemize dnf
+       result2 <- put s >> skolemize dnf
+       return result1 {- (if result1 /= result2 then trace ("\nSkolemization discrepancy:\n result1=" ++ show (prettyForm 0 result1) ++ "\n result2=" ++ show (prettyForm 0 result2)) result1 else result1) -}
+    where dnf = disjunctiveNormalForm formula
 
 skolemize :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f, Eq v) =>
               formula -> SkolemT v term m formula
@@ -322,7 +327,7 @@ skolemize =
 -- @@
 --   [[a, ~b], [c, ~d]] <-> ((a | ~b) & (c | ~d))
 -- @@
-clausalNormalForm :: (Monad m, FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
+clausalNormalForm :: (Monad m, FirstOrderLogic formula term v p f, Eq formula, Enum v, Pretty v, Pretty p, Pretty f) =>
                      formula -> SkolemT v term m [[formula]]
 clausalNormalForm f = skolemNormalForm f >>= return . clausal . removeUniversal
 
@@ -377,7 +382,7 @@ clausal =
 --    a | b | c => f
 -- @
 implicativeNormalForm :: forall m formula term v p f. 
-                         (Monad m, FirstOrderLogic formula term v p f, Eq formula, Data formula, Typeable f, Enum v) =>
+                         (Monad m, FirstOrderLogic formula term v p f, Eq formula, Data formula, Typeable f, Enum v, Pretty v, Pretty p, Pretty f) =>
                          formula -> SkolemT v term m [([formula], [formula])]
 implicativeNormalForm formula =
     clausalNormalForm formula >>= return . concatMap split . map (imply . foldl collect ([], []))

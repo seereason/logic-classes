@@ -9,6 +9,7 @@ import Data.Generics (Data, Typeable)
 import qualified Logic.FirstOrder as Logic
 import qualified Logic.Logic as Logic
 import qualified Logic.Propositional as Logic
+import Text.PrettyPrint (text)
 
 -- |Generate a series of variable names.  
 instance Enum V where
@@ -23,6 +24,9 @@ instance Enum V where
     toEnum n =
         V (chr (ord mn + pre) : if suf == 0 then "" else show suf)
         where (suf, pre) = divMod n cnt
+
+instance Logic.Pretty V where
+    pretty (V s) = text s
 
 mn = 'x'
 pref = 'x'
@@ -41,6 +45,15 @@ data AtomicFunction
 -- |This is not a safe way to implement booleans.
 instance Logic.Boolean AtomicWord where
     fromBool flag = AtomicWord (show flag)
+
+instance Logic.Pretty AtomicFunction where
+    pretty (Atom w) = Logic.pretty w
+    pretty (StringLit s) = text (show s)
+    pretty (NumberLit n) = text (show n)
+    pretty (Skolem (V s)) = text ("Sk" ++ s)
+
+instance Logic.Pretty AtomicWord where
+    pretty (AtomicWord s) = text s
 
 -- |If this looks confusing, it is because TPTP has the same operators
 -- as Logic, the .&. on the left is the Logic method name and .&. on
