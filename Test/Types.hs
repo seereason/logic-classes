@@ -20,11 +20,11 @@ import qualified Data.Set as S
 import Data.String (IsString(fromString))
 import Logic.Chiou.FirstOrderLogic (Sentence)
 import Logic.Chiou.Monad (WithId)
-import Logic.Chiou.NormalForm (ImplicativeNormalForm(..))
-import Logic.Chiou.Resolution (SetOfSupport)
+import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalTerm(..))
 import Logic.FirstOrder (Skolem(..), Pretty(..), showForm)
 import qualified Logic.Instances.Parameterized as P
 import Logic.Logic (Boolean(..))
+import Logic.Resolution (SetOfSupport)
 import Text.PrettyPrint ((<>), text)
 
 newtype V = V String deriving (Eq, Ord, Show, Data, Typeable)
@@ -119,6 +119,6 @@ data TestProof
       } deriving (Data, Typeable)
 
 data ProofExpected
-    = ChiouResult (Bool, SetOfSupport V Pr AtomicFunction)
+    = ChiouResult (Bool, SetOfSupport (ImplicativeNormalForm V Pr AtomicFunction) V (NormalTerm V AtomicFunction))
     | ChiouKB [WithId (ImplicativeNormalForm V Pr AtomicFunction)]
     deriving (Data, Typeable)

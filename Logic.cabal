@@ -18,7 +18,6 @@ Library
                    Logic.Chiou.KnowledgeBase
                    Logic.Chiou.Monad
                    Logic.Chiou.NormalForm
-                   Logic.Chiou.Resolution
                    Logic.FirstOrder
                    Logic.Implicative
                    Logic.Instances.Chiou
@@ -28,6 +27,7 @@ Library
                    Logic.Logic
                    Logic.NormalForm
                    Logic.Propositional
+                   Logic.Resolution
                    Logic.Satisfiable
  Build-Depends:    base, containers, fgl, happstack-data, happstack-state,
                    mtl, syb-with-class, text, logic-TPTP, PropLogic, pretty, syb

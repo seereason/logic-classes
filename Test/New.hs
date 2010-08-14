@@ -5,6 +5,7 @@ module Test.New where
 import Control.Monad.Reader (MonadPlus(..), msum)
 import Data.Generics (Data, Typeable, listify)
 import qualified Data.Set as S
+import Logic.Instances.Chiou ()
 import Logic.Chiou.Monad (runProver')
 import qualified Logic.Chiou.KnowledgeBase as C
 import Logic.FirstOrder (FirstOrderLogic, convertFOF, fromSkolem)

@@ -12,9 +12,9 @@ module Test.Data
 
 import qualified Data.Set as S
 import qualified Logic.Chiou.FirstOrderLogic as C
-import Logic.Chiou.FirstOrderLogic (Term(..))
+import Logic.Chiou.FirstOrderLogic (Term)
 import Logic.Chiou.Monad (WithId(..))
-import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..))
+import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), NormalTerm(..))
 import Logic.FirstOrder (FirstOrderLogic(..), Term(..), Skolem(toSkolem), convertFOF)
 import Logic.Logic (Logic(..), Boolean(..))
 import Test.Types
