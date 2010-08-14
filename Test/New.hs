@@ -5,7 +5,7 @@ module Test.New where
 import Control.Monad.Reader (MonadPlus(..), msum)
 import Data.Generics (Data, Typeable, listify, everything, mkQ)
 import qualified Data.Set as S
-import Logic.Chiou.Monad (runProverT)
+import Logic.Chiou.Monad (runProver')
 import qualified Logic.Chiou.KnowledgeBase as C
 import Logic.FirstOrder (FirstOrderLogic, convertFOF, fromSkolem)
 import Logic.Logic (Logic(..))
@@ -64,15 +64,15 @@ doTest f (SkolemNumbers f') =
 doTest f (ConvertToChiou result) =
     [TestCase (assertEqual (name f ++ " converted to Chiou") result (convertFOF id id id (formula f)))]
 doTest f (SatChiou result) =
-    [TestCase (assertEqual (name f ++ " Chiou.satisfiable") result (head (runSkolem (runProverT (C.loadKB [convertFOF id id id (formula f)])))))]
+    [TestCase (assertEqual (name f ++ " Chiou.satisfiable") result (head (runProver' (C.loadKB [convertFOF id id id (formula f)]))))]
 doTest f (SatPropLogic result) =
     [TestCase (assertEqual (name f ++ " satisfiable") result (runSkolem (satisfiable (formula f))))]
 
 doProof p (ChiouResult result) =
     TestLabel (proofName p ++ " with " ++ fst (proofKnowledge p)) . TestList $
-    [TestCase (assertEqual (proofName p ++ " with " ++ fst (proofKnowledge p))
+    [TestCase (assertEqual (proofName p ++ " with " ++ fst (proofKnowledge p) ++ " using Chiou prover")
                            result
-                           (runSkolem (runProverT (C.loadKB (snd (proofKnowledge p)) >> C.theoremKB (conjecture p)))))]
+                           (runProver' (C.loadKB (snd (proofKnowledge p)) >> C.theoremKB (conjecture p))))]
 
 -- Knowledge Base tests.
 kbTests :: (String, [TestFormula], [TestFormula]) -> [Test]

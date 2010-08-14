@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, TypeSynonymInstances #-}
 -- |A monad to manage the knowledge base.
 module Logic.Chiou.Monad
     ( WithId(..)
@@ -10,14 +10,18 @@ module Logic.Chiou.Monad
     , ProverState(..)
     , FolModule
     , ProverT
+    , ProverT'
     , zeroKB
     , runProverT
+    , runProverT'
     , runProver
+    , runProver'
     ) where
 
 import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.State (StateT, evalStateT {-, MonadState, get, put-})
 import Logic.Chiou.NormalForm (ImplicativeNormalForm)
+import Logic.Monad (SkolemT, runSkolemT)
 
 type SentenceCount = Int
 
@@ -54,9 +58,14 @@ type FolModule = WithId String
 
 -- |A monad for running the knowledge base.
 type ProverT v p f = StateT (ProverState v p f)
+type ProverT' term v p f m a = ProverT v p f (SkolemT v term m) a
 
+runProverT' :: Monad m => ProverT' term v p f m a -> m a
+runProverT' = runSkolemT . runProverT
 runProverT :: Monad m => StateT (ProverState v p f) m a -> m a
 runProverT action = evalStateT action zeroKB
+runProver' :: ProverT' term v p f Identity a -> a
+runProver' = runIdentity . runProverT'
 runProver :: StateT (ProverState v p f) Identity a -> a
 runProver = runIdentity . runProverT
 
