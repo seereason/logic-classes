@@ -5,12 +5,11 @@ module Test.New where
 import Control.Monad.Reader (MonadPlus(..), msum)
 import Data.Generics (Data, Typeable, listify)
 import qualified Data.Set as S
-import Logic.Instances.Chiou ()
-import Logic.Chiou.Monad (runProver')
-import qualified Logic.Chiou.KnowledgeBase as C
 import Logic.FirstOrder (FirstOrderLogic, convertFOF, fromSkolem)
+import Logic.Instances.Chiou ()
+import Logic.KnowledgeBase (loadKB, theoremKB)
 import Logic.Logic (Logic(..))
-import Logic.Monad (runSkolem)
+import Logic.Monad (runSkolem, runProver')
 import Logic.NormalForm (clausalNormalForm, prenexNormalForm, disjunctiveNormalForm, skolemNormalForm, negationNormalForm)
 import Logic.Satisfiable (satisfiable) 
 --import PropLogic (PropForm(..), TruthTable, truthTable)
@@ -68,7 +67,7 @@ doTest f (SkolemNumbers f') =
 doTest f (ConvertToChiou result) =
     [TestCase (assertEqual (name f ++ " converted to Chiou") result (convertFOF id id id (formula f)))]
 doTest f (SatChiou result) =
-    [TestCase (assertEqual (name f ++ " Chiou.satisfiable") result (head (runProver' (C.loadKB [convertFOF id id id (formula f)]))))]
+    [TestCase (assertEqual (name f ++ " Chiou.satisfiable") result (head (runProver' (loadKB [convertFOF id id id (formula f)]))))]
 doTest f (SatPropLogic result) =
     [TestCase (assertEqual (name f ++ " satisfiable") result (runSkolem (satisfiable (formula f))))]
 
@@ -76,12 +75,12 @@ doProof p (ChiouResult result) =
     TestLabel (proofName p ++ " with " ++ fst (proofKnowledge p)) . TestList $
     [TestCase (assertEqual (proofName p ++ " with " ++ fst (proofKnowledge p) ++ " using Chiou prover")
                            result
-                           (runProver' (C.loadKB (snd (proofKnowledge p)) >> C.theoremKB (conjecture p))))]
+                           (runProver' (loadKB (snd (proofKnowledge p)) >> theoremKB (conjecture p))))]
 doProof p (ChiouKB result) =
     TestLabel (proofName p ++ " with " ++ fst (proofKnowledge p)) . TestList $
     [TestCase (assertEqual (proofName p ++ " with " ++ fst (proofKnowledge p) ++ " Chiou knowledge base")
                            result
-                           (runProver' (C.loadKB (snd (proofKnowledge p)) >> C.getKB)))]
+                           (runProver' (loadKB (snd (proofKnowledge p)) >> getKB)))]
 
 -- Knowledge Base tests.
 kbTests :: (String, [TestFormula], [TestFormula]) -> [Test]

@@ -12,7 +12,7 @@ module Logic.Resolution
     , Subst )
     where
 
-import Data.Map (Map, empty, fromList, toList)
+import Data.Map (Map, empty)
 import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Logic.FirstOrder as Logic
@@ -66,8 +66,8 @@ getResult ss ((Just x):xs)  =
       (inf, _v) = x
 
 -- |Convert the "question" to a set of support.
-getSetOfSupport :: (Implicative t formula, Logic.FirstOrderLogic formula term v p f) =>
-                   [t] -> [(t, Subst v term)]
+getSetOfSupport :: (Implicative inf formula, Logic.FirstOrderLogic formula term v p f) =>
+                   [inf] -> [(inf, Subst v term)]
 getSetOfSupport [] = []
 getSetOfSupport (x:xs) = (x, getSubsts x empty):getSetOfSupport xs
 

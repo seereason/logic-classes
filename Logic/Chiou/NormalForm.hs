@@ -16,7 +16,7 @@ module Logic.Chiou.NormalForm
 import Data.Generics (Data, Typeable)
 import qualified Data.Set as S
 import Logic.Clause (Literal(..))
-import Logic.Chiou.FirstOrderLogic (Sentence)
+import Logic.Chiou.FirstOrderLogic (Sentence(..))
 import qualified Logic.Chiou.FirstOrderLogic as F
 import Logic.FirstOrder (FirstOrderLogic(..), InfixPred(..), Pretty, Term(..))
 import qualified Logic.FirstOrder as Logic
@@ -25,11 +25,11 @@ import Logic.Instances.Chiou ()
 import Logic.Logic (Logic(..), Boolean(..))
 
 data ConjunctiveNormalForm v p f =
-    CNF [NormalSentence v p f]
+    CNF [Sentence v p f]
     deriving (Eq)
 
 data ImplicativeNormalForm v p f
-    = INF [NormalSentence v p f] [NormalSentence v p f]
+    = INF [Sentence v p f] [Sentence v p f]
     deriving (Eq, Show, Data, Typeable)
 
 data NormalSentence v p f
@@ -45,12 +45,12 @@ data NormalTerm v f
     | Variable v
     deriving (Eq, Ord, Show, Data, Typeable)
 
-instance (Ord v, Ord p, Ord f) => Literal (NormalSentence v p f) where
-    negate = NFNot
-    negated (NFNot x) = not (negated x)
+instance (Ord v, Ord p, Ord f) => Literal (Sentence v p f) where
+    negate = Not
+    negated (Not x) = not (negated x)
     negated _ = False
 
-instance (FirstOrderLogic (Sentence v p f) (F.CTerm v f) v p f, Enum v, Ord p, Ord f) => Implicative (ImplicativeNormalForm v p f) (NormalSentence v p f) where
+instance (FirstOrderLogic (Sentence v p f) (F.CTerm v f) v p f, Enum v, Ord p, Ord f) => Implicative (ImplicativeNormalForm v p f) (Sentence v p f) where
     neg (INF x _) = S.fromList x
     pos (INF _ x) = S.fromList x
     makeINF lhs rhs = INF (S.toList lhs) (S.toList rhs)

@@ -19,6 +19,7 @@ module Logic.FirstOrder
     , InfixPred(..)
     , infixPred
     , showForm
+    , showTerm
     , freeVars
     , quantVars
     , allVars
@@ -148,8 +149,8 @@ showForm formula =
     foldF n q b i a formula
     where
       n f = "((.~.) " ++ showForm f ++ ")"
-      q All vs f = "(for_all " ++ show vs ++ " " ++ showForm f ++ ")"
-      q Exists vs f = "(exists " ++ show vs ++ " " ++ showForm f ++ ")"
+      q All vs f = "(for_all [" ++ intercalate "," (map show vs) ++ "] " ++ showForm f ++ ")"
+      q Exists vs f = "(exists [" ++ intercalate "," (map show vs) ++ "] " ++ showForm f ++ ")"
       b f1 op f2 = "(" ++ showForm f1 ++ " " ++ showFormOp op ++ " " ++ parenForm f2 ++ ")"
       i :: term -> InfixPred -> term -> String
       i t1 op t2 = "(" ++ parenTerm t1 ++ " " ++ showTermOp op ++ " " ++ parenTerm t2 ++ ")"
@@ -164,14 +165,16 @@ showForm formula =
       showFormOp (:|:) = ".|."
       showTermOp (:=:) = ".=."
       showTermOp (:!=:) = ".!=."
-      -- showTerm :: term -> String
-      showTerm term =
-          foldT v f term
-          where
-            v :: v -> String
-            v v' = "var (" ++ show v' ++ ")"
-            f :: f -> [term] -> String
-            f fn ts = "fApp (" ++ show fn ++ ") [" ++ intercalate "," (map showTerm ts) ++ "]"
+
+showTerm :: forall formula term v p f. (FirstOrderLogic formula term v p f, Show v, Show p, Show f) => 
+            term -> String
+showTerm term =
+    foldT v f term
+    where
+      v :: v -> String
+      v v' = "var (" ++ show v' ++ ")"
+      f :: f -> [term] -> String
+      f fn ts = "fApp (" ++ show fn ++ ") [" ++ intercalate "," (map showTerm ts) ++ "]"
 
 prettyForm :: forall formula term v p f.
               (FirstOrderLogic formula term v p f, Term term v f, Pretty v, Pretty f, Pretty p) =>

@@ -15,8 +15,6 @@ Cabal-version:    >= 1.2
 Library
  GHC-options: -threaded -Wall -Werror -O2
  Exposed-Modules:  Logic.Chiou.FirstOrderLogic
-                   Logic.Chiou.KnowledgeBase
-                   Logic.Chiou.Monad
                    Logic.Chiou.NormalForm
                    Logic.FirstOrder
                    Logic.Implicative
@@ -24,7 +22,9 @@ Library
                    Logic.Instances.Parameterized
                    Logic.Instances.PropLogic
                    Logic.Instances.TPTP
+                   Logic.KnowledgeBase
                    Logic.Logic
+                   Logic.Monad
                    Logic.NormalForm
                    Logic.Propositional
                    Logic.Resolution

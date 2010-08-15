@@ -14,10 +14,10 @@ import Data.Map (fromList)
 import qualified Data.Set as S
 import qualified Logic.Chiou.FirstOrderLogic as C
 import Logic.Chiou.FirstOrderLogic (CTerm)
-import Logic.Chiou.Monad (WithId(..))
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), NormalTerm(..))
 import Logic.FirstOrder (FirstOrderLogic(..), Term(..), Skolem(toSkolem), convertFOF)
 import Logic.Logic (Logic(..), Boolean(..))
+import Logic.Monad (WithId(..))
 import Test.Types
 
 formulas :: [TestFormula]
@@ -703,25 +703,25 @@ proofs =
       , proofKnowledge = (fst animalKB, map (convertFOF id id id . formula) (snd animalKB))
       , conjecture = kills [jack, tuna]
       , proofExpected = 
-          [ ChiouKB [WithId {wiItem = INF [] [NFPredicate (Pr "Dog") [Function (Skolem 1) []]], wiIdent = 1},
-                     WithId {wiItem = INF [] [NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Function (Skolem 1) []]], wiIdent = 1},
-                     WithId {wiItem = INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Variable (V "x"),Variable (V "y")]] [NFPredicate (Pr "AnimalLover") [Variable (V "x")]], wiIdent = 2},
-                     WithId {wiItem = INF [NFPredicate (Pr "Animal") [Variable (V "y")],NFPredicate (Pr "AnimalLover") [Variable (V "x")],NFPredicate (Pr "Kills") [Variable (V "x"),Variable (V "y")]] [], wiIdent = 3},
-                     WithId {wiItem = INF [] [NFPredicate (Pr "Kills") [Function (Fn "Curiosity") [],Function (Fn "Tuna") []],NFPredicate (Pr "Kills") [Function (Fn "Jack") [],Function (Fn "Tuna") []]], wiIdent = 4},
-                     WithId {wiItem = INF [] [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]], wiIdent = 5},
-                     WithId {wiItem = INF [NFPredicate (Pr "Cat") [Variable (V "x")]] [NFPredicate (Pr "Animal") [Variable (V "x")]], wiIdent = 6}]
+          [ ChiouKB [WithId {wiItem = INF [] [(pApp (Pr "Dog") [fApp (Skolem 1) []])], wiIdent = 1},
+                     WithId {wiItem = INF [] [(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])], wiIdent = 1},
+                     WithId {wiItem = INF [(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [var (V "x"),var (V "y")])] [(pApp (Pr "AnimalLover") [var (V "x")])], wiIdent = 2},
+                     WithId {wiItem = INF [(pApp (Pr "Animal") [var (V "y")]),(pApp (Pr "AnimalLover") [var (V "x")]),(pApp (Pr "Kills") [var (V "x"),var (V "y")])] [], wiIdent = 3},
+                     WithId {wiItem = INF [] [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []]),(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])], wiIdent = 4},
+                     WithId {wiItem = INF [] [(pApp (Pr "Cat") [fApp (Fn "Tuna") []])], wiIdent = 5},
+                     WithId {wiItem = INF [(pApp (Pr "Cat") [var (V "x")])] [(pApp (Pr "Animal") [var (V "x")])], wiIdent = 6}]
           , ChiouResult (False,
-                         [(INF [NFPredicate (Pr "Kills") [Function (Fn "Jack") [],Function (Fn "Tuna") []]] [],fromList []),
-                          (INF [] [NFPredicate (Pr "Kills") [Function (Fn "Curiosity") [],Function (Fn "Tuna") []]],fromList []),
-                          (INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []],NFPredicate (Pr "AnimalLover") [Function (Fn "Curiosity") []]] [],fromList []),
-                          (INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []],NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")]] [],fromList []),
-                          (INF [NFPredicate (Pr "AnimalLover") [Function (Fn "Curiosity") []],NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]] [],fromList []),
-                          (INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Function (Skolem 1) []]] [],fromList []),
-                          (INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")]] [],fromList []),
-                          (INF [NFPredicate (Pr "AnimalLover") [Function (Fn "Curiosity") []]] [],fromList []),
-                          (INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Function (Skolem 1) []]] [],fromList []),
-                          (INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")]] [],fromList []),
-                          (INF [NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Function (Skolem 1) []]] [],fromList [])])
+                         [(INF [(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])] [],fromList []),
+                          (INF [] [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []])],fromList []),
+                          (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "AnimalLover") [fApp (Fn "Curiosity") []])] [],fromList []),
+                          (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
+                          (INF [(pApp (Pr "AnimalLover") [fApp (Fn "Curiosity") []]),(pApp (Pr "Cat") [fApp (Fn "Tuna") []])] [],fromList []),
+                          (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],fApp (Skolem 1) []])] [],fromList []),
+                          (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
+                          (INF [(pApp (Pr "AnimalLover") [fApp (Fn "Curiosity") []])] [],fromList []),
+                          (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],fApp (Skolem 1) []])] [],fromList []),
+                          (INF [(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
+                          (INF [(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],fApp (Skolem 1) []])] [],fromList [])])
           ]
       }
     , TestProof
@@ -729,30 +729,30 @@ proofs =
       , proofKnowledge = (fst animalKB, map (convertFOF id id id . formula) (snd animalKB))
       , conjecture = kills [curiosity, tuna]
       , proofExpected =
-          [ ChiouKB [WithId {wiItem = INF [] [NFPredicate (Pr "Dog") [Function (Skolem 1) []]], wiIdent = 1},
-                     WithId {wiItem = INF [] [NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Function (Skolem 1) []]], wiIdent = 1},
-                     WithId {wiItem = INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Variable (V "x"),Variable (V "y")]] [NFPredicate (Pr "AnimalLover") [Variable (V "x")]], wiIdent = 2},
-                     WithId {wiItem = INF [NFPredicate (Pr "Animal") [Variable (V "y")],NFPredicate (Pr "AnimalLover") [Variable (V "x")],NFPredicate (Pr "Kills") [Variable (V "x"),Variable (V "y")]] [], wiIdent = 3},
-                     WithId {wiItem = INF [] [NFPredicate (Pr "Kills") [Function (Fn "Curiosity") [],Function (Fn "Tuna") []],NFPredicate (Pr "Kills") [Function (Fn "Jack") [],Function (Fn "Tuna") []]], wiIdent = 4},
-                     WithId {wiItem = INF [] [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]], wiIdent = 5},
-                     WithId {wiItem = INF [NFPredicate (Pr "Cat") [Variable (V "x")]] [NFPredicate (Pr "Animal") [Variable (V "x")]], wiIdent = 6}]
+          [ ChiouKB [WithId {wiItem = INF [] [(pApp (Pr "Dog") [fApp (Skolem 1) []])], wiIdent = 1},
+                     WithId {wiItem = INF [] [(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])], wiIdent = 1},
+                     WithId {wiItem = INF [(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [var (V "x"),var (V "y")])] [(pApp (Pr "AnimalLover") [var (V "x")])], wiIdent = 2},
+                     WithId {wiItem = INF [(pApp (Pr "Animal") [var (V "y")]),(pApp (Pr "AnimalLover") [var (V "x")]),(pApp (Pr "Kills") [var (V "x"),var (V "y")])] [], wiIdent = 3},
+                     WithId {wiItem = INF [] [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []]),(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])], wiIdent = 4},
+                     WithId {wiItem = INF [] [(pApp (Pr "Cat") [fApp (Fn "Tuna") []])], wiIdent = 5},
+                     WithId {wiItem = INF [(pApp (Pr "Cat") [var (V "x")])] [(pApp (Pr "Animal") [var (V "x")])], wiIdent = 6}]
           , ChiouResult (True,
-                         [(INF [NFPredicate (Pr "Kills") [Function (Fn "Curiosity") [],Function (Fn "Tuna") []]] [],fromList []),
-                          (INF [] [NFPredicate (Pr "Kills") [Function (Fn "Jack") [],Function (Fn "Tuna") []]],fromList []),
-                          (INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []],NFPredicate (Pr "AnimalLover") [Function (Fn "Jack") []]] [],fromList []),
-                          (INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []],NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")]] [],fromList []),
-                          (INF [NFPredicate (Pr "AnimalLover") [Function (Fn "Jack") []],NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]] [],fromList []),
-                          (INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []],NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Function (Skolem 1) []]] [],fromList []),
-                          (INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []],NFPredicate (Pr "Dog") [Function (Skolem 1) []]] [],fromList []),
-                          (INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")]] [],fromList []),
-                          (INF [NFPredicate (Pr "AnimalLover") [Function (Fn "Jack") []]] [],fromList []),
-                          (INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []]] [],fromList []),
-                          (INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Function (Skolem 1) []]] [],fromList []),
-                          (INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "Dog") [Function (Skolem 1) []]] [],fromList []),
-                          (INF [NFPredicate (Pr "Dog") [Variable (V "y")],NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")]] [],fromList []),
-                          (INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]] [],fromList []),
-                          (INF [NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Function (Skolem 1) []]] [],fromList []),
-                          (INF [NFPredicate (Pr "Dog") [Function (Skolem 1) []]] [],fromList []),
+                         [(INF [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []])] [],fromList []),
+                          (INF [] [(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])],fromList []),
+                          (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "AnimalLover") [fApp (Fn "Jack") []])] [],fromList []),
+                          (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
+                          (INF [(pApp (Pr "AnimalLover") [fApp (Fn "Jack") []]),(pApp (Pr "Cat") [fApp (Fn "Tuna") []])] [],fromList []),
+                          (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])] [],fromList []),
+                          (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [fApp (Skolem 1) []])] [],fromList []),
+                          (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
+                          (INF [(pApp (Pr "AnimalLover") [fApp (Fn "Jack") []])] [],fromList []),
+                          (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []])] [],fromList []),
+                          (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])] [],fromList []),
+                          (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [fApp (Skolem 1) []])] [],fromList []),
+                          (INF [(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
+                          (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []])] [],fromList []),
+                          (INF [(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])] [],fromList []),
+                          (INF [(pApp (Pr "Dog") [fApp (Skolem 1) []])] [],fromList []),
                           (INF [] [],fromList [])])
           ]
       }
@@ -773,14 +773,14 @@ proofs =
       , proofKnowledge = (fst socratesKB, map (convertFOF id id id . formula) (snd socratesKB))
       , conjecture = for_all ["x"] (socrates [x] .=>. mortal [x])
       , proofExpected = 
-         [ ChiouKB [WithId {wiItem = INF [NFPredicate (Pr "Human") [Variable (V "x")]] [NFPredicate (Pr "Mortal") [Variable (V "x")]], wiIdent = 1},
-                    WithId {wiItem = INF [NFPredicate (Pr "Socrates") [Variable (V "x")]] [NFPredicate (Pr "Human") [Variable (V "x")]], wiIdent = 2}]
+         [ ChiouKB [WithId {wiItem = INF [(pApp (Pr "Human") [var (V "x")])] [(pApp (Pr "Mortal") [var (V "x")])], wiIdent = 1},
+                    WithId {wiItem = INF [(pApp (Pr "Socrates") [var (V "x")])] [(pApp (Pr "Human") [var (V "x")])], wiIdent = 2}]
          , ChiouResult (True,
-                        [(INF [] [NFPredicate (Pr "Socrates") [fApp (Skolem 1) []]],fromList []),
-                         (INF [NFPredicate (Pr "Mortal") [fApp (Skolem 1) []]] [],fromList []),
-                         (INF [] [NFPredicate (Pr "Human") [fApp (Skolem 1) []]],fromList []),
-                         (INF [NFPredicate (Pr "Human") [fApp (Skolem 1) []]] [],fromList []),
-                         (INF [] [NFPredicate (Pr "Mortal") [fApp (Skolem 1) []]],fromList []),
+                        [(INF [] [(pApp (Pr "Socrates") [fApp (Skolem 1) []])],fromList []),
+                         (INF [(pApp (Pr "Mortal") [fApp (Skolem 1) []])] [],fromList []),
+                         (INF [] [(pApp (Pr "Human") [fApp (Skolem 1) []])],fromList []),
+                         (INF [(pApp (Pr "Human") [fApp (Skolem 1) []])] [],fromList []),
+                         (INF [] [(pApp (Pr "Mortal") [fApp (Skolem 1) []])],fromList []),
                          (INF [] [],fromList [])])]
       }
     , let x = var "x" in
@@ -789,12 +789,10 @@ proofs =
       , proofKnowledge = (fst socratesKB, map (convertFOF id id id . formula) (snd socratesKB))
       , conjecture = (.~.) (for_all ["x"] (socrates [x] .=>. mortal [x]))
       , proofExpected = 
-         [ ChiouKB [WithId {wiItem = INF [NFPredicate (Pr "Human") [Variable (V "x")]] [NFPredicate (Pr "Mortal") [Variable (V "x")]], wiIdent = 1},
-                    WithId {wiItem = INF [NFPredicate (Pr "Socrates") [Variable (V "x")]] [NFPredicate (Pr "Human") [Variable (V "x")]], wiIdent = 2}]
+         [ ChiouKB [WithId {wiItem = INF [(pApp (Pr "Human") [var (V "x")])] [(pApp (Pr "Mortal") [var (V "x")])], wiIdent = 1},
+                    WithId {wiItem = INF [(pApp (Pr "Socrates") [var (V "x")])] [(pApp (Pr "Human") [var (V "x")])], wiIdent = 2}]
          , ChiouResult (False
-                       ,[(INF [NFPredicate (Pr "Socrates") [var (V "x")]]
-                              [NFPredicate (Pr "Mortal") [var (V "x")]],
-                          (fromList [(V "x",var (V "x"))]))])]
+                       ,[(INF [(pApp (Pr "Socrates") [var (V "x")])] [(pApp (Pr "Mortal") [var (V "x")])],fromList [(V "x",var (V "x"))])])]
       }
     , let x = var "x" in
       TestProof
@@ -802,12 +800,12 @@ proofs =
       , proofKnowledge = (fst socratesKB, map (convertFOF id id id . formula) (snd socratesKB))
       , conjecture = (.~.) (exists ["x"] (socrates [x]) .&. for_all ["x"] (socrates [x] .=>. mortal [x]))
       , proofExpected = 
-         [ ChiouKB [WithId {wiItem = INF [NFPredicate (Pr "Human") [Variable (V "x")]] [NFPredicate (Pr "Mortal") [Variable (V "x")]], wiIdent = 1},
-                    WithId {wiItem = INF [NFPredicate (Pr "Socrates") [Variable (V "x")]] [NFPredicate (Pr "Human") [Variable (V "x")]], wiIdent = 2}]
+         [ ChiouKB [WithId {wiItem = INF [(pApp (Pr "Human") [var (V "x")])] [(pApp (Pr "Mortal") [var (V "x")])], wiIdent = 1},
+                    WithId {wiItem = INF [(pApp (Pr "Socrates") [var (V "x")])] [(pApp (Pr "Human") [var (V "x")])], wiIdent = 2}]
          , ChiouResult (False,
-                        [(INF []                                           [NFPredicate (Pr "Socrates") [fApp (Skolem 1) []]],fromList []),
-                         (INF [NFPredicate (Pr "Socrates") [var (V "x2")]] [NFPredicate (Pr "Mortal") [var (V "x2")]],        fromList [(V "x2",var (V "x2"))]),
-                         (INF []                                           [NFPredicate (Pr "Human") [fApp (Skolem 1) []]],   fromList []),
-                         (INF []                                           [NFPredicate (Pr "Mortal") [fApp (Skolem 1) []]],  fromList [(V "x2",var (V "x2") {-was fApp (Skolem 1)-})])])]
+                        [(INF [] [(pApp (Pr "Socrates") [fApp (Skolem 1) []])],fromList []),
+                         (INF [(pApp (Pr "Socrates") [var (V "x2")])] [(pApp (Pr "Mortal") [var (V "x2")])],fromList [(V "x2",var (V "x2"))]),
+                         (INF [] [(pApp (Pr "Human") [fApp (Skolem 1) []])],fromList []),
+                         (INF [] [(pApp (Pr "Mortal") [fApp (Skolem 1) []])],fromList [(V "x2",var (V "x2"))])])]
       }
     ]

@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 module Logic.Monad
     ( LogicState(..)
     , newLogicState
@@ -8,10 +9,25 @@ module Logic.Monad
     , LiteralMapT
     , runLiteralMap
     , runLiteralMapM
+    , WithId(..)
+    , SentenceCount
+    , withId
+    , wiLookupItem
+    , wiLookupId
+    , KnowledgeBase
+    , ProverState(..)
+    , ProverT
+    , ProverT'
+    , zeroKB
+    , runProverT
+    , runProverT'
+    , runProver
+    , runProver'
     ) where
 
 import Control.Monad.Identity (Identity(runIdentity))
-import Control.Monad.State (StateT(runStateT))
+import Control.Monad.State (StateT(runStateT), evalStateT)
+import Data.Generics (Data, Typeable)
 import qualified Data.Map as Map
 
 -- |The logic monad contains (will contain) several types of state to
@@ -54,3 +70,47 @@ runLiteralMap action = runIdentity (runLiteralMapM action)
 
 runLiteralMapM :: Monad m => LiteralMapT f m a -> m a
 runLiteralMapM action = (runStateT action) (1, Map.empty) >>= return . fst
+
+type SentenceCount = Int
+
+data WithId a = WithId {wiItem :: a, wiIdent :: Int} deriving (Eq, Show, Data, Typeable)
+
+withId :: Int -> a -> WithId a
+withId i x = WithId {wiIdent = i, wiItem = x}
+
+withIdPairs :: [WithId a] -> [(a, Int)]
+withIdPairs = map (\ x -> (wiItem x, wiIdent x))
+
+wiLookupId :: Eq a => a -> [WithId a] -> Maybe Int
+wiLookupId x xs = lookup x (withIdPairs xs)
+
+withIdPairs' :: [WithId a] -> [(Int, a)]
+withIdPairs' = map (\ x -> (wiIdent x, wiItem x))
+
+wiLookupItem :: Int -> [WithId a] -> Maybe a
+wiLookupItem i xs = lookup i (withIdPairs' xs)
+
+type KnowledgeBase inf = [WithId inf]
+
+data ProverState inf
+    = ProverState
+      { knowledgeBase :: KnowledgeBase inf
+      , sentenceCount :: Int }
+
+zeroKB :: ProverState inf
+zeroKB = ProverState
+         { knowledgeBase = []
+         , sentenceCount = 1 }
+
+-- |A monad for running the knowledge base.
+type ProverT inf = StateT (ProverState inf)
+type ProverT' v term inf m a = ProverT inf (SkolemT v term m) a
+
+runProverT' :: Monad m => ProverT' v term inf m a -> m a
+runProverT' = runSkolemT . runProverT
+runProverT :: Monad m => StateT (ProverState inf) m a -> m a
+runProverT action = evalStateT action zeroKB
+runProver' :: ProverT' v term inf Identity a -> a
+runProver' = runIdentity . runProverT'
+runProver :: StateT (ProverState inf) Identity a -> a
+runProver = runIdentity . runProverT

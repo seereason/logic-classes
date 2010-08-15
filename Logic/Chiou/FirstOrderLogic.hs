@@ -53,12 +53,12 @@ data Sentence v p f
     | Not (Sentence v p f)
     | Predicate p [CTerm v f]
     | Equal (CTerm v f) (CTerm v f)
-    deriving (Eq, Ord, Show, Data, Typeable)
+    deriving (Eq, Ord, Data, Typeable)
 
 data CTerm v f
     = Function f [CTerm v f]
     | Variable v
-    deriving (Eq, Ord, Show, Data, Typeable)
+    deriving (Eq, Ord, Data, Typeable)
 
 data Connective
     = Imply

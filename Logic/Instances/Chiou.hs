@@ -9,7 +9,7 @@ import Data.String (IsString(..))
 import Logic.Chiou.FirstOrderLogic
 import Logic.Logic (Logic(..), BinOp(..), Boolean(..))
 import Logic.Propositional (PropositionalLogic(..))
-import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), InfixPred(..), Pretty)
+import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), InfixPred(..), Quant(..), Pretty, showForm, showTerm)
 import qualified Logic.FirstOrder as Logic
 
 -- |This enum instance is used to generate a series of new variable
@@ -89,19 +89,46 @@ instance (PropositionalLogic (Sentence v p f) (Sentence v p f), Ord v, Enum v, D
           Connective f1 Or f2 -> b f1 (:|:) f2
           Predicate name ts -> p name ts
           Equal t1 t2 -> i t1 (:=:) t2
-    zipF = error "Unimplemented: Logic.Instances.Chiou.zipF"
+    zipF n q b i p f1 f2 =
+        case (f1, f2) of
+          (Not f1', Not f2') -> n f1' f2'
+          (Quantifier q1 vs1 f1', Quantifier q2 vs2 f2') ->
+              case (q1, q2) of
+                (ForAll, ForAll) -> q All vs1 f1' All vs2 f2'
+                (ExistsCh, ExistsCh) -> q Exists vs1 f1' Exists vs2 f2'
+                _ -> Nothing
+          (Connective l1 op1 r1, Connective l2 op2 r2) ->
+              case (op1, op2) of
+                (And, And) -> b l1 (:&:) r1 l2 (:&:) r2
+                (Or, Or) -> b l1 (:|:) r1 l2 (:|:) r2
+                (Imply, Imply) -> b l1 (:=>:) r1 l2 (:=>:) r2
+                (Equiv, Equiv) -> b l1 (:<=>:) r1 l2 (:<=>:) r2
+                _ -> Nothing
+          (Equal l1 r1, Equal l2 r2) -> i l1 (:=:) r1 l2 (:=:) r2
+          (Predicate p1 ts1, Predicate p2 ts2) -> p p1 ts1 p2 ts2
+          _ -> Nothing
     pApp x args = Predicate x args
     -- fApp (AtomicSkolemFunction n) [] = SkolemConstant n
     -- fApp (AtomicSkolemFunction n) ts = SkolemFunction n ts
     x .=. y = Equal x y
     x .!=. y = Not (Equal x y)
 
+instance (FirstOrderLogic (Sentence v p f) (CTerm v f) v p f, Show v, Show p, Show f) => Show (Sentence v p f) where
+    show = showForm
+
+instance (FirstOrderLogic (Sentence v p f) (CTerm v f) v p f, Show v, Show p, Show f) => Show (CTerm v f) where
+    show = showTerm
+
 instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Logic.Term (CTerm v f) v f where
     foldT v fn t =
         case t of
           Variable x -> v x
           Function f ts -> fn f ts
-    zipT = error "Unimplemented: Logic.Instances.Chiou.zipT"
+    zipT  v f t1 t2 =
+        case (t1, t2) of
+          (Variable v1, Variable v2) -> v v1 v2
+          (Function f1 ts1, Function f2 ts2) -> f f1 ts1 f2 ts2
+          _ -> Nothing
     var = Variable
     fApp f ts = Function f ts
 
