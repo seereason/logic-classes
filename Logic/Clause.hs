@@ -13,6 +13,7 @@ module Logic.Clause
 
 import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.Writer (MonadPlus)
+import qualified Data.Set as S
 import Logic.FirstOrder
 import Logic.Logic
 import Prelude hiding (negate)
@@ -20,8 +21,8 @@ import Prelude hiding (negate)
 -- |A class to represent formulas in CNF, which is the conjunction of
 -- a set of disjuncted literals each which may or may not be negated.
 class Literal lit => ClauseNormal cnf lit | cnf -> lit where
-    clauses :: cnf -> [[lit]]
-    makeCNF :: [[lit]] -> cnf
+    clauses :: cnf -> S.Set (S.Set lit)
+    makeCNF :: S.Set (S.Set lit) -> cnf
     satisfiable :: MonadPlus m => cnf -> m Bool
 
 -- |The literals in a ClauseNormal formula.
@@ -47,13 +48,13 @@ toClauseNormalM :: forall formula term v p f cnf lit m. (Monad m, FirstOrderLogi
 toClauseNormalM lit formula =
     -- If any of the elements of a disjunction is the whole
     -- disjunction is true, so it has no effect on the conjunction.
-    mapM (mapM lit) formula >>= return . makeCNF
+    mapM (mapM lit) formula >>= return . makeCNF . S.fromList . map S.fromList
 
 -- |Convert an instance of ClauseNormal into an instance of FirstOrderLogic.
 fromClauseNormal :: forall formula term v p f cnf lit. (FirstOrderLogic formula term v p f, ClauseNormal cnf lit, Show lit) =>
                    (lit -> formula) -> cnf -> formula
 fromClauseNormal lit cform =
-    conj (map (disj . map lit') (clauses cform))
+    conj . map (disj . map lit' . S.toList) . S.toList . clauses $ cform
     where
       lit' x | negated x =  (.~.) (lit (negate x))
       lit' x = lit x

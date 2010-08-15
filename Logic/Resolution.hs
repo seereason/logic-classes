@@ -12,6 +12,7 @@ module Logic.Resolution
     , Subst )
     where
 
+import qualified Data.Set as S
 import qualified Logic.FirstOrder as Logic
 import Logic.Implicative (Implicative(..))
 
@@ -52,9 +53,9 @@ getResult :: (Logic.FirstOrderLogic lit term v p f, Implicative inf lit) =>
 getResult _ [] = ([], False)
 getResult ss (Nothing:xs) = getResult ss xs
 getResult ss ((Just x):xs)  =
-    case (neg inf, pos inf) of
-      ([], []) -> ([x], True)
-      _ -> if or (map (\(e,_) -> isRenameOf (fst x) e) ss) then
+    if S.null (neg inf) && S.null (pos inf)
+    then ([x], True)
+    else if or (map (\(e,_) -> isRenameOf (fst x) e) ss) then
              getResult ss xs
            else
              case getResult ss xs of
@@ -73,14 +74,8 @@ getSubsts :: (Implicative inf formula, Logic.FirstOrderLogic formula term v p f)
 getSubsts inf theta =
     getSubstSentences (pos inf) (getSubstSentences (neg inf) theta)
 
-getSubstSentences :: Logic.FirstOrderLogic formula term v p f => [formula] -> Subst v term -> Subst v term
-getSubstSentences [] theta = theta
-getSubstSentences (x:xs) theta =
-    let
-      theta' = getSubstSentence x theta
-      theta'' = getSubstSentences xs theta'
-    in
-      theta''
+getSubstSentences :: Logic.FirstOrderLogic formula term v p f => S.Set formula -> Subst v term -> Subst v term
+getSubstSentences xs theta = foldr getSubstSentence theta (S.toList xs)
 
 
 getSubstSentence :: Logic.FirstOrderLogic formula term v p f => formula -> Subst v term -> Subst v term
@@ -121,15 +116,9 @@ isRenameOf inf1 inf2 =
       lhs2 = neg inf2
       rhs2 = pos inf2
 
-isRenameOfSentences :: Logic.FirstOrderLogic a term v p f => [a] -> [a] -> Bool
+isRenameOfSentences :: Logic.FirstOrderLogic formula term v p f => S.Set formula -> S.Set formula -> Bool
 isRenameOfSentences xs1 xs2 =
-    if length xs1 == length xs2 then
-      let
-        nsTuples = zip xs1 xs2
-      in
-        foldl (&&) True (map (\(s1, s2) -> isRenameOfSentence s1 s2) nsTuples)
-    else
-      False
+    S.size xs1 == S.size xs2 && all (uncurry isRenameOfSentence) (zip (S.toList xs1) (S.toList xs2))
 
 isRenameOfSentence :: Logic.FirstOrderLogic formula term v p f => formula -> formula -> Bool
 isRenameOfSentence f1 f2 =
@@ -175,10 +164,10 @@ resolution (inf1, theta1) (inf2, theta2) =
       case unifyResult of
         Just ((rhs1', theta1'), (lhs2', theta2')) ->
             let
-              lhs'' = map (\s -> subst s theta1') lhs1 ++
-                      map (\s -> subst s theta2') lhs2'
-              rhs'' = map (\s -> subst s theta1') rhs1' ++
-                      map (\s -> subst s theta2') rhs2
+              lhs'' = S.union (S.map (\s -> subst s theta1') lhs1)
+                              (S.map (\s -> subst s theta2') lhs2')
+              rhs'' = S.union (S.map (\s -> subst s theta1') rhs1')
+                              (S.map (\s -> subst s theta2') rhs2)
               theta = updateSubst theta1 theta1' ++
 		      updateSubst theta2 theta2'
             in
@@ -190,19 +179,19 @@ demodulate :: (Eq term, Implicative inf lit, Logic.FirstOrderLogic lit term v p 
 demodulate (inf1, theta1) (inf2, theta2) =
     let lhs2 = neg inf2
         rhs2 = pos inf2 in
-    case (neg inf1, pos inf1) of
-      ([], [lit1]) ->
+    case (S.null (neg inf1), S.toList (pos inf1)) of
+      (True, [lit1]) ->
           Logic.foldF (\ _ -> error "demodulate")
                       (\ _ _ _ -> error "demodulate")
                       (\ _ _ _ -> error "demodulate")
                       (\ t1 op t2 -> case op of
                                        (Logic.:=:) ->
-                                           case findUnify t1 t2 (lhs2 ++ rhs2) of
+                                           case findUnify t1 t2 (S.union lhs2 rhs2) of
                                              Just ((t1', t2'), theta1', theta2') ->
-                                                 let substLhs2 = map (\x -> subst x theta2') lhs2
-                                                     substRhs2 = map (\x -> subst x theta2') rhs2
-                                                     lhs = map (\x -> replaceTerm x (t1', t2')) substLhs2
-                                                     rhs = map (\x -> replaceTerm x (t1', t2')) substRhs2
+                                                 let substLhs2 = S.map (\x -> subst x theta2') lhs2
+                                                     substRhs2 = S.map (\x -> subst x theta2') rhs2
+                                                     lhs = S.map (\x -> replaceTerm x (t1', t2')) substLhs2
+                                                     rhs = S.map (\x -> replaceTerm x (t1', t2')) substRhs2
                                                      theta = updateSubst theta1 theta1' ++
 		                                             updateSubst theta2 theta2' in
                                                  Just (makeINF lhs rhs, theta)
@@ -259,32 +248,34 @@ unifyTerms (t1:ts1) (t2:ts2) theta1 theta2 =
       Just (theta1',theta2') -> unifyTerms ts1 ts2 theta1' theta2'
 unifyTerms _ _ _ _ = Nothing
 
-tryUnify :: Logic.FirstOrderLogic formula term v p f =>
-            [formula] -> [formula] -> Maybe (([formula], Subst v term), ([formula], Subst v term))
-tryUnify lhs rhs = tryUnify' lhs rhs []
+tryUnify :: (Logic.FirstOrderLogic formula term v p f, Ord formula) =>
+            S.Set formula -> S.Set formula -> Maybe ((S.Set formula, Subst v term), (S.Set formula, Subst v term))
+tryUnify lhs rhs = tryUnify' lhs rhs S.empty
 
-tryUnify' :: Logic.FirstOrderLogic formula term v p f =>
-             [formula] -> [formula] -> [formula] -> Maybe (([formula], Subst v term), ([formula], Subst v term))
-tryUnify' [] _ _ = Nothing
-tryUnify' (lhs:lhss) rhss lhss' =
-    case tryUnify'' lhs rhss [] of
-      Nothing -> tryUnify' lhss rhss (lhs:lhss')
+tryUnify' :: (Logic.FirstOrderLogic formula term v p f, Ord formula) =>
+             S.Set formula -> S.Set formula -> S.Set formula -> Maybe ((S.Set formula, Subst v term), (S.Set formula, Subst v term))
+tryUnify' lhss _ _ | S.null lhss = Nothing
+tryUnify' lhss'' rhss lhss' =
+    let (lhs, lhss) = S.deleteFindMin lhss'' in
+    case tryUnify'' lhs rhss S.empty of
+      Nothing -> tryUnify' lhss rhss (S.insert lhs lhss')
       Just (rhss', theta1, theta2) ->
-	Just ((lhss' ++ lhss, theta1), (rhss', theta2))
+	  Just ((S.union lhss' lhss, theta1), (rhss', theta2))
 
-tryUnify'' :: Logic.FirstOrderLogic formula term v p f =>
-              formula -> [formula] -> [formula] -> Maybe ([formula], Subst v term, Subst v term)
-tryUnify'' _x [] _ = Nothing
-tryUnify'' x (rhs:rhss) rhss' =
+tryUnify'' :: (Logic.FirstOrderLogic formula term v p f, Ord formula) =>
+              formula -> S.Set formula -> S.Set formula -> Maybe (S.Set formula, Subst v term, Subst v term)
+tryUnify'' _x rhss _ | S.null rhss = Nothing
+tryUnify'' x rhss'' rhss' =
+    let (rhs, rhss) = S.deleteFindMin rhss'' in
     case unify x rhs of
-      Nothing -> tryUnify'' x rhss (rhs:rhss')
-      Just (theta1, theta2) -> Just (rhss' ++ rhss, theta1, theta2)
+      Nothing -> tryUnify'' x rhss (S.insert rhs rhss')
+      Just (theta1, theta2) -> Just (S.union rhss' rhss, theta1, theta2)
 
 findUnify :: (Logic.FirstOrderLogic formula term v p f, Eq term, Logic.Term term v f) =>
-             term -> term -> [formula] -> Maybe ((term, term), Subst v term, Subst v term)
+             term -> term -> S.Set formula -> Maybe ((term, term), Subst v term, Subst v term)
 findUnify tl tr s =
     let
-      terms = foldl (++) [] (map getTerms s)
+      terms = concatMap getTerms (S.toList s)
       unifiedTerms' = map (\t -> unifyTerm tl t [] []) terms
       unifiedTerms = filter (\t -> t /= Nothing) unifiedTerms'
     in

@@ -14,6 +14,7 @@ module Logic.Chiou.NormalForm
     ) where
 
 import Data.Generics (Data, Typeable)
+import qualified Data.Set as S
 import Logic.Clause (Literal(..))
 import Logic.Chiou.FirstOrderLogic (Sentence)
 import qualified Logic.Chiou.FirstOrderLogic as F
@@ -50,9 +51,9 @@ instance (Ord v, Ord p, Ord f) => Literal (NormalSentence v p f) where
     negated _ = False
 
 instance (FirstOrderLogic (Sentence v p f) (F.Term v f) v p f, Enum v, Ord p, Ord f) => Implicative (ImplicativeNormalForm v p f) (NormalSentence v p f) where
-    neg (INF x _) = x
-    pos (INF _ x) = x
-    makeINF lhs rhs = INF lhs rhs
+    neg (INF x _) = S.fromList x
+    pos (INF _ x) = S.fromList x
+    makeINF lhs rhs = INF (S.toList lhs) (S.toList rhs)
 
 instance Logic (NormalSentence v p f) where
     (.~.) x   = NFNot x

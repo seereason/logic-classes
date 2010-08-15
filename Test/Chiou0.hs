@@ -30,8 +30,8 @@ loadTest =
       expected :: [(Maybe Bool, [ImplicativeNormalForm V Pr AtomicFunction])]
       expected = [(Nothing,[INF [] [NFPredicate (Pr "Dog") [Function (Skolem 1) []]],INF [] [NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Function (Skolem 1) []]]]),
                   (Nothing,[INF [NFPredicate (Pr "Dog") [Variable (V "y2")],NFPredicate (Pr "Owns") [Variable (V "x"),Variable (V "y")]] [NFPredicate (Pr "AnimalLover") [Variable (V "x")]]]),
-                  (Nothing,[INF [NFPredicate (Pr "AnimalLover") [Variable (V "x")],NFPredicate (Pr "Animal") [Variable (V "y")],NFPredicate (Pr "Kills") [Variable (V "x"),Variable (V "y")]] []]),
-                  (Nothing,[INF [] [NFPredicate (Pr "Kills") [Function (Fn "Jack") [],Function (Fn "Tuna") []],NFPredicate (Pr "Kills") [Function (Fn "Curiosity") [],Function (Fn "Tuna") []]]]),
+                  (Nothing,[INF [NFPredicate (Pr "Animal") [Variable (V "y")],NFPredicate (Pr "AnimalLover") [Variable (V "x")],NFPredicate (Pr "Kills") [Variable (V "x"),Variable (V "y")]] []]),
+                  (Nothing,[INF [] [NFPredicate (Pr "Kills") [Function (Fn "Curiosity") [],Function (Fn "Tuna") []],NFPredicate (Pr "Kills") [Function (Fn "Jack") [],Function (Fn "Tuna") []]]]),
                   (Nothing,[INF [] [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]]]),
                   (Nothing,[INF [NFPredicate (Pr "Cat") [Variable (V "x")]] [NFPredicate (Pr "Animal") [Variable (V "x")]]])]
 
@@ -39,15 +39,40 @@ proofTest1 :: Test
 proofTest1 = TestCase (assertEqual "Chiuo0 - proof test 1" proof1 (runProver' (loadKB sentences >> theoremKB (Predicate "Kills" [C.Function (Fn "Jack") [], C.Function (Fn "Tuna") []]))))
 
 proof1 :: (Bool, SetOfSupport (ImplicativeNormalForm V Pr AtomicFunction) V (NormalTerm V AtomicFunction))
-proof1 = ( False
-         , [(INF [NFPredicate (Pr "Kills") [Function (Fn "Jack") [],Function (Fn "Tuna") []]] [],[]),(INF [] [NFPredicate (Pr "Kills") [Function (Fn "Curiosity") [],Function (Fn "Tuna") []]],[]),(INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []],NFPredicate (Pr "AnimalLover") [Function (Fn "Curiosity") []]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y2")],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")],NFPredicate (Pr "Animal") [Function (Fn "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "AnimalLover") [Function (Fn "Curiosity") []]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")],NFPredicate (Pr "Animal") [Function (Fn "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")],NFPredicate (Pr "Dog") [Variable (V "y2")]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y2")],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")],NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]] [],[]),(INF [NFPredicate (Pr "AnimalLover") [Function (Fn "Curiosity") []]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")],NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")],NFPredicate (Pr "Dog") [Variable (V "y2")]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y2")],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")]] [],[])] )
+proof1 = ( False,
+           [(INF [NFPredicate (Pr "Kills") [Function (Fn "Jack") [],Function (Fn "Tuna") []]] [],[]),
+            (INF [] [NFPredicate (Pr "Kills") [Function (Fn "Curiosity") [],Function (Fn "Tuna") []]],[]),
+            (INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []],NFPredicate (Pr "AnimalLover") [Function (Fn "Curiosity") []]] [],[]),
+            (INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []],NFPredicate (Pr "Dog") [Variable (V "y2")],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")]] [],[]),
+            (INF [NFPredicate (Pr "AnimalLover") [Function (Fn "Curiosity") []],NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]] [],[]),
+            (INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")]] [],[]),
+            (INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "Dog") [Variable (V "y2")],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")]] [],[]),
+            (INF [NFPredicate (Pr "AnimalLover") [Function (Fn "Curiosity") []]] [],[]),
+            (INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")]] [],[]),
+            (INF [NFPredicate (Pr "Dog") [Variable (V "y2")],NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")]] [],[]),
+            (INF [NFPredicate (Pr "Owns") [Function (Fn "Curiosity") [],Variable (V "y")]] [],[])])
 
 proofTest2 :: Test
 proofTest2 = TestCase (assertEqual "Chiuo0 - proof test 2" proof2 (runProver' (loadKB sentences >> theoremKB (Predicate "Kills" [C.Function (Fn "Curiosity") [], C.Function (Fn "Tuna") []]))))
 
 proof2 :: (Bool, SetOfSupport (ImplicativeNormalForm V Pr AtomicFunction) V (NormalTerm V AtomicFunction))
-proof2 = ( True
-         , [(INF [NFPredicate (Pr "Kills") [Function (Fn "Curiosity") [],Function (Fn "Tuna") []]] [],[]),(INF [] [NFPredicate (Pr "Kills") [Function (Fn "Jack") [],Function (Fn "Tuna") []]],[]),(INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []],NFPredicate (Pr "AnimalLover") [Function (Fn "Jack") []]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y2")],NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")],NFPredicate (Pr "Animal") [Function (Fn "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "AnimalLover") [Function (Fn "Jack") []]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")],NFPredicate (Pr "Animal") [Function (Fn "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y2")],NFPredicate (Pr "Animal") [Function (Fn "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")],NFPredicate (Pr "Dog") [Variable (V "y2")]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y2")],NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")],NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]] [],[]),(INF [NFPredicate (Pr "AnimalLover") [Function (Fn "Jack") []]] [],[]),(INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "Dog") [Variable (V "y2")]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")],NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")],NFPredicate (Pr "Dog") [Variable (V "y2")]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y2")],NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y2")],NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]] [],[]),(INF [NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")]] [],[]),(INF [NFPredicate (Pr "Dog") [Variable (V "y2")]] [],[]),(INF [] [],[])])
+proof2 = (True,[(INF [NFPredicate (Pr "Kills") [Function (Fn "Curiosity") [],Function (Fn "Tuna") []]] [],[]),
+                (INF [] [NFPredicate (Pr "Kills") [Function (Fn "Jack") [],Function (Fn "Tuna") []]],[]),
+                (INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []],NFPredicate (Pr "AnimalLover") [Function (Fn "Jack") []]] [],[]),
+                (INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []],NFPredicate (Pr "Dog") [Variable (V "y2")],NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")]] [],[]),
+                (INF [NFPredicate (Pr "AnimalLover") [Function (Fn "Jack") []],NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]] [],[]),
+                (INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []],NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")]] [],[]),
+                (INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []],NFPredicate (Pr "Dog") [Variable (V "y2")]] [],[]),
+                (INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "Dog") [Variable (V "y2")],NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")]] [],[]),
+                (INF [NFPredicate (Pr "AnimalLover") [Function (Fn "Jack") []]] [],[]),
+                (INF [NFPredicate (Pr "Animal") [Function (Fn "Tuna") []]] [],[]),
+                (INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")]] [],[]),
+                (INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []],NFPredicate (Pr "Dog") [Variable (V "y2")]] [],[]),
+                (INF [NFPredicate (Pr "Dog") [Variable (V "y2")],NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")]] [],[]),
+                (INF [NFPredicate (Pr "Cat") [Function (Fn "Tuna") []]] [],[]),
+                (INF [NFPredicate (Pr "Owns") [Function (Fn "Jack") [],Variable (V "y")]] [],[]),
+                (INF [NFPredicate (Pr "Dog") [Variable (V "y2")]] [],[]),
+                (INF [] [],[])])
 
 testProof :: MonadIO m => String -> (Sentence V Pr AtomicFunction, Bool, [ImplicativeNormalForm V Pr AtomicFunction]) -> ProverT (ImplicativeNormalForm V Pr AtomicFunction) (SkolemT V (Term V AtomicFunction) m) ()
 testProof label (question, expectedAnswer, expectedProof) =
