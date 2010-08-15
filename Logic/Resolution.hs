@@ -12,11 +12,13 @@ module Logic.Resolution
     , Subst )
     where
 
+import Data.Map (Map, empty, fromList, toList)
+import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Logic.FirstOrder as Logic
 import Logic.Implicative (Implicative(..))
 
-type Subst v term = [(v, term)]
+type Subst v term = Map v term
 
 type SetOfSupport inf v term = [Unification inf v term]
 
@@ -38,10 +40,10 @@ prove' :: (Implicative inf lit, Eq term, Logic.FirstOrderLogic lit term v p f) =
           (Unification inf v term) -> [inf] -> (SetOfSupport inf v term) -> (SetOfSupport inf v term) -> ((SetOfSupport inf v term), Bool)
 prove' p kb ss1 ss2 =
     let
-      res1 = map (\x -> resolution p (x,[])) kb
-      res2 = map (\x -> resolution (x,[]) p) kb
-      dem1 = map (\e -> demodulate p (e,[])) kb
-      dem2 = map (\p' -> demodulate (p',[]) p) kb
+      res1 = map (\x -> resolution p (x, empty)) kb
+      res2 = map (\x -> resolution (x, empty) p) kb
+      dem1 = map (\e -> demodulate p (e, empty)) kb
+      dem2 = map (\p' -> demodulate (p', empty) p) kb
       result = getResult (ss1 ++ ss2) (res1 ++ res2 ++ dem1 ++ dem2)
     in
       case result of
@@ -67,7 +69,7 @@ getResult ss ((Just x):xs)  =
 getSetOfSupport :: (Implicative t formula, Logic.FirstOrderLogic formula term v p f) =>
                    [t] -> [(t, Subst v term)]
 getSetOfSupport [] = []
-getSetOfSupport (x:xs) = (x, getSubsts x []):getSetOfSupport xs
+getSetOfSupport (x:xs) = (x, getSubsts x empty):getSetOfSupport xs
 
 getSubsts :: (Implicative inf formula, Logic.FirstOrderLogic formula term v p f) =>
              inf -> Subst v term -> Subst v term
@@ -100,9 +102,7 @@ getSubstsTerms (x:xs) theta =
 
 getSubstsTerm :: Logic.Term term v f => term -> Subst v term -> Subst v term
 getSubstsTerm term theta =
-    Logic.foldT (\ v -> if elem v (map fst theta)
-                        then theta
-                        else (v, Logic.var v) : theta)
+    Logic.foldT (\ v -> M.insertWith (\ _ old -> old) v (Logic.var v) theta)
                 (\ _ ts -> getSubstsTerms ts theta)
                 term
 
@@ -168,8 +168,7 @@ resolution (inf1, theta1) (inf2, theta2) =
                               (S.map (\s -> subst s theta2') lhs2')
               rhs'' = S.union (S.map (\s -> subst s theta1') rhs1')
                               (S.map (\s -> subst s theta2') rhs2)
-              theta = updateSubst theta1 theta1' ++
-		      updateSubst theta2 theta2'
+              theta = M.unionWith (\ l _r -> l) (updateSubst theta1 theta1') (updateSubst theta2 theta2')
             in
               Just (makeINF lhs'' rhs'', theta)
         Nothing -> Nothing
@@ -192,8 +191,7 @@ demodulate (inf1, theta1) (inf2, theta2) =
                                                      substRhs2 = S.map (\x -> subst x theta2') rhs2
                                                      lhs = S.map (\x -> replaceTerm x (t1', t2')) substLhs2
                                                      rhs = S.map (\x -> replaceTerm x (t1', t2')) substRhs2
-                                                     theta = updateSubst theta1 theta1' ++
-		                                             updateSubst theta2 theta2' in
+                                                     theta = M.unionWith (\ l _r -> l) (updateSubst theta1 theta1') (updateSubst theta2 theta2') in
                                                  Just (makeINF lhs rhs, theta)
                                              Nothing -> Nothing
                                        _ -> Nothing)
@@ -202,7 +200,7 @@ demodulate (inf1, theta1) (inf2, theta2) =
       _ -> Nothing
 -- |Unification: unifies two sentences.
 unify :: Logic.FirstOrderLogic formula term v p f => formula -> formula -> Maybe (Subst v term, Subst v term)
-unify s1 s2 = unify' s1 s2 [] []
+unify s1 s2 = unify' s1 s2 empty empty
 
 unify' :: Logic.FirstOrderLogic formula term v p f =>
           formula -> formula -> Subst v term -> Subst v term -> Maybe (Subst v term, Subst v term)
@@ -224,15 +222,13 @@ unify' f1 f2 theta1 theta2 =
 unifyTerm :: Logic.FirstOrderLogic formula term v p f => term -> term -> Subst v term -> Subst v term -> Maybe (Subst v term, Subst v term)
 unifyTerm t1 t2 theta1 theta2 =
     Logic.foldT (\ v1 ->
-                     if elem v1 (map fst theta1)
-                     then let t1' = snd (head (filter (\ x -> fst x == v1) theta1)) in
-                          unifyTerm t1' t2 theta1 theta2
-                     else Just ((v1, t2) : theta1, theta2))
+                     maybe (Just (M.insert v1 t2 theta1, theta2))
+                           (\ t1' -> unifyTerm t1' t2 theta1 theta2)
+                           (M.lookup v1 theta1))
                 (\ f1 ts1 ->
-                     Logic.foldT (\ v2 -> if elem v2 (map fst theta2)
-                                          then let t2' = snd (head (filter (\ x -> fst x == v2) theta2)) in
-                                               unifyTerm t1 t2' theta1 theta2
-                                          else Just (theta1, (v2,t1) : theta2))
+                     Logic.foldT (\ v2 -> maybe (Just (theta1, M.insert v2 t1 theta2))
+                                                (\ t2' -> unifyTerm t1 t2' theta1 theta2)
+                                                (M.lookup v2 theta2))
                                  (\ f2 ts2 -> if f1 == f2
                                               then unifyTerms ts1 ts2 theta1 theta2
                                               else Nothing)
@@ -276,7 +272,7 @@ findUnify :: (Logic.FirstOrderLogic formula term v p f, Eq term, Logic.Term term
 findUnify tl tr s =
     let
       terms = concatMap getTerms (S.toList s)
-      unifiedTerms' = map (\t -> unifyTerm tl t [] []) terms
+      unifiedTerms' = map (\t -> unifyTerm tl t empty empty) terms
       unifiedTerms = filter (\t -> t /= Nothing) unifiedTerms'
     in
      case unifiedTerms of
@@ -325,9 +321,7 @@ subst formula theta =
 
 substTerm :: Logic.Term term v f => term -> Subst v term -> term
 substTerm term theta =
-    Logic.foldT (\ v -> case theta of
-                          ((sv,st):xs) -> if v == sv then st else substTerm term xs
-                          _ -> term)
+    Logic.foldT (\ v -> maybe term id (M.lookup v theta))
                 (\ f ts -> Logic.fApp f (substTerms ts theta))
                 term
 
@@ -335,12 +329,7 @@ substTerms :: Logic.Term term v f => [term] -> Subst v term -> [term]
 substTerms ts theta = map (\t -> substTerm t theta) ts
 
 updateSubst :: Logic.Term term v f => Subst v term -> Subst v term -> Subst v term
-updateSubst [] _ = []
-updateSubst ((v1,term1):xs) theta =
-    Logic.foldT ( \ v' -> 
-                      case filter (\(v,_term) -> v == v') theta of
-                        [] -> (v1,term1):(updateSubst xs theta)
-                        [(_,term)] -> (v1,term):(updateSubst xs theta)
-                        _ -> error "error in updateSubst")
-                ( \ _ _ -> (v1,term1):(updateSubst xs theta))
-                term1
+updateSubst theta1 theta2 = M.union theta1 (M.intersection theta1 theta2)
+-- This is what was in the original code, which behaves slightly differently
+--updateSubst theta1 _ | M.null theta1 = M.empty
+--updateSubst theta1 theta2 = M.unionWith (\ _ term2 -> term2) theta1 theta2
