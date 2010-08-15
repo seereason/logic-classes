@@ -37,8 +37,6 @@ module Logic.NormalForm
     , implicativeNormalForm
     ) where
 
-import Debug.Trace
-
 import Control.Monad.State (MonadPlus, msum, get, put)
 import Data.Generics (Data, Typeable, listify)
 import qualified Data.Map as Map
@@ -102,7 +100,7 @@ negationNormalForm = moveNotInwards . simplify
    NOT (Exists x P)  becomes     ForAll x (NOT P)
    NOT (NOT P)       becomes     P
  -}
-moveNotInwards :: forall formula term v p f. FirstOrderLogic formula term v p f =>
+moveNotInwards :: FirstOrderLogic formula term v p f =>
                   formula -> formula
 moveNotInwards formula =
     foldF n q b infixPred pApp formula
@@ -143,10 +141,10 @@ moveNotInwards formula =
 -- variable which does not appear and change occurrences of X in P to
 -- this new variable.  We could instead modify Q, but that looks
 -- slightly more tedious.
-prenexNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Enum v) => formula -> formula
+prenexNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
 prenexNormalForm = moveQuantifiersOut . negationNormalForm
 
-moveQuantifiersOut :: forall formula term v p f. (FirstOrderLogic formula term v p f, Eq formula, Enum v) =>
+moveQuantifiersOut :: FirstOrderLogic formula term v p f =>
                       formula -> formula
 moveQuantifiersOut formula =
     foldF n q b i a formula
@@ -208,16 +206,6 @@ renameFreeVars s vs f =
                              else (v : vs', S.insert v s')) ([], s) vs
       findName :: S.Set v -> v -> v
       findName s' v = if S.member v s' then findName s' (succ v) else v
-{-
-      nextName :: String -> String
-      nextName 
-      nextName "x" = "y"
-      nextName "y" = "z"
-      nextName v =
-          reverse (show (1 + read (if n == "" then "1" else n) :: Int) ++
-                   {- (if a == "" then "x" else a) -} "x")
-              where (n, _a) = break (not . isDigit) (reverse v)
--}
 
 -- |Convert to Prenex Normal Form and then distribute the disjunctions over the conjunctions:
 -- 
@@ -227,7 +215,7 @@ renameFreeVars s vs f =
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-disjunctiveNormalForm :: (FirstOrderLogic formula term v p f, Eq formula, Enum v) => formula -> formula
+disjunctiveNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
 disjunctiveNormalForm = distributeDisjuncts . prenexNormalForm
 
 distributeDisjuncts :: FirstOrderLogic formula term v p f => formula -> formula
@@ -273,7 +261,7 @@ distributeDisjuncts =
 -- functions applied to the list of variables which are universally
 -- quantified in the context where the existential quantifier
 -- appeared.
-skolemNormalForm :: (Monad m, FirstOrderLogic formula term v p f, Eq formula, Enum v, Pretty v, Pretty p, Pretty f) =>
+skolemNormalForm :: (Monad m, FirstOrderLogic formula term v p f) =>
                     formula -> SkolemT v term m formula
 skolemNormalForm formula =
     do s <- get
@@ -282,8 +270,8 @@ skolemNormalForm formula =
        return result1 {- (if result1 /= result2 then trace ("\nSkolemization discrepancy:\n result1=" ++ show (prettyForm 0 result1) ++ "\n result2=" ++ show (prettyForm 0 result2)) result1 else result1) -}
     where dnf = disjunctiveNormalForm formula
 
-skolemize :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f, Eq v) =>
-              formula -> SkolemT v term m formula
+skolemize :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f) =>
+             formula -> SkolemT v term m formula
 skolemize =
     foldF n q b i p
     where
@@ -327,11 +315,11 @@ skolemize =
 -- @@
 --   [[a, ~b], [c, ~d]] <-> ((a | ~b) & (c | ~d))
 -- @@
-clausalNormalForm :: (Monad m, FirstOrderLogic formula term v p f, Eq formula, Enum v, Pretty v, Pretty p, Pretty f) =>
+clausalNormalForm :: (Monad m, FirstOrderLogic formula term v p f) =>
                      formula -> SkolemT v term m [[formula]]
 clausalNormalForm f = skolemNormalForm f >>= return . clausal . removeUniversal
 
-clausal :: forall formula term v p f. (FirstOrderLogic formula term v p f, Eq formula {-, Pretty v, Pretty p, Pretty f-}) =>
+clausal :: FirstOrderLogic formula term v p f =>
            formula -> [[formula]]
 clausal =
     filter (not . any isTrue) . map doClause . flatten
@@ -346,7 +334,7 @@ clausal =
                 (\ _ _ _ -> [[f]])
                 (\ _ _ -> [[f]])
                 f
-      flatten' :: formula -> [formula]
+      -- flatten' :: formula -> [formula]
       flatten' f =
           foldF (\ _ -> [f])
                 (\ _ _ _ -> [f])
@@ -382,7 +370,7 @@ clausal =
 --    a | b | c => f
 -- @
 implicativeNormalForm :: forall m formula term v p f. 
-                         (Monad m, FirstOrderLogic formula term v p f, Eq formula, Data formula, Typeable f, Enum v, Pretty v, Pretty p, Pretty f) =>
+                         (Monad m, FirstOrderLogic formula term v p f, Data formula) =>
                          formula -> SkolemT v term m [([formula], [formula])]
 implicativeNormalForm formula =
     clausalNormalForm formula >>= return . concatMap split . map (imply . foldl collect ([], []))

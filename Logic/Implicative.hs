@@ -29,7 +29,7 @@ class Literal lit => Implicative inf lit | inf -> lit where
                          -- implies.
     makeINF :: [lit] -> [lit] -> inf
 
-toImplicative :: forall formula term v p f inf clause. (FirstOrderLogic formula term v p f, Implicative inf clause, Eq formula, Eq clause) =>
+toImplicative :: (FirstOrderLogic formula term v p f, Implicative inf clause, Eq formula, Eq clause) =>
                  (formula -> clause) -> [([formula], [formula])] -> [inf]
 toImplicative clause = map (\ (n, p) -> makeINF (map clause n) (map clause p))
 

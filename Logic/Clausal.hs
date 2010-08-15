@@ -25,14 +25,14 @@ class Literal lit => Clausal cnf lit | cnf -> lit where
     satisfiable :: MonadPlus m => cnf -> m Bool
 
 -- |The literals in a Clausal formula.
-class Literal lit where
+class Eq lit => Literal lit where
     negate :: lit -> lit
     negated :: lit -> Bool
 
 -- |Convert a FirstOrderLogic formula which has been put into clausal
 -- form to another (typically simpler) type which is just an instance
 -- of Clausal.
-toClausal :: forall formula term v p f cnf lit. (FirstOrderLogic formula term v p f, Eq formula, Clausal cnf lit, Eq lit, Pretty v, Pretty p, Pretty f) =>
+toClausal :: forall formula term v p f cnf lit. (FirstOrderLogic formula term v p f, Eq formula, Clausal cnf lit) =>
              (formula -> lit) -> [[formula]] -> cnf
 toClausal lit formula = runIdentity . toClausalM (return . lit) $ formula
 

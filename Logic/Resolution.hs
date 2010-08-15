@@ -66,7 +66,6 @@ getResult ss ((Just x):xs)  =
       (inf, _v) = x
 
 -- |Convert the "question" to a set of support.
---getSetOfSupport :: (Logic.FirstOrderLogic formula term v p f, Eq v) => [ImplicativeNormalForm v p f] -> SetOfSupport v p f
 getSetOfSupport :: (Implicative t formula, Logic.FirstOrderLogic formula term v p f) =>
                    [t] -> [(t, Subst v term)]
 getSetOfSupport [] = []
@@ -87,7 +86,7 @@ getSubstSentences (x:xs) theta =
       theta''
 
 
-getSubstSentence :: (Logic.FirstOrderLogic formula term v p f, Eq v) => formula -> Subst v term -> Subst v term
+getSubstSentence :: Logic.FirstOrderLogic formula term v p f => formula -> Subst v term -> Subst v term
 getSubstSentence formula theta =
     Logic.foldF (\ s -> getSubstSentence s theta)
                 (\ _ _ _ -> error "getSubstSentence")
@@ -98,7 +97,7 @@ getSubstSentence formula theta =
                 (\ _ ts -> getSubstsTerms ts theta)
                 formula
 
-getSubstsTerms :: (Logic.Term term v f) => [term] -> Subst v term -> Subst v term
+getSubstsTerms :: Logic.Term term v f => [term] -> Subst v term -> Subst v term
 getSubstsTerms [] theta = theta
 getSubstsTerms (x:xs) theta =
     let
@@ -107,7 +106,7 @@ getSubstsTerms (x:xs) theta =
     in
       theta''
 
-getSubstsTerm :: (Logic.Term term v f) => term -> Subst v term -> Subst v term
+getSubstsTerm :: Logic.Term term v f => term -> Subst v term -> Subst v term
 getSubstsTerm term theta =
     Logic.foldT (\ v -> if elem v (map fst theta)
                         then theta
@@ -216,7 +215,7 @@ demodulate (inf1, theta1) (inf2, theta2) =
                       lit1
       _ -> Nothing
 -- |Unification: unifies two sentences.
-unify :: (Logic.FirstOrderLogic formula term v p f, Eq v, Eq p, Eq f) => formula -> formula -> Maybe (Subst v term, Subst v term)
+unify :: Logic.FirstOrderLogic formula term v p f => formula -> formula -> Maybe (Subst v term, Subst v term)
 unify s1 s2 = unify' s1 s2 [] []
 
 unify' :: Logic.FirstOrderLogic formula term v p f =>
@@ -236,7 +235,7 @@ unify' f1 f2 theta1 theta2 =
                (\ p1 ts1 p2 ts2 -> if p1 == p2 then unifyTerms ts1 ts2 theta1 theta2 else Nothing)
                f1 f2
 
-unifyTerm :: (Logic.FirstOrderLogic formula term v p f, Eq v, Eq f, Pretty v, Pretty p, Pretty f) => term -> term -> Subst v term -> Subst v term -> Maybe (Subst v term, Subst v term)
+unifyTerm :: Logic.FirstOrderLogic formula term v p f => term -> term -> Subst v term -> Subst v term -> Maybe (Subst v term, Subst v term)
 unifyTerm t1 t2 theta1 theta2 =
     Logic.foldT (\ v1 ->
                      if elem v1 (map fst theta1)
@@ -254,7 +253,7 @@ unifyTerm t1 t2 theta1 theta2 =
                                  t2)
                 t1
 
-unifyTerms :: (Logic.FirstOrderLogic formula term v p f, Eq v, Eq f, Pretty v, Pretty p, Pretty f) =>
+unifyTerms :: Logic.FirstOrderLogic formula term v p f =>
               [term] -> [term] -> Subst v term -> Subst v term -> Maybe (Subst v term, Subst v term)
 unifyTerms [] [] theta1 theta2 = Just (theta1, theta2)
 unifyTerms (t1:ts1) (t2:ts2) theta1 theta2 =
@@ -284,7 +283,7 @@ tryUnify'' x (rhs:rhss) rhss' =
       Nothing -> tryUnify'' x rhss (rhs:rhss')
       Just (theta1, theta2) -> Just (rhss' ++ rhss, theta1, theta2)
 
-findUnify :: (Logic.FirstOrderLogic formula term v p f, Eq term, Eq v, Eq f, Logic.Term term v f, Eq p, Boolean p, Data p, Pretty p, Pretty v, Pretty f) =>
+findUnify :: (Logic.FirstOrderLogic formula term v p f, Eq term, Logic.Term term v f) =>
              term -> term -> [formula] -> Maybe ((term, term), Subst v term, Subst v term)
 findUnify tl tr s =
     let
@@ -311,7 +310,7 @@ getTerms formula =
     where
       getTerms' t = Logic.foldT (\ v -> [Logic.var v]) (\ f ts -> Logic.fApp f ts : concatMap getTerms' ts) t
 
-replaceTerm :: (Eq v, Eq f, Eq term, Logic.FirstOrderLogic formula term v p f) => formula -> (term, term) -> formula
+replaceTerm :: (Eq term, Logic.FirstOrderLogic formula term v p f) => formula -> (term, term) -> formula
 replaceTerm formula (tl', tr') =
     Logic.foldF (\ _ -> error "error in replaceTerm")
                 (\ _ _ _ -> error "error in replaceTerm")
@@ -327,7 +326,7 @@ replaceTerm formula (tl', tr') =
           then tr'
           else Logic.foldT Logic.var (\ f ts -> Logic.fApp f (map replaceTerm' ts)) t
 
-subst :: (Eq v, Logic.FirstOrderLogic formula term v p f) => formula -> Subst v term -> formula
+subst :: Logic.FirstOrderLogic formula term v p f => formula -> Subst v term -> formula
 subst formula theta =
     Logic.foldF (\ _ -> formula)
                 (error "subst")
@@ -336,7 +335,7 @@ subst formula theta =
                 (\ p ts -> Logic.pApp p (substTerms ts theta))
                 formula
 
-substTerm :: (Eq v, Logic.Term term v f) => term -> Subst v term -> term
+substTerm :: Logic.Term term v f => term -> Subst v term -> term
 substTerm term theta =
     Logic.foldT (\ v -> case theta of
                           ((sv,st):xs) -> if v == sv then st else substTerm term xs
@@ -344,10 +343,10 @@ substTerm term theta =
                 (\ f ts -> Logic.fApp f (substTerms ts theta))
                 term
 
-substTerms :: (Eq v, Logic.Term term v f) => [term] -> Subst v term -> [term]
+substTerms :: Logic.Term term v f => [term] -> Subst v term -> [term]
 substTerms ts theta = map (\t -> substTerm t theta) ts
 
-updateSubst :: (Eq v, Logic.Term term v f) => Subst v term -> Subst v term -> Subst v term
+updateSubst :: Logic.Term term v f => Subst v term -> Subst v term -> Subst v term
 updateSubst [] _ = []
 updateSubst ((v1,term1):xs) theta =
     Logic.foldT ( \ v' -> 

@@ -119,12 +119,12 @@ class (Eq p, Boolean p, Data p,
     pApp :: p -> [term] -> formula
 
 -- | Functions to 
-disj :: (FirstOrderLogic formula term v p f, Boolean p) => [formula] -> formula
+disj :: FirstOrderLogic formula term v p f => [formula] -> formula
 disj [] = pApp (fromBool False) []
 disj [x] = x
 disj (x:xs) = x .|. disj xs
 
-conj :: (FirstOrderLogic formula term v p f, Boolean p) => [formula] -> formula
+conj :: FirstOrderLogic formula term v p f => [formula] -> formula
 conj [] = pApp (fromBool True) []
 conj [x] = x
 conj (x:xs) = x .|. conj xs

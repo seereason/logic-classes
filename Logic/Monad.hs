@@ -39,8 +39,8 @@ newLogicState = LogicState { skolemCount = 1
 type SkolemT v term m = StateT (LogicState v term) m
 
 runSkolemT :: Monad m => SkolemT v term m a -> m a
--- runSkolemT :: (Monad m, FirstOrderLogic formula term v p f) => m a -> SkolemT v term m a
 runSkolemT action = (runStateT action) newLogicState >>= return . fst
+
 runSkolem :: SkolemT v term Identity a -> a
 runSkolem = runIdentity . runSkolemT
  
@@ -51,5 +51,6 @@ type LiteralMapT f = StateT (Int, Map.Map f Int)
 
 runLiteralMap :: LiteralMap p a -> a
 runLiteralMap action = runIdentity (runLiteralMapM action)
+
 runLiteralMapM :: Monad m => LiteralMapT f m a -> m a
 runLiteralMapM action = (runStateT action) (1, Map.empty) >>= return . fst

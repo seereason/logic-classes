@@ -44,7 +44,7 @@ data NormalTerm v f
     | Variable v
     deriving (Eq, Ord, Show, Data, Typeable)
 
-instance Literal (NormalSentence v p f) where
+instance (Eq v, Eq p, Eq f) => Literal (NormalSentence v p f) where
     negate = NFNot
     negated (NFNot x) = not (negated x)
     negated _ = False
@@ -108,6 +108,6 @@ fromSentence = foldF (NFNot . fromSentence)
                  (\ p ts -> NFPredicate p (map fromTerm ts))
 
 
-fromTerm :: (Ord v, Enum v, Data v, Eq f, Logic.Skolem f, Data f) => F.Term v f -> NormalTerm v f
+fromTerm :: F.Term v f -> NormalTerm v f
 fromTerm (F.Function f ts) = Function f (map fromTerm ts)
 fromTerm (F.Variable v) = Variable v
