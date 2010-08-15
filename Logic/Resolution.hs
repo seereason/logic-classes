@@ -12,11 +12,8 @@ module Logic.Resolution
     , Subst )
     where
 
-import Data.Generics (Data)
-import Logic.FirstOrder (Pretty)
 import qualified Logic.FirstOrder as Logic
 import Logic.Implicative (Implicative(..))
-import Logic.Logic (Boolean)
 
 type Subst v term = [(v, term)]
 

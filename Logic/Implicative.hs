@@ -8,7 +8,7 @@ module Logic.Implicative
     , fromImplicative
     ) where
 
-import Logic.Clausal (Literal(..))
+import Logic.Clause (Literal(..))
 import Logic.FirstOrder
 import Logic.Logic
 

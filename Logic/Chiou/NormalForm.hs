@@ -14,7 +14,7 @@ module Logic.Chiou.NormalForm
     ) where
 
 import Data.Generics (Data, Typeable)
-import Logic.Clausal (Literal(..))
+import Logic.Clause (Literal(..))
 import Logic.Chiou.FirstOrderLogic (Sentence)
 import qualified Logic.Chiou.FirstOrderLogic as F
 import Logic.FirstOrder (FirstOrderLogic(..), InfixPred(..), Pretty, Term(..))
@@ -44,7 +44,7 @@ data NormalTerm v f
     | Variable v
     deriving (Eq, Ord, Show, Data, Typeable)
 
-instance (Eq v, Eq p, Eq f) => Literal (NormalSentence v p f) where
+instance (Ord v, Ord p, Ord f) => Literal (NormalSentence v p f) where
     negate = NFNot
     negated (NFNot x) = not (negated x)
     negated _ = False
