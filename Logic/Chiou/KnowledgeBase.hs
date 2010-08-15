@@ -28,10 +28,10 @@ import Logic.Chiou.FirstOrderLogic (Sentence(..))
 import Logic.Chiou.Monad (ProverT, ProverT', ProverState(..), KnowledgeBase, WithId(..), SentenceCount, withId, zeroKB)
 import Logic.Chiou.NormalForm (ImplicativeNormalForm, fromSentence, NormalSentence, NormalTerm)
 import Logic.FirstOrder (Skolem(..), Pretty, Term)
-import Logic.Implicative (toImplicative)
+import Logic.Implicative (Implicative, toImplicative)
 import Logic.Logic (Boolean(..), Logic)
 import Logic.NormalForm (implicativeNormalForm)
-import Logic.Resolution (prove, getSetOfSupport)
+import Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
 
 -- |Reset the knowledgebase to empty.
 emptyKB :: Monad m => ProverT inf m ()
@@ -57,10 +57,8 @@ askKB s = theoremKB s >>= return . fst
 
 -- |See whether the sentence is true, false or invalid.  Return proofs
 -- for truth and falsity.
-{-
-validKB :: (Monad m, Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f, Pretty v, Pretty p, Pretty f, Term (NormalTerm v f) v f, Logic (NormalSentence v p f)) =>
-           Sentence v p f -> ProverT' (C.Term v f) v p f m (Maybe Bool, SetOfSupport v p f, SetOfSupport v p f)
--}
+validKB :: (Implicative inf (NormalSentence v p f), Pretty f, Skolem f, Eq f, Ord v, Enum v, Data v, Data f, Eq p, Boolean p, Data p, Pretty p, Pretty v, Monad m) =>
+           Sentence v p f -> ProverT' v (C.Term v f) inf m (Maybe Bool, SetOfSupport inf v (NormalTerm v f), SetOfSupport inf v (NormalTerm v f))
 validKB s =
     theoremKB s >>= \ (proved, proof1) ->
     inconsistantKB s >>= \ (disproved, proof2) ->
@@ -68,18 +66,14 @@ validKB s =
 
 -- |Return a flag indicating whether sentence was proved, along with a
 -- proof.
-{-
-theoremKB :: (Monad m, Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f, Pretty v, Pretty p, Pretty f, Term (NormalTerm v f) v f, Logic (NormalSentence v p f)) =>
-             Sentence v p f -> ProverT' (C.Term v f) v p f m (Bool, SetOfSupport v p f)
--}
+theoremKB :: (Implicative inf (NormalSentence v p f), Pretty f, Skolem f, Eq f, Ord v, Enum v, Data v, Data f, Eq p, Boolean p, Data p, Pretty p, Pretty v, Monad m) =>
+             Sentence v p f -> ProverT' v (C.Term v f) inf m (Bool, SetOfSupport inf v (NormalTerm v f))
 theoremKB s = inconsistantKB (Not s)
 
 -- |Return a flag indicating whether sentence was disproved, along
 -- with a disproof.
-{-
-inconsistantKB :: (Monad m, Ord v, Data v, Enum v, Ord p, Data p, Boolean p, Ord f, Data f, Skolem f, Pretty v, Pretty p, Pretty f, Term (NormalTerm v f) v f, Logic (NormalSentence v p f)) =>
-                  Sentence v p f -> ProverT' (C.Term v f) v p f m (Bool, SetOfSupport v p f)
--}
+inconsistantKB :: (Implicative inf (NormalSentence v p f), Pretty f, Skolem f, Eq f, Ord v, Enum v, Data v, Data f, Eq p, Boolean p, Data p, Pretty p, Pretty v, Monad m) =>
+                  Sentence v p f -> ProverT' v (C.Term v f) inf m (Bool, SetOfSupport inf v (NormalTerm v f))
 inconsistantKB s = lift (implicativeNormalForm s) >>= \ inf -> getKB >>= return . prove [] (getSetOfSupport (toImplicative fromSentence inf)) . map wiItem
 
 -- |Validate a sentence and insert it into the knowledgebase.  Returns
