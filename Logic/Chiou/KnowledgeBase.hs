@@ -52,13 +52,13 @@ getKB = get >>= return . knowledgeBase
 -- askKB should be in KnowledgeBase module. However, since resolution
 -- is here functions are here, it is also placed in this module.
 askKB :: (Monad m, Ord v, IsString v, Enum v, Data v, Boolean p, Ord p, Data p, Ord f, Skolem f, Data f, Pretty v, Pretty p, Pretty f, Term (NormalTerm v f) v f, Logic (NormalSentence v p f)) =>
-         Sentence v p f -> ProverT' v (C.Term v f) (ImplicativeNormalForm v p f) m Bool
+         Sentence v p f -> ProverT' v (C.CTerm v f) (ImplicativeNormalForm v p f) m Bool
 askKB s = theoremKB s >>= return . fst
 
 -- |See whether the sentence is true, false or invalid.  Return proofs
 -- for truth and falsity.
 validKB :: (Implicative inf (NormalSentence v p f), Pretty f, Skolem f, Eq f, Ord v, Enum v, Data v, Data f, Eq p, Boolean p, Data p, Pretty p, Pretty v, Monad m) =>
-           Sentence v p f -> ProverT' v (C.Term v f) inf m (Maybe Bool, SetOfSupport inf v (NormalTerm v f), SetOfSupport inf v (NormalTerm v f))
+           Sentence v p f -> ProverT' v (C.CTerm v f) inf m (Maybe Bool, SetOfSupport inf v (NormalTerm v f), SetOfSupport inf v (NormalTerm v f))
 validKB s =
     theoremKB s >>= \ (proved, proof1) ->
     inconsistantKB s >>= \ (disproved, proof2) ->
@@ -67,20 +67,20 @@ validKB s =
 -- |Return a flag indicating whether sentence was proved, along with a
 -- proof.
 theoremKB :: (Implicative inf (NormalSentence v p f), Pretty f, Skolem f, Eq f, Ord v, Enum v, Data v, Data f, Eq p, Boolean p, Data p, Pretty p, Pretty v, Monad m) =>
-             Sentence v p f -> ProverT' v (C.Term v f) inf m (Bool, SetOfSupport inf v (NormalTerm v f))
+             Sentence v p f -> ProverT' v (C.CTerm v f) inf m (Bool, SetOfSupport inf v (NormalTerm v f))
 theoremKB s = inconsistantKB (Not s)
 
 -- |Return a flag indicating whether sentence was disproved, along
 -- with a disproof.
 inconsistantKB :: (Implicative inf (NormalSentence v p f), Pretty f, Skolem f, Eq f, Ord v, Enum v, Data v, Data f, Eq p, Boolean p, Data p, Pretty p, Pretty v, Monad m) =>
-                  Sentence v p f -> ProverT' v (C.Term v f) inf m (Bool, SetOfSupport inf v (NormalTerm v f))
+                  Sentence v p f -> ProverT' v (C.CTerm v f) inf m (Bool, SetOfSupport inf v (NormalTerm v f))
 inconsistantKB s = lift (implicativeNormalForm s) >>= \ inf -> getKB >>= return . prove [] (getSetOfSupport (toImplicative fromSentence inf)) . map wiItem
 
 -- |Validate a sentence and insert it into the knowledgebase.  Returns
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
 tellKB :: (Monad m, Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f, Pretty v, Pretty p, Pretty f, Term (NormalTerm v f) v f, Logic (NormalSentence v p f)) =>
-          Sentence v p f -> ProverT' v (C.Term v f) (ImplicativeNormalForm v p f) m (Maybe Bool, [ImplicativeNormalForm v p f])
+          Sentence v p f -> ProverT' v (C.CTerm v f) (ImplicativeNormalForm v p f) m (Maybe Bool, [ImplicativeNormalForm v p f])
 tellKB s =
     do st <- get
        inf <- lift (implicativeNormalForm s)
@@ -94,7 +94,7 @@ tellKB s =
        return (valid, map wiItem inf')
 
 loadKB :: (Monad m, Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f, Pretty v, Pretty p, Pretty f, Term (NormalTerm v f) v f, Logic (NormalSentence v p f)) =>
-          [Sentence v p f] -> ProverT' v (C.Term v f) (ImplicativeNormalForm v p f) m [(Maybe Bool, [ImplicativeNormalForm v p f])]
+          [Sentence v p f] -> ProverT' v (C.CTerm v f) (ImplicativeNormalForm v p f) m [(Maybe Bool, [ImplicativeNormalForm v p f])]
 loadKB sentences = mapM tellKB sentences
 
 -- |Delete an entry from the KB.

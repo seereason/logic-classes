@@ -7,7 +7,7 @@ import Control.Monad.Identity (runIdentity)
 import Control.Monad.Trans (MonadIO, liftIO)
 import Data.Map (fromList)
 import Data.String (IsString(..))
-import Logic.Chiou.FirstOrderLogic (Sentence(..), Term, Quantifier(..), Connective(..))
+import Logic.Chiou.FirstOrderLogic (Sentence(..), CTerm, Quantifier(..), Connective(..))
 import qualified Logic.Chiou.FirstOrderLogic as C
 import Logic.Chiou.Monad (ProverT, runProver')
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), NormalTerm(..){-, ConjunctiveNormalForm(..), distributeAndOverOr -})
@@ -75,7 +75,7 @@ proof2 = (True,[(INF [NFPredicate (Pr "Kills") [Function (Fn "Curiosity") [],Fun
                 (INF [NFPredicate (Pr "Dog") [Variable (V "y2")]] [],fromList []),
                 (INF [] [],fromList [])])
 
-testProof :: MonadIO m => String -> (Sentence V Pr AtomicFunction, Bool, [ImplicativeNormalForm V Pr AtomicFunction]) -> ProverT (ImplicativeNormalForm V Pr AtomicFunction) (SkolemT V (Term V AtomicFunction) m) ()
+testProof :: MonadIO m => String -> (Sentence V Pr AtomicFunction, Bool, [ImplicativeNormalForm V Pr AtomicFunction]) -> ProverT (ImplicativeNormalForm V Pr AtomicFunction) (SkolemT V (CTerm V AtomicFunction) m) ()
 testProof label (question, expectedAnswer, expectedProof) =
     theoremKB question >>= \ (actualFlag, actualProof) ->
     let actual' = (actualFlag, map fst actualProof) in
@@ -84,7 +84,7 @@ testProof label (question, expectedAnswer, expectedProof) =
                 "\n Actual:\n  " ++ show actual')
     else liftIO (putStrLn (label ++ " ok"))
 
-loadCmd :: Monad m => ProverT (ImplicativeNormalForm V Pr AtomicFunction) (SkolemT V (Term V AtomicFunction) m) [(Maybe Bool, [ImplicativeNormalForm V Pr AtomicFunction])]
+loadCmd :: Monad m => ProverT (ImplicativeNormalForm V Pr AtomicFunction) (SkolemT V (CTerm V AtomicFunction) m) [(Maybe Bool, [ImplicativeNormalForm V Pr AtomicFunction])]
 loadCmd = loadKB sentences
 
 sentences :: [Sentence V Pr AtomicFunction]

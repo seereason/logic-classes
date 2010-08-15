@@ -40,7 +40,7 @@
 
 module Logic.Chiou.FirstOrderLogic
     ( Sentence(..)
-    , Term(..)
+    , CTerm(..)
     , Connective(..)
     , Quantifier(..)
     ) where
@@ -51,12 +51,12 @@ data Sentence v p f
     = Connective (Sentence v p f) Connective (Sentence v p f)
     | Quantifier Quantifier [v] (Sentence v p f)
     | Not (Sentence v p f)
-    | Predicate p [Term v f]
-    | Equal (Term v f) (Term v f)
+    | Predicate p [CTerm v f]
+    | Equal (CTerm v f) (CTerm v f)
     deriving (Eq, Ord, Show, Data, Typeable)
 
-data Term v f
-    = Function f [Term v f]
+data CTerm v f
+    = Function f [CTerm v f]
     | Variable v
     deriving (Eq, Ord, Show, Data, Typeable)
 

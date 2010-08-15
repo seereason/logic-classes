@@ -50,7 +50,7 @@ instance (Ord v, Ord p, Ord f) => Literal (NormalSentence v p f) where
     negated (NFNot x) = not (negated x)
     negated _ = False
 
-instance (FirstOrderLogic (Sentence v p f) (F.Term v f) v p f, Enum v, Ord p, Ord f) => Implicative (ImplicativeNormalForm v p f) (NormalSentence v p f) where
+instance (FirstOrderLogic (Sentence v p f) (F.CTerm v f) v p f, Enum v, Ord p, Ord f) => Implicative (ImplicativeNormalForm v p f) (NormalSentence v p f) where
     neg (INF x _) = S.fromList x
     pos (INF _ x) = S.fromList x
     makeINF lhs rhs = INF (S.toList lhs) (S.toList rhs)
@@ -90,16 +90,16 @@ instance (Ord v, Enum v, Data v, Eq f, Logic.Skolem f, Data f) => Logic.Term (No
           (Function f1 ts1, Function f2 ts2) -> fn f1 ts1 f2 ts2
           _ -> Nothing
 
-toSentence :: FirstOrderLogic (Sentence v p f) (F.Term v f) v p f => NormalSentence v p f -> Sentence v p f
+toSentence :: FirstOrderLogic (Sentence v p f) (F.CTerm v f) v p f => NormalSentence v p f -> Sentence v p f
 toSentence (NFNot s) = (.~.) (toSentence s)
 toSentence (NFEqual t1 t2) = toTerm t1 .=. toTerm t2
 toSentence (NFPredicate p ts) = pApp p (map toTerm ts)
 
-toTerm :: (Ord v, Enum v, Data v, Eq f, Logic.Skolem f, Data f) => NormalTerm v f -> F.Term v f
+toTerm :: (Ord v, Enum v, Data v, Eq f, Logic.Skolem f, Data f) => NormalTerm v f -> F.CTerm v f
 toTerm (Function f ts) = Logic.fApp f (map toTerm ts)
 toTerm (Variable v) = Logic.var v
 
-fromSentence :: FirstOrderLogic (Sentence v p f) (F.Term v f) v p f => Sentence v p f -> NormalSentence v p f
+fromSentence :: FirstOrderLogic (Sentence v p f) (F.CTerm v f) v p f => Sentence v p f -> NormalSentence v p f
 fromSentence = foldF (NFNot . fromSentence)
                  (\ _ _ _ -> error "fromSentence 1")
                  (\ _ _ _ -> error "fromSentence 2")
@@ -109,6 +109,6 @@ fromSentence = foldF (NFNot . fromSentence)
                  (\ p ts -> NFPredicate p (map fromTerm ts))
 
 
-fromTerm :: F.Term v f -> NormalTerm v f
+fromTerm :: F.CTerm v f -> NormalTerm v f
 fromTerm (F.Function f ts) = Function f (map fromTerm ts)
 fromTerm (F.Variable v) = Variable v

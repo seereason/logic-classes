@@ -75,7 +75,7 @@ instance Skolem AtomicFunction where
     fromSkolem _ = Nothing
 
 instance (PropositionalLogic (Sentence v p f) (Sentence v p f), Ord v, Enum v, Data v, Eq p, Boolean p, Data p, Eq f, Skolem f, Data f, Pretty v, Pretty p, Pretty f) =>
-          FirstOrderLogic (Sentence v p f) (Term v f) v p f where
+          FirstOrderLogic (Sentence v p f) (CTerm v f) v p f where
     for_all vars x = Quantifier ForAll vars x
     exists vars x = Quantifier ExistsCh vars x
     foldF n q b i p f =
@@ -96,7 +96,7 @@ instance (PropositionalLogic (Sentence v p f) (Sentence v p f), Ord v, Enum v, D
     x .=. y = Equal x y
     x .!=. y = Not (Equal x y)
 
-instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Logic.Term (Term v f) v f where
+instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Logic.Term (CTerm v f) v f where
     foldT v fn t =
         case t of
           Variable x -> v x

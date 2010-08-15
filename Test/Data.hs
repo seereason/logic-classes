@@ -13,7 +13,7 @@ module Test.Data
 import Data.Map (fromList)
 import qualified Data.Set as S
 import qualified Logic.Chiou.FirstOrderLogic as C
-import Logic.Chiou.FirstOrderLogic (Term)
+import Logic.Chiou.FirstOrderLogic (CTerm)
 import Logic.Chiou.Monad (WithId(..))
 import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), NormalTerm(..))
 import Logic.FirstOrder (FirstOrderLogic(..), Term(..), Skolem(toSkolem), convertFOF)
@@ -171,11 +171,11 @@ formulas =
       }
     , let s :: [ATerm] -> Formula
           s = pApp "s"
-          s' :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+          s' :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
           s' = pApp "s"
-          x' :: C.Term V AtomicFunction
+          x' :: C.CTerm V AtomicFunction
           x' = var "x"
-          y' :: C.Term V AtomicFunction
+          y' :: C.CTerm V AtomicFunction
           y' = var "y" in
       TestFormula
       { name = "convert to Chiou 2"
@@ -188,13 +188,13 @@ formulas =
           h = pApp "h"
           m :: [ATerm] -> Formula
           m = pApp "m"
-          s' :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+          s' :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
           s' = pApp "s"
-          h' :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+          h' :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
           h' = pApp "h"
-          m' :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+          m' :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
           m' = pApp "m"
-          x' :: C.Term V AtomicFunction
+          x' :: C.CTerm V AtomicFunction
           x' = var "x" in
       TestFormula
       { name = "convert to Chiou 3"
@@ -681,21 +681,21 @@ withKB (kbName, knowledge) conjecture =
       conj (x:xs) = x .&. conj xs
 
 proofs =
-    let dog = pApp "Dog" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
-        cat = pApp "Cat" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
-        owns = pApp "Owns" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
-        kills = pApp "Kills" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
-        animal = pApp "Animal" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
-        animalLover = pApp "AnimalLover" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
-        socrates = pApp "Socrates" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
-        human = pApp "Human" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
-        mortal = pApp "Mortal" :: [C.Term V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+    let dog = pApp "Dog" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        cat = pApp "Cat" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        owns = pApp "Owns" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        kills = pApp "Kills" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        animal = pApp "Animal" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        animalLover = pApp "AnimalLover" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        socrates = pApp "Socrates" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        human = pApp "Human" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        mortal = pApp "Mortal" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
 
-        jack :: C.Term V AtomicFunction
+        jack :: C.CTerm V AtomicFunction
         jack = fApp "Jack" []
-        tuna :: C.Term V AtomicFunction
+        tuna :: C.CTerm V AtomicFunction
         tuna = fApp "Tuna" []
-        curiosity :: C.Term V AtomicFunction
+        curiosity :: C.CTerm V AtomicFunction
         curiosity = fApp "Curiosity" [] in
 
     [ TestProof
