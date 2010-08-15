@@ -19,7 +19,7 @@ Library
                    Logic.FirstOrder
                    Logic.Implicative
                    Logic.Instances.Chiou
-                   Logic.Instances.Parameterized
+                   Logic.Instances.Native
                    Logic.Instances.PropLogic
                    Logic.Instances.TPTP
                    Logic.KnowledgeBase

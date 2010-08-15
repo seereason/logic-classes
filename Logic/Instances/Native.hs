@@ -1,11 +1,10 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
              GeneralizedNewtypeDeriving, MultiParamTypeClasses, TemplateHaskell, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-missing-signatures #-}
--- |An instance of the first order logic type class Formulae which is
--- parameterized on the atomic predicate and atomic function types.
--- It is patterned after Logic-TPTP, but without the wrappers and
--- with some constructors like :~&: omitted.
-module Logic.Instances.Parameterized
+-- |Data types which are instances of the Logic type class for use
+-- when you just want to use the classes and you don't have a
+-- particular representation you need to use.
+module Logic.Instances.Native
     ( Formula(..)
     , PTerm(..)
     ) where
