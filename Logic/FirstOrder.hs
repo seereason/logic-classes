@@ -79,7 +79,7 @@ class (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term term v f | term ->
 -- without them the univquant_free_vars function gives the error @No
 -- instance for (FirstOrderLogic Formula term V p f)@ because the
 -- function doesn't mention the Term type.
-class (Eq p, Boolean p, Data p,
+class (Ord v, Ord p, Eq p, Boolean p, Data p, Ord f,
        Pretty v, Pretty p, Pretty f, -- For debugging
        Logic formula,
        Term term v f) => FirstOrderLogic formula term v p f

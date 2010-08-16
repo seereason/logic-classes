@@ -59,7 +59,7 @@ instance Logic (NormalSentence v p f) where
     (.~.) x   = NFNot x
     _ .|. _ = error "NormalSentence |"
 
-instance (Logic (NormalSentence v p f), Logic.Term (NormalTerm v f) v f, Eq p, Boolean p, Data p, Pretty p, Pretty v, Pretty f) => FirstOrderLogic (NormalSentence v p f) (NormalTerm v f) v p f where
+instance (Logic (NormalSentence v p f), Logic.Term (NormalTerm v f) v f, Ord p, Boolean p, Data p, Ord f, Pretty p, Pretty v, Pretty f) => FirstOrderLogic (NormalSentence v p f) (NormalTerm v f) v p f where
     for_all _ _ = error "FirstOrderLogic NormalSentence"
     exists _ _ = error "FirstOrderLogic NormalSentence"
     foldF n _ _ i p f =

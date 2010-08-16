@@ -6,12 +6,15 @@ module Test.Chiou0 where
 import Control.Monad.Identity (runIdentity)
 import Control.Monad.Trans (MonadIO, liftIO)
 import Data.Map (fromList)
+import qualified Data.Set as S
 import Data.String (IsString(..))
-import Logic.Chiou.FirstOrderLogic (Sentence(..), CTerm, Quantifier(..), Connective(..))
-import qualified Logic.Chiou.FirstOrderLogic as C
-import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), NormalTerm(..){-, ConjunctiveNormalForm(..), distributeAndOverOr -})
+--import Logic.Chiou.FirstOrderLogic (Sentence(..), CTerm, Quantifier(..), Connective(..))
+--import qualified Logic.Chiou.FirstOrderLogic as C
+--import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), NormalTerm(..){-, ConjunctiveNormalForm(..), distributeAndOverOr -})
 import qualified Logic.FirstOrder as Logic
 import Logic.FirstOrder (FirstOrderLogic(..), Term(..), Skolem(..))
+import Logic.Implicative (Implicative(..))
+import Logic.Instances.Native
 import Logic.KnowledgeBase (loadKB, theoremKB {-, askKB, showKB-})
 import Logic.Logic (Logic(..), Boolean(..))
 import Logic.Monad (SkolemT, runSkolem, ProverT, runProver')
@@ -28,53 +31,59 @@ loadTest =
     TestCase (assertEqual "Chiuo0 - loadKB test" expected (runProver' (loadKB sentences)))
     where
       expected :: [(Maybe Bool, [ImplicativeNormalForm V Pr AtomicFunction])]
-      expected = [(Nothing,[INF [] [(pApp (Pr "Dog") [fApp (Skolem 1) []])],INF [] [(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])]]),
-                  (Nothing,[INF [(pApp (Pr "Dog") [var (V "y2")]),(pApp (Pr "Owns") [var (V "x"),var (V "y")])] [(pApp (Pr "AnimalLover") [var (V "x")])]]),
-                  (Nothing,[INF [(pApp (Pr "Animal") [var (V "y")]),(pApp (Pr "AnimalLover") [var (V "x")]),(pApp (Pr "Kills") [var (V "x"),var (V "y")])] []]),
-                  (Nothing,[INF [] [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []]),(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])]]),
-                  (Nothing,[INF [] [(pApp (Pr "Cat") [fApp (Fn "Tuna") []])]]),
-                  (Nothing,[INF [(pApp (Pr "Cat") [var (V "x")])] [(pApp (Pr "Animal") [var (V "x")])]])]
+      expected = [(Nothing,[inf' [] [(pApp (Pr "Dog") [fApp (Skolem 1) []])],
+                            inf' [] [(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])]]),
+                  (Nothing,[inf' [(pApp (Pr "Dog") [var (V "y2")]),(pApp (Pr "Owns") [var (V "x"),var (V "y")])] [(pApp (Pr "AnimalLover") [var (V "x")])]]),
+                  (Nothing,[inf' [(pApp (Pr "Animal") [var (V "y")]),(pApp (Pr "AnimalLover") [var (V "x")]),(pApp (Pr "Kills") [var (V "x"),var (V "y")])] []]),
+                  (Nothing,[inf' [] [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []]),(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])]]),
+                  (Nothing,[inf' [] [(pApp (Pr "Cat") [fApp (Fn "Tuna") []])]]),
+                  (Nothing,[inf' [(pApp (Pr "Cat") [var (V "x")])] [(pApp (Pr "Animal") [var (V "x")])]])]
 
 proofTest1 :: Test
-proofTest1 = TestCase (assertEqual "Chiuo0 - proof test 1" proof1 (runProver' (loadKB sentences >> theoremKB (Predicate "Kills" [C.Function (Fn "Jack") [], C.Function (Fn "Tuna") []]))))
+proofTest1 = TestCase (assertEqual "Chiuo0 - proof test 1" proof1 (runProver' (loadKB sentences >> theoremKB (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []]))))
 
-proof1 :: (Bool, SetOfSupport (ImplicativeNormalForm V Pr AtomicFunction) V (CTerm V AtomicFunction))
+inf' l1 l2 = makeINF (S.fromList l1) (S.fromList l2)
+
+proof1 :: (Bool, SetOfSupport (ImplicativeNormalForm V Pr AtomicFunction) V (PTerm V AtomicFunction))
 proof1 = ( False,
-           [(INF [(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])] [],fromList []),
-            (INF [] [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []])],fromList []),
-            (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "AnimalLover") [fApp (Fn "Curiosity") []])] [],fromList []),
-            (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y2")]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
-            (INF [(pApp (Pr "AnimalLover") [fApp (Fn "Curiosity") []]),(pApp (Pr "Cat") [fApp (Fn "Tuna") []])] [],fromList []),
-            (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
-            (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y2")]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
-            (INF [(pApp (Pr "AnimalLover") [fApp (Fn "Curiosity") []])] [],fromList []),
-            (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
-            (INF [(pApp (Pr "Dog") [var (V "y2")]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
-            (INF [(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList [])])
+           [(inf' [(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])] [],fromList []),
+            (inf' [] [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []])],fromList []),
+            (inf' [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "AnimalLover") [fApp (Fn "Curiosity") []])] [],fromList []),
+            (inf' [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y2")]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
+            (inf' [(pApp (Pr "AnimalLover") [fApp (Fn "Curiosity") []]),(pApp (Pr "Cat") [fApp (Fn "Tuna") []])] [],fromList []),
+            (inf' [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
+            (inf' [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y2")]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
+            (inf' [(pApp (Pr "AnimalLover") [fApp (Fn "Curiosity") []])] [],fromList []),
+            (inf' [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
+            (inf' [(pApp (Pr "Dog") [var (V "y2")]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
+            (inf' [(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList [])])
 
 proofTest2 :: Test
-proofTest2 = TestCase (assertEqual "Chiuo0 - proof test 2" proof2 (runProver' (loadKB sentences >> theoremKB (Predicate "Kills" [C.Function (Fn "Curiosity") [], C.Function (Fn "Tuna") []]))))
+proofTest2 = TestCase (assertEqual "Chiuo0 - proof test 2" proof2 (runProver' (loadKB sentences >> theoremKB conjecture)))
+    where
+      conjecture :: Formula V Pr AtomicFunction
+      conjecture = (pApp "Kills" [fApp "Curiosity" [], fApp (Fn "Tuna") []])
 
-proof2 :: (Bool, SetOfSupport (ImplicativeNormalForm V Pr AtomicFunction) V (CTerm V AtomicFunction))
-proof2 = (True,[(INF [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []])] [],fromList []),
-                (INF [] [(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])],fromList []),
-                (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "AnimalLover") [fApp (Fn "Jack") []])] [],fromList []),
-                (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y2")]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
-                (INF [(pApp (Pr "AnimalLover") [fApp (Fn "Jack") []]),(pApp (Pr "Cat") [fApp (Fn "Tuna") []])] [],fromList []),
-                (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
-                (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y2")])] [],fromList []),
-                (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y2")]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
-                (INF [(pApp (Pr "AnimalLover") [fApp (Fn "Jack") []])] [],fromList []),
-                (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []])] [],fromList []),
-                (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
-                (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y2")])] [],fromList []),
-                (INF [(pApp (Pr "Dog") [var (V "y2")]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
-                (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []])] [],fromList []),
-                (INF [(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
-                (INF [(pApp (Pr "Dog") [var (V "y2")])] [],fromList []),
-                (INF [] [],fromList [])])
+proof2 :: (Bool, SetOfSupport (ImplicativeNormalForm V Pr AtomicFunction) V (PTerm V AtomicFunction))
+proof2 = (True,[(inf' [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []])] [],fromList []),
+                (inf' [] [(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])],fromList []),
+                (inf' [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "AnimalLover") [fApp (Fn "Jack") []])] [],fromList []),
+                (inf' [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y2")]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
+                (inf' [(pApp (Pr "AnimalLover") [fApp (Fn "Jack") []]),(pApp (Pr "Cat") [fApp (Fn "Tuna") []])] [],fromList []),
+                (inf' [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
+                (inf' [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y2")])] [],fromList []),
+                (inf' [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y2")]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
+                (inf' [(pApp (Pr "AnimalLover") [fApp (Fn "Jack") []])] [],fromList []),
+                (inf' [(pApp (Pr "Animal") [fApp (Fn "Tuna") []])] [],fromList []),
+                (inf' [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
+                (inf' [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y2")])] [],fromList []),
+                (inf' [(pApp (Pr "Dog") [var (V "y2")]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
+                (inf' [(pApp (Pr "Cat") [fApp (Fn "Tuna") []])] [],fromList []),
+                (inf' [(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
+                (inf' [(pApp (Pr "Dog") [var (V "y2")])] [],fromList []),
+                (inf' [] [],fromList [])])
 
-testProof :: MonadIO m => String -> (Sentence V Pr AtomicFunction, Bool, [ImplicativeNormalForm V Pr AtomicFunction]) -> ProverT (ImplicativeNormalForm V Pr AtomicFunction) (SkolemT V (CTerm V AtomicFunction) m) ()
+testProof :: MonadIO m => String -> (Formula V Pr AtomicFunction, Bool, [ImplicativeNormalForm V Pr AtomicFunction]) -> ProverT (ImplicativeNormalForm V Pr AtomicFunction) (SkolemT V (PTerm V AtomicFunction) m) ()
 testProof label (question, expectedAnswer, expectedProof) =
     theoremKB question >>= \ (actualFlag, actualProof) ->
     let actual' = (actualFlag, map fst actualProof) in
@@ -83,20 +92,13 @@ testProof label (question, expectedAnswer, expectedProof) =
                 "\n Actual:\n  " ++ show actual')
     else liftIO (putStrLn (label ++ " ok"))
 
-loadCmd :: Monad m => ProverT (ImplicativeNormalForm V Pr AtomicFunction) (SkolemT V (CTerm V AtomicFunction) m) [(Maybe Bool, [ImplicativeNormalForm V Pr AtomicFunction])]
+loadCmd :: Monad m => ProverT (ImplicativeNormalForm V Pr AtomicFunction) (SkolemT V (PTerm V AtomicFunction) m) [(Maybe Bool, [ImplicativeNormalForm V Pr AtomicFunction])]
 loadCmd = loadKB sentences
 
-sentences :: [Sentence V Pr AtomicFunction]
-sentences = [Quantifier ExistsCh ["x"] (Connective (Predicate "Dog" [C.Variable "x"]) And (Predicate "Owns" [C.Function "Jack" [], C.Variable "x"])),
-             Quantifier ForAll ["x"] (Connective (Connective (Quantifier ExistsCh ["y"] (Predicate "Dog" [C.Variable "y"])) And
-                                                             (Predicate "Owns" [C.Variable "x", C.Variable "y"])) Imply
-                                                 (Predicate "AnimalLover" [C.Variable "x"])),
-
-             Quantifier ForAll ["x"] (Connective (Predicate "AnimalLover" [C.Variable "x"]) Imply
-                                                 (Quantifier ForAll ["y"] (Connective (Predicate "Animal" [C.Variable "y"]) Imply
-                                                                                      (Not (Predicate "Kills" [C.Variable "x", C.Variable "y"]))))),
-
-             Connective (Predicate "Kills" [C.Function "Jack" [], C.Function "Tuna" []]) Or
-                        (Predicate "Kills" [C.Function "Curiosity" [], C.Function "Tuna" []]),
-             Predicate "Cat" [C.Function "Tuna" []],
-             Quantifier ForAll ["x"] (Connective (Predicate "Cat" [C.Variable "x"]) Imply (Predicate "Animal" [C.Variable "x"]))]
+sentences :: [Formula V Pr AtomicFunction]
+sentences = [exists ["x"] ((pApp "Dog" [var "x"]) .&. (pApp "Owns" [fApp "Jack" [], var "x"])),
+             for_all ["x"] (((exists ["y"] (pApp "Dog" [var "y"])) .&. (pApp "Owns" [var "x", var "y"])) .=>. (pApp "AnimalLover" [var "x"])),
+             for_all ["x"] ((pApp "AnimalLover" [var "x"]) .=>. (for_all ["y"] ((pApp "Animal" [var "y"]) .=>. ((.~.) (pApp "Kills" [var "x", var "y"]))))),
+             (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []]) .|. (pApp "Kills" [fApp "Curiosity" [], fApp "Tuna" []]),
+             pApp "Cat" [fApp "Tuna" []],
+             for_all ["x"] ((pApp "Cat" [var "x"]) .=>. (pApp "Animal" [var "x"]))]

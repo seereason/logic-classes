@@ -40,7 +40,7 @@ data AtomicFunction
     | StringLit String
     | NumberLit Double
     | Skolem V
-    deriving (Show, Data, Typeable)
+    deriving (Eq, Ord, Show, Data, Typeable)
 
 -- |This is not a safe way to implement booleans.
 instance Logic.Boolean AtomicWord where

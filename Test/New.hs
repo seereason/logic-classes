@@ -7,7 +7,7 @@ import Data.Generics (Data, Typeable, listify)
 import qualified Data.Set as S
 import Logic.FirstOrder (FirstOrderLogic, convertFOF, fromSkolem)
 import Logic.Instances.Chiou ()
-import Logic.KnowledgeBase (loadKB, theoremKB)
+import Logic.KnowledgeBase (loadKB, theoremKB, getKB)
 import Logic.Logic (Logic(..))
 import Logic.Monad (runSkolem, runProver')
 import Logic.NormalForm (clausalNormalForm, prenexNormalForm, disjunctiveNormalForm, skolemNormalForm, negationNormalForm)

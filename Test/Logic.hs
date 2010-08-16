@@ -5,7 +5,7 @@ module Test.Logic (tests) where
 
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
-import qualified Logic.Instances.Parameterized as P
+import qualified Logic.Instances.Native as P
 import Logic.Logic (Logic(..), Boolean(..))
 import Logic.Monad (runSkolem)
 import Logic.NormalForm (disjunctiveNormalForm)

@@ -1,19 +1,23 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
              GeneralizedNewtypeDeriving, MultiParamTypeClasses, TemplateHaskell, UndecidableInstances #-}
-{-# OPTIONS -fno-warn-missing-signatures #-}
+{-# OPTIONS -fno-warn-missing-signatures -fno-warn-orphans #-}
 -- |Data types which are instances of the Logic type class for use
 -- when you just want to use the classes and you don't have a
 -- particular representation you need to use.
 module Logic.Instances.Native
     ( Formula(..)
     , PTerm(..)
+    , ImplicativeNormalForm(..)
     ) where
 
 import Data.Data (Data)
+import qualified Data.Set as S
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
-import Logic.FirstOrder (Term(..), FirstOrderLogic(..), Quant(..), InfixPred(..), Skolem(..), Pretty)
+import Logic.Clause (Literal(..))
+import Logic.FirstOrder (Term(..), FirstOrderLogic(..), Quant(..), InfixPred(..), Skolem(..), Pretty, showTerm)
+import Logic.Implicative (Implicative(..))
 import Logic.Logic (Logic(..), BinOp(..), Boolean(..))
 import Logic.Propositional (PropositionalLogic(..))
     
@@ -36,8 +40,39 @@ data PTerm v f
                                     -- Constants are encoded as
                                     -- nullary functions.  The result
                                     -- is another term.
-    deriving (Eq,Ord,Show,Read,Data,Typeable)
+    deriving (Eq,Ord,Read,Data,Typeable)
 
+instance (FirstOrderLogic (Formula v p f) (PTerm v f) v p f, Show v, Show p, Show f) => Show (PTerm v f) where
+    show = showTerm
+
+data ImplicativeNormalForm v p f =
+    INF (S.Set (Formula v p f)) (S.Set (Formula v p f))
+    deriving (Eq, Data, Typeable)
+
+instance (Ord v, Enum v, Data v, Pretty v,
+          Ord p, Boolean p, Data p, Pretty p,
+          Ord f, Skolem f, Data f, Pretty f) => Literal (Formula v p f) where
+    negate = (.~.)
+    negated = foldF (\ _ -> True)
+                    (\ _ _ _ -> False)
+                    (\ _ _ _ -> False)
+                    (\ _ _ _ -> False)
+                    (\ _ _ -> False)
+
+instance (Ord v, Enum v, Data v, Pretty v,
+          Ord p, Boolean p, Data p, Pretty p,
+          Ord f, Skolem f, Data f, Pretty f) => Implicative (ImplicativeNormalForm v p f) (Formula v p f) where
+    neg (INF lhs _) = lhs
+    pos (INF _ rhs) = rhs
+    makeINF = INF
+
+instance (FirstOrderLogic (Formula v p f) (PTerm v f) v p f, Show (Formula v p f)) => Show (ImplicativeNormalForm v p f) where
+    show x = "makeINF (" ++ show (neg x) ++ ") (" ++ show (pos x) ++ ")"
+{-
+             " (Data.Set.fromList [" ++ intercalate "," (map show (S.toList (neg x))) ++ ")" ++ 
+             " (Data.Set.fromList [" ++ intercalate "," (map show (S.toList (pos x))) ++ "])"
+-}
+    
 instance Logic (Formula v p f) where
     x .<=>. y = BinOp  x (:<=>:) y
     x .=>.  y = BinOp  x (:=>:)  y
@@ -45,7 +80,7 @@ instance Logic (Formula v p f) where
     x .&.   y = BinOp  x (:&:)   y
     (.~.) x   = (:~:) x
 
-instance (Logic (Formula v p f), Ord v, Enum v, Data v, Eq p, Boolean p, Data p, Eq f, Skolem f, Data f, Pretty v, Pretty p, Pretty f) =>
+instance (Logic (Formula v p f), Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f, Pretty v, Pretty p, Pretty f) =>
          PropositionalLogic (Formula v p f) (Formula v p f) where
     atomic (InfixPred t1 (:=:) t2) = t1 .=. t2
     atomic (InfixPred t1 (:!=:) t2) = t1 .!=. t2
@@ -69,7 +104,7 @@ instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term (PTerm v f) v f
     var = Var
     fApp x args = FunApp x args
 
-instance (PropositionalLogic (Formula v p f) (Formula v p f), Term (PTerm v f) v f, Ord v, Enum v, Data v, Eq p, Boolean p, Data p, Eq f, Skolem f, Data f, Pretty v, Pretty p, Pretty f) =>
+instance (PropositionalLogic (Formula v p f) (Formula v p f), Term (PTerm v f) v f, Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f, Pretty v, Pretty p, Pretty f) =>
           FirstOrderLogic (Formula v p f) (PTerm v f) v p f where
     for_all vars x = Quant All vars x
     exists vars x = Quant Exists vars x

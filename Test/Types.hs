@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, TypeSynonymInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, TypeSynonymInstances, UndecidableInstances #-}
 module Test.Types
     ( -- * Formula parameter types
       V(..)
@@ -18,19 +18,22 @@ import Data.Char (isDigit)
 import Data.Generics (Data, Typeable)
 import qualified Data.Set as S
 import Data.String (IsString(fromString))
-import Logic.Chiou.FirstOrderLogic (Sentence, CTerm)
-import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalTerm(..))
+--import Logic.Chiou.FirstOrderLogic (Sentence, CTerm)
+--import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalTerm(..))
 import Logic.FirstOrder (Skolem(..), Pretty(..), showForm)
-import qualified Logic.Instances.Parameterized as P
+import qualified Logic.Instances.Native as P
 import Logic.Logic (Boolean(..))
 import Logic.Monad (WithId)
 import Logic.Resolution (SetOfSupport)
 import Text.PrettyPrint ((<>), text)
 
-newtype V = V String deriving (Eq, Ord, Show, Data, Typeable)
+newtype V = V String deriving (Eq, Ord, Data, Typeable)
 
 instance IsString V where
     fromString = V
+
+instance Show V where
+    show (V s) = show s
 
 instance Pretty V where
     pretty (V s) = text s
@@ -66,7 +69,7 @@ instance Pretty Pr where
 data AtomicFunction
     = Fn String
     | Skolem Int
-    deriving (Eq, Ord, Show, Data, Typeable)
+    deriving (Eq, Ord, Data, Typeable)
 
 instance Skolem AtomicFunction where
     toSkolem = Skolem
@@ -75,6 +78,10 @@ instance Skolem AtomicFunction where
 
 instance IsString AtomicFunction where
     fromString = Fn
+
+instance Show AtomicFunction where
+    show (Fn s) = show s
+    show (Skolem n) = "fromSkolem " ++ show n
 
 instance Pretty AtomicFunction where
     pretty (Fn s) = text s
@@ -86,7 +93,7 @@ type ATerm = P.PTerm V AtomicFunction
 instance Boolean Formula where
     fromBool = undefined
 
-instance Show Formula where
+instance (Show V, Show Pr, Show AtomicFunction) => Show Formula where
     show = showForm
 
 data TestFormula
@@ -105,20 +112,20 @@ data Expected
     | SkolemNormalForm Formula
     | SkolemNumbers (S.Set Int)
     | FirstOrderFormula Formula
-    | ConvertToChiou (Sentence V Pr AtomicFunction)
-    | SatChiou (Maybe Bool, [ImplicativeNormalForm V Pr AtomicFunction])
+    | ConvertToChiou Formula
+    | SatChiou (Maybe Bool, [P.ImplicativeNormalForm V Pr AtomicFunction])
     | SatPropLogic Bool
     deriving (Data, Typeable)
 
 data TestProof
     = TestProof
       { proofName :: String
-      , proofKnowledge :: (String, [Sentence V Pr AtomicFunction])
-      , conjecture :: Sentence V Pr AtomicFunction
+      , proofKnowledge :: (String, [Formula])
+      , conjecture :: Formula
       , proofExpected :: [ProofExpected]
       } deriving (Data, Typeable)
 
 data ProofExpected
-    = ChiouResult (Bool, SetOfSupport (ImplicativeNormalForm V Pr AtomicFunction) V (CTerm V AtomicFunction))
-    | ChiouKB [WithId (ImplicativeNormalForm V Pr AtomicFunction)]
+    = ChiouResult (Bool, SetOfSupport (P.ImplicativeNormalForm V Pr AtomicFunction) V (P.PTerm V AtomicFunction))
+    | ChiouKB [WithId (P.ImplicativeNormalForm V Pr AtomicFunction)]
     deriving (Data, Typeable)

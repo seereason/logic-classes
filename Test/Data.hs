@@ -13,9 +13,11 @@ module Test.Data
 import Data.Map (fromList)
 import qualified Data.Set as S
 import qualified Logic.Chiou.FirstOrderLogic as C
-import Logic.Chiou.FirstOrderLogic (CTerm)
-import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), NormalTerm(..))
+--import Logic.Chiou.FirstOrderLogic (CTerm)
+--import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), NormalTerm(..))
 import Logic.FirstOrder (FirstOrderLogic(..), Term(..), Skolem(toSkolem), convertFOF)
+import Logic.Implicative (Implicative(..))
+import Logic.Instances.Native (ImplicativeNormalForm(..))
 import Logic.Logic (Logic(..), Boolean(..))
 import Logic.Monad (WithId(..))
 import Test.Types
@@ -171,11 +173,11 @@ formulas =
       }
     , let s :: [ATerm] -> Formula
           s = pApp "s"
-          s' :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+          --s' :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
           s' = pApp "s"
-          x' :: C.CTerm V AtomicFunction
+          --x' :: C.CTerm V AtomicFunction
           x' = var "x"
-          y' :: C.CTerm V AtomicFunction
+          --y' :: C.CTerm V AtomicFunction
           y' = var "y" in
       TestFormula
       { name = "convert to Chiou 2"
@@ -188,13 +190,13 @@ formulas =
           h = pApp "h"
           m :: [ATerm] -> Formula
           m = pApp "m"
-          s' :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+          --s' :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
           s' = pApp "s"
-          h' :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+          --h' :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
           h' = pApp "h"
-          m' :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+          --m' :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
           m' = pApp "m"
-          x' :: C.CTerm V AtomicFunction
+          --x' :: C.CTerm V AtomicFunction
           x' = var "x" in
       TestFormula
       { name = "convert to Chiou 3"
@@ -681,21 +683,21 @@ withKB (kbName, knowledge) conjecture =
       conj (x:xs) = x .&. conj xs
 
 proofs =
-    let dog = pApp "Dog" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
-        cat = pApp "Cat" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
-        owns = pApp "Owns" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
-        kills = pApp "Kills" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
-        animal = pApp "Animal" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
-        animalLover = pApp "AnimalLover" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
-        socrates = pApp "Socrates" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
-        human = pApp "Human" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
-        mortal = pApp "Mortal" :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+    let -- dog = pApp "Dog" -- :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        -- cat = pApp "Cat" -- :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        -- owns = pApp "Owns" -- :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        kills = pApp "Kills" -- :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        -- animal = pApp "Animal" -- :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        -- animalLover = pApp "AnimalLover" -- :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        socrates = pApp "Socrates" -- :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        -- human = pApp "Human" -- :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+        mortal = pApp "Mortal" -- :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
 
-        jack :: C.CTerm V AtomicFunction
+        -- jack :: C.CTerm V AtomicFunction
         jack = fApp "Jack" []
-        tuna :: C.CTerm V AtomicFunction
+        -- tuna :: C.CTerm V AtomicFunction
         tuna = fApp "Tuna" []
-        curiosity :: C.CTerm V AtomicFunction
+        -- curiosity :: C.CTerm V AtomicFunction
         curiosity = fApp "Curiosity" [] in
 
     [ TestProof
@@ -703,25 +705,25 @@ proofs =
       , proofKnowledge = (fst animalKB, map (convertFOF id id id . formula) (snd animalKB))
       , conjecture = kills [jack, tuna]
       , proofExpected = 
-          [ ChiouKB [WithId {wiItem = INF [] [(pApp (Pr "Dog") [fApp (Skolem 1) []])], wiIdent = 1},
-                     WithId {wiItem = INF [] [(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])], wiIdent = 1},
-                     WithId {wiItem = INF [(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [var (V "x"),var (V "y")])] [(pApp (Pr "AnimalLover") [var (V "x")])], wiIdent = 2},
-                     WithId {wiItem = INF [(pApp (Pr "Animal") [var (V "y")]),(pApp (Pr "AnimalLover") [var (V "x")]),(pApp (Pr "Kills") [var (V "x"),var (V "y")])] [], wiIdent = 3},
-                     WithId {wiItem = INF [] [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []]),(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])], wiIdent = 4},
-                     WithId {wiItem = INF [] [(pApp (Pr "Cat") [fApp (Fn "Tuna") []])], wiIdent = 5},
-                     WithId {wiItem = INF [(pApp (Pr "Cat") [var (V "x")])] [(pApp (Pr "Animal") [var (V "x")])], wiIdent = 6}]
+          [ ChiouKB [WithId {wiItem = makeINF (S.fromList []) (S.fromList [(pApp (Pr "Dog") [fApp (Skolem 1) []])]), wiIdent = 1},
+                     WithId {wiItem = makeINF (S.fromList []) (S.fromList [(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])]), wiIdent = 1},
+                     WithId {wiItem = makeINF (S.fromList [(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [var (V "x"),var (V "y")])]) (S.fromList [(pApp (Pr "AnimalLover") [var (V "x")])]), wiIdent = 2},
+                     WithId {wiItem = makeINF (S.fromList [(pApp (Pr "Animal") [var (V "y")]),(pApp (Pr "AnimalLover") [var (V "x")]),(pApp (Pr "Kills") [var (V "x"),var (V "y")])]) (S.fromList []), wiIdent = 3},
+                     WithId {wiItem = makeINF (S.fromList []) (S.fromList [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []]),(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])]), wiIdent = 4},
+                     WithId {wiItem = makeINF (S.fromList []) (S.fromList [(pApp (Pr "Cat") [fApp (Fn "Tuna") []])]), wiIdent = 5},
+                     WithId {wiItem = makeINF (S.fromList [(pApp (Pr "Cat") [var (V "x")])]) (S.fromList [(pApp (Pr "Animal") [var (V "x")])]), wiIdent = 6}]
           , ChiouResult (False,
-                         [(INF [(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])] [],fromList []),
-                          (INF [] [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []])],fromList []),
-                          (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "AnimalLover") [fApp (Fn "Curiosity") []])] [],fromList []),
-                          (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
-                          (INF [(pApp (Pr "AnimalLover") [fApp (Fn "Curiosity") []]),(pApp (Pr "Cat") [fApp (Fn "Tuna") []])] [],fromList []),
-                          (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],fApp (Skolem 1) []])] [],fromList []),
-                          (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
-                          (INF [(pApp (Pr "AnimalLover") [fApp (Fn "Curiosity") []])] [],fromList []),
-                          (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],fApp (Skolem 1) []])] [],fromList []),
-                          (INF [(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
-                          (INF [(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],fApp (Skolem 1) []])] [],fromList [])])
+                         [(inf' [(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])] [],fromList []),
+                          (inf' [] [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []])],fromList []),
+                          (inf' [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "AnimalLover") [fApp (Fn "Curiosity") []])] [],fromList []),
+                          (inf' [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
+                          (inf' [(pApp (Pr "AnimalLover") [fApp (Fn "Curiosity") []]),(pApp (Pr "Cat") [fApp (Fn "Tuna") []])] [],fromList []),
+                          (inf' [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],fApp (Skolem 1) []])] [],fromList []),
+                          (inf' [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
+                          (inf' [(pApp (Pr "AnimalLover") [fApp (Fn "Curiosity") []])] [],fromList []),
+                          (inf' [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],fApp (Skolem 1) []])] [],fromList []),
+                          (inf' [(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],var (V "y")])] [],fromList []),
+                          (inf' [(pApp (Pr "Owns") [fApp (Fn "Curiosity") [],fApp (Skolem 1) []])] [],fromList [])])
           ]
       }
     , TestProof
@@ -729,31 +731,31 @@ proofs =
       , proofKnowledge = (fst animalKB, map (convertFOF id id id . formula) (snd animalKB))
       , conjecture = kills [curiosity, tuna]
       , proofExpected =
-          [ ChiouKB [WithId {wiItem = INF [] [(pApp (Pr "Dog") [fApp (Skolem 1) []])], wiIdent = 1},
-                     WithId {wiItem = INF [] [(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])], wiIdent = 1},
-                     WithId {wiItem = INF [(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [var (V "x"),var (V "y")])] [(pApp (Pr "AnimalLover") [var (V "x")])], wiIdent = 2},
-                     WithId {wiItem = INF [(pApp (Pr "Animal") [var (V "y")]),(pApp (Pr "AnimalLover") [var (V "x")]),(pApp (Pr "Kills") [var (V "x"),var (V "y")])] [], wiIdent = 3},
-                     WithId {wiItem = INF [] [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []]),(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])], wiIdent = 4},
-                     WithId {wiItem = INF [] [(pApp (Pr "Cat") [fApp (Fn "Tuna") []])], wiIdent = 5},
-                     WithId {wiItem = INF [(pApp (Pr "Cat") [var (V "x")])] [(pApp (Pr "Animal") [var (V "x")])], wiIdent = 6}]
+          [ ChiouKB [WithId {wiItem = inf' [] [(pApp (Pr "Dog") [fApp (Skolem 1) []])], wiIdent = 1},
+                     WithId {wiItem = inf' [] [(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])], wiIdent = 1},
+                     WithId {wiItem = inf' [(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [var (V "x"),var (V "y")])] [(pApp (Pr "AnimalLover") [var (V "x")])], wiIdent = 2},
+                     WithId {wiItem = inf' [(pApp (Pr "Animal") [var (V "y")]),(pApp (Pr "AnimalLover") [var (V "x")]),(pApp (Pr "Kills") [var (V "x"),var (V "y")])] [], wiIdent = 3},
+                     WithId {wiItem = inf' [] [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []]),(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])], wiIdent = 4},
+                     WithId {wiItem = inf' [] [(pApp (Pr "Cat") [fApp (Fn "Tuna") []])], wiIdent = 5},
+                     WithId {wiItem = inf' [(pApp (Pr "Cat") [var (V "x")])] [(pApp (Pr "Animal") [var (V "x")])], wiIdent = 6}]
           , ChiouResult (True,
-                         [(INF [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []])] [],fromList []),
-                          (INF [] [(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])],fromList []),
-                          (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "AnimalLover") [fApp (Fn "Jack") []])] [],fromList []),
-                          (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
-                          (INF [(pApp (Pr "AnimalLover") [fApp (Fn "Jack") []]),(pApp (Pr "Cat") [fApp (Fn "Tuna") []])] [],fromList []),
-                          (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])] [],fromList []),
-                          (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [fApp (Skolem 1) []])] [],fromList []),
-                          (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
-                          (INF [(pApp (Pr "AnimalLover") [fApp (Fn "Jack") []])] [],fromList []),
-                          (INF [(pApp (Pr "Animal") [fApp (Fn "Tuna") []])] [],fromList []),
-                          (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])] [],fromList []),
-                          (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [fApp (Skolem 1) []])] [],fromList []),
-                          (INF [(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
-                          (INF [(pApp (Pr "Cat") [fApp (Fn "Tuna") []])] [],fromList []),
-                          (INF [(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])] [],fromList []),
-                          (INF [(pApp (Pr "Dog") [fApp (Skolem 1) []])] [],fromList []),
-                          (INF [] [],fromList [])])
+                         [(inf' [(pApp (Pr "Kills") [fApp (Fn "Curiosity") [],fApp (Fn "Tuna") []])] [],fromList []),
+                          (inf' [] [(pApp (Pr "Kills") [fApp (Fn "Jack") [],fApp (Fn "Tuna") []])],fromList []),
+                          (inf' [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "AnimalLover") [fApp (Fn "Jack") []])] [],fromList []),
+                          (inf' [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
+                          (inf' [(pApp (Pr "AnimalLover") [fApp (Fn "Jack") []]),(pApp (Pr "Cat") [fApp (Fn "Tuna") []])] [],fromList []),
+                          (inf' [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])] [],fromList []),
+                          (inf' [(pApp (Pr "Animal") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [fApp (Skolem 1) []])] [],fromList []),
+                          (inf' [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
+                          (inf' [(pApp (Pr "AnimalLover") [fApp (Fn "Jack") []])] [],fromList []),
+                          (inf' [(pApp (Pr "Animal") [fApp (Fn "Tuna") []])] [],fromList []),
+                          (inf' [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])] [],fromList []),
+                          (inf' [(pApp (Pr "Cat") [fApp (Fn "Tuna") []]),(pApp (Pr "Dog") [fApp (Skolem 1) []])] [],fromList []),
+                          (inf' [(pApp (Pr "Dog") [var (V "y")]),(pApp (Pr "Owns") [fApp (Fn "Jack") [],var (V "y")])] [],fromList []),
+                          (inf' [(pApp (Pr "Cat") [fApp (Fn "Tuna") []])] [],fromList []),
+                          (inf' [(pApp (Pr "Owns") [fApp (Fn "Jack") [],fApp (Skolem 1) []])] [],fromList []),
+                          (inf' [(pApp (Pr "Dog") [fApp (Skolem 1) []])] [],fromList []),
+                          (inf' [] [],fromList [])])
           ]
       }
 {-
@@ -773,15 +775,15 @@ proofs =
       , proofKnowledge = (fst socratesKB, map (convertFOF id id id . formula) (snd socratesKB))
       , conjecture = for_all ["x"] (socrates [x] .=>. mortal [x])
       , proofExpected = 
-         [ ChiouKB [WithId {wiItem = INF [(pApp (Pr "Human") [var (V "x")])] [(pApp (Pr "Mortal") [var (V "x")])], wiIdent = 1},
-                    WithId {wiItem = INF [(pApp (Pr "Socrates") [var (V "x")])] [(pApp (Pr "Human") [var (V "x")])], wiIdent = 2}]
+         [ ChiouKB [WithId {wiItem = inf' [(pApp (Pr "Human") [var (V "x")])] [(pApp (Pr "Mortal") [var (V "x")])], wiIdent = 1},
+                    WithId {wiItem = inf' [(pApp (Pr "Socrates") [var (V "x")])] [(pApp (Pr "Human") [var (V "x")])], wiIdent = 2}]
          , ChiouResult (True,
-                        [(INF [] [(pApp (Pr "Socrates") [fApp (Skolem 1) []])],fromList []),
-                         (INF [(pApp (Pr "Mortal") [fApp (Skolem 1) []])] [],fromList []),
-                         (INF [] [(pApp (Pr "Human") [fApp (Skolem 1) []])],fromList []),
-                         (INF [(pApp (Pr "Human") [fApp (Skolem 1) []])] [],fromList []),
-                         (INF [] [(pApp (Pr "Mortal") [fApp (Skolem 1) []])],fromList []),
-                         (INF [] [],fromList [])])]
+                        [(inf' [] [(pApp (Pr "Socrates") [fApp (Skolem 1) []])],fromList []),
+                         (inf' [(pApp (Pr "Mortal") [fApp (Skolem 1) []])] [],fromList []),
+                         (inf' [] [(pApp (Pr "Human") [fApp (Skolem 1) []])],fromList []),
+                         (inf' [(pApp (Pr "Human") [fApp (Skolem 1) []])] [],fromList []),
+                         (inf' [] [(pApp (Pr "Mortal") [fApp (Skolem 1) []])],fromList []),
+                         (inf' [] [],fromList [])])]
       }
     , let x = var "x" in
       TestProof
@@ -789,10 +791,10 @@ proofs =
       , proofKnowledge = (fst socratesKB, map (convertFOF id id id . formula) (snd socratesKB))
       , conjecture = (.~.) (for_all ["x"] (socrates [x] .=>. mortal [x]))
       , proofExpected = 
-         [ ChiouKB [WithId {wiItem = INF [(pApp (Pr "Human") [var (V "x")])] [(pApp (Pr "Mortal") [var (V "x")])], wiIdent = 1},
-                    WithId {wiItem = INF [(pApp (Pr "Socrates") [var (V "x")])] [(pApp (Pr "Human") [var (V "x")])], wiIdent = 2}]
+         [ ChiouKB [WithId {wiItem = inf' [(pApp (Pr "Human") [var (V "x")])] [(pApp (Pr "Mortal") [var (V "x")])], wiIdent = 1},
+                    WithId {wiItem = inf' [(pApp (Pr "Socrates") [var (V "x")])] [(pApp (Pr "Human") [var (V "x")])], wiIdent = 2}]
          , ChiouResult (False
-                       ,[(INF [(pApp (Pr "Socrates") [var (V "x")])] [(pApp (Pr "Mortal") [var (V "x")])],fromList [(V "x",var (V "x"))])])]
+                       ,[(inf' [(pApp (Pr "Socrates") [var (V "x")])] [(pApp (Pr "Mortal") [var (V "x")])],fromList [(V "x",var (V "x"))])])]
       }
     , let x = var "x" in
       TestProof
@@ -800,12 +802,15 @@ proofs =
       , proofKnowledge = (fst socratesKB, map (convertFOF id id id . formula) (snd socratesKB))
       , conjecture = (.~.) (exists ["x"] (socrates [x]) .&. for_all ["x"] (socrates [x] .=>. mortal [x]))
       , proofExpected = 
-         [ ChiouKB [WithId {wiItem = INF [(pApp (Pr "Human") [var (V "x")])] [(pApp (Pr "Mortal") [var (V "x")])], wiIdent = 1},
-                    WithId {wiItem = INF [(pApp (Pr "Socrates") [var (V "x")])] [(pApp (Pr "Human") [var (V "x")])], wiIdent = 2}]
+         [ ChiouKB [WithId {wiItem = inf' [(pApp (Pr "Human") [var (V "x")])] [(pApp (Pr "Mortal") [var (V "x")])], wiIdent = 1},
+                    WithId {wiItem = inf' [(pApp (Pr "Socrates") [var (V "x")])] [(pApp (Pr "Human") [var (V "x")])], wiIdent = 2}]
          , ChiouResult (False,
-                        [(INF [] [(pApp (Pr "Socrates") [fApp (Skolem 1) []])],fromList []),
-                         (INF [(pApp (Pr "Socrates") [var (V "x2")])] [(pApp (Pr "Mortal") [var (V "x2")])],fromList [(V "x2",var (V "x2"))]),
-                         (INF [] [(pApp (Pr "Human") [fApp (Skolem 1) []])],fromList []),
-                         (INF [] [(pApp (Pr "Mortal") [fApp (Skolem 1) []])],fromList [(V "x2",var (V "x2"))])])]
+                        [(inf' [] [(pApp (Pr "Socrates") [fApp (Skolem 1) []])],fromList []),
+                         (inf' [(pApp (Pr "Socrates") [var (V "x2")])] [(pApp (Pr "Mortal") [var (V "x2")])],fromList [(V "x2",var (V "x2"))]),
+                         (inf' [] [(pApp (Pr "Human") [fApp (Skolem 1) []])],fromList []),
+                         (inf' [] [(pApp (Pr "Mortal") [fApp (Skolem 1) []])],fromList [(V "x2",var (V "x2"))])])]
       }
     ]
+
+inf' :: [Formula] -> [Formula] -> ImplicativeNormalForm V Pr AtomicFunction
+inf' l1 l2 = makeINF (S.fromList l1) (S.fromList l2)
