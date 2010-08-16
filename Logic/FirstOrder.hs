@@ -31,6 +31,7 @@ module Logic.FirstOrder
     , toPropositional
     , Pretty(..)
     , prettyForm
+    , prettyTerm
     , disj
     , conj
     ) where
@@ -207,7 +208,7 @@ prettyForm n formula =
       termOp (:!=:) = text "!="
 
 prettyTerm :: forall v f term. (Pretty f, Pretty v, Term term v f) => term -> Doc
-prettyTerm t = foldT (pretty :: v -> Doc) (\ fn _ -> (pretty :: f -> Doc) fn) t
+prettyTerm t = foldT (pretty :: v -> Doc) (\ fn ts -> (pretty :: f -> Doc) fn <> brackets (hcat (intersperse (text ",") (map prettyTerm ts)))) t
 
 -- |The 'Quant' and 'InfixPred' types, like the BinOp type in
 -- 'Logic.Propositional', could be additional parameters to the type
