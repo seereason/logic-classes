@@ -6,6 +6,7 @@ import Control.Monad.Identity (Identity(..))
 import Codec.TPTP
 import Data.Char (isDigit, ord, chr)
 import Data.Generics (Data, Typeable)
+import Data.String (IsString(..))
 import qualified Logic.FirstOrder as Logic
 import qualified Logic.Logic as Logic
 import qualified Logic.Propositional as Logic
@@ -41,6 +42,14 @@ data AtomicFunction
     | NumberLit Double
     | Skolem V
     deriving (Eq, Ord, Show, Data, Typeable)
+
+instance IsString AtomicFunction where
+    fromString = Atom . AtomicWord
+
+instance Logic.Skolem AtomicFunction where
+    toSkolem = Skolem . V . ("sK" ++) . show
+    fromSkolem (Skolem (V s)) = Just (read (drop 2 s) :: Int)
+    fromSkolem _ = Nothing
 
 -- |This is not a safe way to implement booleans.
 instance Logic.Boolean AtomicWord where
