@@ -1,19 +1,34 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
              RankNTypes, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wall -Werror -fno-warn-orphans -fno-warn-missing-signatures #-}
-module Logic.Instances.Chiou () where
+module Logic.Instances.Chiou
+    ( Sentence(..)
+    , CTerm(..)
+    , Connective(..)
+    , Quantifier(..)
+    , ConjunctiveNormalForm(..)
+    , ImplicativeNormalForm(..)
+    , NormalSentence(..)
+    , NormalTerm(..)
+    , toSentence
+    , fromSentence
+    ) where
 
-import Data.Char (ord, isDigit, chr)
-import Data.Generics (Data)
+import Data.Generics (Data, Typeable)
+import qualified Data.Set as S
 import Data.String (IsString(..))
-import Logic.Chiou.FirstOrderLogic
+import Logic.Clause (Literal(..))
+import Logic.FirstOrder (FirstOrderLogic(..), InfixPred(..), Pretty, Term(..))
+import qualified Logic.FirstOrder as Logic
+import Logic.Implicative (Implicative(..))
 import Logic.Logic (Logic(..), BinOp(..), Boolean(..))
 import Logic.Propositional (PropositionalLogic(..))
-import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), InfixPred(..), Quant(..), Pretty, showForm, showTerm)
-import qualified Logic.FirstOrder as Logic
+import Logic.FirstOrder (Skolem(..), Quant(..), showForm, showTerm)
+
 
 -- |This enum instance is used to generate a series of new variable
 -- names.
+{-
 instance Enum String where
     succ v =
         toEnum (if n < cnt then n + 1 else if n == cnt then ord pref + cnt else n + cnt)
@@ -31,6 +46,32 @@ mn = 'x'
 pref = 'x'
 mx = 'z'
 cnt = ord mx - ord mn + 1
+-}
+
+data Sentence v p f
+    = Connective (Sentence v p f) Connective (Sentence v p f)
+    | Quantifier Quantifier [v] (Sentence v p f)
+    | Not (Sentence v p f)
+    | Predicate p [CTerm v f]
+    | Equal (CTerm v f) (CTerm v f)
+    deriving (Eq, Ord, Data, Typeable)
+
+data CTerm v f
+    = Function f [CTerm v f]
+    | Variable v
+    deriving (Eq, Ord, Data, Typeable)
+
+data Connective
+    = Imply
+    | Equiv
+    | And
+    | Or
+    deriving (Eq, Ord, Show, Data, Typeable)
+
+data Quantifier
+    = ForAll
+    | ExistsCh
+    deriving (Eq, Ord, Show, Data, Typeable)
 
 instance Logic (Sentence v p f) where
     x .<=>. y = Connective x Equiv y
@@ -57,8 +98,6 @@ instance (Logic (Sentence v p f), Ord v, Enum v, Data v, Ord p, Boolean p, Data 
           Predicate p ts -> a (Predicate p ts)
           Equal t1 t2 -> a (Equal t1 t2)
 
--- |We need a type to represent the atomic function, which is any term
--- which is not a variable.
 data AtomicFunction
     = AtomicFunction String
     -- This is redundant with the SkolemFunction and SkolemConstant
@@ -132,21 +171,91 @@ instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Logic.Term (CTerm v 
     var = Variable
     fApp f ts = Function f ts
 
-{-
-cnf2 :: FirstOrderLogic formula term v p f =>
-        (v -> Variable) -> (p -> Predicate) -> (f -> AtomicFunction) -> formula -> formula
-cnf2 cv cp cf f = f''
-    where
-      -- Convert from Sentence
-      f'' :: FirstOrderLogic formula term v p f => formula
-      f'' = convertFOF cv' cp' cf' f'
-      -- Convert to Sentence
-      f' :: Sentence
-      f' = toCNFSentence (convertFOF cv cp cf f)
--}
-{-
-      cv' = undefined -- fromString
-      cp' = undefined -- fromString
-      -- cf' :: String -> AtomicFunction
-      cf' = undefined -- (AtomicFunction s) = s
--}
+data ConjunctiveNormalForm v p f =
+    CNF [Sentence v p f]
+    deriving (Eq)
+
+data ImplicativeNormalForm v p f
+    = INF [Sentence v p f] [Sentence v p f]
+    deriving (Eq, Data, Typeable)
+
+data NormalSentence v p f
+    = NFNot (NormalSentence v p f)
+    | NFPredicate p [NormalTerm v f]
+    | NFEqual (NormalTerm v f) (NormalTerm v f)
+    deriving (Eq, Ord, Show, Data, Typeable)
+
+-- We need a distinct type here because of the functional dependencies
+-- in class FirstOrderLogic.
+data NormalTerm v f
+    = NormalFunction f [NormalTerm v f]
+    | NormalVariable v
+    deriving (Eq, Ord, Show, Data, Typeable)
+
+instance (Ord v, Ord p, Ord f) => Literal (Sentence v p f) where
+    negate = Not
+    negated (Not x) = not (negated x)
+    negated _ = False
+
+instance (FirstOrderLogic (Sentence v p f) (CTerm v f) v p f, Enum v, Ord p, Ord f) => Implicative (ImplicativeNormalForm v p f) (Sentence v p f) where
+    neg (INF x _) = S.fromList x
+    pos (INF _ x) = S.fromList x
+    makeINF lhs rhs = INF (S.toList lhs) (S.toList rhs)
+
+instance Logic (NormalSentence v p f) where
+    (.~.) x   = NFNot x
+    _ .|. _ = error "NormalSentence |"
+
+instance (Logic (NormalSentence v p f), Logic.Term (NormalTerm v f) v f, Ord p, Boolean p, Data p, Ord f, Pretty p, Pretty v, Pretty f) => FirstOrderLogic (NormalSentence v p f) (NormalTerm v f) v p f where
+    for_all _ _ = error "FirstOrderLogic NormalSentence"
+    exists _ _ = error "FirstOrderLogic NormalSentence"
+    foldF n _ _ i p f =
+        case f of
+          NFNot x -> n x
+          NFEqual t1 t2 -> i t1 (:=:) t2
+          NFPredicate pr ts -> p pr ts
+    zipF n _ _ i p f1 f2 =
+        case (f1, f2) of
+          (NFNot f1', NFNot f2') -> n f1' f2'
+          (NFEqual f1l f1r, NFEqual f2l f2r) -> i f1l (:=:) f1r f2l (:=:) f2r
+          (NFPredicate p1 ts1, NFPredicate p2 ts2) -> p p1 ts1 p2 ts2
+          _ -> Nothing
+    pApp p args = NFPredicate p args
+    x .=. y = NFEqual x y
+    x .!=. y = NFNot (NFEqual x y)
+
+instance (Ord v, Enum v, Data v, Eq f, Logic.Skolem f, Data f) => Logic.Term (NormalTerm v f) v f where
+    var = NormalVariable
+    fApp = NormalFunction
+    foldT v f t =
+            case t of
+              NormalVariable x -> v x
+              NormalFunction x ts -> f x ts
+    zipT v fn t1 t2 =
+        case (t1, t2) of
+          (NormalVariable x1, NormalVariable x2) -> v x1 x2
+          (NormalFunction f1 ts1, NormalFunction f2 ts2) -> fn f1 ts1 f2 ts2
+          _ -> Nothing
+
+toSentence :: FirstOrderLogic (Sentence v p f) (CTerm v f) v p f => NormalSentence v p f -> Sentence v p f
+toSentence (NFNot s) = (.~.) (toSentence s)
+toSentence (NFEqual t1 t2) = toTerm t1 .=. toTerm t2
+toSentence (NFPredicate p ts) = pApp p (map toTerm ts)
+
+toTerm :: (Ord v, Enum v, Data v, Eq f, Logic.Skolem f, Data f) => NormalTerm v f -> CTerm v f
+toTerm (NormalFunction f ts) = Logic.fApp f (map toTerm ts)
+toTerm (NormalVariable v) = Logic.var v
+
+fromSentence :: FirstOrderLogic (Sentence v p f) (CTerm v f) v p f => Sentence v p f -> NormalSentence v p f
+fromSentence = foldF (NFNot . fromSentence)
+                 (\ _ _ _ -> error "fromSentence 1")
+                 (\ _ _ _ -> error "fromSentence 2")
+                 (\ t1 op t2 -> case op of
+                                  (:=:) -> NFEqual (fromTerm t1) (fromTerm t2)
+                                  _ -> error "fromSentence 3")
+                 (\ p ts -> NFPredicate p (map fromTerm ts))
+
+
+fromTerm :: CTerm v f -> NormalTerm v f
+fromTerm (Function f ts) = NormalFunction f (map fromTerm ts)
+fromTerm (Variable v) = NormalVariable v

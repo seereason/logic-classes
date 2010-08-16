@@ -12,9 +12,7 @@ module Test.Data
 
 import Data.Map (fromList)
 import qualified Data.Set as S
-import qualified Logic.Chiou.FirstOrderLogic as C
---import Logic.Chiou.FirstOrderLogic (CTerm)
---import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalSentence(..), NormalTerm(..))
+import qualified Logic.Instances.Chiou as C
 import Logic.FirstOrder (FirstOrderLogic(..), Term(..), Skolem(toSkolem), convertFOF)
 import Logic.Implicative (Implicative(..))
 import Logic.Instances.Native (ImplicativeNormalForm(..))

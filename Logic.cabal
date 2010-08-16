@@ -14,9 +14,7 @@ Cabal-version:    >= 1.2
 
 Library
  GHC-options: -threaded -Wall -Werror -O2
- Exposed-Modules:  Logic.Chiou.FirstOrderLogic
-                   Logic.Chiou.NormalForm
-                   Logic.FirstOrder
+ Exposed-Modules:  Logic.FirstOrder
                    Logic.Implicative
                    Logic.Instances.Chiou
                    Logic.Instances.Native

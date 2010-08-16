@@ -68,10 +68,6 @@ instance (Ord v, Enum v, Data v, Pretty v,
 
 instance (FirstOrderLogic (Formula v p f) (PTerm v f) v p f, Show (Formula v p f)) => Show (ImplicativeNormalForm v p f) where
     show x = "makeINF (" ++ show (neg x) ++ ") (" ++ show (pos x) ++ ")"
-{-
-             " (Data.Set.fromList [" ++ intercalate "," (map show (S.toList (neg x))) ++ ")" ++ 
-             " (Data.Set.fromList [" ++ intercalate "," (map show (S.toList (pos x))) ++ "])"
--}
     
 instance Logic (Formula v p f) where
     x .<=>. y = BinOp  x (:<=>:) y
