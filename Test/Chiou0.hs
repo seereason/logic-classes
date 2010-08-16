@@ -17,7 +17,7 @@ import Logic.Implicative (Implicative(..))
 import Logic.Instances.Native
 import Logic.KnowledgeBase (loadKB, theoremKB {-, askKB, showKB-})
 import Logic.Logic (Logic(..), Boolean(..))
-import Logic.Monad (SkolemT, runSkolem, ProverT, runProver')
+import Logic.Monad (NormalT, runNormal, ProverT, runProver')
 import Logic.NormalForm (disjunctiveNormalForm)
 import Logic.Resolution (SetOfSupport)
 import Test.HUnit
@@ -84,7 +84,7 @@ proof2 = (True,
            (makeINF (S.fromList [(pApp (Pr "Dog") [fApp (toSkolem 1) []])]) (S.fromList []),fromList []),
            (makeINF (S.fromList []) (S.fromList []),fromList [])])
 
-testProof :: MonadIO m => String -> (Formula V Pr AtomicFunction, Bool, [ImplicativeNormalForm V Pr AtomicFunction]) -> ProverT (ImplicativeNormalForm V Pr AtomicFunction) (SkolemT V (PTerm V AtomicFunction) m) ()
+testProof :: MonadIO m => String -> (Formula V Pr AtomicFunction, Bool, [ImplicativeNormalForm V Pr AtomicFunction]) -> ProverT (ImplicativeNormalForm V Pr AtomicFunction) (NormalT V (PTerm V AtomicFunction) m) ()
 testProof label (question, expectedAnswer, expectedProof) =
     theoremKB question >>= \ (actualFlag, actualProof) ->
     let actual' = (actualFlag, map fst actualProof) in
@@ -93,7 +93,7 @@ testProof label (question, expectedAnswer, expectedProof) =
                 "\n Actual:\n  " ++ show actual')
     else liftIO (putStrLn (label ++ " ok"))
 
-loadCmd :: Monad m => ProverT (ImplicativeNormalForm V Pr AtomicFunction) (SkolemT V (PTerm V AtomicFunction) m) [(Maybe Bool, [ImplicativeNormalForm V Pr AtomicFunction])]
+loadCmd :: Monad m => ProverT (ImplicativeNormalForm V Pr AtomicFunction) (NormalT V (PTerm V AtomicFunction) m) [(Maybe Bool, [ImplicativeNormalForm V Pr AtomicFunction])]
 loadCmd = loadKB sentences
 
 sentences :: [Formula V Pr AtomicFunction]

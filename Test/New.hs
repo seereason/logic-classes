@@ -9,7 +9,7 @@ import Logic.FirstOrder (FirstOrderLogic, convertFOF, fromSkolem)
 import Logic.Instances.Chiou ()
 import Logic.KnowledgeBase (loadKB, theoremKB, getKB)
 import Logic.Logic (Logic(..))
-import Logic.Monad (runSkolem, runProver')
+import Logic.Monad (runNormal, runProver')
 import Logic.NormalForm (clausalNormalForm, prenexNormalForm, disjunctiveNormalForm, skolemNormalForm, negationNormalForm)
 import Logic.Satisfiable (satisfiable) 
 --import PropLogic (PropForm(..), TruthTable, truthTable)
@@ -53,23 +53,23 @@ skolemNumber f = maybe [] (: []) (fromSkolem f)
 doTest f (FirstOrderFormula f') =
     [TestCase (assertEqual (name f ++ " original formula") f' (formula f))]
 doTest f (ClausalNormalForm fss) =
-    [TestCase (assertEqual (name f ++ " clausal normal form") fss (runSkolem (clausalNormalForm (formula f))))]
+    [TestCase (assertEqual (name f ++ " clausal normal form") fss (runNormal (clausalNormalForm (formula f))))]
 doTest f (PrenexNormalForm f') =
-    [TestCase (assertEqual (name f ++ " prenex normal form") f' (prenexNormalForm (formula f)))]
+    [TestCase (assertEqual (name f ++ " prenex normal form") f' (runNormal (prenexNormalForm (formula f))))]
 doTest f (DisjunctiveNormalForm f') =
-    [TestCase (assertEqual (name f ++ " disjunctive normal form") f' (disjunctiveNormalForm (formula f)))]
+    [TestCase (assertEqual (name f ++ " disjunctive normal form") f' (runNormal (disjunctiveNormalForm (formula f))))]
 doTest f (NegationNormalForm f') =
-    [TestCase (assertEqual (name f ++ " negation normal form") f' (negationNormalForm (formula f)))]
+    [TestCase (assertEqual (name f ++ " negation normal form") f' (runNormal (negationNormalForm (formula f))))]
 doTest f (SkolemNormalForm f') =
-    [TestCase (assertEqual (name f ++ " skolem normal form") f' (runSkolem (skolemNormalForm (formula f))))]
+    [TestCase (assertEqual (name f ++ " skolem normal form") f' (runNormal (skolemNormalForm (formula f))))]
 doTest f (SkolemNumbers f') =
-    [TestCase (assertEqual (name f ++ " skolem numbers") f' (skolemSet (runSkolem (skolemNormalForm (formula f)))))]
+    [TestCase (assertEqual (name f ++ " skolem numbers") f' (skolemSet (runNormal (skolemNormalForm (formula f)))))]
 doTest f (ConvertToChiou result) =
     [TestCase (assertEqual (name f ++ " converted to Chiou") result (convertFOF id id id (formula f)))]
 doTest f (SatChiou result) =
     [TestCase (assertEqual (name f ++ " Chiou.satisfiable") result (head (runProver' (loadKB [convertFOF id id id (formula f)]))))]
 doTest f (SatPropLogic result) =
-    [TestCase (assertEqual (name f ++ " satisfiable") result (runSkolem (satisfiable (formula f))))]
+    [TestCase (assertEqual (name f ++ " satisfiable") result (runNormal (satisfiable (formula f))))]
 
 doProof p (ChiouResult result) =
     TestLabel (proofName p ++ " with " ++ fst (proofKnowledge p)) . TestList $

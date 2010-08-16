@@ -38,15 +38,14 @@ module Logic.NormalForm
     , implicativeNormalForm
     ) where
 
-import Control.Monad.Identity (Identity(..))
-import Control.Monad.State (StateT(..), MonadPlus, msum, get, put)
+import Control.Monad.State (MonadPlus, msum, get, put)
 import Data.Generics (Data, Typeable, listify)
 import qualified Data.Map as Map
 import Data.Maybe (isJust)
 import qualified Data.Set as S
 import Logic.FirstOrder
 import Logic.Logic
-import Logic.Monad (SkolemT, LogicState(..), newLogicState)
+import Logic.Monad (NormalT, LogicState(..))
 
 -- |Simplify:
 -- 
@@ -91,7 +90,7 @@ eliminateImplication =
 -- ~~P  P
 -- @
 -- 
-negationNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
+negationNormalForm :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
 negationNormalForm =  uniqueQuantifiedVariables . moveNotInwards . simplify
 
 {--
@@ -123,24 +122,15 @@ moveNotInwards formula =
       q op vs f = quant op vs (moveNotInwards f)
       b f1 op f2 = binOp (moveNotInwards f1) op (moveNotInwards f2)
 
-prenexNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
-prenexNormalForm = moveQuantifiersOut . negationNormalForm
+prenexNormalForm :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
+prenexNormalForm formula = negationNormalForm formula >>= return . moveQuantifiersOut
 
-type VariableSet v = VariableSetT v Identity
-type VariableSetT v = StateT (S.Set v)
-
-runVariableSet :: VariableSet v a -> a
-runVariableSet action = runIdentity (runVariableSetM action)
-
-runVariableSetM :: Monad m => VariableSetT v m a -> m a
-runVariableSetM action = (runStateT action) S.empty >>= return . fst
-
-uniqueQuantifiedVariables :: forall formula term v p f. (FirstOrderLogic formula term v p f) => formula -> formula
+uniqueQuantifiedVariables :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
 uniqueQuantifiedVariables formula =
-    runVariableSet (rename formula)
+    rename formula
     where
       -- Choose unique names for the quantified variables
-      rename :: formula -> VariableSet v formula
+      rename :: formula -> NormalT v term m formula
       rename =
           foldF (\ f -> rename f >>= return . (.~.))
                 (\ op vs f ->
@@ -152,11 +142,12 @@ uniqueQuantifiedVariables formula =
                 (\ t1 op t2 -> return $ infixPred t1 op t2)
                 (\ p ts -> return $ pApp p ts)
       -- Choose a new name for v
-      chooseName :: v -> VariableSet v v
+      chooseName :: v -> NormalT v term m v
       chooseName v =
-          do used <- get
-             let v' = head (dropWhile (`S.member` used) (iterate succ v))
-             put (S.insert v' used)
+          do state <- get
+             let used = varNames state
+                 v' = head (dropWhile (`S.member` used) (iterate succ v))
+             put (state {varNames = S.insert v' used})
              return v'
       renameFree :: (v, v) -> formula -> formula
       renameFree (v, v') f = substitute v (var v') f
@@ -216,8 +207,8 @@ moveQuantifiersOut =
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-disjunctiveNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
-disjunctiveNormalForm = distributeDisjuncts . prenexNormalForm
+disjunctiveNormalForm :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
+disjunctiveNormalForm formula = prenexNormalForm formula >>= return . distributeDisjuncts
 
 distributeDisjuncts :: FirstOrderLogic formula term v p f => formula -> formula
 distributeDisjuncts =
@@ -262,21 +253,27 @@ distributeDisjuncts =
 -- functions applied to the list of variables which are universally
 -- quantified in the context where the existential quantifier
 -- appeared.
-skolemNormalForm :: (Monad m, FirstOrderLogic formula term v p f) =>
-                    formula -> SkolemT v term m formula
+skolemNormalForm :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f) =>
+                    formula -> NormalT v term m formula
 skolemNormalForm formula =
-    do s <- get
-       result1 <- put newLogicState >> skolemize dnf
-       result2 <- put s >> skolemize dnf
-       return result1 {- (if result1 /= result2 then trace ("\nSkolemization discrepancy:\n result1=" ++ show (prettyForm 0 result1) ++ "\n result2=" ++ show (prettyForm 0 result2)) result1 else result1) -}
-    where dnf = disjunctiveNormalForm formula
+    do state <- get
+       put (state { skolemCount = 1
+                  , skolemMap = Map.empty
+                  , univQuant = [] })
+       dnf <- disjunctiveNormalForm formula
+       result1 <- skolemize dnf
+       result2 <- put state >> skolemize dnf
+       {- (if result1 /= result2
+          then trace ("\nSkolemization discrepancy:\n result1=" ++ show (prettyForm 0 result1) ++ "\n result2=" ++ show (prettyForm 0 result2)) result1
+          else result1) -}
+       return result1
 
 skolemize :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f) =>
-             formula -> SkolemT v term m formula
+             formula -> NormalT v term m formula
 skolemize =
     foldF n q b i p
     where
-      n :: formula -> SkolemT v term m formula
+      n :: formula -> NormalT v term m formula
       n s = skolemize s >>= \ (s' :: formula) -> return ((.~.) s')
       q All vs f =
           do logicState <- get
@@ -300,7 +297,7 @@ skolemize =
              return (infixPred t1' op t2')
       p pr ts = mapM substituteCh ts >>= return . pApp pr
 
-      substituteCh :: term -> SkolemT v term m term
+      substituteCh :: term -> NormalT v term m term
       substituteCh t =
           get >>= \ logicState ->
           foldT (\ v -> return (maybe (var v) id (Map.lookup v (skolemMap logicState))))
@@ -317,7 +314,7 @@ skolemize =
 --   [[a, ~b], [c, ~d]] <-> ((a | ~b) & (c | ~d))
 -- @@
 clausalNormalForm :: (Monad m, FirstOrderLogic formula term v p f) =>
-                     formula -> SkolemT v term m [[formula]]
+                     formula -> NormalT v term m [[formula]]
 clausalNormalForm f = skolemNormalForm f >>= return . clausal . removeUniversal
 
 clausal :: FirstOrderLogic formula term v p f =>
@@ -372,7 +369,7 @@ clausal =
 -- @
 implicativeNormalForm :: forall m formula term v p f. 
                          (Monad m, FirstOrderLogic formula term v p f, Data formula) =>
-                         formula -> SkolemT v term m [([formula], [formula])]
+                         formula -> NormalT v term m [([formula], [formula])]
 implicativeNormalForm formula =
     clausalNormalForm formula >>= return . concatMap split . map (imply . foldl collect ([], []))
     where

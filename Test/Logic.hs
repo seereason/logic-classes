@@ -7,7 +7,7 @@ import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 import qualified Logic.Instances.Native as P
 import Logic.Logic (Logic(..), Boolean(..))
-import Logic.Monad (runSkolem)
+import Logic.Monad (runNormal)
 import Logic.NormalForm (disjunctiveNormalForm)
 import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), Term(..), showForm, freeVars, substitute)
 import Logic.Satisfiable (clauses, theorem, inconsistant)
@@ -186,7 +186,7 @@ theoremTests =
                    ([True,False,True],True),
                    ([True,True,False],True),
                    ([True,True,True],True)]))
-                (runSkolem (theorem formula), table formula))
+                (runNormal (theorem formula), table formula))
     , TestCase (assertEqual "Logic - theorem test 1a"
 {-
 input:               ((.~.) ((for_all ["x"] (((S [x]) .=>. ((H [x]))) .&. (((H [x]) .=>. ((M [x])))))) .=>. ((for_all ["x"] ((S [x]) .=>. ((M [x])))))))
@@ -264,7 +264,7 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                 
                 (let formula = (for_all ["x"] ((s [x] .=>. h [x]) .&. (h [x] .=>. m [x]))) .=>.
                                (for_all ["y"] (s [y] .=>. m [y])) in
-                 (runSkolem (theorem formula), runSkolem (inconsistant formula), table formula)))
+                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula)))
                 
     , TestCase (assertEqual "Logic - socrates is mortal, truth table"
                 ([(pApp ("H") [var (V "x")]),
@@ -399,7 +399,7 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                                         (h [x] .=>. m [x]) .&.
                                         (m [x] .=>. ((.~.) (s [x])))) .&.
                          (s [fApp "socrates" []]) in
-                 (runSkolem (theorem formula), runSkolem (inconsistant formula), table formula, disjunctiveNormalForm formula)))
+                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula, runNormal (disjunctiveNormalForm formula))))
     , let (formula :: TestFormula) =
               (for_all ["x"] (pApp "L" [var "x"] .=>. pApp "F" [var "x"]) .&. -- All logicians are funny
                exists ["x"] (pApp "L" [var "x"])) .=>.                            -- Someone is a logician
@@ -520,4 +520,4 @@ convertA = Just . A
 
 table :: (FirstOrderLogic formula term v p f, Ord formula, Eq term, Skolem f, IsString v, Enum v, TD.Display formula) =>
          formula -> TruthTable formula
-table = truthTable . runSkolem . clauses
+table = truthTable . runNormal . clauses

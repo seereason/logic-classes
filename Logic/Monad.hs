@@ -2,9 +2,9 @@
 module Logic.Monad
     ( LogicState(..)
     , newLogicState
-    , SkolemT
-    , runSkolemT
-    , runSkolem
+    , NormalT
+    , runNormalT
+    , runNormal
     , LiteralMap
     , LiteralMapT
     , runLiteralMap
@@ -29,6 +29,7 @@ import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.State (StateT(runStateT), evalStateT)
 import Data.Generics (Data, Typeable)
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 -- |The logic monad contains (will contain) several types of state to
 -- support the operations done on logic formulas: Skolemization,
@@ -45,20 +46,24 @@ data LogicState v term
         -- current scope, in the order they were encountered.  During
         -- Skolemization these are the parameters passed to the Skolem
         -- function.
+      , varNames :: Set.Set v
+        -- ^ The set of variable names which have been quantified so
+        -- var.  This is used to find unique names for new variables.
       }
 
 newLogicState :: LogicState v term
 newLogicState = LogicState { skolemCount = 1
                            , skolemMap = Map.empty
-                           , univQuant = [] }
+                           , univQuant = []
+                           , varNames = Set.empty }
 
-type SkolemT v term m = StateT (LogicState v term) m
+type NormalT v term m = StateT (LogicState v term) m
 
-runSkolemT :: Monad m => SkolemT v term m a -> m a
-runSkolemT action = (runStateT action) newLogicState >>= return . fst
+runNormalT :: Monad m => NormalT v term m a -> m a
+runNormalT action = (runStateT action) newLogicState >>= return . fst
 
-runSkolem :: SkolemT v term Identity a -> a
-runSkolem = runIdentity . runSkolemT
+runNormal :: NormalT v term Identity a -> a
+runNormal = runIdentity . runNormalT
  
 -- |A Monad for creating and maintaining a map from literals of type p
 -- to literals of type Int.
@@ -104,10 +109,10 @@ zeroKB = ProverState
 
 -- |A monad for running the knowledge base.
 type ProverT inf = StateT (ProverState inf)
-type ProverT' v term inf m a = ProverT inf (SkolemT v term m) a
+type ProverT' v term inf m a = ProverT inf (NormalT v term m) a
 
 runProverT' :: Monad m => ProverT' v term inf m a -> m a
-runProverT' = runSkolemT . runProverT
+runProverT' = runNormalT . runProverT
 runProverT :: Monad m => StateT (ProverState inf) m a -> m a
 runProverT action = evalStateT action zeroKB
 runProver' :: ProverT' v term inf Identity a -> a
