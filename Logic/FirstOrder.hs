@@ -80,8 +80,8 @@ class (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term term v f | term ->
 -- instance for (FirstOrderLogic Formula term V p f)@ because the
 -- function doesn't mention the Term type.
 class (Ord v, Ord p, Eq p, Boolean p, Data p, Ord f,
-       Pretty v, Pretty p, Pretty f, -- For debugging
-       Logic formula,
+       Pretty v, Pretty p, Pretty f, Show v, -- For debugging
+       Logic formula, Eq term,
        Term term v f) => FirstOrderLogic formula term v p f
                        | formula -> term
                        , formula -> v
@@ -269,6 +269,7 @@ univquant_free_vars cnf' =
 
 -- |Replace each free occurrence of variable old with term new.
 substitute :: FirstOrderLogic formula term v p f => v -> term -> formula -> formula
+substitute old new formula | var old == new = formula
 substitute old new formula =
     foldF (\ f' -> (.~.) (sf f'))
               -- If the old variable appears in a quantifier

@@ -80,7 +80,8 @@ instance Logic (Sentence v p f) where
     x .&.   y = Connective x And y
     (.~.) x   = Not x
 
-instance (Logic (Sentence v p f), Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f, Pretty v, Pretty p, Pretty f) =>
+instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
+          Logic (Sentence v p f), Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f) =>
          PropositionalLogic (Sentence v p f) (Sentence v p f) where
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
@@ -113,7 +114,8 @@ instance Skolem AtomicFunction where
     fromSkolem (AtomicSkolemFunction n) = Just n
     fromSkolem _ = Nothing
 
-instance (PropositionalLogic (Sentence v p f) (Sentence v p f), Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f, Pretty v, Pretty p, Pretty f) =>
+instance (Pretty v, Pretty p, Pretty f, Show v, -- debugging
+          PropositionalLogic (Sentence v p f) (Sentence v p f), Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f) =>
           FirstOrderLogic (Sentence v p f) (CTerm v f) v p f where
     for_all vars x = Quantifier ForAll vars x
     exists vars x = Quantifier ExistsCh vars x
@@ -206,7 +208,8 @@ instance Logic (NormalSentence v p f) where
     (.~.) x   = NFNot x
     _ .|. _ = error "NormalSentence |"
 
-instance (Logic (NormalSentence v p f), Logic.Term (NormalTerm v f) v f, Ord p, Boolean p, Data p, Ord f, Pretty p, Pretty v, Pretty f) => FirstOrderLogic (NormalSentence v p f) (NormalTerm v f) v p f where
+instance (Pretty p, Pretty v, Pretty f, Show v, -- for debugging
+          Logic (NormalSentence v p f), Logic.Term (NormalTerm v f) v f, Ord p, Boolean p, Data p, Ord f) => FirstOrderLogic (NormalSentence v p f) (NormalTerm v f) v p f where
     for_all _ _ = error "FirstOrderLogic NormalSentence"
     exists _ _ = error "FirstOrderLogic NormalSentence"
     foldF n _ _ i p f =

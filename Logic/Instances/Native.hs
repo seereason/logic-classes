@@ -49,9 +49,10 @@ data ImplicativeNormalForm v p f =
     INF (S.Set (Formula v p f)) (S.Set (Formula v p f))
     deriving (Eq, Data, Typeable)
 
-instance (Ord v, Enum v, Data v, Pretty v,
-          Ord p, Boolean p, Data p, Pretty p,
-          Ord f, Skolem f, Data f, Pretty f) => Literal (Formula v p f) where
+instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
+          Ord v, Enum v, Data v, 
+          Ord p, Boolean p, Data p,
+          Ord f, Skolem f, Data f) => Literal (Formula v p f) where
     negate = (.~.)
     negated = foldF (\ _ -> True)
                     (\ _ _ _ -> False)
@@ -59,9 +60,10 @@ instance (Ord v, Enum v, Data v, Pretty v,
                     (\ _ _ _ -> False)
                     (\ _ _ -> False)
 
-instance (Ord v, Enum v, Data v, Pretty v,
-          Ord p, Boolean p, Data p, Pretty p,
-          Ord f, Skolem f, Data f, Pretty f) => Implicative (ImplicativeNormalForm v p f) (Formula v p f) where
+instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
+          Ord v, Enum v, Data v,
+          Ord p, Boolean p, Data p,
+          Ord f, Skolem f, Data f) => Implicative (ImplicativeNormalForm v p f) (Formula v p f) where
     neg (INF lhs _) = lhs
     pos (INF _ rhs) = rhs
     makeINF = INF
@@ -76,7 +78,8 @@ instance Logic (Formula v p f) where
     x .&.   y = BinOp  x (:&:)   y
     (.~.) x   = (:~:) x
 
-instance (Logic (Formula v p f), Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f, Pretty v, Pretty p, Pretty f) =>
+instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
+          Logic (Formula v p f), Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f) =>
          PropositionalLogic (Formula v p f) (Formula v p f) where
     atomic (InfixPred t1 (:=:) t2) = t1 .=. t2
     atomic (InfixPred t1 (:!=:) t2) = t1 .!=. t2
@@ -100,7 +103,8 @@ instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term (PTerm v f) v f
     var = Var
     fApp x args = FunApp x args
 
-instance (PropositionalLogic (Formula v p f) (Formula v p f), Term (PTerm v f) v f, Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f, Pretty v, Pretty p, Pretty f) =>
+instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
+          PropositionalLogic (Formula v p f) (Formula v p f), Term (PTerm v f) v f, Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f) =>
           FirstOrderLogic (Formula v p f) (PTerm v f) v p f where
     for_all vars x = Quant All vars x
     exists vars x = Quant Exists vars x

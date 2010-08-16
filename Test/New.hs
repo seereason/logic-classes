@@ -51,7 +51,7 @@ skolemNumber :: FirstOrderLogic formula term v p f => f -> [Int]
 skolemNumber f = maybe [] (: []) (fromSkolem f)
 
 doTest f (FirstOrderFormula f') =
-    [TestCase (assertEqual (name f) f' (formula f))]
+    [TestCase (assertEqual (name f ++ " original formula") f' (formula f))]
 doTest f (ClausalNormalForm fss) =
     [TestCase (assertEqual (name f ++ " clausal normal form") fss (runSkolem (clausalNormalForm (formula f))))]
 doTest f (PrenexNormalForm f') =

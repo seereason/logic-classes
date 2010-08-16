@@ -81,7 +81,7 @@ instance IsString AtomicFunction where
 
 instance Show AtomicFunction where
     show (Fn s) = show s
-    show (Skolem n) = "fromSkolem " ++ show n
+    show (Skolem n) = "toSkolem " ++ show n
 
 instance Pretty AtomicFunction where
     pretty (Fn s) = text s

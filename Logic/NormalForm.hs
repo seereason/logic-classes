@@ -30,6 +30,7 @@
 -- 
 module Logic.NormalForm
     ( negationNormalForm
+    , uniqueQuantifiedVariables
     , prenexNormalForm
     , disjunctiveNormalForm
     , skolemNormalForm
@@ -37,7 +38,8 @@ module Logic.NormalForm
     , implicativeNormalForm
     ) where
 
-import Control.Monad.State (MonadPlus, msum, get, put)
+import Control.Monad.Identity (Identity(..))
+import Control.Monad.State (StateT(..), MonadPlus, msum, get, put)
 import Data.Generics (Data, Typeable, listify)
 import qualified Data.Map as Map
 import Data.Maybe (isJust)
@@ -90,7 +92,7 @@ eliminateImplication =
 -- @
 -- 
 negationNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
-negationNormalForm = moveNotInwards . simplify
+negationNormalForm =  uniqueQuantifiedVariables . moveNotInwards . simplify
 
 {--
    Invariants:
@@ -121,18 +123,57 @@ moveNotInwards formula =
       q op vs f = quant op vs (moveNotInwards f)
       b f1 op f2 = binOp (moveNotInwards f1) op (moveNotInwards f2)
 
--- |Convert to Negation Normal Form and then move quantifiers outwards:
+prenexNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
+prenexNormalForm = moveQuantifiersOut . negationNormalForm
+
+type VariableSet v = VariableSetT v Identity
+type VariableSetT v = StateT (S.Set v)
+
+runVariableSet :: VariableSet v a -> a
+runVariableSet action = runIdentity (runVariableSetM action)
+
+runVariableSetM :: Monad m => VariableSetT v m a -> m a
+runVariableSetM action = (runStateT action) S.empty >>= return . fst
+
+uniqueQuantifiedVariables :: forall formula term v p f. (FirstOrderLogic formula term v p f) => formula -> formula
+uniqueQuantifiedVariables formula =
+    runVariableSet (rename formula)
+    where
+      -- Choose unique names for the quantified variables
+      rename :: formula -> VariableSet v formula
+      rename =
+          foldF (\ f -> rename f >>= return . (.~.))
+                (\ op vs f ->
+                     rename f >>= \ f' ->
+                     mapM chooseName vs >>= \ vs' ->
+                     return . quant op vs' . foldr renameFree f' $ zip vs vs')
+                (\ f1 op f2 -> rename f1 >>= \ f1' -> rename f2 >>= \ f2' ->
+                               return $ binOp f1' op f2')
+                (\ t1 op t2 -> return $ infixPred t1 op t2)
+                (\ p ts -> return $ pApp p ts)
+      -- Choose a new name for v
+      chooseName :: v -> VariableSet v v
+      chooseName v =
+          do used <- get
+             let v' = head (dropWhile (`S.member` used) (iterate succ v))
+             put (S.insert v' used)
+             return v'
+      renameFree :: (v, v) -> formula -> formula
+      renameFree (v, v') f = substitute v (var v') f
+
+-- |Convert from Negation Normal Form to Prenex Normal Form using
 -- 
 -- @
---  Formula     Rewrites to
---  ∀X P & Q    ∀X (P & Q)
---  ∃X P & Q    ∃X (P & Q)
---  Q & ∀X P    ∀X (Q & P)
---  Q & ∃X P    ∃X (Q & P)
---  ∀X P | Q    ∀X (P | Q)
---  ∃X P | Q    ∃X (P | Q)
---  Q | ∀X P    ∀X (Q | P)
---  Q | ∃XP     ∃X (Q | P)
+--  Formula            Rewrites to
+--  (1) ∀x F[x] & G        ∀x    (F[x] & G)
+--  (2) ∀x F[x] & ∀x G[x]  ∀x ∀x (F[x] & G[x])
+--  (3) ∃x F[x] & G        ∃x    (F[x] & G)
+--  (4) ∃x F[x] & ∃x G[x]  ∃x Yz (F[x] & G[z]) -- rename
+-- 
+--  (5) ∀x F[x] | G        ∀x    (F[x] | G)
+--  (6) ∀x F[x] | ∀x G[x]  ∀x ∀z (F[x] | G[z]) -- rename
+--  (7) ∃x F[x] | G        ∃x    (F[x] | G)
+--  (8) ∃x F[x] | ∃x G[x]  ∃x Yx (F[x] | G[x])
 -- @
 -- 
 -- We also need to do some variable renaming here, so that in an
@@ -141,71 +182,31 @@ moveNotInwards formula =
 -- variable which does not appear and change occurrences of X in P to
 -- this new variable.  We could instead modify Q, but that looks
 -- slightly more tedious.
-prenexNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
-prenexNormalForm = moveQuantifiersOut . negationNormalForm
-
-moveQuantifiersOut :: FirstOrderLogic formula term v p f =>
+moveQuantifiersOut :: forall formula term v p f. FirstOrderLogic formula term v p f =>
                       formula -> formula
-moveQuantifiersOut formula =
-    foldF n q b i a formula
+moveQuantifiersOut =
+    merge . collect
     where
-      -- We don't need to do this because we've already moved the
-      -- negations inside all the quantifiers
-      n = (.~.)
-      q op vs f = quant op vs (moveQuantifiersOut f)
-      b f1 op f2 = doLHS (moveQuantifiersOut f1) op (moveQuantifiersOut f2)
-      i t1 op t2 = infixPred t1 op t2
-      a p ts = pApp p ts
-      -- We found :&: or :|: above, look for quantifiers to move out, first examine f1
-      -- f1=(∀X P), f2=Q
-      -- doLHS :: formula -> BinOp -> formula -> formula
-      doLHS f1 op f2 =
-          foldF n' q' b' i' a' f1
-          where
-            n' _ = doRHS f1 op f2
-            -- We see (∃X f(x)) | f2, which we want to change to ∃x
-            -- (f(x) | f2).  The problem we have is that there could
-            -- be free occurrences of x in f2 (probably quantified in
-            -- an expression we have already recursed into), so moving
-            -- the quantifier changes the meaning of the expression.
-            -- To avoid this we must find a replacement for x which is
-            -- not free in f2, perhaps y: ∃y (f(y) | f2).
-            q' qop vs f =
-                let (vs', f') = renameFreeVars (freeVars f2) vs f in
-                quant qop vs' (moveQuantifiersOut (doBinOp f' op f2))
-            b' _ _ _ = doRHS f1 op f2
-            i' _ _ _ = doRHS f1 op f2
-            a' _ _ = doRHS f1 op f2
-      -- We reached a point where f1 was not a quantifier, try f2
-      -- doRHS :: formula -> BinOp -> formula -> formula
-      doRHS f1 op f2 =
-          foldF n' q' b' i' a' f2
-          where
-            n' _ = doBinOp f1 op f2
-            q' qop vs f =
-                let (vs', f') = renameFreeVars (freeVars f1) vs f in
-                quant qop vs' (moveQuantifiersOut (doBinOp f1 op f'))
-            b' _ _ _ = doBinOp f1 op f2
-            i' _ _ _ = doBinOp f1 op f2
-            a' _ _ = doBinOp f1 op f2
-      -- doBinOp :: formula -> BinOp -> formula -> formula
-      doBinOp f1 (:&:) f2 = f1 .&. f2
-      doBinOp f1 (:|:) f2 = f1 .|. f2
-      doBinOp _ op _ = error $ "moveQuantifierOut: unexpected BinOp " ++ show op
+      -- Split the quantifiers out of the formulas
+      collect :: formula -> ([(Quant, v)], formula)
+      collect =
+          foldF (\ f -> ([], (.~.) f))
+                (\ op vs f ->
+                     let (pairs, f') = collect f in
+                     (map (\ v -> (op, v)) vs ++ pairs, f'))
+                (\ lf op rf ->
+                     let (lpairs, lf') = collect lf
+                         (rpairs, rf') = collect rf in
+                     prenex (lpairs, lf') op (rpairs, rf'))
+                (\ t1 op t2 -> ([], infixPred t1 op t2))
+                (\ p ts -> ([], pApp p ts))
+      prenex :: ([(Quant, v)], formula) -> BinOp -> ([(Quant, v)], formula) -> ([(Quant, v)], formula)
+      prenex (lqs, lf) op (rqs, rf) = (lqs ++ rqs, binOp lf op rf)
 
--- |Find new variables that are not in the set and substitute free
--- occurrences in the formula.
-renameFreeVars :: forall formula term v p f. (FirstOrderLogic formula term v p f, Enum v) =>
-                  S.Set v -> [v] -> formula -> ([v], formula)
-renameFreeVars s vs f =
-    (vs'', substitutePairs (zip vs (map var vs'')) f)
-    where
-      (vs'', _) = foldr (\ v (vs', s') ->
-                             if S.member v s'
-                             then let v' = findName s' v in (v' : vs', S.insert v' s')
-                             else (v : vs', S.insert v s')) ([], s) vs
-      findName :: S.Set v -> v -> v
-      findName s' v = if S.member v s' then findName s' (succ v) else v
+      merge :: ([(Quant, v)], formula) -> formula
+      merge ([], f) = f
+      -- Note that the resulting variable lists will all be singletons.
+      merge ((q, v) : qs, f) = quant q [v] (merge (qs, f))
 
 -- |Convert to Prenex Normal Form and then distribute the disjunctions over the conjunctions:
 -- 
