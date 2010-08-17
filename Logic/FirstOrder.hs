@@ -129,7 +129,7 @@ disj (x:xs) = x .|. disj xs
 conj :: FirstOrderLogic formula term v p f => [formula] -> formula
 conj [] = pApp (fromBool True) []
 conj [x] = x
-conj (x:xs) = x .|. conj xs
+conj (x:xs) = x .&. conj xs
 
 -- | Helper function for building folds.
 quant :: FirstOrderLogic formula term v p f => 
