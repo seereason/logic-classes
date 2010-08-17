@@ -5,8 +5,8 @@ module Test.Types
     , Pr(..)
     , AtomicFunction(..)
       -- * Formula and term aliases
-    , Formula
-    , ATerm
+    -- , Formula
+    -- , ATerm
       -- * Test case types
     , TestFormula(..)
     , Expected(..)
@@ -21,6 +21,7 @@ import Data.String (IsString(fromString))
 --import Logic.Chiou.FirstOrderLogic (Sentence, CTerm)
 --import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalTerm(..))
 import Logic.FirstOrder (Skolem(..), Pretty(..), showForm)
+import qualified Logic.Instances.Chiou as C
 import qualified Logic.Instances.Native as P
 import Logic.Logic (Boolean(..))
 import Logic.Monad (WithId)
@@ -85,8 +86,38 @@ instance Show AtomicFunction where
 
 instance Pretty AtomicFunction where
     pretty (Fn s) = text s
-    pretty (Skolem n) = text "Sk" <> text (show n)
+    pretty (Skolem n) = text ("sK" ++ show n)
 
+data TestFormula formula
+    = TestFormula
+      { formula :: formula
+      , name :: String
+      , expected :: [Expected formula]
+      } deriving (Data, Typeable)
+
+-- |Some values that we might expect after transforming the formula.
+data Expected formula
+    = ClausalNormalForm [[formula]]
+    | DisjunctiveNormalForm formula
+    | PrenexNormalForm formula
+    | NegationNormalForm formula
+    | SkolemNormalForm formula
+    | SkolemNumbers (S.Set Int)
+    | FirstOrderFormula formula
+    | ConvertToChiou formula
+    -- | SatChiou (Maybe Bool, [C.ImplicativeNormalForm V Pr AtomicFunction])
+    | SatPropLogic Bool
+    deriving (Data, Typeable)
+
+data TestProof inf formula term v
+    = TestProof
+      { proofName :: String
+      , proofKnowledge :: (String, [formula])
+      , conjecture :: formula
+      , proofExpected :: [ProofExpected inf v term]
+      } deriving (Data, Typeable)
+
+{-
 type Formula = P.Formula V Pr AtomicFunction
 type ATerm = P.PTerm V AtomicFunction
 
@@ -124,8 +155,10 @@ data TestProof
       , conjecture :: Formula
       , proofExpected :: [ProofExpected]
       } deriving (Data, Typeable)
+-}
 
-data ProofExpected
-    = ChiouResult (Bool, SetOfSupport (P.ImplicativeNormalForm V Pr AtomicFunction) V (P.PTerm V AtomicFunction))
-    | ChiouKB [WithId (P.ImplicativeNormalForm V Pr AtomicFunction)]
+data ProofExpected inf v term
+    = -- ChiouResult (Bool, SetOfSupport (C.ImplicativeNormalForm V Pr AtomicFunction) V (C.CTerm V AtomicFunction))
+      ChiouResult (Bool, SetOfSupport inf v term{- (C.ImplicativeNormalForm V Pr AtomicFunction) V (C.CTerm V AtomicFunction) -})
+    | ChiouKB [WithId inf{- (C.ImplicativeNormalForm V Pr AtomicFunction) -}]
     deriving (Data, Typeable)

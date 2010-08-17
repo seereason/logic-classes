@@ -16,9 +16,6 @@ import qualified TextDisplay as TD
 import Test.Types (V(..), AtomicFunction(..))
 import Test.HUnit
 
-instance Show (P.Formula V String AtomicFunction) where
-    show = showForm
-
 -- |Don't use this at home!  It breaks type safety, fromString "True"
 -- fromBool True.
 instance Boolean String where

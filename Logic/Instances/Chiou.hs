@@ -80,8 +80,10 @@ instance Logic (Sentence v p f) where
     x .&.   y = Connective x And y
     (.~.) x   = Not x
 
-instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
-          Logic (Sentence v p f), Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f) =>
+instance (Ord v, IsString v, Data v, Pretty v, Show v, Enum v, 
+          Ord p, IsString p, Data p, Pretty p, Show p, Boolean p, 
+          Ord f, IsString f, Data f, Pretty f, Show f, Skolem f, 
+          Logic (Sentence v p f)) =>
          PropositionalLogic (Sentence v p f) (Sentence v p f) where
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
@@ -114,8 +116,11 @@ instance Skolem AtomicFunction where
     fromSkolem (AtomicSkolemFunction n) = Just n
     fromSkolem _ = Nothing
 
-instance (Pretty v, Pretty p, Pretty f, Show v, -- debugging
-          PropositionalLogic (Sentence v p f) (Sentence v p f), Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f) =>
+instance (Pretty v, Pretty p, Pretty f, Show v, Show p, Show f, -- debugging
+          Ord v, IsString v, Enum v, Data v,
+          Ord p, IsString p, Boolean p, Data p,
+          Ord f, IsString f, Skolem f, Data f, 
+          PropositionalLogic (Sentence v p f) (Sentence v p f)) =>
           FirstOrderLogic (Sentence v p f) (CTerm v f) v p f where
     for_all vars x = Quantifier ForAll vars x
     exists vars x = Quantifier ExistsCh vars x
@@ -179,7 +184,7 @@ data ConjunctiveNormalForm v p f =
 
 data ImplicativeNormalForm v p f
     = INF [Sentence v p f] [Sentence v p f]
-    deriving (Eq, Data, Typeable)
+    deriving (Eq, Data, Show, Typeable)
 
 data NormalSentence v p f
     = NFNot (NormalSentence v p f)
@@ -199,7 +204,8 @@ instance (Ord v, Ord p, Ord f) => Literal (Sentence v p f) where
     negated (Not x) = not (negated x)
     negated _ = False
 
-instance (FirstOrderLogic (Sentence v p f) (CTerm v f) v p f, Enum v, Ord p, Ord f) => Implicative (ImplicativeNormalForm v p f) (Sentence v p f) where
+instance (Enum v, Ord p, Show p, Ord f, Show f,
+          FirstOrderLogic (Sentence v p f) (CTerm v f) v p f) => Implicative (ImplicativeNormalForm v p f) (Sentence v p f) where
     neg (INF x _) = S.fromList x
     pos (INF _ x) = S.fromList x
     makeINF lhs rhs = INF (S.toList lhs) (S.toList rhs)
@@ -208,8 +214,10 @@ instance Logic (NormalSentence v p f) where
     (.~.) x   = NFNot x
     _ .|. _ = error "NormalSentence |"
 
-instance (Pretty p, Pretty v, Pretty f, Show v, -- for debugging
-          Logic (NormalSentence v p f), Logic.Term (NormalTerm v f) v f, Ord p, Boolean p, Data p, Ord f) => FirstOrderLogic (NormalSentence v p f) (NormalTerm v f) v p f where
+instance (IsString v, Pretty v, Show v,
+          Ord p, IsString p, Boolean p, Data p, Pretty p, Show p,
+          Ord f, IsString f, Pretty f, Show f,
+          Logic (NormalSentence v p f), Logic.Term (NormalTerm v f) v f) => FirstOrderLogic (NormalSentence v p f) (NormalTerm v f) v p f where
     for_all _ _ = error "FirstOrderLogic NormalSentence"
     exists _ _ = error "FirstOrderLogic NormalSentence"
     foldF n _ _ i p f =

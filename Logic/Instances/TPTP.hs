@@ -2,29 +2,28 @@
 {-# OPTIONS -fno-warn-missing-signatures -fno-warn-orphans #-}
 module Logic.Instances.TPTP where
 
+import Codec.TPTP (F(..), Formula, BinOp(..), V(..), T(..), Term0(..), AtomicWord(..), Formula0(..), InfixPred(..))
+import qualified Codec.TPTP as TPTP
 import Control.Monad.Identity (Identity(..))
-import Codec.TPTP
-import Data.Char (isDigit, ord, chr)
+import Data.Char (isDigit, ord)
 import Data.Generics (Data, Typeable)
 import Data.String (IsString(..))
 import qualified Logic.FirstOrder as Logic
+import Logic.FirstOrder (FirstOrderLogic(..), Term(..))
 import qualified Logic.Logic as Logic
+import Logic.Logic (Logic(..), Boolean(..))
 import qualified Logic.Propositional as Logic
 import Text.PrettyPrint (text)
 
--- |Generate a series of variable names.  
+-- |Generate a series of variable names.
 instance Enum V where
-    succ v =
-        toEnum (if n < cnt then n + 1 else if n == cnt then ord pref + cnt else n + cnt)
-            where n = fromEnum v
-    fromEnum (V s) =
-        case break (not . isDigit) (reverse s) of
-          ("", [c]) | ord c >= ord mn && ord c <= ord mx -> ord c - ord mn
-          (n, [c]) | ord c >= ord mn && ord c <= ord mx -> ord c - ord mn + cnt * (read (reverse n) :: Int)
-          _ -> error $ "Invalid variable name: " ++ show s
-    toEnum n =
-        V (chr (ord mn + pre) : if suf == 0 then "" else show suf)
-        where (suf, pre) = divMod n cnt
+    succ (V s) =
+        V (case break (not . isDigit) (reverse s) of
+             ("", "SV") -> "SV1"
+             (digits, "SV") -> "SV" ++ show (1 + read (reverse digits) :: Int)
+             _ -> "SV1")
+    fromEnum _ = error "fromEnum Logic.Instances.TPTP.V"
+    toEnum _ = error "toEnum Logic.Instances.TPTP.V"
 
 instance Logic.Pretty V where
     pretty (V s) = text s
@@ -59,7 +58,7 @@ instance Logic.Pretty AtomicFunction where
     pretty (Atom w) = Logic.pretty w
     pretty (StringLit s) = text (show s)
     pretty (NumberLit n) = text (show n)
-    pretty (Skolem (V s)) = text ("Sk" ++ s)
+    pretty (Skolem (V s)) = text ("sK" ++ s)
 
 instance Logic.Pretty AtomicWord where
     pretty (AtomicWord s) = text s
@@ -91,24 +90,24 @@ instance Logic.PropositionalLogic Formula Formula where
     -- the wrappers are passed TPTP types they turn them into Logic
     -- values to pass to the argument functions.
     foldF0 n b a form =
-        foldF n q' b' i' p' (unwrapF' form)
+        TPTP.foldF n q' b' i' p' (unwrapF' form)
         where q' = error "TPTP Formula with quantifier passed to foldF0"
               b' f1 (:<=>:) f2 = b f1 (Logic.:<=>:) f2
               b' f1 (:<=:) f2 = b f2 (Logic.:=>:) f1
               b' f1 (:=>:) f2 = b f1 (Logic.:=>:) f2
               b' f1 (:&:) f2 = b f1 (Logic.:&:) f2
               -- The :~&: operator is not present in the Logic BinOp type,
-              -- so we need to somehow use the equivalent ~(a&b)
-              b' f1 (:~&:) f2 = foldF n q' b' i' p' ((.~.) (f1 .&. f2))
+              -- so we need to use the equivalent ~(a&b)
+              b' f1 (:~&:) f2 = TPTP.foldF n q' b' i' p' ((.~.) (f1 .&. f2))
               b' f1 (:|:) f2 = b f1 (Logic.:|:) f2
-              b' f1 (:~|:) f2 = foldF n q' b' i' p' ((.~.) (f1 .|. f2))
-              b' f1 (:<~>:) f2 = foldF n q' b' i' p' ((((.~.) f1) .&. f2) .|. (f1 .&. ((.~.) f2)))
+              b' f1 (:~|:) f2 = TPTP.foldF n q' b' i' p' ((.~.) (f1 .|. f2))
+              b' f1 (:<~>:) f2 = TPTP.foldF n q' b' i' p' ((((.~.) f1) .&. f2) .|. (f1 .&. ((.~.) f2)))
               i' t1 (:=:) t2 = a (F (Identity (InfixPred t1 (:=:) t2)))
               i' t1 (:!=:) t2 = a (F (Identity (InfixPred t1 (:!=:) t2)))
               p' p ts = a (F (Identity (PredApp p ts)))
               unwrapF' (F x) = F x -- copoint x
 
-instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.FirstOrderLogic Formula Term V AtomicWord AtomicFunction where
+instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.FirstOrderLogic Formula (T Identity) V AtomicWord AtomicFunction where
     for_all vars x = for_all vars x
     exists vars x = exists vars x
     -- Use the TPTP fold to implement the Logic fold.  This means
@@ -116,19 +115,19 @@ instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.FirstOrderLog
     -- the wrappers are passed TPTP types they turn them into Logic
     -- values to pass to the argument functions.
     foldF n q b i p form =
-        foldF n q' b' i' p (unwrapF' form)
-        where q' All = q Logic.All
-              q' Exists = q Logic.Exists
+        TPTP.foldF n q' b' i' p (unwrapF' form)
+        where q' TPTP.All = q Logic.All
+              q' TPTP.Exists = q Logic.Exists
               b' f1 (:<=>:) f2 = b f1 (Logic.:<=>:) f2
               b' f1 (:<=:) f2 = b f2 (Logic.:=>:) f1
               b' f1 (:=>:) f2 = b f1 (Logic.:=>:) f2
               b' f1 (:&:) f2 = b f1 (Logic.:&:) f2
               -- The :~&: operator is not present in the Logic BinOp type,
               -- so we need to somehow use the equivalent ~(a&b)
-              b' f1 (:~&:) f2 = foldF n q' b' i' p ((.~.) (f1 .&. f2))
+              b' f1 (:~&:) f2 = TPTP.foldF n q' b' i' p ((.~.) (f1 .&. f2))
               b' f1 (:|:) f2 = b f1 (Logic.:|:) f2
-              b' f1 (:~|:) f2 = foldF n q' b' i' p ((.~.) (f1 .|. f2))
-              b' f1 (:<~>:) f2 = foldF n q' b' i' p ((((.~.) f1) .&. f2) .|. (f1 .&. ((.~.) f2)))
+              b' f1 (:~|:) f2 = TPTP.foldF n q' b' i' p ((.~.) (f1 .|. f2))
+              b' f1 (:<~>:) f2 = TPTP.foldF n q' b' i' p ((((.~.) f1) .&. f2) .|. (f1 .&. ((.~.) f2)))
               i' t1 (:=:) t2 = i t1 (Logic.:=:) t2
               i' _t1 (:!=:) _t2 = undefined
               unwrapF' (F x) = F x -- copoint x
@@ -137,13 +136,13 @@ instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.FirstOrderLog
     x .!=. y  = x .!=. y
     pApp x args = pApp x args
 
-instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.Term Term V AtomicFunction where
+instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.Term (T Identity) V AtomicFunction where
     foldT v fa term =
         -- We call the foldT function from the TPTP package here, which
         -- has a different signature from the foldT method we are
         -- implementing.  The two extra term types in TPTP are represented
         -- here as additional values in the AtomicFunction type.
-        foldT string double v atom (unwrapT' term)
+        TPTP.foldT string double v atom (unwrapT' term)
         where atom w ts = fa (Atom w) ts
               string s = fa (StringLit s) []
               double n = fa (NumberLit n) []
@@ -152,7 +151,7 @@ instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.Term Term V A
     var = var
     fApp x args = 
         case x of
-          Atom w -> fApp w args
+          Atom w -> TPTP.fApp w args
           StringLit s -> T {runT = Identity (DistinctObjectTerm s)}
           NumberLit n -> T {runT = Identity (NumberLitTerm n)}
-          Skolem (V s) -> fApp (AtomicWord ("Sk(" ++ s ++ ")")) args
+          Skolem (V s) -> TPTP.fApp (AtomicWord ("Sk(" ++ s ++ ")")) args

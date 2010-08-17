@@ -41,6 +41,7 @@ import Data.Function (on)
 import Data.List (isPrefixOf, intercalate, intersperse)
 import Data.Monoid (mappend)
 import qualified Data.Set as S
+import Data.String (IsString)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
@@ -60,7 +61,8 @@ class Skolem f where
     toSkolem :: Int -> f
     fromSkolem  :: f -> Maybe Int
 
-class (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term term v f | term -> v, term -> f where
+class (Ord v, Enum v, Data v,
+       Eq f, Skolem f, Data f) => Term term v f | term -> v, term -> f where
     var :: v -> term
     -- ^ Build a term which is a variable reference.
     fApp :: f -> [term] -> term
@@ -80,9 +82,10 @@ class (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term term v f | term ->
 -- without them the univquant_free_vars function gives the error @No
 -- instance for (FirstOrderLogic Formula term V p f)@ because the
 -- function doesn't mention the Term type.
-class (Ord v, Ord p, Eq p, Boolean p, Data p, Ord f,
-       Pretty v, Pretty p, Pretty f, Show v, -- For debugging
-       Logic formula, Eq term,
+class (Ord v, IsString v, Pretty v, Show v, 
+       Ord p, IsString p, Boolean p, Data p, Pretty p,
+       Ord f, IsString f, Pretty f,
+       Logic formula, Ord formula, Data formula, Show formula, Eq term,
        Term term v f) => FirstOrderLogic formula term v p f
                        | formula -> term
                        , formula -> v
@@ -180,26 +183,31 @@ showTerm term =
 prettyForm :: forall formula term v p f.
               (FirstOrderLogic formula term v p f, Term term v f, Pretty v, Pretty f, Pretty p) =>
               Int -> formula -> Doc
-prettyForm n formula =
-    foldF (\ f -> text {-"¬"-} "~" <> prettyForm 4 f)
-          (\ qop vs f -> parensIf (n > 1) $ hcat (map (prettyQuant qop) vs) <+> prettyForm 1 f)
-          (\ f1 op f2 -> parensIf (n > 2) $ (prettyForm 2 f1 <+> formOp op <+> prettyForm 2 f2))
+prettyForm prec formula =
+    foldF (\ f -> text {-"¬"-} "~" <> prettyForm 5 f)
+          (\ qop vs f -> parensIf (prec > 1) $ hsep (map (prettyQuant qop) vs) <+> prettyForm 1 f)
+          (\ f1 op f2 ->
+               case op of
+                 (:=>:) -> parensIf (prec > 2) $ (prettyForm 2 f1 <+> formOp op <+> prettyForm 2 f2)
+                 (:<=>:) -> parensIf (prec > 2) $ (prettyForm 2 f1 <+> formOp op <+> prettyForm 2 f2)
+                 (:&:) -> parensIf (prec > 3) $ (prettyForm 3 f1 <+> formOp op <+> prettyForm 3 f2)
+                 (:|:) -> parensIf {-(prec > 4)-} True $ (prettyForm 4 f1 <+> formOp op <+> prettyForm 4 f2))
           i
           pr
           formula
     where
       i :: term -> InfixPred -> term -> Doc
-      i t1 op t2 = parensIf (n > 3) (prettyTerm t1 <+> termOp op <+> prettyTerm t2)
+      i t1 op t2 = parensIf (prec > 6) (prettyTerm t1 <+> termOp op <+> prettyTerm t2)
       pr :: p -> [term] -> Doc
       pr p ts = pretty p <> case ts of
                               [] -> empty
                               _ -> parens (hcat (intersperse (text ",") (map prettyTerm ts)))
       -- parenForm x = parens (prettyForm x)
       -- parenTerm x = parens (term x)
-      parensIf True = parens
       parensIf False = id
-      prettyQuant All v = text "∀" <> pretty v
-      prettyQuant Exists v = text "∃" <> pretty v
+      parensIf _ = parens . nest 1
+      prettyQuant All v = text {-"∀"-} "!" <> pretty v
+      prettyQuant Exists v = text {-"∃"-} "?" <> pretty v
       formOp (:<=>:) = text "<=>"
       formOp (:=>:) = text "=>"
       formOp (:&:) = text "&"

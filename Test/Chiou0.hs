@@ -14,7 +14,7 @@ import Data.String (IsString(..))
 import qualified Logic.FirstOrder as Logic
 import Logic.FirstOrder (FirstOrderLogic(..), Term(..), Skolem(..))
 import Logic.Implicative (Implicative(..))
-import Logic.Instances.Native
+import Logic.Instances.Native (Formula, PTerm, ImplicativeNormalForm)
 import Logic.KnowledgeBase (loadKB, theoremKB {-, askKB, showKB-})
 import Logic.Logic (Logic(..), Boolean(..))
 import Logic.Monad (NormalT, runNormal, ProverT, runProver')

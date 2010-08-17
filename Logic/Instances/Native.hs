@@ -12,11 +12,12 @@ module Logic.Instances.Native
 
 import Data.Data (Data)
 import qualified Data.Set as S
+import Data.String (IsString)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
 import Logic.Clause (Literal(..))
-import Logic.FirstOrder (Term(..), FirstOrderLogic(..), Quant(..), InfixPred(..), Skolem(..), Pretty, showTerm)
+import Logic.FirstOrder (Term(..), FirstOrderLogic(..), Quant(..), InfixPred(..), Skolem(..), Pretty, showTerm, showForm)
 import Logic.Implicative (Implicative(..))
 import Logic.Logic (Logic(..), BinOp(..), Boolean(..))
 import Logic.Propositional (PropositionalLogic(..))
@@ -42,6 +43,9 @@ data PTerm v f
                                     -- is another term.
     deriving (Eq,Ord,Read,Data,Typeable)
 
+instance (FirstOrderLogic (Formula v p f) (PTerm v f) v p f, Show v, Show p, Show f) => Show (Formula v p f) where
+    show = showForm
+
 instance (FirstOrderLogic (Formula v p f) (PTerm v f) v p f, Show v, Show p, Show f) => Show (PTerm v f) where
     show = showTerm
 
@@ -50,9 +54,9 @@ data ImplicativeNormalForm v p f =
     deriving (Eq, Data, Typeable)
 
 instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
-          Ord v, Enum v, Data v, 
-          Ord p, Boolean p, Data p,
-          Ord f, Skolem f, Data f) => Literal (Formula v p f) where
+          Ord v, IsString v, Enum v, Data v, 
+          Ord p, IsString p, Boolean p, Data p,
+          Ord f, IsString f, Skolem f, Data f, Show (Formula v p f)) => Literal (Formula v p f) where
     negate = (.~.)
     negated = foldF (\ _ -> True)
                     (\ _ _ _ -> False)
@@ -61,9 +65,9 @@ instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
                     (\ _ _ -> False)
 
 instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
-          Ord v, Enum v, Data v,
-          Ord p, Boolean p, Data p,
-          Ord f, Skolem f, Data f) => Implicative (ImplicativeNormalForm v p f) (Formula v p f) where
+          Ord v, IsString v, Enum v, Data v,
+          Ord p, IsString p, Boolean p, Data p,
+          Ord f, IsString f, Skolem f, Data f, Show (Formula v p f)) => Implicative (ImplicativeNormalForm v p f) (Formula v p f) where
     neg (INF lhs _) = lhs
     pos (INF _ rhs) = rhs
     makeINF = INF
@@ -79,7 +83,10 @@ instance Logic (Formula v p f) where
     (.~.) x   = (:~:) x
 
 instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
-          Logic (Formula v p f), Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f) =>
+          Ord v, IsString v, Enum v, Data v,
+          Ord p, IsString p, Boolean p, Data p,
+          Ord f, IsString f, Skolem f, Data f,
+          Logic (Formula v p f), Show (Formula v p f)) =>
          PropositionalLogic (Formula v p f) (Formula v p f) where
     atomic (InfixPred t1 (:=:) t2) = t1 .=. t2
     atomic (InfixPred t1 (:!=:) t2) = t1 .!=. t2
@@ -104,7 +111,11 @@ instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term (PTerm v f) v f
     fApp x args = FunApp x args
 
 instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
-          PropositionalLogic (Formula v p f) (Formula v p f), Term (PTerm v f) v f, Ord v, Enum v, Data v, Ord p, Boolean p, Data p, Ord f, Skolem f, Data f) =>
+          Ord v, IsString v, Enum v, Data v,
+          Ord p, IsString p, Boolean p, Data p,
+          Ord f, IsString f, Skolem f, Data f,
+          Show (Formula v p f),
+          PropositionalLogic (Formula v p f) (Formula v p f), Term (PTerm v f) v f) =>
           FirstOrderLogic (Formula v p f) (PTerm v f) v p f where
     for_all vars x = Quant All vars x
     exists vars x = Quant Exists vars x
