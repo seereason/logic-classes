@@ -122,13 +122,17 @@ instance (Pretty v, Pretty p, Pretty f, Show v, Show p, Show f, -- debugging
           Ord f, IsString f, Skolem f, Data f, 
           PropositionalLogic (Sentence v p f) (Sentence v p f)) =>
           FirstOrderLogic (Sentence v p f) (CTerm v f) v p f where
-    for_all vars x = Quantifier ForAll vars x
-    exists vars x = Quantifier ExistsCh vars x
+    for_all v x = Quantifier ForAll [v] x
+    exists v x = Quantifier ExistsCh [v] x
     foldF n q b i p f =
         case f of
           Not x -> n x
-          Quantifier ForAll vs f' -> q Logic.All vs f'
-          Quantifier ExistsCh vs f' -> q Logic.Exists vs f'
+          Quantifier op (v:vs) f' ->
+              let op' = case op of
+                          ForAll -> Logic.All
+                          ExistsCh -> Logic.Exists in
+              q op' v (Quantifier op vs f')
+          Quantifier _ [] f' -> foldF n q b i p f'
           Connective f1 Imply f2 -> b f1 (:=>:) f2
           Connective f1 Equiv f2 -> b f1 (:<=>:) f2
           Connective f1 And f2 -> b f1 (:&:) f2
@@ -138,11 +142,15 @@ instance (Pretty v, Pretty p, Pretty f, Show v, Show p, Show f, -- debugging
     zipF n q b i p f1 f2 =
         case (f1, f2) of
           (Not f1', Not f2') -> n f1' f2'
-          (Quantifier q1 vs1 f1', Quantifier q2 vs2 f2') ->
-              case (q1, q2) of
-                (ForAll, ForAll) -> q All vs1 f1' All vs2 f2'
-                (ExistsCh, ExistsCh) -> q Exists vs1 f1' Exists vs2 f2'
-                _ -> Nothing
+          (Quantifier op1 (v1:vs1) f1', Quantifier op2 (v2:vs2) f2') ->
+              if op1 == op2
+              then let op' = case op1 of
+                               ForAll -> Logic.All
+                               ExistsCh -> Logic.Exists in
+                   q op' v1 (Quantifier op1 vs1 f1') All v2 (Quantifier op2 vs2 f2')
+              else Nothing
+          (Quantifier q1 [] f1', Quantifier q2 [] f2') ->
+              if q1 == q2 then zipF n q b i p f1' f2' else Nothing
           (Connective l1 op1 r1, Connective l2 op2 r2) ->
               case (op1, op2) of
                 (And, And) -> b l1 (:&:) r1 l2 (:&:) r2

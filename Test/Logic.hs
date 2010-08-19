@@ -49,14 +49,14 @@ precTests =
                ((a .&. b) .&. c) -- infixl, with infixr we get (a .&. (b .&. c))
                (a .&. b .&. c)
     , TestCase (assertEqual "Logic - Find a free variable"
-                (freeVars (for_all ["x"] (x .=. y) :: TestFormula))
+                (freeVars (for_all "x" (x .=. y) :: TestFormula))
                 (Set.singleton "y"))
     , TestCase (assertEqual "Logic - Substitute a variable"
                 (map sub
-                         [ for_all ["x"] (x .=. y) {- :: Formula String String -}
-                         , for_all ["y"] (x .=. y) {- :: Formula String String -} ])
-                [ for_all ["x"] (x .=. z) :: TestFormula
-                , for_all ["y"] (z .=. y) :: TestFormula ])
+                         [ for_all "x" (x .=. y) {- :: Formula String String -}
+                         , for_all "y" (x .=. y) {- :: Formula String String -} ])
+                [ for_all "x" (x .=. z) :: TestFormula
+                , for_all "y" (z .=. y) :: TestFormula ])
     ]
     where
       sub f = substitute (head . Set.toList . freeVars $ f) (var "z") f
@@ -81,7 +81,7 @@ test9a :: Test
 test9a = TestCase 
            (assertEqual "Logic - convert to PropLogic"
             expected
-            (flatten (cnf' (for_all ["x"] (for_all ["y"] (q [x, y] .<=>. for_all ["z"] (f [z, x] .<=>. f [z, y])))))))
+            (flatten (cnf' (for_all "x" (for_all "y" (q [x, y] .<=>. for_all "z" (f [z, x] .<=>. f [z, y])))))))
     where
       f = pApp "f"
       q = pApp "q"
@@ -108,8 +108,8 @@ test9a = TestCase
 moveQuantifiersOut1 :: Test
 moveQuantifiersOut1 =
     formCase "Logic - moveQuantifiersOut1"
-             (for_all ["x2"] ((pApp ("p") [var ("x2")]) .&. ((pApp ("q") [var ("x")]))))
-             (prenexNormalForm (for_all ["x"] (pApp (fromString "p") [x]) .&. (pApp (fromString "q") [x])))
+             (for_all "x2" ((pApp ("p") [var ("x2")]) .&. ((pApp ("q") [var ("x")]))))
+             (prenexNormalForm (for_all "x" (pApp (fromString "p") [x]) .&. (pApp (fromString "q") [x])))
 
 skolemize1 :: Test
 skolemize1 =
@@ -154,7 +154,7 @@ theoremTests =
     let s = pApp "S"
         h = pApp "H"
         m = pApp "M" in
-    [ let formula = for_all ["x"] (((s [x] .=>. h [x]) .&. (h [x] .=>. m [x])) .=>.
+    [ let formula = for_all "x" (((s [x] .=>. h [x]) .&. (h [x] .=>. m [x])) .=>.
                                   (s [x] .=>. m [x])) in
       TestCase (assertEqual "Logic - theorem test 1"
                 (True,
@@ -259,8 +259,8 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                    ([True,True,True,True,False],True),
                    ([True,True,True,True,True],True)]))
                 
-                (let formula = (for_all ["x"] ((s [x] .=>. h [x]) .&. (h [x] .=>. m [x]))) .=>.
-                               (for_all ["y"] (s [y] .=>. m [y])) in
+                (let formula = (for_all "x" ((s [x] .=>. h [x]) .&. (h [x] .=>. m [x]))) .=>.
+                               (for_all "y" (s [y] .=>. m [y])) in
                  (runNormal (theorem formula), runNormal (inconsistant formula), table formula)))
                 
     , TestCase (assertEqual "Logic - socrates is mortal, truth table"
@@ -342,9 +342,9 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                 -- we would wrap a single exists around them all and
                 -- remove the existing ones, substituting that one
                 -- variable into each formula.
-                (table (for_all ["x"] (s [x] .=>. h [x]) .&.
-                         for_all ["y"] (h [y] .=>. m [y]) .&.
-                         for_all ["z"] (s [z] .=>. m [z]))))
+                (table (for_all "x" (s [x] .=>. h [x]) .&.
+                         for_all "y" (h [y] .=>. m [y]) .&.
+                         for_all "z" (s [z] .=>. m [z]))))
 
     , TestCase (assertEqual "Logic - socrates is not mortal"
                 (False,
@@ -373,7 +373,7 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                    ([True,True,False,True],True),
                    ([True,True,True,False],False),
                    ([True,True,True,True],False)]),
-                 (for_all [fromString "x"]
+                 (for_all "x"
                   ((((((.~.) (pApp ("S") [var (fromString "x")])) .|. ((pApp ("H") [var (fromString "x")]))) .&.
                      ((((.~.) (pApp ("H") [var (fromString "x")])) .|. ((pApp ("M") [var (fromString "x")]))))) .&.
                     ((((.~.) (pApp ("M") [var (fromString "x")])) .|. (((.~.) (pApp ("S") [var (fromString "x")])))))) .&.
@@ -392,15 +392,15 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                 -- the argument would be inconsistant (an anti-theorem.)
                 -- How can we modify the formula to make these lines 0?
                 (let (formula :: TestFormula) =
-                         for_all ["x"] ((s [x] .=>. h [x]) .&.
-                                        (h [x] .=>. m [x]) .&.
-                                        (m [x] .=>. ((.~.) (s [x])))) .&.
+                         for_all "x" ((s [x] .=>. h [x]) .&.
+                                      (h [x] .=>. m [x]) .&.
+                                      (m [x] .=>. ((.~.) (s [x])))) .&.
                          (s [fApp "socrates" []]) in
                  (runNormal (theorem formula), runNormal (inconsistant formula), table formula, runNormal (disjunctiveNormalForm formula))))
     , let (formula :: TestFormula) =
-              (for_all ["x"] (pApp "L" [var "x"] .=>. pApp "F" [var "x"]) .&. -- All logicians are funny
-               exists ["x"] (pApp "L" [var "x"])) .=>.                            -- Someone is a logician
-              (.~.) (exists ["x"] (pApp "F" [var "x"]))                           -- Someone / Nobody is funny
+              (for_all "x" (pApp "L" [var "x"] .=>. pApp "F" [var "x"]) .&. -- All logicians are funny
+               exists "x" (pApp "L" [var "x"])) .=>.                            -- Someone is a logician
+              (.~.) (exists "x" (pApp "F" [var "x"]))                           -- Someone / Nobody is funny
           input = table formula
           expected = ([(pApp ("F") [var (V "x3")]),
                        (pApp ("F") [fApp (Skolem 1) []]),
@@ -430,9 +430,9 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                        ([True,True,True,True],False)])
       in TestCase (assertEqual "Logic - gensler189" expected input)
     , let (formula :: TestFormula) =
-              (for_all ["x"] (pApp "L" [var "x"] .=>. pApp "F" [var "x"]) .&. -- All logicians are funny
-               exists ["y"] (pApp "L" [var (fromString "y")])) .=>.           -- Someone is a logician
-              (.~.) (exists ["z"] (pApp "F" [var "z"]))                       -- Someone / Nobody is funny
+              (for_all "x" (pApp "L" [var "x"] .=>. pApp "F" [var "x"]) .&. -- All logicians are funny
+               exists "y" (pApp "L" [var (fromString "y")])) .=>.           -- Someone is a logician
+              (.~.) (exists "z" (pApp "F" [var "z"]))                       -- Someone / Nobody is funny
           input = table formula
           expected = ([(pApp ("F") [var (V "z")]),
                        (pApp ("F") [fApp (Skolem 1) []]),
@@ -467,9 +467,9 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
 theorem5 =
     TestCase (assertEqual "Logic - theorm test 2"
               (Just True)
-              (theorem ((.~.) ((for_all ["x"] (((s [x] .=>. h [x]) .&.
+              (theorem ((.~.) ((for_all "x" (((s [x] .=>. h [x]) .&.
                                                (h [x] .=>. m [x]))) .&.
-                                exists ["x"] (s [x] .&.
+                                exists "x" (s [x] .&.
                                              ((.~.) (m [x]))))))))
 -}
 
@@ -500,7 +500,7 @@ instance TD.Display (TestFormula) where
 (theorem1a, theorem1b, theorem1c, theorem1d) =
     ( TestCase (assertEqual "Logic - truth table 1"
                 (Just ["foo"])
-                (prepare (for_all ["x"] (((s [x] .=>. h [x]) .&. (h [x] .=>. m [x])) .=>. (s [x] .=>. m [x]))) >>=
+                (prepare (for_all "x" (((s [x] .=>. h [x]) .&. (h [x] .=>. m [x])) .=>. (s [x] .=>. m [x]))) >>=
                  return . TD.textFrame . truthTable)) )
     where s = pApp "S"
           h = pApp "H"

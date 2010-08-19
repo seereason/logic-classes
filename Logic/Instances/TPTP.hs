@@ -116,8 +116,12 @@ instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.FirstOrderLog
     -- values to pass to the argument functions.
     foldF n q b i p form =
         TPTP.foldF n q' b' i' p (unwrapF' form)
-        where q' TPTP.All = q Logic.All
-              q' TPTP.Exists = q Logic.Exists
+        where q' op (v:vs) form' =
+                  let op' = case op of
+                              TPTP.All -> Logic.All
+                              TPTP.Exists -> Logic.Exists in
+                  q op' v (foldr (\ v' f -> Logic.quant op' v' f) form' vs)
+              q' _ [] form' = foldF n q b i p form'
               b' f1 (:<=>:) f2 = b f1 (Logic.:<=>:) f2
               b' f1 (:<=:) f2 = b f2 (Logic.:=>:) f1
               b' f1 (:=>:) f2 = b f1 (Logic.:=>:) f2

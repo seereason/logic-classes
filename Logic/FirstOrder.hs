@@ -32,6 +32,8 @@ module Logic.FirstOrder
     , Pretty(..)
     , prettyForm
     , prettyTerm
+    , for_all'
+    , exists'
     , disj
     , conj
     ) where
@@ -94,23 +96,23 @@ class (Ord v, IsString v, Pretty v, Show v,
                        , term -> v
                        , term -> f where
     -- | Universal quantification - for all x (formula x)
-    for_all :: [v] -> formula -> formula
+    for_all :: v -> formula -> formula
     -- | Existential quantification - there exists x such that (formula x)
-    exists ::  [v] -> formula -> formula
+    exists ::  v -> formula -> formula
 
     -- | A fold function similar to the one in 'PropositionalLogic'
     -- but extended to cover both the existing formula types and the
     -- ones introduced here.  @foldF (.~.) quant binOp infixPred pApp@
     -- is a no op.  The argument order is taken from Logic-TPTP.
     foldF :: (formula -> r)
-          -> (Quant -> [v] -> formula -> r)
+          -> (Quant -> v -> formula -> r)
           -> (formula -> BinOp -> formula -> r)
           -> (term -> InfixPred -> term -> r)
           -> (p -> [term] -> r)
           -> (formula)
           -> r
     zipF :: (formula -> formula -> Maybe r)
-         -> (Quant -> [v] -> formula -> Quant -> [v] -> formula -> Maybe r)
+         -> (Quant -> v -> formula -> Quant -> v -> formula -> Maybe r)
          -> (formula -> BinOp -> formula -> formula -> BinOp -> formula -> Maybe r)
          -> (term -> InfixPred -> term -> term -> InfixPred -> term -> Maybe r)
          -> (p -> [term] -> p -> [term] -> Maybe r)
@@ -122,6 +124,12 @@ class (Ord v, IsString v, Pretty v, Show v,
     a .!=. b = (.~.) (a .=. b)
     -- | Build a formula by applying terms to an atomic predicate.
     pApp :: p -> [term] -> formula
+
+for_all' :: FirstOrderLogic formula term v p f => [v] -> formula -> formula
+for_all' vs f = foldr for_all f vs
+
+exists' :: FirstOrderLogic formula term v p f => [v] -> formula -> formula
+exists' vs f = foldr for_all f vs
 
 -- | Functions to 
 disj :: FirstOrderLogic formula term v p f => [formula] -> formula
@@ -136,9 +144,9 @@ conj (x:xs) = x .&. conj xs
 
 -- | Helper function for building folds.
 quant :: FirstOrderLogic formula term v p f => 
-         Quant -> [v] -> formula -> formula
-quant All vs f = for_all vs f
-quant Exists vs f = exists vs f
+         Quant -> v -> formula -> formula
+quant All v f = for_all v f
+quant Exists v f = exists v f
 
 -- | Helper function for building folds.
 infixPred :: FirstOrderLogic formula term v p f => 
@@ -153,8 +161,8 @@ showForm formula =
     foldF n q b i a formula
     where
       n f = "((.~.) " ++ showForm f ++ ")"
-      q All vs f = "(for_all [" ++ intercalate "," (map show vs) ++ "] " ++ showForm f ++ ")"
-      q Exists vs f = "(exists [" ++ intercalate "," (map show vs) ++ "] " ++ showForm f ++ ")"
+      q All v f = "(for_all " ++ show v ++ " " ++ showForm f ++ ")"
+      q Exists v f = "(exists " ++  show v ++ " " ++ showForm f ++ ")"
       b f1 op f2 = "(" ++ showForm f1 ++ " " ++ showFormOp op ++ " " ++ parenForm f2 ++ ")"
       i :: term -> InfixPred -> term -> String
       i t1 op t2 = "(" ++ parenTerm t1 ++ " " ++ showTermOp op ++ " " ++ parenTerm t2 ++ ")"
@@ -185,7 +193,7 @@ prettyForm :: forall formula term v p f.
               Int -> formula -> Doc
 prettyForm prec formula =
     foldF (\ f -> text {-"¬"-} "~" <> prettyForm 5 f)
-          (\ qop vs f -> parensIf (prec > 1) $ hsep (map (prettyQuant qop) vs) <+> prettyForm 1 f)
+          (\ qop v f -> parensIf (prec > 1) $ prettyQuant qop v <+> prettyForm 1 f)
           (\ f1 op f2 ->
                case op of
                  (:=>:) -> parensIf (prec > 2) $ (prettyForm 2 f1 <+> formOp op <+> prettyForm 2 f2)
@@ -241,7 +249,7 @@ instance Read InfixPred where
 freeVars :: FirstOrderLogic formula term v p f => formula -> S.Set v
 freeVars f =
     foldF freeVars   
-          (\_ vars x -> S.difference (freeVars x) (S.fromList vars))                    
+          (\_ v x -> S.delete v (freeVars x))                    
           (\x _ y -> (mappend `on` freeVars) x y)
           (\x _ y -> (mappend `on` freeVarsOfTerm) x y)
           (\_ args -> S.unions (fmap freeVarsOfTerm args))
@@ -253,7 +261,7 @@ freeVars f =
 quantVars :: FirstOrderLogic formula term v p f => formula -> S.Set v
 quantVars =
     foldF quantVars   
-          (\ _ vars x -> S.union (S.fromList vars) (quantVars x))
+          (\ _ v x -> S.insert v (quantVars x))
           (\ x _ y -> (mappend `on` quantVars) x y)
           (\ _ _ _ -> S.empty)
           (\ _ _ -> S.empty)
@@ -262,7 +270,7 @@ quantVars =
 allVars :: FirstOrderLogic formula term v p f => formula -> S.Set v
 allVars f =
     foldF freeVars   
-          (\_ vars x -> S.union (allVars x) (S.fromList vars))
+          (\_ v x -> S.insert v (allVars x))
           (\x _ y -> (mappend `on` allVars) x y)
           (\x _ y -> (mappend `on` allVarsOfTerm) x y)
           (\_ args -> S.unions (fmap allVarsOfTerm args))
@@ -273,7 +281,7 @@ allVars f =
 -- | Universally quantify all free variables in the formula (Name comes from TPTP)
 univquant_free_vars :: FirstOrderLogic formula term v p f => formula -> formula
 univquant_free_vars cnf' =
-    if S.null free then cnf' else for_all (S.toList free) cnf'
+    if S.null free then cnf' else foldr for_all cnf' (S.toList free)
     where free = freeVars cnf'
 
 -- |Replace each free occurrence of variable old with term new.
@@ -283,7 +291,7 @@ substitute old new formula =
     foldF (\ f' -> (.~.) (sf f'))
               -- If the old variable appears in a quantifier
               -- we can stop doing the substitution.
-              (\ q vs f' -> quant q vs (if elem old vs then f' else sf f'))
+              (\ q v f' -> quant q v (if old == v then f' else sf f'))
               (\ f1 op f2 -> binOp (sf f1) op (sf f2))
               (\ t1 op t2 -> infixPred (st t1) op (st t2))
               (\ p ts -> pApp p (map st ts))
@@ -308,7 +316,7 @@ convertFOF convertV convertP convertF formula =
       convert' = convertFOF convertV convertP convertF
       convertTerm' = convertTerm convertV convertF
       n f = (.~.) (convert' f)
-      q x vs f = quant x (map convertV vs) (convert' f)
+      q x v f = quant x (convertV v) (convert' f)
       b f1 op f2 = binOp (convert' f1) op (convert' f2)
       i t1 op t2 = infixPred (convertTerm' t1) op (convertTerm' t2)
       p x ts = pApp (convertP x) (map convertTerm' ts)

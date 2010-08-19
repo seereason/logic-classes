@@ -97,9 +97,9 @@ loadCmd :: Monad m => ProverT (ImplicativeNormalForm V Pr AtomicFunction) (Norma
 loadCmd = loadKB sentences
 
 sentences :: [Formula V Pr AtomicFunction]
-sentences = [exists ["x"] ((pApp "Dog" [var "x"]) .&. (pApp "Owns" [fApp "Jack" [], var "x"])),
-             for_all ["x"] (((exists ["y"] (pApp "Dog" [var "y"])) .&. (pApp "Owns" [var "x", var "y"])) .=>. (pApp "AnimalLover" [var "x"])),
-             for_all ["x"] ((pApp "AnimalLover" [var "x"]) .=>. (for_all ["y"] ((pApp "Animal" [var "y"]) .=>. ((.~.) (pApp "Kills" [var "x", var "y"]))))),
+sentences = [exists "x" ((pApp "Dog" [var "x"]) .&. (pApp "Owns" [fApp "Jack" [], var "x"])),
+             for_all "x" (((exists "y" (pApp "Dog" [var "y"])) .&. (pApp "Owns" [var "x", var "y"])) .=>. (pApp "AnimalLover" [var "x"])),
+             for_all "x" ((pApp "AnimalLover" [var "x"]) .=>. (for_all "y" ((pApp "Animal" [var "y"]) .=>. ((.~.) (pApp "Kills" [var "x", var "y"]))))),
              (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []]) .|. (pApp "Kills" [fApp "Curiosity" [], fApp "Tuna" []]),
              pApp "Cat" [fApp "Tuna" []],
-             for_all ["x"] ((pApp "Cat" [var "x"]) .=>. (pApp "Animal" [var "x"]))]
+             for_all "x" ((pApp "Cat" [var "x"]) .=>. (pApp "Animal" [var "x"]))]

@@ -101,7 +101,10 @@ instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
           PredApp p ts -> a (PredApp p ts)
 
 instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term (PTerm v f) v f where
-    foldT = foldTerm
+    foldT vf fn t =
+        case t of
+          Var v -> vf v
+          FunApp f ts -> fn f ts
     zipT v f t1 t2 =
         case (t1, t2) of
           (Var v1, Var v2) -> v v1 v2
@@ -117,13 +120,21 @@ instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
           Show (Formula v p f),
           PropositionalLogic (Formula v p f) (Formula v p f), Term (PTerm v f) v f) =>
           FirstOrderLogic (Formula v p f) (PTerm v f) v p f where
-    for_all vars x = Quant All vars x
-    exists vars x = Quant Exists vars x
-    foldF = foldFormula
+    for_all v x = Quant All [v] x
+    exists v x = Quant Exists [v] x
+    foldF n q b i p f =
+        case f of
+          (:~:) f' -> n f'
+          Quant op (v:vs) f' -> q op v (Quant op vs f')
+          Quant _ [] f' -> foldF n q b i p f'
+          BinOp l op r -> b l op r
+          InfixPred l op r -> i l op r
+          PredApp pr ts -> p pr ts
     zipF n q b i p f1 f2 =
         case (f1, f2) of
           ((:~:) f1', (:~:) f2') -> n f1' f2' 
-          (Quant q1 vs1 f1', Quant q2 vs2 f2') -> q q1 vs1 f1' q2 vs2 f2'
+          (Quant q1 (v1:vs1) f1', Quant q2 (v2:vs2) f2') -> q q1 v1 (Quant q1 vs1 f1') q2 v2 (Quant q2 vs2 f2')
+          (Quant _ [] f1', Quant _ [] f2') -> zipF n q b i p f1' f2'
           (BinOp l1 op1 r1, BinOp l2 op2 r2) -> b l1 op1 r1 l2 op2 r2
           (InfixPred l1 op1 r1, InfixPred l2 op2 r2) -> i l1 op1 r1 l2 op2 r2
           (PredApp p1 ts1, PredApp p2 ts2) -> p p1 ts1 p2 ts2
@@ -131,32 +142,6 @@ instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
     pApp x args = PredApp x args
     x .=. y = InfixPred x (:=:) y
     x .!=. y = InfixPred x (:!=:) y
-
-foldFormula ::
-                  (Formula v p f -> r)
-               -> (Quant -> [v] -> Formula v p f -> r)
-               -> (Formula v p f -> BinOp -> Formula v p f -> r)
-               -> (PTerm v f -> InfixPred -> PTerm v f -> r)
-               -> (p -> [PTerm v f] -> r)
-               -> Formula v p f
-               -> r
-foldFormula kneg kquant kbinop kinfix kpredapp f =
-    case f of
-      (:~:) x -> kneg x
-      Quant x y z -> kquant x y z
-      BinOp x y z -> kbinop x y z
-      InfixPred x y z -> kinfix x y z
-      PredApp x y -> kpredapp x y
-                      
-foldTerm ::
-               (v -> r)
-            -> (f -> [PTerm v f] -> r)
-            -> PTerm v f
-            -> r
-foldTerm kvar kfunapp t =
-    case t of
-      Var x -> kvar x
-      FunApp x y -> kfunapp x y
 
 instance Version (PTerm v f)
 instance Version (Formula v p f)

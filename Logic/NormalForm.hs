@@ -72,7 +72,7 @@ eliminateImplication =
     foldF n q b infixPred pApp
     where
       n f = (.~.) (eliminateImplication f)
-      q vs op f = quant vs op (eliminateImplication f)
+      q op v f = quant op v (eliminateImplication f)
       b f1 op f2 =
           case op of
             (:=>:) -> ((.~.) f1') .|. f2'
@@ -110,10 +110,10 @@ moveNotInwards formula =
     foldF n q b infixPred pApp formula
     where
       n f = foldF moveNotInwards
-                  (\ op vs f' -> 
+                  (\ op v f' -> 
                        case op of
-                         Exists -> for_all vs (moveNotInwards ((.~.) f'))
-                         All -> exists vs (moveNotInwards ((.~.) f')))
+                         Exists -> for_all v (moveNotInwards ((.~.) f'))
+                         All -> exists v (moveNotInwards ((.~.) f')))
                   (\ f1 op f2 ->
                        case op of
                          (:&:) -> moveNotInwards (((.~.) f1) .|. ((.~.) f2))
@@ -122,7 +122,7 @@ moveNotInwards formula =
                   (\ t1 op t2 -> (.~.) (infixPred t1 op t2))
                   (\ p ts -> (.~.) (pApp p ts))
                   f
-      q op vs f = quant op vs (moveNotInwards f)
+      q op v f = quant op v (moveNotInwards f)
       b f1 op f2 = binOp (moveNotInwards f1) op (moveNotInwards f2)
 
 prenexNormalForm :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
@@ -137,10 +137,10 @@ uniqueQuantifiedVariables formula =
       rename :: formula -> NormalT v term m formula
       rename =
           foldF (\ f -> rename f >>= return . (.~.))
-                (\ op vs f ->
+                (\ op v f ->
                      rename f >>= \ f' ->
-                     mapM chooseName vs >>= \ vs' ->
-                     return . quant op vs' . foldr renameFree f' $ zip vs vs')
+                     chooseName v >>= \ v' ->
+                     return . quant op v' $ renameFree (v, v') f')
                 (\ f1 op f2 -> rename f1 >>= \ f1' -> rename f2 >>= \ f2' ->
                                return $ binOp f1' op f2')
                 (\ t1 op t2 -> return $ infixPred t1 op t2)
@@ -186,9 +186,9 @@ moveQuantifiersOut =
       collect :: formula -> ([(Quant, v)], formula)
       collect =
           foldF (\ f -> ([], (.~.) f))
-                (\ op vs f ->
+                (\ op v f ->
                      let (pairs, f') = collect f in
-                     (map (\ v -> (op, v)) vs ++ pairs, f'))
+                     ((op, v) : pairs, f'))
                 (\ lf op rf ->
                      let (lpairs, lf') = collect lf
                          (rpairs, rf') = collect rf in
@@ -201,7 +201,7 @@ moveQuantifiersOut =
       merge :: ([(Quant, v)], formula) -> formula
       merge ([], f) = f
       -- Note that the resulting variable lists will all be singletons.
-      merge ((q, v) : qs, f) = quant q [v] (merge (qs, f))
+      merge ((q, v) : qs, f) = quant q v (merge (qs, f))
 
 -- |Convert to Prenex Normal Form and then distribute the disjunctions over the conjunctions:
 -- 
@@ -219,8 +219,8 @@ distributeDisjuncts =
     foldF n q b i a
     where
       n = (.~.)
-      q All vs x = for_all vs (distributeDisjuncts x)
-      q Exists vs x = exists vs (distributeDisjuncts x)
+      q All v x = for_all v (distributeDisjuncts x)
+      q Exists v x = exists v (distributeDisjuncts x)
       b f1 (:|:) f2 = doRHS (distributeDisjuncts f1) (distributeDisjuncts f2)
       b f1 (:&:) f2 = distributeDisjuncts f1 .&. distributeDisjuncts f2
       b f1 op f2 = binOp (distributeDisjuncts f1) op (distributeDisjuncts f2)
@@ -278,18 +278,20 @@ skolemize =
     where
       n :: formula -> NormalT v term m formula
       n s = skolemize s >>= \ (s' :: formula) -> return ((.~.) s')
-      q All vs f =
+      q All v f =
           do logicState <- get
              -- Add these variables to the list while we are in the
-             -- scope where they are universally quantified.
-             put (logicState {univQuant = univQuant logicState ++ vs})
-             result <- skolemize f >>= return . for_all vs
+             -- scope where they are universally quantified.  (FIXME:
+             -- it is not necessary to add it to the end, but when
+             -- this is changed the test cases need updating.)
+             put (logicState {univQuant = univQuant logicState ++ [v]})
+             result <- skolemize f >>= return . for_all v
              put logicState
              return result
-      q Exists vs f =
+      q Exists v f =
           do logicState <- get
-             let skolemMap' = foldr (\ (v, c) -> Map.insert v (fApp (toSkolem c) (map var (univQuant logicState)))) (skolemMap logicState) (zip vs [skolemCount logicState ..])
-             put (logicState { skolemCount = skolemCount logicState + length vs
+             let skolemMap' = Map.insert v (fApp (toSkolem (skolemCount logicState)) (map var (univQuant logicState))) (skolemMap logicState)
+             put (logicState { skolemCount = skolemCount logicState + 1
                              , skolemMap = skolemMap' })
              skolemize f
       b s1 op s2 = skolemize s1 >>= \ s1' -> 
@@ -415,7 +417,7 @@ removeUniversal formula =
     foldF (.~.) removeAll binOp infixPred pApp formula
     where
       removeAll All _ f = removeUniversal f
-      removeAll Exists vs f = exists vs (removeUniversal f)
+      removeAll Exists v f = exists v (removeUniversal f)
 
 -- | @gFind a@ will extract any elements of type @b@ from
 -- @a@'s structure in accordance with the MonadPlus
