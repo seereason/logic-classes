@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes, ScopedTypeVariables, TypeSynonymInstances, UndecidableInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings,
+             RankNTypes, ScopedTypeVariables, StandaloneDeriving, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-missing-signatures -fno-warn-orphans #-}
 module Logic.Instances.TPTP where
 
@@ -9,7 +10,7 @@ import Data.Char (isDigit, ord)
 import Data.Generics (Data, Typeable)
 import Data.String (IsString(..))
 import qualified Logic.FirstOrder as Logic
-import Logic.FirstOrder (FirstOrderLogic(..), Term(..))
+import Logic.FirstOrder (FirstOrderLogic(..), Term(..), Pretty(..))
 import qualified Logic.Logic as Logic
 import Logic.Logic (Logic(..), Boolean(..))
 import qualified Logic.Propositional as Logic
@@ -159,3 +160,20 @@ instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.Term (T Ident
           StringLit s -> T {runT = Identity (DistinctObjectTerm s)}
           NumberLit n -> T {runT = Identity (NumberLitTerm n)}
           Skolem (V s) -> TPTP.fApp (AtomicWord ("Sk(" ++ s ++ ")")) args
+
+instance Show Formula where
+    show = show . pretty . runIdentity . runF
+
+instance Pretty (Formula0 t f) where
+    pretty _f = text "Formula0"
+{-
+    pretty (PredApp p ts) = text "PredApp"
+    pretty (BinOp f1 op f2) = text "BinOp"
+    pretty (InfixPred t1 op t2) = text "InfixPred"
+    pretty (Quant q vs f) = text "Quant"
+    pretty ((:~:) f) = text ":~:"
+-}
+
+--deriving instance Show TPTP.Term
+--deriving instance (Show t, Show f) => Show (TPTP.Formula0 t f)
+--deriving instance Show t => Show (TPTP.Term0 t)

@@ -16,6 +16,10 @@ module Logic.FirstOrder
     , Term(..)
     , Quant(..)
     , quant
+    , (!), (?), ($$)
+    , quant'
+    , for_all'
+    , exists'
     , InfixPred(..)
     , infixPred
     , showForm
@@ -32,8 +36,6 @@ module Logic.FirstOrder
     , Pretty(..)
     , prettyForm
     , prettyTerm
-    , for_all'
-    , exists'
     , disj
     , conj
     ) where
@@ -49,7 +51,7 @@ import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
 import Logic.Logic
 import Logic.Propositional (PropositionalLogic(..))
-import Text.PrettyPrint
+import Text.PrettyPrint hiding (($$))
 
 class Pretty x where
     pretty :: x -> Doc
@@ -85,8 +87,8 @@ class (Ord v, Enum v, Data v,
 -- instance for (FirstOrderLogic Formula term V p f)@ because the
 -- function doesn't mention the Term type.
 class (Ord v, IsString v, Pretty v, Show v, 
-       Ord p, IsString p, Boolean p, Data p, Pretty p,
-       Ord f, IsString f, Pretty f,
+       Ord p, IsString p, Boolean p, Data p, Pretty p, Show p,
+       Ord f, IsString f, Pretty f, Show f,
        Logic formula, Ord formula, Data formula, Show formula, Eq term,
        Term term v f) => FirstOrderLogic formula term v p f
                        | formula -> term
@@ -148,6 +150,11 @@ quant :: FirstOrderLogic formula term v p f =>
 quant All v f = for_all v f
 quant Exists v f = exists v f
 
+quant' :: FirstOrderLogic formula term v p f => 
+         Quant -> [v] -> formula -> formula
+quant' All = for_all'
+quant' Exists = exists'
+
 -- | Helper function for building folds.
 infixPred :: FirstOrderLogic formula term v p f => 
              term -> InfixPred -> term -> formula
@@ -167,7 +174,13 @@ showForm formula =
       i :: term -> InfixPred -> term -> String
       i t1 op t2 = "(" ++ parenTerm t1 ++ " " ++ showTermOp op ++ " " ++ parenTerm t2 ++ ")"
       a :: p -> [term] -> String
-      a p ts = "(pApp (" ++ show p ++ ") [" ++ intercalate "," (map showTerm ts) ++ "])"
+      a p ts =
+          let p' = if p == fromBool True
+                   then "(fromBool True)" 
+                   else if p == fromBool False
+                        then "(fromBool False)"
+                        else show p in
+          "(pApp (" ++ p' ++ ") [" ++ intercalate "," (map showTerm ts) ++ "])"
       parenForm x = "(" ++ showForm x ++ ")"
       parenTerm :: term -> String
       parenTerm x = "(" ++ showTerm x ++ ")"
@@ -348,6 +361,13 @@ toPropositional convertAtom formula =
       b f1 op f2 = binOp (convert' f1) op (convert' f2)
       i _ _ _ = convertAtom formula
       p _ _ = convertAtom formula
+
+(!) :: FirstOrderLogic formula term v p f => v -> formula -> formula
+(!) = for_all
+(?) :: FirstOrderLogic formula term v p f => v -> formula -> formula
+(?) = exists
+($$) :: FirstOrderLogic formula term v p f => p -> [term] -> formula
+($$) = pApp
 
 instance Version InfixPred
 instance Version Quant

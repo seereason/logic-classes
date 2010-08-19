@@ -12,7 +12,6 @@ module Logic.Logic
     ) where
 
 import Data.Data (Data)
-import Data.List (isPrefixOf)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
@@ -65,10 +64,11 @@ data BinOp
     |  (:=>:)  -- ^ Implication
     |  (:&:)  -- ^ AND
     |  (:|:)  -- ^ OR
-    deriving (Eq,Ord,Show,Data,Typeable,Enum,Bounded)
+    deriving (Eq,Ord,Read,Data,Typeable,Enum,Bounded)
 
 -- |We need to implement read manually here due to
 -- <http://hackage.haskell.org/trac/ghc/ticket/4136>
+{-
 instance Read BinOp where
     readsPrec _ s = 
         map (\ (x, t) -> (x, drop (length t) s))
@@ -78,6 +78,13 @@ instance Read BinOp where
                  ((:=>:), ":=>:"),
                  ((:&:), ":&:"),
                  ((:|:), ":|:")]
+-}
+
+instance Show BinOp where
+    show (:<=>:) = "(:<=>:)"
+    show (:=>:) = "(:=>:)"
+    show (:&:) = "(:&:)"
+    show (:|:) = "(:|:)"
 
 -- | A helper function for building folds:
 -- @

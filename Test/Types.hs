@@ -53,7 +53,7 @@ data Pr
     = Pr String
     | T
     | F
-    deriving (Eq, Ord, Show, Data, Typeable)
+    deriving (Eq, Ord, Data, Typeable)
 
 instance IsString Pr where
     fromString = Pr
@@ -61,6 +61,11 @@ instance IsString Pr where
 instance Boolean Pr where
     fromBool True = T
     fromBool False = F
+
+instance Show Pr where
+    show T = "fromBool True"
+    show F = "fromBool False"
+    show (Pr s) = show s            -- Because Pr is an instance of IsString
 
 instance Pretty Pr where
     pretty T = text "True"

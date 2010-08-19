@@ -17,7 +17,7 @@ import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
 import Logic.Clause (Literal(..))
-import Logic.FirstOrder (Term(..), FirstOrderLogic(..), Quant(..), InfixPred(..), Skolem(..), Pretty, showTerm, showForm)
+import Logic.FirstOrder (Term(..), FirstOrderLogic(..), Quant(..), InfixPred(..), Skolem(..), Pretty, quant', showForm, showTerm)
 import Logic.Implicative (Implicative(..))
 import Logic.Logic (Logic(..), BinOp(..), Boolean(..))
 import Logic.Propositional (PropositionalLogic(..))
@@ -53,10 +53,10 @@ data ImplicativeNormalForm v p f =
     INF (S.Set (Formula v p f)) (S.Set (Formula v p f))
     deriving (Eq, Data, Typeable)
 
-instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
-          Ord v, IsString v, Enum v, Data v, 
-          Ord p, IsString p, Boolean p, Data p,
-          Ord f, IsString f, Skolem f, Data f, Show (Formula v p f)) => Literal (Formula v p f) where
+instance (Ord v, IsString v, Enum v, Data v, Pretty v, Show v,
+          Ord p, IsString p, Boolean p, Data p, Pretty p, Show p,
+          Ord f, IsString f, Skolem f, Data f, Pretty f, Show f,
+          Show (Formula v p f)) => Literal (Formula v p f) where
     negate = (.~.)
     negated = foldF (\ _ -> True)
                     (\ _ _ _ -> False)
@@ -64,10 +64,10 @@ instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
                     (\ _ _ _ -> False)
                     (\ _ _ -> False)
 
-instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
-          Ord v, IsString v, Enum v, Data v,
-          Ord p, IsString p, Boolean p, Data p,
-          Ord f, IsString f, Skolem f, Data f, Show (Formula v p f)) => Implicative (ImplicativeNormalForm v p f) (Formula v p f) where
+instance (Ord v, IsString v, Enum v, Data v, Pretty v, Show v,
+          Ord p, IsString p, Boolean p, Data p, Pretty p, Show p,
+          Ord f, IsString f, Skolem f, Data f, Pretty f, Show f,
+          Show (Formula v p f)) => Implicative (ImplicativeNormalForm v p f) (Formula v p f) where
     neg (INF lhs _) = lhs
     pos (INF _ rhs) = rhs
     makeINF = INF
@@ -82,10 +82,9 @@ instance Logic (Formula v p f) where
     x .&.   y = BinOp  x (:&:)   y
     (.~.) x   = (:~:) x
 
-instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
-          Ord v, IsString v, Enum v, Data v,
-          Ord p, IsString p, Boolean p, Data p,
-          Ord f, IsString f, Skolem f, Data f,
+instance (Ord v, IsString v, Enum v, Data v, Pretty v, Show v,
+          Ord p, IsString p, Boolean p, Data p, Pretty p, Show p,
+          Ord f, IsString f, Skolem f, Data f, Pretty f, Show f,
           Logic (Formula v p f), Show (Formula v p f)) =>
          PropositionalLogic (Formula v p f) (Formula v p f) where
     atomic (InfixPred t1 (:=:) t2) = t1 .=. t2
@@ -113,10 +112,9 @@ instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term (PTerm v f) v f
     var = Var
     fApp x args = FunApp x args
 
-instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
-          Ord v, IsString v, Enum v, Data v,
-          Ord p, IsString p, Boolean p, Data p,
-          Ord f, IsString f, Skolem f, Data f,
+instance (Ord v, IsString v, Enum v, Data v, Pretty v, Show v,
+          Ord p, IsString p, Boolean p, Data p, Pretty p,  Show p,
+          Ord f, IsString f, Skolem f, Data f, Pretty f, Show f,
           Show (Formula v p f),
           PropositionalLogic (Formula v p f) (Formula v p f), Term (PTerm v f) v f) =>
           FirstOrderLogic (Formula v p f) (PTerm v f) v p f where
@@ -125,7 +123,8 @@ instance (Pretty v, Pretty p, Pretty f, Show v, -- for debugging
     foldF n q b i p f =
         case f of
           (:~:) f' -> n f'
-          Quant op (v:vs) f' -> q op v (Quant op vs f')
+          -- Be careful not to create quants with empty variable lists
+          Quant op (v:vs) f' -> q op v (quant' op vs f')
           Quant _ [] f' -> foldF n q b i p f'
           BinOp l op r -> b l op r
           InfixPred l op r -> i l op r

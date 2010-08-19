@@ -23,7 +23,7 @@ import qualified Logic.FirstOrder as Logic
 import Logic.Implicative (Implicative(..))
 import Logic.Logic (Logic(..), BinOp(..), Boolean(..))
 import Logic.Propositional (PropositionalLogic(..))
-import Logic.FirstOrder (Skolem(..), Quant(..), showForm, showTerm)
+import Logic.FirstOrder (Skolem(..), Quant(..))
 
 
 -- |This enum instance is used to generate a series of new variable
@@ -54,12 +54,12 @@ data Sentence v p f
     | Not (Sentence v p f)
     | Predicate p [CTerm v f]
     | Equal (CTerm v f) (CTerm v f)
-    deriving (Eq, Ord, Data, Typeable)
+    deriving (Eq, Ord, Data, Typeable, Show)
 
 data CTerm v f
     = Function f [CTerm v f]
     | Variable v
-    deriving (Eq, Ord, Data, Typeable)
+    deriving (Eq, Ord, Data, Typeable, Show)
 
 data Connective
     = Imply
@@ -131,7 +131,10 @@ instance (Pretty v, Pretty p, Pretty f, Show v, Show p, Show f, -- debugging
               let op' = case op of
                           ForAll -> Logic.All
                           ExistsCh -> Logic.Exists in
-              q op' v (Quantifier op vs f')
+              -- Use Logic.quant' here instead of the constructor
+              -- Quantifier so as not to create quantifications with
+              -- empty variable lists.
+              q op' v (Logic.quant' op' vs f')
           Quantifier _ [] f' -> foldF n q b i p f'
           Connective f1 Imply f2 -> b f1 (:=>:) f2
           Connective f1 Equiv f2 -> b f1 (:<=>:) f2
@@ -167,11 +170,13 @@ instance (Pretty v, Pretty p, Pretty f, Show v, Show p, Show f, -- debugging
     x .=. y = Equal x y
     x .!=. y = Not (Equal x y)
 
+{-
 instance (FirstOrderLogic (Sentence v p f) (CTerm v f) v p f, Show v, Show p, Show f) => Show (Sentence v p f) where
     show = showForm
 
 instance (FirstOrderLogic (Sentence v p f) (CTerm v f) v p f, Show v, Show p, Show f) => Show (CTerm v f) where
     show = showTerm
+-}
 
 instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Logic.Term (CTerm v f) v f where
     foldT v fn t =
