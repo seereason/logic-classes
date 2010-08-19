@@ -16,7 +16,7 @@ module Logic.FirstOrder
     , Term(..)
     , Quant(..)
     , quant
-    , (!), (?), ($$)
+    , (!), (?)
     , quant'
     , for_all'
     , exists'
@@ -51,7 +51,7 @@ import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
 import Logic.Logic
 import Logic.Propositional (PropositionalLogic(..))
-import Text.PrettyPrint hiding (($$))
+import Text.PrettyPrint
 
 class Pretty x where
     pretty :: x -> Doc
@@ -366,8 +366,10 @@ toPropositional convertAtom formula =
 (!) = for_all
 (?) :: FirstOrderLogic formula term v p f => v -> formula -> formula
 (?) = exists
+{-
 ($$) :: FirstOrderLogic formula term v p f => p -> [term] -> formula
 ($$) = pApp
+-}
 
 instance Version InfixPred
 instance Version Quant

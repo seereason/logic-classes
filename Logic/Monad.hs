@@ -5,6 +5,7 @@ module Logic.Monad
     , NormalT
     , runNormalT
     , runNormal
+    , putVars
     , LiteralMap
     , LiteralMapT
     , runLiteralMap
@@ -26,7 +27,7 @@ module Logic.Monad
     ) where
 
 import Control.Monad.Identity (Identity(runIdentity))
-import Control.Monad.State (StateT(runStateT), evalStateT)
+import Control.Monad.State (StateT(runStateT), evalStateT, modify)
 import Data.Generics (Data, Typeable)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -64,6 +65,9 @@ runNormalT action = (runStateT action) newLogicState >>= return . fst
 
 runNormal :: NormalT v term Identity a -> a
 runNormal = runIdentity . runNormalT
+
+putVars :: Monad m => Set.Set v -> NormalT v term m ()
+putVars s = modify (\ state -> state {varNames = s})
  
 -- |A Monad for creating and maintaining a map from literals of type p
 -- to literals of type Int.

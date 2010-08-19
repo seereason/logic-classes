@@ -306,6 +306,14 @@ formulas =
                      [(pApp "p" []),(pApp "r" []),(pApp "t" [])],
                      [((.~.) (pApp "q" [])),(pApp "r" []),(pApp "t" [])]]]
       }
+    , TestFormula
+      { name = "foo"
+      , formula = let p x = pApp "p" [x]
+                      q x = pApp "q" [x]
+                      (x, y, z) = (var "x", var "y", var "z") in
+                  for_all "x" (p x .=>. (exists "y" (exists "z" (q y .|. (.~.) (exists "z" (p z .&. (q z)))))))
+      , expected = [SkolemNormalForm (pApp "p" [])]
+      }
     ]
 
 animalKB :: forall formula term v p f. FirstOrderLogic formula term v p f =>
