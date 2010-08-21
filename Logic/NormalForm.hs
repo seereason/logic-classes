@@ -32,9 +32,9 @@ module Logic.NormalForm
     ( negationNormalForm
     , uniqueQuantifiedVariables
     , prenexNormalForm
-    , disjunctiveNormalForm
+    , conjunctiveNormalForm
     , skolemNormalForm
-    , clausalNormalForm
+    , clauseNormalForm
     , cnfTrace
     , implicativeNormalForm
     ) where
@@ -47,6 +47,7 @@ import Data.Maybe (isJust)
 import qualified Data.Set as S
 import Logic.Clause (Literal)
 import Logic.FirstOrder
+import qualified Logic.Harrison as Harrison
 import Logic.Logic
 import Logic.Monad (NormalT, LogicState(..))
 import Text.PrettyPrint (hcat, vcat, text, nest, ($$), brackets, render)
@@ -94,8 +95,11 @@ eliminateImplication =
 -- ~~P  P
 -- @
 -- 
-negationNormalForm :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
-negationNormalForm f =  uniqueQuantifiedVariables (simplify f) >>= return . moveNotInwards
+--negationNormalForm :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
+--negationNormalForm f = uniqueQuantifiedVariables (simplify f) >>= return . moveNotInwards
+
+negationNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
+negationNormalForm f =  Harrison.negationNormalForm f
 
 {--
    Invariants:
@@ -127,7 +131,8 @@ moveNotInwards formula =
       b f1 op f2 = binOp (moveNotInwards f1) op (moveNotInwards f2)
 
 prenexNormalForm :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
-prenexNormalForm formula = negationNormalForm formula >>= return . moveQuantifiersOut
+prenexNormalForm formula = Harrison.pnf formula
+-- prenexNormalForm formula = negationNormalForm formula >>= return . moveQuantifiersOut
 
 uniqueQuantifiedVariables :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
 uniqueQuantifiedVariables formula =
@@ -212,8 +217,10 @@ moveQuantifiersOut =
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-disjunctiveNormalForm :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
-disjunctiveNormalForm formula = prenexNormalForm formula >>= return . distributeDisjuncts
+conjunctiveNormalForm :: (Monad m, FirstOrderLogic formula term v p f, Literal formula) =>
+                         formula -> NormalT v term m (S.Set (S.Set formula))
+conjunctiveNormalForm formula = Harrison.cnf formula
+-- conjunctiveNormalForm formula = prenexNormalForm formula >>= return . distributeDisjuncts
 
 distributeDisjuncts :: FirstOrderLogic formula term v p f => formula -> formula
 distributeDisjuncts =
@@ -260,9 +267,14 @@ distributeDisjuncts =
 -- appeared.
 skolemNormalForm :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f) =>
                     formula -> NormalT v term m formula
-skolemNormalForm formula =
-    do dnf <- disjunctiveNormalForm formula
-       result1 <- skolemize dnf
+skolemNormalForm formula = Harrison.skolemize formula
+
+{-
+skolemNormalForm' :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f) =>
+                    formula -> NormalT v term m formula
+skolemNormalForm' formula =
+    do cnf <- conjunctiveNormalForm formula
+       result1 <- skolemize cnf
        -- state <- get
        -- put (state { skolemCount = 1, skolemMap = Map.empty, univQuant = [] })
        -- result2 <- skolemize dnf
@@ -271,6 +283,7 @@ skolemNormalForm formula =
           then trace ("\nSkolemization discrepancy:\n result1=" ++ show (prettyForm 0 result1) ++ "\n result2=" ++ show (prettyForm 0 result2)) result1
           else result1) -}
        return result1
+-}
 
 skolemize :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f) =>
              formula -> NormalT v term m formula
@@ -319,10 +332,11 @@ skolemize =
 -- @@
 --   [[a, ~b], [c, ~d]] <-> ((a | ~b) & (c | ~d))
 -- @@
-clausalNormalForm :: (Monad m, FirstOrderLogic formula term v p f) =>
-                     formula -> NormalT v term m [[formula]]
-clausalNormalForm f = skolemNormalForm f >>= return . clausal . removeUniversal
+clauseNormalForm :: (Monad m, FirstOrderLogic formula term v p f, Literal formula) =>
+                     formula -> NormalT v term m (S.Set (S.Set formula))
+clauseNormalForm f = conjunctiveNormalForm f -- >>= return . clausal
 
+-- |Flatten a formula which is assumed to be in CNF
 clausal :: FirstOrderLogic formula term v p f =>
            formula -> [[formula]]
 clausal =
@@ -353,23 +367,28 @@ clausal =
       isTrue f = foldF isFalse e3 e3 e3 (\ p _ -> p == fromBool True) f where e3 _ _ _ = error ("clausal: "  {- ++ show (prettyForm 0 f) -})
       e0 = error "clausal"
 
-cnfTrace :: (Monad m, FirstOrderLogic formula term v p f, Pretty v, Pretty p, Pretty f) =>
+cnfTrace :: (Monad m, FirstOrderLogic formula term v p f, Literal formula, Pretty v, Pretty p, Pretty f) =>
             formula -> NormalT v term m String
 cnfTrace f =
-    do simplified <- uniqueQuantifiedVariables (simplify f)
-       nnf <- negationNormalForm simplified
+    do let simplified = Harrison.simplify f
+{-
+       let nnf = negationNormalForm f
        pnf <- prenexNormalForm nnf
-       dnf <- disjunctiveNormalForm pnf
-       snf <- skolemNormalForm dnf
-       cnf <- clausalNormalForm snf
+       cnf <- conjunctiveNormalForm pnf
+-}
+       snf <- skolemNormalForm f
+       cnf' <- clauseNormalForm f >>= return . map S.toList . S.toList
        return . render . vcat $
                   [text "Original:" $$ nest 2 (prettyForm 0 f),
                    text "Simplified:" $$ nest 2 (prettyForm 0 simplified),
+{-
                    text "Negation Normal Form:" $$ nest 2 (prettyForm 0 nnf),
                    text "Prenex Normal Form:" $$ nest 2 (prettyForm 0 pnf),
-                   text "Disjunctive Normal Form:" $$ nest 2 (prettyForm 0 dnf),
+                   text "Conjunctive Normal Form:" $$ nest 2 (prettyForm 0 cnf), -}
                    text "Skolem Normal Form:" $$ nest 2 (prettyForm 0 snf),
-                   text "Clause Normal Form:" $$ vcat (map (nest 2 . brackets . hcat . intersperse (text ", ") . map (nest 2 . brackets . prettyForm 0)) cnf)]
+                   text "Clause Normal Form:" $$ vcat (map prettyClause cnf')]
+    where
+      prettyClause = nest 2 . brackets . hcat . intersperse (text ", ") . map (nest 2 . brackets . prettyForm 0)
 
 -- |Take the clause normal form, and turn it into implicative form,
 -- where each clauses becomes an (LHS, RHS) pair with the negated
@@ -392,10 +411,10 @@ cnfTrace f =
 --    a | b | c => f
 -- @
 implicativeNormalForm :: forall m formula term v p f. 
-                         (Monad m, FirstOrderLogic formula term v p f, Data formula) =>
+                         (Monad m, FirstOrderLogic formula term v p f, Literal formula, Data formula) =>
                          formula -> NormalT v term m [([formula], [formula])]
 implicativeNormalForm formula =
-    clausalNormalForm formula >>= return . concatMap split . map (imply . foldl collect ([], []))
+    clauseNormalForm formula >>= return . concatMap split . map (imply . foldl collect ([], [])) . map S.toList . S.toList
     where
       collect :: ([formula], [formula]) -> formula -> ([formula], [formula])
       collect (n, p) f =
