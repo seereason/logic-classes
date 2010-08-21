@@ -129,7 +129,6 @@ isRenameOfSentence f1 f2 =
                (\ t1l op1 t1r t2l op2 t2r ->
                     if op1 == (Logic.:=:) && op2 == (Logic.:=:)
                     then Just (isRenameOfTerm t1l t2l && isRenameOfTerm t1r t2r)
-                                {- || (isRenameOfTerm t1l t2r && isRenameOfTerm l1r t2l) -}
                     else Nothing)
                (\ p1 ts1 p2 ts2 -> Just (p1 == p2 && isRenameOfTerms ts1 ts2))
                f1 f2
