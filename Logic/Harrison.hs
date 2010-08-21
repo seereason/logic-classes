@@ -1,26 +1,23 @@
 {-# LANGUAGE OverloadedStrings, RankNTypes, ScopedTypeVariables #-}
 module Logic.Harrison
-    ( simplify
-    , tests
+    ( psimplify
+    , simplify
+    , negationNormalForm
+    , pnf
+    , skolemize
+    , dnf
+    , cnf
+    , trivial
     ) where
-
-import Debug.Trace
 
 import Control.Monad.State (get, put)
 import qualified Data.Set as S
 import Logic.FirstOrder
+import Logic.Clause (Literal(..))
 import Logic.Logic
-import Logic.Monad (NormalT, LogicState(..), runNormal, putVars)
-
-import System.Exit
-import Test.HUnit
-import Test.Types (V(..), Pr(..), AtomicFunction(..))
-import qualified Logic.Instances.Native as N
-import Text.PrettyPrint (Doc)
-
-true = pApp (fromBool True) []
-
-false = pApp (fromBool False) []
+import Logic.Monad (NormalT, LogicState(..), putVars)
+import qualified Logic.Set as S
+import Prelude hiding (negate)
 
 -- |p. 51
 -- negative = foldF (const True) (\ _ _ _ -> False) (\ _ _ _ -> False) (\ _ _ _ -> False) (\ _ _ -> False)
@@ -28,7 +25,7 @@ false = pApp (fromBool False) []
 psimplify :: FirstOrderLogic formula term v p f => formula -> formula
 psimplify fm =
     foldF (\ p -> psimplify1 ((.~.) (psimplify p)))
-          (\ op v fm' -> error "psimplify")
+          (\ _op _v _fm' -> error "psimplify")
           (\ l op r -> psimplify1 (binOp (psimplify l) op (psimplify r)))
           (\ l op r -> psimplify1 (infixPred l op r))
           (\ pr ts -> psimplify1 (pApp pr ts))
@@ -68,11 +65,11 @@ psimplify1 fm =
       -- false, or something else.
       pBool :: formula -> Maybe Bool
       pBool = foldF (\ _ -> Nothing) (\ _ _ _ -> Nothing) (\ _ _ _ -> Nothing) (\ _ _ _ -> Nothing)
-                    (\ pr ts -> if pr == fromBool True
-                                then Just True
-                                else if pr == fromBool False
-                                     then Just False
-                                     else Nothing)
+                    (\ pr _ts -> if pr == fromBool True
+                                 then Just True
+                                 else if pr == fromBool False
+                                      then Just False
+                                      else Nothing)
       true = pApp (fromBool True) []
       false = pApp (fromBool False) []
 
@@ -90,12 +87,13 @@ simplify fm =
 simplify1 :: FirstOrderLogic formula term v p f => formula -> formula
 simplify1 fm =
     foldF (\ _ -> psimplify1 fm)
-          (\ op v p -> if S.member v (freeVars p) then fm else p)
+          (\ _op v p -> if S.member v (freeVars p) then fm else p)
           (\ _ _ _ -> psimplify1 fm)
           (\ _ _ _ -> psimplify1 fm)
           (\ _ _ -> psimplify1 fm)
           fm
 
+nnf :: FirstOrderLogic formula term v p f => formula -> formula
 nnf fm =
     foldF nnfNot nnfQuant nnfBinOp (\ _ _ _ -> fm) (\ _ _ -> fm) fm
     where
@@ -111,6 +109,9 @@ nnf fm =
       nnfNotBinOp p (:|:) q = nnf ((.~.) p) .&. nnf ((.~.) q)
       nnfNotBinOp p (:=>:) q = nnf p .&. nnf ((.~.) q)
       nnfNotBinOp p (:<=>:) q = (nnf p .&. nnf ((.~.) q)) .|. nnf ((.~.) p) .&. nnf q
+
+negationNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
+negationNormalForm = nnf . simplify
 
 pullQuants :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
 pullQuants fm =
@@ -154,8 +155,8 @@ prenex fm =
     foldF (\ _ -> return fm) q b (\ _ _ _ -> return fm) (\ _ _ -> return fm) fm
     where
       q op x p = prenex p >>= return . quant op x
-      b p (:&:) q = prenex p >>= \ p' -> prenex q >>= \ q' -> pullQuants (p' .&. q')
-      b p (:|:) q = prenex p >>= \ p' -> prenex q >>= \ q' -> pullQuants (p' .|. q')
+      b l (:&:) r = prenex l >>= \ l' -> prenex r >>= \ r' -> pullQuants (l' .&. r')
+      b l (:|:) r = prenex l >>= \ l' -> prenex r >>= \ r' -> pullQuants (l' .|. r')
       b _ _ _ = return fm
 
 pnf :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
@@ -173,8 +174,8 @@ skolem fm =
              let fx = fApp f (map var (S.toList xs))
              skolem (substitute y fx p)
       q All x p = skolem p >>= return . for_all x
-      b p (:&:) q = skolem2 (.&.) p q
-      b p (:|:) q = skolem2 (.|.) p q
+      b l (:&:) r = skolem2 (.&.) l r
+      b l (:|:) r = skolem2 (.|.) l r
       b _ _ _ = return fm
 
 skolem2 :: (Monad m, FirstOrderLogic formula term v p f) => (formula -> formula -> formula) -> formula -> formula -> NormalT v term m formula
@@ -196,66 +197,130 @@ specialize f =
 skolemize :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
 skolemize f = askolemize f >>= pnf >>= return . specialize
 
-type Formula = N.Formula V Pr AtomicFunction
+-- | @a&(b|c) -> (a|b)&(a|c)@
+distribDNF :: FirstOrderLogic formula term v p f => formula -> formula
+distribDNF f =
+    foldF (\ _ -> f) (\ _ _ _ -> f) b (\ _ _ _ -> f) (\ _ _ -> f) f
+    where
+      b l (:&:) r =
+          case (ors l, ors r) of
+            (_, Just (l', r')) -> distribDNF (l .&. l') .|. distribDNF (l .&. r')
+            (Just (l', r'), _) -> distribDNF (l' .&. r) .|. distribDNF (r' .&. r)
+            _ -> f
+      b _ _ _ = f
+      ors = foldF (\ _ -> Nothing)
+                  (\ _ _ _ -> Nothing) 
+                  (\ l' op r' -> if op == (:|:) then Just (l', r') else Nothing)
+                  (\ _ _ _ -> Nothing)
+                  (\ _ _ -> Nothing)
 
-tests :: IO ()
-tests =
-    let p = pApp "p" []
-        q = pApp "q" [] in
-    runTestTT (TestList 
-               [ TestLabel "p50" $ TestCase $
-                 assertEqual
-                 "psimplify 50"
-                 (p .<=>. (.~.) p :: Formula)
-                 (simplify $ true .=>. (p .<=>. (p .<=>. false)))
-               , TestLabel "p51" $ TestCase $
-                 assertEqual
-                 "psimplify 51"
-                 (true :: Formula)
-                 (simplify (((pApp "x" [] .=>. pApp "y" []) .=>. true) .|. false))
-               , TestLabel "p140" $ TestCase $
-                 assertEqual
-                 "simplify 140.3"
-                 ((for_all "x" (pApp "p" [var "x"])) .=>. (pApp "q" []))
-                 (simplify ((for_all "x" (for_all "y" (pApp "p" [var "x"] .|. (pApp "p" [var "y"] .&. false))) .=>. (exists "z" q))))
-               , TestLabel "p141" $ TestCase $
-                 assertEqual
-                 "nnf 141.1"
-                 ((exists "x" ((.~.) (pApp (Pr "p") [var "x"]))) .|.
-                  ((((exists "y" (pApp (Pr "q") [var "y"])) .&. ((exists "z" ((pApp (Pr "p") [var "z"]) .&. ((pApp (Pr "q") [var "z"])))))) .|.
-                    (((for_all "y" ((.~.) (pApp (Pr "q") [var "y"]))) .&. ((for_all "z" (((.~.) (pApp (Pr "p") [var "z"])) .|. (((.~.) (pApp (Pr "q") [var "z"])))))))))) :: Formula)
-                 (nnf ((for_all "x" (pApp "p" [var "x"])) .=>. ((exists "y" (pApp "q" [var "y"])) .<=>. (exists "z" (pApp "p" [var "z"] .&. pApp "q" [var "z"])))))
-               , TestLabel "p144" $ TestCase $
-                 assertEqual
-                 "pnf 144.1"
-                 (exists "x" 
-                  (for_all "z"
-                   ((((.~.) (pApp "p" [var "x"])) .&. (((.~.) (pApp "r" [var "y"])))) .|.
-                    (((pApp "q" [var "x"]) .|. ((((.~.) (pApp "p" [var "z"])) .|. (((.~.) (pApp "q" [var "z"]))))))))) :: Formula)
-                 (runNormal 
-                  (pnf (for_all "x" (pApp "p" [var "x"] .|. pApp "r" [var "y"]) .=>.
-                        (exists "y" (exists "z" (pApp "q" [var "y"] .|. ((.~.) (exists "z" (pApp "p" [var "z"] .&. pApp "q" [var "z"])))))))))
+rawdnf :: FirstOrderLogic formula term v p f => formula -> formula
+rawdnf fm =
+    foldF (\ _ -> fm) (\ _ _ _ -> fm) b (\ _ _ _ -> fm) (\ _ _ -> fm) fm
+    where
+      b l (:&:) r = distribDNF (rawdnf l .&. rawdnf r)
+      b l (:|:) r = distribDNF (rawdnf l .|. rawdnf r)
+      b _ _ _ = fm
 
-               , let (x, y, u, v) = (var "x", var "y", var "u", var "v")
-                     fv = fApp (toSkolem 2) [u,x]
-                     fy = fApp (toSkolem 1) [x] in
-                 TestLabel "p150" $ TestCase $
-                 assertEqual
-                 "snf 150.1"
-                 (prettyForm 0 (((.~.) (pApp "<" [x, fy])) .|. pApp "<" [fApp "*" [x, u], fApp "*" [fy, fv]] :: Formula))
-                 (prettyForm 0 (runNormal (skolemize (exists "y" (pApp "<" [x, y] .=>. for_all "u" (exists "v" (pApp "<" [fApp "*" [x, u],
-                                                                                                 fApp "*" [y, v]])))))))
+-- | @a|(b&c) -> (a&b)|(a&c)@
+distribCNF :: FirstOrderLogic formula term v p f => Logic formula => formula -> formula
+distribCNF f =
+    foldF (\ _ -> f) (\ _ _ _ -> f) b (\ _ _ _ -> f) (\ _ _ -> f) f
+    where
+      b l (:|:) r =
+          case (ands l, ands r) of
+            (_, Just (l', r')) -> distribCNF (l .|. l') .&. distribCNF (l .|. r')
+            (Just (l', r'), _) -> distribCNF (l' .|. r) .&. distribCNF (r' .|. r)
+            _ -> f
+      b _ _ _ = f
+      ands = foldF (\ _ -> Nothing)
+                   (\ _ _ _ -> Nothing)
+                   (\ l' op r' -> if op == (:&:) then Just (l', r') else Nothing)
+                   (\ _ _ _ -> Nothing)
+                   (\ _ _ -> Nothing)
 
-               , let p x = pApp "p" [x]
-                     q x = pApp "q" [x]
-                     (x, y, z) = (var "x", var "y", var "z") in
-                 TestLabel "p150" $ TestCase $
-                 assertEqual
-                 "snf 150.2"
-                 (((.~.) (p x)) .|. (q (fApp (toSkolem 1) []) .|. (((.~.) (p z)) .|. ((.~.) (q z)))) :: Formula)
-                 (runNormal (skolemize (for_all "x" (p x .=>. (exists "y" (exists "z" (q y .|. (.~.) (exists "z" (p z .&. (q z))))))))))
-               ]) >>=
-    \ counts -> exitWith (if errors counts /= 0 || failures counts /= 0 then ExitFailure 1 else ExitSuccess)
+rawcnf :: FirstOrderLogic formula term v p f => formula -> formula
+rawcnf fm =
+    foldF (\ _ -> fm) (\ _ _ _ -> fm) b (\ _ _ _ -> fm) (\ _ _ -> fm) fm
+    where
+      b l (:&:) r = distribCNF (rawcnf l .&. rawcnf r)
+      b l (:|:) r = distribCNF (rawcnf l .|. rawcnf r)
+      b _ _ _ = fm
 
-instance Eq Doc where
-    a == b = show a == show b
+-- | DNF: (a & b & c) | (d & e & f)
+purednf :: forall formula term v p f. FirstOrderLogic formula term v p f => formula -> S.Set (S.Set formula)
+purednf fm =
+    foldF (\ _ -> ss fm) (\ _ _ _ -> ss fm) b (\ _ _ _ -> ss fm) (\ _ _ -> ss fm) fm
+    where
+      ss = S.singleton . S.singleton
+      b :: formula -> BinOp -> formula -> S.Set (S.Set formula)
+      b l (:&:) r =
+          let lss = purednf l
+              rss = purednf r in
+          S.flatten $ S.map (\ (rs :: S.Set formula) -> (S.map (\ (ls :: S.Set formula) -> S.union rs ls) lss)) rss
+      b l (:|:) r = S.union (purednf l) (purednf r)
+      b _ _ _ = ss fm
+
+simpdnf :: forall formula term v p f. (FirstOrderLogic formula term v p f, Literal formula) => formula -> S.Set (S.Set formula)
+simpdnf fm =
+    foldF (\ _ -> djs') (\ _ _ _ -> djs') (\ _ _ _ -> djs') (\ _ _ _ -> djs') p fm
+    where
+      p pr ts =
+          if pr == fromBool False
+          then S.empty
+          else if pr == fromBool True
+               then S.singleton S.empty
+               else djs'
+      djs' :: S.Set (S.Set formula)
+      djs' = S.filter (\ d -> not (S.any (`S.isProperSubsetOf` d) djs)) djs
+      djs :: S.Set (S.Set formula)
+      djs = S.filter (not . trivial) (purednf (nnf fm))
+
+-- (a&b) | (c&d)
+dnf :: (Monad m, FirstOrderLogic formula term v p f, Literal formula) =>
+       formula -> NormalT v term m (S.Set (S.Set formula))
+dnf fm = skolemize fm >>= return . S.filter (not . trivial) . purednf
+
+-- | CNF: (a | b | c) & (d | e | f)
+purecnf :: forall formula term v p f. FirstOrderLogic formula term v p f => formula -> S.Set (S.Set formula)
+purecnf fm =
+    foldF (\ _ -> ss fm) (\ _ _ _ -> ss fm) b (\ _ _ _ -> ss fm) (\ _ _ -> ss fm) fm
+    where
+      ss = S.singleton . S.singleton
+      b :: formula -> BinOp -> formula -> S.Set (S.Set formula)
+      -- ((a | b) & (c | d) | ((e | f) & (g | h)) -> ((a | b | e | f) & (c | d | e | f) & (c | d | e | f) & (c | d | g | h))
+      b l (:|:) r =
+          let lss = purecnf l
+              rss = purecnf r in
+          S.distrib lss rss
+      -- [[a,b],[c,d]] | [[e,f],[g,y]] -> [[a,b],[c,d],[e,f],[g,h]]
+      -- a & b -> [[a], [b]]
+      b l (:&:) r = S.union (purecnf l) (purecnf r)
+      b _ _ _ = ss fm
+
+simpcnf :: forall formula term v p f. (FirstOrderLogic formula term v p f, Literal formula) => formula -> S.Set (S.Set formula)
+simpcnf fm =
+    foldF (\ _ -> cjs') (\ _ _ _ -> cjs') (\ _ _ _ -> cjs') (\ _ _ _ -> cjs') p fm
+    where
+      p pr ts
+          | pr == fromBool False = S.empty
+          | pr == fromBool True = S.singleton S.empty
+          | True = cjs'
+      -- Discard any clause that is the proper subset of another clause
+      cjs' = S.filter keep cjs
+      keep x = not (S.or (S.map (S.isProperSubsetOf x) cjs))
+      -- cjs' = cjs
+      -- cjs' = S.filter (\ d -> not (S.any (`S.isProperSubsetOf` d) cjs)) cjs
+      cjs = S.filter (not . trivial) (purecnf (nnf fm))
+
+-- (a|b) & (c|d)
+cnf :: (Monad m, FirstOrderLogic formula term v p f, Literal formula) =>
+       formula -> NormalT v term m (S.Set (S.Set formula))
+cnf fm = skolemize fm >>= return . simpcnf -- S.filter (not . trivial) . purecnf
+
+-- |Harrison page 59.  Look for complementary pairs in a clause.
+trivial :: Literal lit => S.Set lit -> Bool
+trivial lits =
+    not . S.null $ S.intersection (S.map invert n) p
+    where
+      (n, p) = S.partition inverted lits
