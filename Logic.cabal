@@ -14,7 +14,8 @@ Cabal-version:    >= 1.2
 
 Library
  GHC-options: -threaded -Wall -Werror -O2
- Exposed-Modules:  Logic.FirstOrder
+ Exposed-Modules:  Logic.Clause
+                   Logic.FirstOrder
                    Logic.Implicative
                    Logic.Instances.Chiou
                    Logic.Instances.Native
@@ -27,6 +28,7 @@ Library
                    Logic.Propositional
                    Logic.Resolution
                    Logic.Satisfiable
+                   Logic.Set
  Build-Depends:    base, containers, fgl, happstack-data, happstack-state,
                    mtl, syb-with-class, text, logic-TPTP, PropLogic, pretty, syb
 

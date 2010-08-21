@@ -73,7 +73,7 @@ psimplify1 fm =
       true = pApp (fromBool True) []
       false = pApp (fromBool False) []
 
--- |Bottom recursion to simplify a formula.
+-- |Bottom-up recursion to simplify a formula.
 simplify :: FirstOrderLogic formula term v p f => formula -> formula
 simplify fm =
     foldF (\ p -> simplify1 ((.~.) (simplify p)))
