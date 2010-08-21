@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses,
              RankNTypes, ScopedTypeVariables, UndecidableInstances #-}
-{-# OPTIONS -Wwarn #-}
 -- |A series of transformations to convert first order logic formulas
 -- into (ultimately) Clause Normal Form.
 -- 
@@ -29,65 +28,119 @@
 -- @
 -- 
 module Logic.NormalForm
-    ( negationNormalForm
-    , uniqueQuantifiedVariables
+    ( simplify
+    , negationNormalForm
     , prenexNormalForm
-    , conjunctiveNormalForm
     , skolemNormalForm
     , clauseNormalForm
     , cnfTrace
     , implicativeNormalForm
     ) where
 
-import Control.Monad.State (MonadPlus, msum, get, put, modify)
+import Control.Monad.State (MonadPlus, msum, get, put)
 import Data.Generics (Data, Typeable, listify)
 import Data.List (intersperse)
-import qualified Data.Map as Map
 import Data.Maybe (isJust)
-import qualified Data.Set as S
-import Logic.Clause (Literal)
+import Logic.Clause (Literal(..))
 import Logic.FirstOrder
-import qualified Logic.Harrison as Harrison
 import Logic.Logic
-import Logic.Monad (NormalT, LogicState(..))
+import Logic.Monad (NormalT, LogicState(..), putVars)
+import qualified Logic.Set as S
 import Text.PrettyPrint (hcat, vcat, text, nest, ($$), brackets, render)
 
--- |Simplify:
--- 
--- @
---  P <~> Q     (P | Q) & (~P | ~Q)
---  P <=> Q     (P => Q) & (Q => P)
---  P => Q      ~P | Q
--- @
--- 
+-- |Do a bottom-up recursion to simplify a formula.
 simplify :: FirstOrderLogic formula term v p f => formula -> formula
-simplify = eliminateImplication
+simplify fm =
+    foldF (\ p -> simplify1 ((.~.) (simplify p)))
+          (\ op v p -> simplify1 (quant op v (simplify p)))
+          (\ p op q -> simplify1 (binOp (simplify p) op (simplify q)))
+          (\ _ _ _ -> simplify1 fm)
+          (\ _ _ -> simplify1 fm)
+          fm
 
-{-- 
-   Invariants:
-   P => Q           becomes       (NOT P) OR Q
-   P <=> Q          becomes       ((NOT P) OR Q) AND ((NOT Q) OR P)
- -}
-eliminateImplication :: FirstOrderLogic formula term v p f =>
-                        formula -> formula
-eliminateImplication =
-    foldF n q b infixPred pApp
+-- |Do one step of simplify for propositional formulas:
+-- 
+-- Eliminate quantifiers that don't appear in the formula, and
+-- perform the following transformations everywhere, plus any
+-- commuted versions for &, |, and <=>.
+-- 
+-- @
+--  ~False      True
+--  ~True       False
+--  True & P    P
+--  False & P   False
+--  True | P    True
+--  False | P   P
+--  True => P   P
+--  False => P  True
+--  P => True   P
+--  P => False  True
+--  True <=> P  P
+--  False <=> P ~P
+-- @
+-- 
+psimplify1 :: forall formula term v p f. FirstOrderLogic formula term v p f => formula -> formula
+psimplify1 fm =
+    foldF simplifyNot (\ _ _ _ -> fm) simplifyBinOp (\ _ _ _ -> fm) (\ _ _ -> fm) fm
     where
-      n f = (.~.) (eliminateImplication f)
-      q op v f = quant op v (eliminateImplication f)
-      b f1 op f2 =
-          case op of
-            (:=>:) -> ((.~.) f1') .|. f2'
-            (:<=>:) -> eliminateImplication ((f1 .=>. f2) .&. (f2 .=>. f1))
-            _ -> binOp f1' op f2'
-          where
-            f1' = eliminateImplication f1
-            f2' = eliminateImplication f2
+      simplifyNot = foldF id (\ _ _ _ -> fm) (\ _ _ _ -> fm) (\ _ _ _ -> fm) simplifyNotPred
+      simplifyNotPred pr ts
+          | pr == fromBool False = pApp (fromBool True) ts
+          | pr == fromBool True = pApp (fromBool False) ts
+          | True = (.~.) (pApp pr ts)
+      simplifyBinOp l op r =
+          case (pBool l, op, pBool r) of
+            (Just True,  (:&:), _)            -> r
+            (Just False, (:&:), _)            -> false
+            (_,          (:&:), Just True)    -> l
+            (_,          (:&:), Just False)   -> false
+            (Just True,  (:|:), _)            -> true
+            (Just False, (:|:), _)            -> r
+            (_,          (:|:), Just True)    -> true
+            (_,          (:|:), Just False)   -> l
+            (Just True,  (:=>:), _)           -> r
+            (Just False, (:=>:), _)           -> true
+            (_,          (:=>:), Just True)   -> true
+            (_,          (:=>:), Just False)  -> (.~.) l
+            (Just True,  (:<=>:), _)          -> r
+            (Just False, (:<=>:), _)          -> (.~.) r
+            (_,          (:<=>:), Just True)  -> l
+            (_,          (:<=>:), Just False) -> (.~.) l
+            _                                 -> fm
+      -- Return a Maybe Bool depending upon whether a formula is true,
+      -- false, or something else.
+      pBool :: formula -> Maybe Bool
+      pBool = foldF (\ _ -> Nothing) (\ _ _ _ -> Nothing) (\ _ _ _ -> Nothing) (\ _ _ _ -> Nothing)
+                    (\ pr _ts -> if pr == fromBool True
+                                 then Just True
+                                 else if pr == fromBool False
+                                      then Just False
+                                      else Nothing)
+      true = pApp (fromBool True) []
+      false = pApp (fromBool False) []
+      
+-- |Extend psimplify1 to handle quantifiers.  Any quantifier which has
+-- no corresponding free occurrences of the quantified variable is
+-- eliminated.
+simplify1 :: FirstOrderLogic formula term v p f => formula -> formula
+simplify1 fm =
+    foldF (\ _ -> psimplify1 fm)
+          (\ _op v p -> if S.member v (freeVars p) then fm else p)
+          (\ _ _ _ -> psimplify1 fm)
+          (\ _ _ _ -> psimplify1 fm)
+          (\ _ _ -> psimplify1 fm)
+          fm
 
--- |Simplify and then move negations inwards:
+-- | Simplify and recursively apply nnf.
+negationNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
+negationNormalForm = nnf . simplify
+
+-- |Eliminate => and <=> and move negations inwards:
 -- 
 -- @
 -- Formula      Rewrites to
+--  P => Q      ~P | Q
+--  P <=> Q     (P & Q) | (~P & ~Q)
 -- ~∀X P        ∃X ~P
 -- ~∃X P        ∀X ~P
 -- ~(P & Q)     (~P | ~Q)
@@ -95,74 +148,40 @@ eliminateImplication =
 -- ~~P  P
 -- @
 -- 
---negationNormalForm :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
---negationNormalForm f = uniqueQuantifiedVariables (simplify f) >>= return . moveNotInwards
-
-negationNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
-negationNormalForm f =  Harrison.negationNormalForm f
-
-{--
-   Invariants:
-   NOT (P OR Q)      becomes     (NOT P) AND (NOT Q)
-   NOT (P AND Q)     becomes     (NOT P) OR (NOT Q)
-   NOT (ForAll x P)  becomes     Exists x (NOT P)
-   NOT (Exists x P)  becomes     ForAll x (NOT P)
-   NOT (NOT P)       becomes     P
- -}
-moveNotInwards :: FirstOrderLogic formula term v p f =>
-                  formula -> formula
-moveNotInwards formula =
-    foldF n q b infixPred pApp formula
+nnf :: FirstOrderLogic formula term v p f => formula -> formula
+nnf fm =
+    foldF nnfNot nnfQuant nnfBinOp (\ _ _ _ -> fm) (\ _ _ -> fm) fm
     where
-      n f = foldF moveNotInwards
-                  (\ op v f' -> 
-                       case op of
-                         Exists -> for_all v (moveNotInwards ((.~.) f'))
-                         All -> exists v (moveNotInwards ((.~.) f')))
-                  (\ f1 op f2 ->
-                       case op of
-                         (:&:) -> moveNotInwards (((.~.) f1) .|. ((.~.) f2))
-                         (:|:) -> moveNotInwards (((.~.) f1) .&. ((.~.) f2))
-                         _ -> (.~.) (binOp (moveNotInwards f1) op (moveNotInwards f2)))
-                  (\ t1 op t2 -> (.~.) (infixPred t1 op t2))
-                  (\ p ts -> (.~.) (pApp p ts))
-                  f
-      q op v f = quant op v (moveNotInwards f)
-      b f1 op f2 = binOp (moveNotInwards f1) op (moveNotInwards f2)
+      nnfNot p = foldF nnf nnfNotQuant nnfNotBinOp (\ _ _ _ -> fm) (\ _ _ -> fm) p
+      nnfQuant op v p = quant op v (nnf p)
+      nnfBinOp p (:=>:) q = nnf ((.~.) p) .|. (nnf q)
+      nnfBinOp p (:<=>:) q =  (nnf p .&. nnf q) .|. (nnf ((.~.) p) .&. nnf ((.~.) q))
+      nnfBinOp p (:&:) q = nnf p .&. nnf q
+      nnfBinOp p (:|:) q = nnf p .|. nnf q
+      nnfNotQuant All v p = exists v (nnf ((.~.) p))
+      nnfNotQuant Exists v p = for_all v (nnf ((.~.) p))
+      nnfNotBinOp p (:&:) q = nnf ((.~.) p) .|. nnf ((.~.) q)
+      nnfNotBinOp p (:|:) q = nnf ((.~.) p) .&. nnf ((.~.) q)
+      nnfNotBinOp p (:=>:) q = nnf p .&. nnf ((.~.) q)
+      nnfNotBinOp p (:<=>:) q = (nnf p .&. nnf ((.~.) q)) .|. nnf ((.~.) p) .&. nnf q
 
+-- |Convert to Prenex normal form, with all quantifiers at the left.
 prenexNormalForm :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
-prenexNormalForm formula = Harrison.pnf formula
--- prenexNormalForm formula = negationNormalForm formula >>= return . moveQuantifiersOut
+prenexNormalForm = prenex . negationNormalForm
 
-uniqueQuantifiedVariables :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
-uniqueQuantifiedVariables formula =
-    modify (\ s -> s {varNames = S.empty}) >>
-    rename formula
+-- |Recursivly apply pullQuants anywhere a quantifier might not be
+-- leftmost.
+prenex :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula 
+prenex fm =
+    foldF (\ _ -> return fm) q b (\ _ _ _ -> return fm) (\ _ _ -> return fm) fm
     where
-      -- Choose unique names for the quantified variables
-      rename :: formula -> NormalT v term m formula
-      rename =
-          foldF (\ f -> rename f >>= return . (.~.))
-                (\ op v f ->
-                     rename f >>= \ f' ->
-                     chooseName v >>= \ v' ->
-                     return . quant op v' $ renameFree (v, v') f')
-                (\ f1 op f2 -> rename f1 >>= \ f1' -> rename f2 >>= \ f2' ->
-                               return $ binOp f1' op f2')
-                (\ t1 op t2 -> return $ infixPred t1 op t2)
-                (\ p ts -> return $ pApp p ts)
-      -- Choose a new name for v
-      chooseName :: v -> NormalT v term m v
-      chooseName v =
-          do state <- get
-             let used = varNames state
-                 v' = head (dropWhile (`S.member` used) (iterate succ v))
-             put (state {varNames = S.insert v' used})
-             return v'
-      renameFree :: (v, v) -> formula -> formula
-      renameFree (v, v') f = substitute v (var v') f
+      q op x p = prenex p >>= return . quant op x
+      b l (:&:) r = prenex l >>= \ l' -> prenex r >>= \ r' -> pullQuants (l' .&. r')
+      b l (:|:) r = prenex l >>= \ l' -> prenex r >>= \ r' -> pullQuants (l' .|. r')
+      b _ _ _ = return fm
 
--- |Convert from Negation Normal Form to Prenex Normal Form using
+-- |Perform transformations to move quantifiers outside of binary
+-- operators:
 -- 
 -- @
 --  Formula            Rewrites to
@@ -176,40 +195,98 @@ uniqueQuantifiedVariables formula =
 --  (7) ∃x F[x] | G        ∃x    (F[x] | G)
 --  (8) ∃x F[x] | ∃x G[x]  ∃x Yx (F[x] | G[x])
 -- @
--- 
--- We also need to do some variable renaming here, so that in an
--- example like @&#8704;X P & Q -> &#8704;X (P & Q)@ there are no references to X
--- in Q.  We choose to examine Q and if X appears there, find another
--- variable which does not appear and change occurrences of X in P to
--- this new variable.  We could instead modify Q, but that looks
--- slightly more tedious.
-moveQuantifiersOut :: forall formula term v p f. FirstOrderLogic formula term v p f =>
-                      formula -> formula
-moveQuantifiersOut =
-    merge . collect
+pullQuants :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
+pullQuants fm =
+    foldF (\ _ -> return fm) (\ _ _ _ -> return fm) pullQuantsBinop (\ _ _ _ -> return fm) (\ _ _ -> return fm) fm
     where
-      -- Split the quantifiers out of the formulas
-      collect :: formula -> ([(Quant, v)], formula)
-      collect =
-          foldF (\ f -> ([], (.~.) f))
-                (\ op v f ->
-                     let (pairs, f') = collect f in
-                     ((op, v) : pairs, f'))
-                (\ lf op rf ->
-                     let (lpairs, lf') = collect lf
-                         (rpairs, rf') = collect rf in
-                     prenex (lpairs, lf') op (rpairs, rf'))
-                (\ t1 op t2 -> ([], infixPred t1 op t2))
-                (\ p ts -> ([], pApp p ts))
-      prenex :: ([(Quant, v)], formula) -> BinOp -> ([(Quant, v)], formula) -> ([(Quant, v)], formula)
-      prenex (lqs, lf) op (rqs, rf) = (lqs ++ rqs, binOp lf op rf)
+      getQuant = foldF (\ _ -> Nothing) (\ op v f -> Just (op, v, f)) (\ _ _ _ -> Nothing) (\ _ _ _ -> Nothing) (\ _ _ -> Nothing)
+      pullQuantsBinop :: formula -> BinOp -> formula -> NormalT v term m formula
+      pullQuantsBinop l op r = 
+          case (getQuant l, op, getQuant r) of
+            (Just (All, vl, l'),    (:&:), Just (All, vr, r'))    -> pullq True  True  fm for_all (.&.) vl vr l' r'
+            (Just (Exists, vl, l'), (:|:), Just (Exists, vr, r')) -> pullq True  True  fm exists  (.|.) vl vr l' r'
+            (Just (All, vl, l'),    (:&:), _)                     -> pullq True  False fm for_all (.&.) vl vl l' r
+            (_,                     (:&:), Just (All, vr, r'))    -> pullq False True  fm for_all (.&.) vr vr l  r'
+            (Just (All, vl, l'),    (:|:), _)                     -> pullq True  False fm for_all (.|.) vl vl l' r
+            (_,                     (:|:), Just (All, vr, r'))    -> pullq False True  fm for_all (.|.) vr vr l  r'
+            (Just (Exists, vl, l'), (:&:), _)                     -> pullq True  False fm exists  (.&.) vl vl l' r
+            (_,                     (:&:), Just (Exists, vr, r')) -> pullq False True  fm exists  (.&.) vr vr l  r'
+            (Just (Exists, vl, l'), (:|:), _)                     -> pullq True  False fm exists  (.|.) vl vl l' r
+            (_,                     (:|:), Just (Exists, vr, r')) -> pullq False True  fm exists  (.|.) vr vr l  r'
+            _                                                     -> return fm
 
-      merge :: ([(Quant, v)], formula) -> formula
-      merge ([], f) = f
-      -- Note that the resulting variable lists will all be singletons.
-      merge ((q, v) : qs, f) = quant q v (merge (qs, f))
+-- |Helper function to rename variables when we want to enclose a
+-- formula containing a free occurrence of that variable a quantifier
+-- that quantifies it.
+pullq :: (Monad m, FirstOrderLogic formula term v p f) =>
+         Bool -> Bool -> formula -> (v -> formula -> formula) -> (formula -> formula -> formula) -> v -> v -> formula -> formula -> NormalT v term m formula
+pullq l r fm mkq op x y p q =
+    do z <- putVars (freeVars fm) >> variant x
+       let p' = if l then substitute x (var z) p else p
+           q' = if r then substitute y (var z) q else q
+       fm' <- pullQuants (op p' q')
+       return $ mkq z fm'
 
--- |Convert to Prenex Normal Form and then distribute the disjunctions over the conjunctions:
+-- |Find a variable name which is not in the variables set which is
+-- stored in the monad.  This is initialized above with the free
+-- variables in the formula.  (FIXME: this is not worth putting in
+-- a monad, just pass in the set of free variables.)
+variant :: (Monad m, FirstOrderLogic formula term v p f) => v -> NormalT v term m v
+variant x =
+    do state <- get
+       let names = varNames state
+       if S.member x names then variant (succ x) else
+           do put (state {varNames = S.insert x names})
+              return x
+
+-- |We get Skolem Normal Form by skolemizing and then converting to
+-- Prenex Normal Form, and finally eliminating the remaining quantifiers.
+skolemNormalForm :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
+skolemNormalForm f = askolemize f >>= prenexNormalForm >>= return . specialize
+
+-- |I need to consult the Harrison book for the reasons why we don't
+-- |just Skolemize the result of prenexNormalForm.
+askolemize :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
+askolemize = skolem . nnf . simplify
+
+-- |Skolemize the formula by removing the existential quantifiers and
+-- replacing the variables they quantify with skolem functions (and
+-- constants, which are functions of zero variables.)  The Skolem
+-- functions are new functions (obtained from the NormalT monad) which
+-- are applied to the list of variables which are universally
+-- quantified in the context where the existential quantifier
+-- appeared.
+skolem :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
+skolem fm =
+    foldF (\ _ -> return fm) q b (\ _ _ _ -> return fm) (\ _ _ -> return fm) fm
+    where
+      q Exists y p =
+          do let xs = freeVars fm
+             state <- get
+             let f = toSkolem (skolemCount state)
+             put (state {skolemCount = skolemCount state + 1})
+             let fx = fApp f (map var (S.toList xs))
+             skolem (substitute y fx p)
+      q All x p = skolem p >>= return . for_all x
+      b l (:&:) r = skolem2 (.&.) l r
+      b l (:|:) r = skolem2 (.|.) l r
+      b _ _ _ = return fm
+
+skolem2 :: (Monad m, FirstOrderLogic formula term v p f) =>
+           (formula -> formula -> formula) -> formula -> formula -> NormalT v term m formula
+skolem2 cons p q =
+    skolem p >>= \ p' ->
+    skolem q >>= \ q' ->
+    return (cons p' q')
+
+specialize :: FirstOrderLogic formula term v p f => formula -> formula
+specialize f =
+    foldF (\ _ -> f) q (\ _ _ _ -> f) (\ _ _ _ -> f) (\ _ _ -> f) f
+    where
+      q All _ f' = specialize f'
+      q _ _ _ = f
+
+-- |Convert to Skolem Normal Form and then distribute the disjunctions over the conjunctions:
 -- 
 -- @
 -- Formula      Rewrites to
@@ -217,178 +294,66 @@ moveQuantifiersOut =
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-conjunctiveNormalForm :: (Monad m, FirstOrderLogic formula term v p f, Literal formula) =>
-                         formula -> NormalT v term m (S.Set (S.Set formula))
-conjunctiveNormalForm formula = Harrison.cnf formula
--- conjunctiveNormalForm formula = prenexNormalForm formula >>= return . distributeDisjuncts
-
-distributeDisjuncts :: FirstOrderLogic formula term v p f => formula -> formula
-distributeDisjuncts =
-    foldF n q b i a
-    where
-      n = (.~.)
-      q All v x = for_all v (distributeDisjuncts x)
-      q Exists v x = exists v (distributeDisjuncts x)
-      b f1 (:|:) f2 = doRHS (distributeDisjuncts f1) (distributeDisjuncts f2)
-      b f1 (:&:) f2 = distributeDisjuncts f1 .&. distributeDisjuncts f2
-      b f1 op f2 = binOp (distributeDisjuncts f1) op (distributeDisjuncts f2)
-      i = infixPred
-      a = pApp
-      -- Helper function once we've seen a disjunction.  Note that it does not call itself.
-      doRHS f1 f2 =
-          foldF n' q' b' i' a' f2
-          where
-            n' _ = doLHS f1 f2
-            -- Quick simplification, but assumes Eq formula: (p | q) & p -> p
-            -- b' f3 (:&:) f4 | f1 == f3 || f1 == f4 = distributeDisjuncts f1
-            b' f3 (:&:) f4 = distributeDisjuncts (distributeDisjuncts (f1 .|. f3) .&. distributeDisjuncts (f1 .|. f4))
-            b' _ _ _ = doLHS f1 f2
-            q' _ _ _ = doLHS f1 f2
-            i' _ _ _ = doLHS f1 f2
-            a' _ _ = doLHS f1 f2
-      doLHS f1 f2 =
-          foldF n' q' b' i' a' f1
-          where
-            n' _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
-            q' _ _ _ =  distributeDisjuncts f1 .|. distributeDisjuncts f2
-            -- Quick simplification, but assumes Eq formula: p & (p | q) -> p
-            -- b' f3 (:&:) f4 | f2 == f3 || f2 == f4 = distributeDisjuncts f2
-            b' f3 (:&:) f4 = distributeDisjuncts (distributeDisjuncts (f3 .|. f2) .&. distributeDisjuncts (f4 .|. f2))
-            b' _ _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
-            i' _ _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
-            a' _ _ = distributeDisjuncts f1 .|. distributeDisjuncts f2
-
--- |Convert to Disjunctive Normal Form and then Skolemize.  This means
--- removing the existential quantifiers and replacing the variables
--- they quantify with skolem functions (and constants, which are
--- functions of zero variables.)  The Skolem functions are new
--- functions applied to the list of variables which are universally
--- quantified in the context where the existential quantifier
--- appeared.
-skolemNormalForm :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f) =>
-                    formula -> NormalT v term m formula
-skolemNormalForm formula = Harrison.skolemize formula
-
-{-
-skolemNormalForm' :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f) =>
-                    formula -> NormalT v term m formula
-skolemNormalForm' formula =
-    do cnf <- conjunctiveNormalForm formula
-       result1 <- skolemize cnf
-       -- state <- get
-       -- put (state { skolemCount = 1, skolemMap = Map.empty, univQuant = [] })
-       -- result2 <- skolemize dnf
-       -- put state
-       {- (if result1 /= result2
-          then trace ("\nSkolemization discrepancy:\n result1=" ++ show (prettyForm 0 result1) ++ "\n result2=" ++ show (prettyForm 0 result2)) result1
-          else result1) -}
-       return result1
--}
-
-skolemize :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f) =>
-             formula -> NormalT v term m formula
-skolemize =
-    foldF n q b i p
-    where
-      n :: formula -> NormalT v term m formula
-      n s = skolemize s >>= \ (s' :: formula) -> return ((.~.) s')
-      q All v f =
-          do logicState <- get
-             -- Add these variables to the list while we are in the
-             -- scope where they are universally quantified.  (FIXME:
-             -- it is not necessary to add it to the end, but when
-             -- this is changed the test cases need updating.)
-             put (logicState {univQuant = univQuant logicState ++ [v]})
-             result <- skolemize f >>= return . for_all v
-             put logicState
-             return result
-      q Exists v f =
-          do logicState <- get
-             let skolemMap' = Map.insert v (fApp (toSkolem (skolemCount logicState)) (map var (univQuant logicState))) (skolemMap logicState)
-             put (logicState { skolemCount = skolemCount logicState + 1
-                             , skolemMap = skolemMap' })
-             skolemize f
-      b s1 op s2 = skolemize s1 >>= \ s1' -> 
-                   skolemize s2 >>= \ s2' -> return (binOp s1' op s2')
-      i t1 op t2 =
-          do t1' <- substituteCh t1
-             t2' <- substituteCh t2
-             return (infixPred t1' op t2')
-      p pr ts = mapM substituteCh ts >>= return . pApp pr
-
-      substituteCh :: term -> NormalT v term m term
-      substituteCh t =
-          get >>= \ logicState ->
-          foldT (\ v -> return (maybe (var v) id (Map.lookup v (skolemMap logicState))))
-                (\ f ts -> mapM substituteCh ts >>= return . fApp f)
-                t
-
--- |Convert to Skolem Normal Form and then remove the outermost
--- universal quantifiers.  Due to the nature of Skolem Normal Form,
--- this is actually all the remaining quantifiers, the result is
--- effectively a propositional logic formula.  The result is a
--- conjuncted list of clauses, where each clause is a list of
--- disjuncted literals:
--- @@
---   [[a, ~b], [c, ~d]] <-> ((a | ~b) & (c | ~d))
--- @@
 clauseNormalForm :: (Monad m, FirstOrderLogic formula term v p f, Literal formula) =>
-                     formula -> NormalT v term m (S.Set (S.Set formula))
-clauseNormalForm f = conjunctiveNormalForm f -- >>= return . clausal
+       formula -> NormalT v term m (S.Set (S.Set formula))
+clauseNormalForm fm = skolemNormalForm fm >>= return . simpcnf
 
--- |Flatten a formula which is assumed to be in CNF
-clausal :: FirstOrderLogic formula term v p f =>
-           formula -> [[formula]]
-clausal =
-    filter (not . any isTrue) . map doClause . flatten
+simpcnf :: forall formula term v p f. (FirstOrderLogic formula term v p f, Literal formula) => formula -> S.Set (S.Set formula)
+simpcnf fm =
+    foldF (\ _ -> cjs') (\ _ _ _ -> cjs') (\ _ _ _ -> cjs') (\ _ _ _ -> cjs') p fm
     where
-      flatten f =
-          foldF (\ _ -> [[f]])
-                (\ _ _ f' -> flatten f')
-                (\ f1 op f2 -> case op of
-                                 (:&:) -> flatten f1 ++ flatten f2
-                                 (:|:) -> [flatten' f1 ++ flatten' f2]
-                                 _ -> e0)
-                (\ _ _ _ -> [[f]])
-                (\ _ _ -> [[f]])
-                f
-      -- flatten' :: formula -> [formula]
-      flatten' f =
-          foldF (\ _ -> [f])
-                (\ _ _ _ -> [f])
-                (\ f1 op f2 -> case op of
-                                 (:|:) -> flatten' f1 ++ flatten' f2
-                                 _ -> e0)
-                (\ _ _ _ -> [f])
-                (\ _ _ -> [f])
-                f
-      doClause fs = filter (not . isFalse) fs
-      isFalse f = foldF isTrue e3 e3 e3 (\ p _ -> p == fromBool False) f where e3 _ _ _ = error ("clausal: " {- ++ show (prettyForm 0 f) -})
-      isTrue f = foldF isFalse e3 e3 e3 (\ p _ -> p == fromBool True) f where e3 _ _ _ = error ("clausal: "  {- ++ show (prettyForm 0 f) -})
-      e0 = error "clausal"
+      p pr _ts
+          | pr == fromBool False = S.empty
+          | pr == fromBool True = S.singleton S.empty
+          | True = cjs'
+      -- Discard any clause that is the proper subset of another clause
+      cjs' = S.filter keep cjs
+      keep x = not (S.or (S.map (S.isProperSubsetOf x) cjs))
+      -- cjs' = cjs
+      -- cjs' = S.filter (\ d -> not (S.any (`S.isProperSubsetOf` d) cjs)) cjs
+      cjs = S.filter (not . trivial) (purecnf (nnf fm))
+
+-- |Harrison page 59.  Look for complementary pairs in a clause.
+trivial :: Literal lit => S.Set lit -> Bool
+trivial lits =
+    not . S.null $ S.intersection (S.map invert n) p
+    where
+      (n, p) = S.partition inverted lits
+
+-- | CNF: (a | b | c) & (d | e | f)
+purecnf :: forall formula term v p f. FirstOrderLogic formula term v p f => formula -> S.Set (S.Set formula)
+purecnf fm =
+    foldF (\ _ -> ss fm) (\ _ _ _ -> ss fm) b (\ _ _ _ -> ss fm) (\ _ _ -> ss fm) fm
+    where
+      ss = S.singleton . S.singleton
+      b :: formula -> BinOp -> formula -> S.Set (S.Set formula)
+      -- ((a | b) & (c | d) | ((e | f) & (g | h)) -> ((a | b | e | f) & (c | d | e | f) & (c | d | e | f) & (c | d | g | h))
+      b l (:|:) r =
+          let lss = purecnf l
+              rss = purecnf r in
+          S.distrib lss rss
+      -- [[a,b],[c,d]] | [[e,f],[g,y]] -> [[a,b],[c,d],[e,f],[g,h]]
+      -- a & b -> [[a], [b]]
+      b l (:&:) r = S.union (purecnf l) (purecnf r)
+      b _ _ _ = ss fm
 
 cnfTrace :: (Monad m, FirstOrderLogic formula term v p f, Literal formula, Pretty v, Pretty p, Pretty f) =>
             formula -> NormalT v term m String
 cnfTrace f =
-    do let simplified = Harrison.simplify f
-{-
-       let nnf = negationNormalForm f
-       pnf <- prenexNormalForm nnf
-       cnf <- conjunctiveNormalForm pnf
--}
+    do let simplified = simplify f
+       pnf <- prenexNormalForm f
        snf <- skolemNormalForm f
-       cnf' <- clauseNormalForm f >>= return . map S.toList . S.toList
+       cnf <- clauseNormalForm f
        return . render . vcat $
                   [text "Original:" $$ nest 2 (prettyForm 0 f),
                    text "Simplified:" $$ nest 2 (prettyForm 0 simplified),
-{-
-                   text "Negation Normal Form:" $$ nest 2 (prettyForm 0 nnf),
+                   text "Negation Normal Form:" $$ nest 2 (prettyForm 0 (negationNormalForm f)),
                    text "Prenex Normal Form:" $$ nest 2 (prettyForm 0 pnf),
-                   text "Conjunctive Normal Form:" $$ nest 2 (prettyForm 0 cnf), -}
                    text "Skolem Normal Form:" $$ nest 2 (prettyForm 0 snf),
-                   text "Clause Normal Form:" $$ vcat (map prettyClause cnf')]
+                   text "Clause Normal Form:" $$ vcat (map prettyClause (fromSS cnf))]
     where
       prettyClause = nest 2 . brackets . hcat . intersperse (text ", ") . map (nest 2 . brackets . prettyForm 0)
+      fromSS = (map S.toList) . S.toList 
 
 -- |Take the clause normal form, and turn it into implicative form,
 -- where each clauses becomes an (LHS, RHS) pair with the negated
@@ -431,13 +396,6 @@ implicativeNormalForm formula =
           if any isJust (map fromSkolem (gFind rhs :: [f]))
           then map (\ x -> (lhs, [x])) rhs
           else [(lhs, rhs)]
-
-removeUniversal :: FirstOrderLogic formula term v p f => formula -> formula
-removeUniversal formula =
-    foldF (.~.) removeAll binOp infixPred pApp formula
-    where
-      removeAll All _ f = removeUniversal f
-      removeAll Exists v f = exists v (removeUniversal f)
 
 -- | @gFind a@ will extract any elements of type @b@ from
 -- @a@'s structure in accordance with the MonadPlus
