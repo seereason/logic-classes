@@ -16,7 +16,6 @@ import Data.String (IsString)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
-import Logic.Clause (Literal(..))
 import Logic.FirstOrder (Term(..), FirstOrderLogic(..), Quant(..), InfixPred(..), Skolem(..), Pretty, quant', showForm, showTerm)
 import Logic.Implicative (Implicative(..))
 import Logic.Logic (Logic(..), BinOp(..), Boolean(..))
@@ -52,17 +51,6 @@ instance (FirstOrderLogic (Formula v p f) (PTerm v f) v p f, Show v, Show p, Sho
 data ImplicativeNormalForm v p f =
     INF (S.Set (Formula v p f)) (S.Set (Formula v p f))
     deriving (Eq, Data, Typeable)
-
-instance (Ord v, IsString v, Enum v, Data v, Pretty v, Show v,
-          Ord p, IsString p, Boolean p, Data p, Pretty p, Show p,
-          Ord f, IsString f, Skolem f, Data f, Pretty f, Show f,
-          Show (Formula v p f)) => Literal (Formula v p f) where
-    negate = (.~.)
-    negated = foldF (\ _ -> True)
-                    (\ _ _ _ -> False)
-                    (\ _ _ _ -> False)
-                    (\ _ _ _ -> False)
-                    (\ _ _ -> False)
 
 instance (Ord v, IsString v, Enum v, Data v, Pretty v, Show v,
           Ord p, IsString p, Boolean p, Data p, Pretty p, Show p,

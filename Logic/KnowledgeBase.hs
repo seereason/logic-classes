@@ -54,7 +54,7 @@ inconsistantKB s = lift (implicativeNormalForm s) >>= return . getSetOfSupport .
 -- proof.
 theoremKB :: (Monad m, FirstOrderLogic formula term v p f, Data formula, Implicative inf formula, Eq term) =>
              formula -> ProverT' v term inf m (Bool, SetOfSupport inf v term)
-theoremKB s = inconsistantKB (negate s)
+theoremKB s = inconsistantKB (invert s)
 
 -- |Try to prove a sentence, return the result and the proof.
 -- askKB should be in KnowledgeBase module. However, since resolution

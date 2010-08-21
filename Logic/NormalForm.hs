@@ -45,6 +45,7 @@ import Data.List (intersperse)
 import qualified Data.Map as Map
 import Data.Maybe (isJust)
 import qualified Data.Set as S
+import Logic.Clause (Literal)
 import Logic.FirstOrder
 import Logic.Logic
 import Logic.Monad (NormalT, LogicState(..))

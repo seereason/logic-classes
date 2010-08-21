@@ -17,7 +17,6 @@ module Logic.Instances.Chiou
 import Data.Generics (Data, Typeable)
 import qualified Data.Set as S
 import Data.String (IsString(..))
-import Logic.Clause (Literal(..))
 import Logic.FirstOrder (FirstOrderLogic(..), InfixPred(..), Pretty, Term(..))
 import qualified Logic.FirstOrder as Logic
 import Logic.Implicative (Implicative(..))
@@ -211,11 +210,6 @@ data NormalTerm v f
     = NormalFunction f [NormalTerm v f]
     | NormalVariable v
     deriving (Eq, Ord, Show, Data, Typeable)
-
-instance (Ord v, Ord p, Ord f) => Literal (Sentence v p f) where
-    negate = Not
-    negated (Not x) = not (negated x)
-    negated _ = False
 
 instance (Enum v, Ord p, Show p, Ord f, Show f,
           FirstOrderLogic (Sentence v p f) (CTerm v f) v p f) => Implicative (ImplicativeNormalForm v p f) (Sentence v p f) where

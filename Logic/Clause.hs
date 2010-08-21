@@ -25,10 +25,15 @@ class Literal lit => ClauseNormal cnf lit | cnf -> lit where
     makeCNF :: S.Set (S.Set lit) -> cnf
     satisfiable :: MonadPlus m => cnf -> m Bool
 
+-- |A FirstOrderLogic formula can always be a literal.
+instance FirstOrderLogic formula term v p f => Literal formula where
+    invert f = foldF id (\ _ _ _ -> (.~.) f) (\ _ _ _ -> (.~.) f) (\ _ _ _ -> (.~.) f) (\ _ _ -> (.~.) f) f
+    inverted = foldF (\ _ -> True) (\ _ _ _ -> False) (\ _ _ _ -> False) (\ _ _ _ -> False) (\ _ _ -> False)
+
 -- |The literals in a ClauseNormal formula.
 class (Eq lit, Ord lit) => Literal lit where
-    negate :: lit -> lit
-    negated :: lit -> Bool
+    invert :: lit -> lit
+    inverted :: lit -> Bool
 
 -- |Convert a FirstOrderLogic formula which has been put into clausal
 -- form to another (typically simpler) type which is just an instance
@@ -56,5 +61,5 @@ fromClauseNormal :: forall formula term v p f cnf lit. (FirstOrderLogic formula 
 fromClauseNormal lit cform =
     conj . map (disj . map lit' . S.toList) . S.toList . clauses $ cform
     where
-      lit' x | negated x =  (.~.) (lit (negate x))
+      lit' x | inverted x = (.~.) (lit (invert x))
       lit' x = lit x
