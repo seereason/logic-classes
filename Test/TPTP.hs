@@ -15,7 +15,7 @@ tests = TestLabel "TPTP" $ TestList [tptp]
 
 tptp :: Test
 tptp =
-    TestCase (assertEqual "tptp cnf trace" "" (runNormal (cnfTrace f)))
+    TestCase (assertEqual "tptp cnf trace" "abc" (runNormal (cnfTrace f)))
     where
       f :: Formula
       f = (.~.) (conj (map formula (snd (chang43KB :: (String, [TestFormula Formula])))) .=>.

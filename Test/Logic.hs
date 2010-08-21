@@ -8,9 +8,9 @@ import Data.String (IsString(fromString))
 import qualified Logic.Instances.Native as P
 import Logic.Logic (Logic(..), Boolean(..))
 import Logic.Monad (runNormal)
-import Logic.NormalForm (disjunctiveNormalForm)
+import Logic.NormalForm (clauseNormalForm, clauseNormalForm)
 import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), Term(..), showForm, freeVars, substitute)
-import Logic.Satisfiable (clauses, theorem, inconsistant)
+import Logic.Satisfiable (theorem, inconsistant)
 import PropLogic (PropForm(..), TruthTable, truthTable)
 import qualified TextDisplay as TD
 import Test.Types (V(..), AtomicFunction(..))
@@ -28,7 +28,7 @@ tests = TestLabel "Logic" $ TestList (precTests ++ theoremTests)
 
 formCase :: FirstOrderLogic (P.Formula V String AtomicFunction) (P.PTerm V AtomicFunction) V String AtomicFunction =>
             String -> TestFormula -> TestFormula -> Test
-formCase s expected input = TestCase (assertEqual s expected input)
+formCase s expected input = TestLabel s $ TestCase (assertEqual s expected input)
 
 precTests :: [Test]
 precTests =
@@ -157,6 +157,8 @@ theoremTests =
     [ let formula = for_all "x" (((s [x] .=>. h [x]) .&. (h [x] .=>. m [x])) .=>.
                                   (s [x] .=>. m [x])) in
       TestCase (assertEqual "Logic - theorem test 1"
+                (True,([],Just (CJ []),[([],True)]))
+{-
                 (True,
                  ([(pApp ("H") [var (V "x")]),(pApp ("M") [var (V "x")]),(pApp ("S") [var (V "x")])],
                   Just (CJ [DJ [A (pApp ("S") [var (V "x")]),
@@ -183,49 +185,28 @@ theoremTests =
                    ([True,False,True],True),
                    ([True,True,False],True),
                    ([True,True,True],True)]))
+-}
                 (runNormal (theorem formula), table formula))
     , TestCase (assertEqual "Logic - theorem test 1a"
-{-
-input:               ((.~.) ((for_all ["x"] (((S [x]) .=>. ((H [x]))) .&. (((H [x]) .=>. ((M [x])))))) .=>. ((for_all ["x"] ((S [x]) .=>. ((M [x])))))))
-
-simplified:          ((.~.) (((.~.) (for_all ["x"] ((((.~.) (S [x])) .|. ((H [x]))) .&. ((((.~.) (H [x])) .|. ((M [x]))))))) .|. ((for_all ["x"] (((.~.) (S [x])) .|. ((M [x])))))))
-
-moveNegationsIn:     ((for_all ["x"] ((((.~.) (S [x])) .|. ((H [x]))) .&. ((((.~.) (H [x])) .|. ((M [x])))))) .&. ((exists ["x"] ((S [x]) .&. (((.~.) (M [x])))))))
-
-moveQuantifiersOut:  (for_all ["x"] (exists ["y"] (((((.~.) (S [x])) .|. ((H [x]))) .&. ((((.~.) (H [x])) .|. ((M [x]))))) .&. (((S [y]) .&. (((.~.) (M [y]))))))))
-
-skolmize:            (((((.~.) (S [x])) .|. ((H [x]))) .&. ((((.~.) (H [x])) .|. ((M [x]))))) .&. (((S [fApp ("Sk(y)") [x]]) .&. (((.~.) (M [fApp ("Sk(y)") [x]]))))))
-
-distributeDisjuncts: (((((.~.) (S [x])) .|. ((H [x]))) .&.
-                       ((((.~.) (H [x])) .|. ((M [x]))))) .&.
-                      (((S [fApp ("Sk(y)") [x]]) .&.
-                        (((.~.) (M [fApp ("Sk(y)") [x]]))))))
-
-distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
--}
                 (False,
                  False,
-                 ([(pApp ("H") [fApp (Skolem 1) []]),
-                   (pApp ("M") [var (V "y")]),
-                   (pApp ("M") [fApp (Skolem 1) []]),
-                   (pApp ("S") [var (V "y")]),
-                   (pApp ("S") [fApp (Skolem 1) []])],
-                  Just (CJ [DJ [A (pApp ("S") [fApp (Skolem 1) []]),
-                                A (pApp ("H") [fApp (Skolem 1) []]),
-                                N (A (pApp ("S") [var (V "y")])),
-                                A (pApp ("M") [var (V "y")])],
-                            DJ [N (A (pApp ("H") [fApp (Skolem 1) []])),
-                                A (pApp ("H") [fApp (Skolem 1) []]),
-                                N (A (pApp ("S") [var (V "y")])),
-                                A (pApp ("M") [var (V "y")])],
-                            DJ [A (pApp ("S") [fApp (Skolem 1) []]),
-                                N (A (pApp ("M") [fApp (Skolem 1) []])),
-                                N (A (pApp ("S") [var (V "y")])),
-                                A (pApp ("M") [var (V "y")])],
-                            DJ [N (A (pApp ("H") [fApp (Skolem 1) []])),
-                                N (A (pApp ("M") [fApp (Skolem 1) []])),
-                                N (A (pApp ("S") [var (V "y")])),
-                                A (pApp ("M") [var (V "y")])]]),
+                 ([(pApp ("H") [fApp (toSkolem 1) []]),
+                   (pApp ("M") [var ("y")]),
+                   (pApp ("M") [fApp (toSkolem 1) []]),
+                   (pApp ("S") [var ("y")]),
+                   (pApp ("S") [fApp (toSkolem 1) []])],
+                  Just (CJ [DJ [A (pApp ("H") [fApp (toSkolem 1) []]),
+                                A (pApp ("M") [var ("y")]),
+                                A (pApp ("S") [fApp (toSkolem 1) []]),
+                                N (A (pApp ("S") [var ("y")]))],
+                            DJ [A (pApp ("M") [var ("y")]),
+                                A (pApp ("S") [fApp (toSkolem 1) []]),
+                                N (A (pApp ("M") [fApp (toSkolem 1) []])),
+                                N (A (pApp ("S") [var ("y")]))],
+                            DJ [A (pApp ("M") [var ("y")]),
+                                N (A (pApp ("H") [fApp (toSkolem 1) []])),
+                                N (A (pApp ("M") [fApp (toSkolem 1) []])),
+                                N (A (pApp ("S") [var ("y")]))]]),
                   [([False,False,False,False,False],True),
                    ([False,False,False,False,True],True),
                    ([False,False,False,True,False],False),
@@ -264,79 +245,20 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                  (runNormal (theorem formula), runNormal (inconsistant formula), table formula)))
                 
     , TestCase (assertEqual "Logic - socrates is mortal, truth table"
-                ([(pApp ("H") [var (V "x")]),
-                  (pApp ("H") [var (V "y")]),
-                  (pApp ("M") [var (V "y")]),
-                  (pApp ("M") [var (V "z")]),
-                  (pApp ("S") [var (V "x")]),
-                  (pApp ("S") [var (V "z")])],
-                 Just (CJ [DJ [N (A (pApp ("S") [var (V "x")])),A (pApp ("H") [var (V "x")])],
-                           DJ [N (A (pApp ("H") [var (V "y")])),A (pApp ("M") [var (V "y")])],
-                           DJ [N (A (pApp ("S") [var (V "z")])),A (pApp ("M") [var (V "z")])]]),
-                 [([False,False,False,False,False,False],True),
-                  ([False,False,False,False,False,True],False),
-                  ([False,False,False,False,True,False],False),
-                  ([False,False,False,False,True,True],False),
-                  ([False,False,False,True,False,False],True),
-                  ([False,False,False,True,False,True],True),
-                  ([False,False,False,True,True,False],False),
-                  ([False,False,False,True,True,True],False),
-                  ([False,False,True,False,False,False],True),
-                  ([False,False,True,False,False,True],False),
-                  ([False,False,True,False,True,False],False),
-                  ([False,False,True,False,True,True],False),
-                  ([False,False,True,True,False,False],True),
-                  ([False,False,True,True,False,True],True),
-                  ([False,False,True,True,True,False],False),
-                  ([False,False,True,True,True,True],False),
-                  ([False,True,False,False,False,False],False),
-                  ([False,True,False,False,False,True],False),
-                  ([False,True,False,False,True,False],False),
-                  ([False,True,False,False,True,True],False),
-                  ([False,True,False,True,False,False],False),
-                  ([False,True,False,True,False,True],False),
-                  ([False,True,False,True,True,False],False),
-                  ([False,True,False,True,True,True],False),
-                  ([False,True,True,False,False,False],True),
-                  ([False,True,True,False,False,True],False),
-                  ([False,True,True,False,True,False],False),
-                  ([False,True,True,False,True,True],False),
-                  ([False,True,True,True,False,False],True),
-                  ([False,True,True,True,False,True],True),
-                  ([False,True,True,True,True,False],False),
-                  ([False,True,True,True,True,True],False),
-                  ([True,False,False,False,False,False],True),
-                  ([True,False,False,False,False,True],False),
-                  ([True,False,False,False,True,False],True),
-                  ([True,False,False,False,True,True],False),
-                  ([True,False,False,True,False,False],True),
-                  ([True,False,False,True,False,True],True),
-                  ([True,False,False,True,True,False],True),
-                  ([True,False,False,True,True,True],True),
-                  ([True,False,True,False,False,False],True),
-                  ([True,False,True,False,False,True],False),
-                  ([True,False,True,False,True,False],True),
-                  ([True,False,True,False,True,True],False),
-                  ([True,False,True,True,False,False],True),
-                  ([True,False,True,True,False,True],True),
-                  ([True,False,True,True,True,False],True),
-                  ([True,False,True,True,True,True],True),
-                  ([True,True,False,False,False,False],False),
-                  ([True,True,False,False,False,True],False),
-                  ([True,True,False,False,True,False],False),
-                  ([True,True,False,False,True,True],False),
-                  ([True,True,False,True,False,False],False),
-                  ([True,True,False,True,False,True],False),
-                  ([True,True,False,True,True,False],False),
-                  ([True,True,False,True,True,True],False),
-                  ([True,True,True,False,False,False],True),
-                  ([True,True,True,False,False,True],False),
-                  ([True,True,True,False,True,False],True),
-                  ([True,True,True,False,True,True],False),
-                  ([True,True,True,True,False,False],True),
-                  ([True,True,True,True,False,True],True),
-                  ([True,True,True,True,True,False],True),
-                  ([True,True,True,True,True,True],True)])
+                ([(pApp ("H") [var ("x")]),
+                  (pApp ("M") [var ("x")]),
+                  (pApp ("S") [var ("x")])]
+                ,Just (CJ [DJ [A (pApp ("H") [var ("x")]),N (A (pApp ("S") [var ("x")]))],
+                           DJ [A (pApp ("M") [var ("x")]),N (A (pApp ("H") [var ("x")]))],
+                           DJ [A (pApp ("M") [var ("x")]),N (A (pApp ("S") [var ("x")]))]]),
+                 [([False,False,False],True),
+                  ([False,False,True],False),
+                  ([False,True,False],True),
+                  ([False,True,True],False),
+                  ([True,False,False],False),
+                  ([True,False,True],False),
+                  ([True,True,False],True),
+                  ([True,True,True],True)])
                 -- This formula has separate variables for each of the
                 -- three beliefs.  To combine these into an argument
                 -- we would wrap a single exists around them all and
@@ -349,14 +271,14 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
     , TestCase (assertEqual "Logic - socrates is not mortal"
                 (False,
                  False,
-                 ([(pApp ("H") [var (V "x")]),
-                   (pApp ("M") [var (V "x")]),
-                   (pApp ("S") [var (V "x")]),
-                   (pApp ("S") [fApp (Fn "socrates") []])],
-                  Just (CJ [DJ [N (A (pApp ("S") [var (V "x")])),A (pApp ("H") [var (V "x")])],
-                            DJ [N (A (pApp ("H") [var (V "x")])),A (pApp ("M") [var (V "x")])],
-                            DJ [N (A (pApp ("M") [var (V "x")])),N (A (pApp ("S") [var (V "x")]))],
-                            DJ [A (pApp ("S") [fApp (Fn "socrates") []])]]),
+                 ([(pApp ("H") [var ("x")]),
+                   (pApp ("M") [var ("x")]),
+                   (pApp ("S") [var ("x")]),
+                   (pApp ("S") [fApp ("socrates") []])],
+                  Just (CJ [DJ [A (pApp ("H") [var ("x")]),N (A (pApp ("S") [var ("x")]))],
+                            DJ [A (pApp ("M") [var ("x")]),N (A (pApp ("H") [var ("x")]))],
+                            DJ [A (pApp ("S") [fApp ("socrates") []])],
+                            DJ [N (A (pApp ("M") [var ("x")])),N (A (pApp ("S") [var ("x")]))]]),
                   [([False,False,False,False],False),
                    ([False,False,False,True],True),
                    ([False,False,True,False],False),
@@ -373,11 +295,10 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                    ([True,True,False,True],True),
                    ([True,True,True,False],False),
                    ([True,True,True,True],False)]),
-                 (for_all "x"
-                  ((((((.~.) (pApp ("S") [var (fromString "x")])) .|. ((pApp ("H") [var (fromString "x")]))) .&.
-                     ((((.~.) (pApp ("H") [var (fromString "x")])) .|. ((pApp ("M") [var (fromString "x")]))))) .&.
-                    ((((.~.) (pApp ("M") [var (fromString "x")])) .|. (((.~.) (pApp ("S") [var (fromString "x")])))))) .&.
-                   ((pApp ("S") [fApp ("socrates") []])))))
+                 (toSS [[(pApp ("H") [var ("x")]),((.~.) (pApp ("S") [var ("x")]))],
+                        [(pApp ("M") [var ("x")]),((.~.) (pApp ("H") [var ("x")]))],
+                        [(pApp ("S") [fApp ("socrates") []])],
+                        [((.~.) (pApp ("M") [var ("x")])),((.~.) (pApp ("S") [var ("x")]))]]))
                 -- This represents a list of beliefs like those in our
                 -- database: socrates is a man, all men are mortal,
                 -- each with its own quantified variable.  In
@@ -396,22 +317,22 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                                       (h [x] .=>. m [x]) .&.
                                       (m [x] .=>. ((.~.) (s [x])))) .&.
                          (s [fApp "socrates" []]) in
-                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula, runNormal (disjunctiveNormalForm formula))))
+                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula, runNormal (clauseNormalForm formula))))
     , let (formula :: TestFormula) =
               (for_all "x" (pApp "L" [var "x"] .=>. pApp "F" [var "x"]) .&. -- All logicians are funny
                exists "x" (pApp "L" [var "x"])) .=>.                            -- Someone is a logician
               (.~.) (exists "x" (pApp "F" [var "x"]))                           -- Someone / Nobody is funny
           input = table formula
-          expected = ([(pApp ("F") [var (V "x3")]),
-                       (pApp ("F") [fApp (Skolem 1) []]),
-                       (pApp ("L") [var (V "x2")]),
-                       (pApp ("L") [fApp (Skolem 1) []])],
-                      Just (CJ [DJ [A (pApp ("L") [fApp (Skolem 1) []]),
-                                    N (A (pApp ("L") [var (V "x2")])),
-                                    N (A (pApp ("F") [var (V "x3")]))],
-                                DJ [N (A (pApp ("F") [fApp (Skolem 1) []])),
-                                    N (A (pApp ("L") [var (V "x2")])),
-                                    N (A (pApp ("F") [var (V "x3")]))]]),
+          expected = ([(pApp ("F") [var ("x2")]),
+                       (pApp ("F") [fApp (toSkolem 1) []]),
+                       (pApp ("L") [var ("x")]),
+                       (pApp ("L") [fApp (toSkolem 1) []])],
+                      Just (CJ [DJ [A (pApp ("L") [fApp (toSkolem 1) []]),
+                                    N (A (pApp ("F") [var ("x2")])),
+                                    N (A (pApp ("L") [var ("x")]))],
+                                DJ [N (A (pApp ("F") [var ("x2")])),
+                                    N (A (pApp ("F") [fApp (toSkolem 1) []])),
+                                    N (A (pApp ("L") [var ("x")]))]]),
                       [([False,False,False,False],True),
                        ([False,False,False,True],True),
                        ([False,False,True,False],True),
@@ -434,16 +355,13 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                exists "y" (pApp "L" [var (fromString "y")])) .=>.           -- Someone is a logician
               (.~.) (exists "z" (pApp "F" [var "z"]))                       -- Someone / Nobody is funny
           input = table formula
-          expected = ([(pApp ("F") [var (V "z")]),
-                       (pApp ("F") [fApp (Skolem 1) []]),
-                       (pApp ("L") [var (V "y")]),
-                       (pApp ("L") [fApp (Skolem 1) []])],
-                      Just (CJ [DJ [A (pApp ("L") [fApp (Skolem 1) []]),
-                                    N (A (pApp ("L") [var (V "y")])),
-                                    N (A (pApp ("F") [var (V "z")]))],
-                                DJ [N (A (pApp ("F") [fApp (Skolem 1) []])),
-                                    N (A (pApp ("L") [var (V "y")])),
-                                    N (A (pApp ("F") [var (V "z")]))]]),
+          expected = ([(pApp ("F") [var ("z")]),(pApp ("F") [fApp (toSkolem 1) []]),(pApp ("L") [var ("y")]),(pApp ("L") [fApp (toSkolem 1) []])],
+                      Just (CJ [DJ [A (pApp ("L") [fApp (toSkolem 1) []]),
+                                    N (A (pApp ("F") [var ("z")])),
+                                    N (A (pApp ("L") [var ("y")]))],
+                                DJ [N (A (pApp ("F") [var ("z")])),
+                                    N (A (pApp ("F") [fApp (toSkolem 1) []])),
+                                    N (A (pApp ("L") [var ("y")]))]]),
                       [([False,False,False,False],True),
                        ([False,False,False,True],True),
                        ([False,False,True,False],True),
@@ -462,6 +380,9 @@ distributeDisjuncts: (~S(x) | H(x)) & (~H(x) | M(x)) & S(SkY(x)) & ~M(SkY(x))
                        ([True,True,True,True],False)])
       in TestCase (assertEqual "Logic - gensler189 renamed" expected input)
     ]
+
+toSS :: Ord a => [[a]] -> Set.Set (Set.Set a)
+toSS = Set.fromList . map Set.fromList
 
 {-
 theorem5 =
@@ -515,6 +436,17 @@ prepare formula = ({- flatten . -} fromJust . toPropositional convertA . cnf . (
 convertA = Just . A
 -}
 
-table :: (FirstOrderLogic formula term v p f, Ord formula, Eq term, Skolem f, IsString v, Enum v, TD.Display formula) =>
+table :: forall formula term v p f. (FirstOrderLogic formula term v p f, Ord formula, Eq term, Skolem f, IsString v, Enum v, TD.Display formula) =>
          formula -> TruthTable formula
-table = truthTable . runNormal . clauses
+table f =
+    -- truthTable :: Ord a => PropForm a -> TruthTable a
+    tt cnf'
+    where
+      tt :: PropForm formula -> TruthTable formula
+      tt = truthTable
+      cnf' :: PropForm formula
+      cnf' = CJ (map (DJ . map n) cnf)
+      cnf :: [[formula]]
+      cnf = fromSS (runNormal (clauseNormalForm f))
+      fromSS = map Set.toList . Set.toList
+      n f = foldF (\ n -> N (A n)) (\ _ _ _ -> A f) (\ _ _ _ -> A f) (\ _ _ _ -> A f) (\ _ _ -> A f) f

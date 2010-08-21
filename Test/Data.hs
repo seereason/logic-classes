@@ -17,7 +17,7 @@ import qualified Data.Set as S
 import qualified Logic.Instances.Chiou as C
 import Logic.FirstOrder (FirstOrderLogic(..), for_all', exists', Term(..), Skolem(toSkolem), convertFOF)
 import Logic.Implicative (Implicative(..))
-import Logic.Instances.Native (ImplicativeNormalForm(..))
+import Logic.Instances.Native (ImplicativeNormalForm(..), makeINF')
 import Logic.Logic (Logic(..), Boolean(..))
 import Logic.Monad (WithId(..))
 import Test.Types (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..))
@@ -53,90 +53,134 @@ formulas =
     , TestFormula
       { formula = pApp (fromBool True) []
       , name = "True"
-      , expected = [ClausalNormalForm  []] }
+      , expected = [ClauseNormalForm  (toSS [[]])] }
     , TestFormula
       { formula = pApp (fromBool False) []
       , name = "False"
-      , expected = [ClausalNormalForm  [[]]] }
+      , expected = [ClauseNormalForm  (toSS [])] }
     , TestFormula
       { formula = pApp "p" []
       , name = "p"
-      , expected = [ClausalNormalForm  [[pApp "p" []]]] }
-    , TestFormula
-      { formula = pApp "p" [] .&. ((.~.) (pApp "p" []))
+      , expected = [ClauseNormalForm  (toSS [[pApp "p" []]])] }
+    , let p = pApp "p" [] in
+      TestFormula
+      { formula = p .&. ((.~.) (p))
       , name = "p&~p"
-      , expected = [ClausalNormalForm  [[(pApp "p" [])],[((.~.) (pApp "p" []))]]] }
+      , expected = [ PrenexNormalForm ((pApp ("p") []) .&. (((.~.) (pApp ("p") []))))
+                   , ClauseNormalForm (toSS [[(p)], [((.~.) (p))]])
+                   ] }
     , TestFormula
       { formula = pApp "p" [var "x"]
       , name = "p[x]"
-      , expected = [ClausalNormalForm  [[pApp "p" [x]]]] }
+      , expected = [ClauseNormalForm  (toSS [[pApp "p" [x]]])] }
     , let f = pApp "f"
           q = pApp "q" in
       TestFormula
       { name = "iff"
       , formula = for_all "x" (for_all "y" (q [x, y] .<=>. for_all "z" (f [z, x] .<=>. f [z, y])))
-      , expected = [ClausalNormalForm
-                    [[((.~.) (pApp "q" [var "x",var "y"])),
-                      ((.~.) (pApp "f" [var "z",var "x"])),
-                      (pApp "f" [var "z",var "y"])],
-                     [((.~.) (pApp "q" [var "x",var "y"])),
-                      ((.~.) (pApp "f" [var "z",var "y"])),
-                      (pApp "f" [var "z",var "x"])],
-                     [(pApp "f" [fApp (toSkolem 1) [var "x",var "y",var "z"],var "x"]),
-                      (pApp "f" [fApp (toSkolem 1) [var "x",var "y",var "z"],var "y"]),
-                      (pApp "q" [var "x",var "y"])],
-                     [((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "y",var "z"],var "y"])),
-                      (pApp "f" [fApp (toSkolem 1) [var "x",var "y",var "z"],var "y"]),
-                      (pApp "q" [var "x",var "y"])],
-                     [(pApp "f" [fApp (toSkolem 1) [var "x",var "y",var "z"],var "x"]),
-                      ((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "y",var "z"],var "x"])),
-                      (pApp "q" [var "x",var "y"])],
-                     [((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "y",var "z"],var "y"])),
-                      ((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "y",var "z"],var "x"])),
-                      (pApp "q" [var "x",var "y"])]]]
+      , expected = [ PrenexNormalForm 
+                     (for_all "x"
+                      (for_all "y"
+                       (for_all "z"
+                        (exists "z2"
+                         ((q [x,y] .&.
+                           ((f [z,x] .&. f [z,y]) .|.
+                            ((((.~.) (f [z,x])) .&. ((.~.) (f [z,y])))))) .|. ((((.~.) (q [x,y])) .&.
+                            ((((f [var ("z2"),x] .&. (((.~.) (f [var ("z2"),y])))) .|.
+                               (((.~.) (f [var ("z2"),x])))) .&. f [var ("z2"),y])))))
+                        ))))
+                   , ClauseNormalForm 
+
+--                    [[((.~.) (q [var "x",var "y"])),
+--                      ((.~.) (f [var "z",var "x"])),
+--                      (f [var "z",var "y"])],
+--                     [((.~.) (q [var "x",var "y"])),
+--                      ((.~.) (f [var "z",var "y"])),
+--                      (f [var "z",var "x"])],
+--                     [(f [fApp (toSkolem 1) [var "x",var "y",var "z"],var "x"]),
+--                      (f [fApp (toSkolem 1) [var "x",var "y",var "z"],var "y"]),
+--                      (q [var "x",var "y"])],
+--                     [((.~.) (f [fApp (toSkolem 1) [var "x",var "y",var "z"],var "y"])),
+--                      (f [fApp (toSkolem 1) [var "x",var "y",var "z"],var "y"]),
+--                      (q [var "x",var "y"])],
+--                     [(f [fApp (toSkolem 1) [var "x",var "y",var "z"],var "x"]),
+--                      ((.~.) (f [fApp (toSkolem 1) [var "x",var "y",var "z"],var "x"])),
+--                      (q [var "x",var "y"])],
+--                     [((.~.) (f [fApp (toSkolem 1) [var "x",var "y",var "z"],var "y"])),
+--                      ((.~.) (f [fApp (toSkolem 1) [var "x",var "y",var "z"],var "x"])),
+--                      (q [var "x",var "y"])]]]
+
+                     (toSS [[(f [var ("z"),var ("x")]),
+                             (f [fApp (toSkolem 1) [var ("x"),var ("y")],var ("y")]),
+                             ((.~.) (f [var ("z"),var ("y")]))],
+                            [(f [var ("z"),var ("x")]),
+                             ((.~.) (f [var ("z"),var ("y")])),
+                             ((.~.) (f [fApp (toSkolem 1) [var ("x"),var ("y")],var ("x")])),
+                             ((.~.) (f [fApp (toSkolem 1) [var ("x"),var ("y")],var ("y")]))],
+                            [(f [var ("z"),var ("x")]),
+                             ((.~.) (f [var ("z"),var ("y")])),
+                             ((.~.) (q [var ("x"),var ("y")]))],
+                            [(f [var ("z"),var ("y")]),
+                             (f [fApp (toSkolem 1) [var ("x"),var ("y")],var ("y")]),
+                             ((.~.) (f [var ("z"),var ("x")]))],
+                            [(f [var ("z"),var ("y")]),
+                             ((.~.) (f [var ("z"),var ("x")])),
+                             ((.~.) (f [fApp (toSkolem 1) [var ("x"),var ("y")],var ("x")])),
+                             ((.~.) (f [fApp (toSkolem 1) [var ("x"),var ("y")],var ("y")]))],
+                            [(f [var ("z"),var ("y")]),
+                             ((.~.) (f [var ("z"),var ("x")])),
+                             ((.~.) (q [var ("x"),var ("y")]))],
+                            [(f [fApp (toSkolem 1) [var ("x"),var ("y")],var ("y")]),
+                             (q [var ("x"),var ("y")])],
+                            [(q [var ("x"),var ("y")]),
+                             ((.~.) (f [fApp (toSkolem 1) [var ("x"),var ("y")],var ("x")])),
+                             ((.~.) (f [fApp (toSkolem 1) [var ("x"),var ("y")],var ("y")]))]])
+                   ]
       }
     , TestFormula
       { name = "move quantifiers out"
       , formula = (for_all "x" (pApp "p" [x]) .&. (pApp "q" [x]))
-      , expected = [PrenexNormalForm (for_all "x" ((pApp "p" [var ("x")]) .&. ((pApp "q" [var ("x")]))))]
-      }
-    , TestFormula
-      { name = "skolemize1"
-      , formula = (exists "x" (for_all "y" (for_all "z" (exists "u" (for_all "v" (exists "w" (pApp "P" [x, y, z, u, v, w])))))))
-      , expected = [SkolemNormalForm
-                    (for_all "y"
-                     (for_all "z"
-                      (for_all "v"
-                       (pApp "P" [fApp (toSkolem 1) [],
-                                       var ("y"),
-                                       var ("z"),
-                                       fApp (toSkolem 2) [var ("y"),var ("z")],
-                                       var ("v"),
-                                       fApp (toSkolem 3) [var ("y"),var ("z"),var ("v")]]))))]
+      , expected = [PrenexNormalForm (for_all "x2" ((pApp "p" [var ("x2")]) .&. ((pApp "q" [var ("x")]))))]
       }
     , TestFormula
       { name = "skolemize2"
       , formula = exists "x" (for_all "y" (pApp "loves" [x, y]))
-      , expected = [SkolemNormalForm (for_all "y" (pApp ("loves") [fApp (toSkolem 1) [],y]))]
+      , expected = [SkolemNormalForm (pApp ("loves") [fApp (toSkolem 1) [],y])]
       }
     , TestFormula
       { name = "skolemize3"
       , formula = for_all "y" (exists "x" (pApp "loves" [x, y]))
-      , expected = [SkolemNormalForm (for_all "y" (pApp ("loves") [fApp (toSkolem 1) [y],y]))]
+      , expected = [SkolemNormalForm (pApp ("loves") [fApp (toSkolem 1) [y],y])]
       }
     , TestFormula
-      { formula = exists "x" (for_all' ["y", "z"] (exists "u" (for_all "v" (exists "w" (pApp "P" [x, y, z, u, v, w])))))
+      { formula = exists "x" (for_all' ["y", "z"]
+                              (exists "u"
+                               (for_all "v"
+                                (exists "w"
+                                 (pApp "P" [x, y, z, u, v, w])))))
       , name = "chang example 4.1"
-      , expected = [ SkolemNormalForm (for_all "y" (for_all "z" (for_all "v" (pApp "P" [fApp (toSkolem 1) [],var ("y"),var ("z"),fApp (toSkolem 2) [var ("y"),var ("z")],var ("v"),fApp (toSkolem 3) [var ("y"),var ("z"),var ("v")]])))) ] }
+      , expected = [ SkolemNormalForm (pApp "P" [fApp (toSkolem 1) [],
+                                                 var ("y"),
+                                                 var ("z"),
+                                                 fApp (toSkolem 2) [var ("y"),var ("z")],
+                                                 var ("v"),
+                                                 fApp (toSkolem 3) [var ("v"), var ("y"),var ("z")]]) ]
+      }
     , TestFormula
       { name = "chang example 4.2"
       -- ∀x ∃y∃z ~P(x,y) & Q(x,z) | R(x,y,z)
       , formula = for_all "x" (exists' ["y", "z"] (((((.~.) (pApp "P" [x, y])) .&. pApp "Q" [x, z]) .|. pApp "R" [x, y, z])))
       -- ∀x ~P(x,Sk1[x]) | R(x,Sk1[x],Sk2[x]) & Q(x,Sk2[x]) | R(x,Sk1[x],Sk2[x])
-      , expected = [ SkolemNormalForm (for_all "x" ((((.~.) (pApp "P" [x, fApp (toSkolem 1) [x]])) .|.
-                                                       (pApp "R" [x, fApp (toSkolem 1) [x], fApp (toSkolem 2) [x]])) .&.
-                                                      ((pApp "Q" [x, fApp (toSkolem 2) [x]]) .|.
-                                                       (pApp "R" [x, fApp (toSkolem 1) [x], fApp (toSkolem 2) [x]])))) ]
+      , expected = [ SkolemNormalForm
+                     ((((.~.) (pApp ("P") [var ("x"),var ("y")])) .&.
+                       ((pApp ("Q") [var ("x"),var ("z")]))) .|.
+                      ((pApp ("R") [var ("x"),var ("y"),var ("z")])))
+                   , ClauseNormalForm
+                     (toSS 
+                      [[((.~.) (pApp ("P") [var ("x"),var ("y")])),
+                       (pApp ("R") [var ("x"),var ("y"),var ("z")])],
+                      [(pApp ("Q") [var ("x"),var ("z")]),
+                       (pApp ("R") [var ("x"),var ("y"),var ("z")])]]) ]
       }
     , TestFormula
       { formula = n p0 .|. q0 .&. p0 .|. r0 .&. n q0 .&. n r0
@@ -150,37 +194,25 @@ formulas =
       { formula = p0 .|. q0 .&. q0 .|. r0 .&. r0 .|. s0 .&. n r0 .|. n p0 .&. n s0 .|. n q0 .&. n q0 .|. n r0
       , name = "chang 7.2.1c - unsat"
       , expected = [SatPropLogic False] }
-    , TestFormula
+    , let q = pApp "q"
+          f = pApp "f"
+          sk1 = f [fApp (toSkolem 1) [x,x,y,z],y]
+          sk2 = f [fApp (toSkolem 1) [x,x,y,z],x]
+          (x, y, z) = (var "x", var "y", var "z") in
+      TestFormula
       { name = "distribute bug test"
-      , formula = ((((.~.) (pApp "q" [var "x",var "y"])) .|.
-                    ((((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"])) .|.
-                      (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"])) .&.
-                     (((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"])) .|.
-                      (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"])))) .&.
-                   ((((pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"]) .&.
-                      ((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"]))) .|. 
-                     ((pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"]) .&.
-                      ((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"])))) .|.
-                    (pApp "q" [var "x",var "y"])) {- :: Sentence V Pr AtomicFunction -})
-      , expected = [DisjunctiveNormalForm
-                    (((((.~.) (pApp "q" [var "x",var "y"])) .|.
-                       (((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"])) .|.
-                        (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"]))) .&.
-                      (((.~.) (pApp "q" [var "x",var "y"])) .|.
-                       (((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"])) .|.
-                        (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"])))) .&. 
-                     (((((pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"]) .|.
-                         (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"])) .|.
-                        (pApp "q" [var "x",var "y"])) .&.
-                       ((((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"])) .|.
-                         (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"])) .|.
-                        (pApp "q" [var "x",var "y"]))) .&.
-                      ((((pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"]) .|.
-                         ((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"]))) .|.
-                        (pApp "q" [var "x",var "y"])) .&.
-                       ((((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "y"])) .|.
-                         ((.~.) (pApp "f" [fApp (toSkolem 1) [var "x",var "x",var "y",var "z"],var "x"]))) .|.
-                        (pApp "q" [var "x",var "y"])))))]
+      , formula = ((((.~.) (q [x,y])) .|.
+                    ((((.~.) (sk2)) .|. (sk1)) .&.
+                     (((.~.) (sk1)) .|. (sk2)))) .&.
+                   ((((sk2) .&.
+                      ((.~.) (sk1))) .|. ((sk1) .&.
+                      ((.~.) (sk2)))) .|. (q [x,y])))
+      , expected = [ClauseNormalForm
+                    (toSS
+                     [[sk2,sk1,pApp ("q") [x,y]],
+                      [sk2,((.~.) (sk1)),((.~.) (q [x,y]))],
+                      [sk1,((.~.) (sk2)),((.~.) (q [x,y]))],
+                      [q [x,y], ((.~.) sk2),((.~.) sk1)]])]
       }
     , let (x, y) = (var "x", var "y")
           (x', y') = (var "x", var "y") in
@@ -189,13 +221,9 @@ formulas =
       , formula = exists "x" (x .=. y)
       , expected = [ConvertToChiou (exists "x" (x' .=. y'))]
       }
-    , let -- s :: [ATerm] -> Formula
-          s = pApp "s"
-          --s' :: [C.CTerm V AtomicFunction] -> C.Sentence V Pr AtomicFunction
+    , let s = pApp "s"
           s' = pApp "s"
-          --x' :: C.CTerm V AtomicFunction
           x' = var "x"
-          --y' :: C.CTerm V AtomicFunction
           y' = var "y" in
       TestFormula
       { name = "convert to Chiou 2"
@@ -228,92 +256,185 @@ formulas =
       TestFormula
       { name = "cnf test 1"
       , formula = for_all "y" (for_all "x" (taller y x .|. wise x) .=>. wise y)
-      , expected = [ClausalNormalForm
-                    [[(.~.) (taller (var "y") (fApp (toSkolem 1) [var "y"])), wise y],
-                     [(.~.) (wise (fApp (toSkolem 1) [var "y"])), wise (var "y")]]]
+      , expected = [ClauseNormalForm
+                    (toSS
+                     [[(pApp ("wise") [var ("y")]),
+                       ((.~.) (pApp ("taller") [var ("y"),fApp (toSkolem 1) [var ("y")]]))],
+                      [(pApp ("wise") [var ("y")]),
+                       ((.~.) (pApp ("wise") [fApp (toSkolem 1) [var ("y")]]))]])]
       }
     , TestFormula
       { name = "cnf test 2"
       , formula = ((.~.) (exists "x" (pApp "s" [x] .&. pApp "q" [x])))
-      , expected = [ClausalNormalForm [[((.~.) (pApp "s" [var "x"])),((.~.) (pApp "q" [var "x"]))]]]
+      , expected = [ ClauseNormalForm (toSS 
+                                       [[((.~.) (pApp ("q") [var ("x")])),
+                                         ((.~.) (pApp ("s") [var ("x")]))]])
+                   , PrenexNormalForm (for_all "x"
+                                       (((.~.) (pApp ("s") [var ("x")])) .|.
+                                        (((.~.) (pApp ("q") [var ("x")])))))
+                                     {- [[((.~.) (pApp "s" [var "x"])),
+                                        ((.~.) (pApp "q" [var "x"]))]] -}
+                   ]
       }
     , TestFormula
       { name = "cnf test 3"
       , formula = (for_all "x" (p [x] .=>. (q [x] .|. r [x])))
-      , expected = [ClausalNormalForm [[((.~.) (pApp "p" [var "x"])),(pApp "q" [var "x"]),(pApp "r" [var "x"])]]]
+      , expected = [ClauseNormalForm (toSS [[((.~.) (pApp "p" [var "x"])),(pApp "q" [var "x"]),(pApp "r" [var "x"])]])]
       }
     , TestFormula
       { name = "cnf test 4"
       , formula = ((.~.) (exists "x" (p [x] .=>. exists "y" (q [y]))))
-      , expected = [ClausalNormalForm [[(pApp "p" [var "x"])],[((.~.) (pApp "q" [var "y"]))]]]
+      , expected = [ClauseNormalForm (toSS [[(pApp "p" [var "x"])],[((.~.) (pApp "q" [var "y"]))]])]
       }
     , TestFormula
       { name = "cnf test 5"
       , formula = (for_all "x" (q [x] .|. r [x] .=>. s [x]))
-      , expected = [ClausalNormalForm [[((.~.) (pApp "q" [var "x"])),(pApp "s" [var "x"])],[((.~.) (pApp "r" [var "x"])),(pApp "s" [var "x"])]]]
+      , expected = [ClauseNormalForm (toSS [[((.~.) (pApp "q" [var "x"])),(pApp "s" [var "x"])],[((.~.) (pApp "r" [var "x"])),(pApp "s" [var "x"])]])]
       }
     , TestFormula
       { name = "cnf test 6"
       , formula = (exists "x" (p0 .=>. pApp "f" [x]))
-      , expected = [ClausalNormalForm [[((.~.) (pApp "p" [])),(pApp "f" [fApp (toSkolem 1) []])]]]
+      , expected = [ClauseNormalForm (toSS [[((.~.) (pApp "p" [])),(pApp "f" [fApp (toSkolem 1) []])]])]
       }
-    , TestFormula
+    , let p = pApp "p" []
+          f' = pApp "f" [x]
+          f = pApp "f" [fApp (toSkolem 1) []] in
+      TestFormula
       { name = "cnf test 7"
-      , formula = (exists "x" (p0 .<=>. pApp "f" [x]))
-      , expected = [ClausalNormalForm [[((.~.) (pApp "p" [])),(pApp "f" [fApp (toSkolem 1) []])],[((.~.) (pApp "f" [fApp (toSkolem 1) []])),(pApp "p" [])]]]
+      , formula = exists "x" (p .<=>. f')
+      , expected = [ PrenexNormalForm (exists "x" ((p .&. f') .|. ((((.~.) p) .&. (((.~.) f'))))))
+                   , SkolemNormalForm ((p .&. f) .|. (((.~.) p) .&. (((.~.) f))))
+                   , TrivialClauses [(False,S.fromList [(pApp ("f") [fApp (toSkolem 1) []]),((.~.) (pApp ("p") []))]),
+                                     (False,S.fromList [(pApp ("p") []),((.~.) (pApp ("f") [fApp (toSkolem 1) []]))])]
+                   , ClauseNormalForm (toSS [[(f), ((.~.) p)], [p, ((.~.) f)]])]
       }
     , TestFormula
       { name = "cnf test 8"
       , formula = (for_all "z" (exists "y" (for_all "x" (pApp "f" [x, y] .<=>. (pApp "f" [x, z] .&. ((.~.) (pApp "f" [x, x])))))))
-      , expected = [ClausalNormalForm 
-                    [[((.~.) (pApp "f" [var "x",fApp (toSkolem 1) [var "z"]])),(pApp "f" [var "x",var "z"])],
-                     [((.~.) (pApp "f" [var "x",fApp (toSkolem 1) [var "z"]])),((.~.) (pApp "f" [var "x",var "x"]))],
-                     [((.~.) (pApp "f" [var "x",var "z"])),(pApp "f" [var "x",var "x"]),(pApp "f" [var "x",fApp (toSkolem 1) [var "z"]])]]]
+      , expected = [ClauseNormalForm 
+                    (toSS [[((.~.) (pApp "f" [var "x",fApp (toSkolem 1) [var "z"]])),(pApp "f" [var "x",var "z"])],
+                           [((.~.) (pApp "f" [var "x",fApp (toSkolem 1) [var "z"]])),((.~.) (pApp "f" [var "x",var "x"]))],
+                           [((.~.) (pApp "f" [var "x",var "z"])),(pApp "f" [var "x",var "x"]),(pApp "f" [var "x",fApp (toSkolem 1) [var "z"]])]])]
       }
-    , TestFormula
+    , let f = pApp "f" 
+          q = pApp "q"
+          sk1 = fApp (toSkolem 1)
+          (x, y, z) = (var "x", var "y", var "z") in
+      TestFormula
       { name = "cnf test 9"
-      , formula = (for_all "x" (for_all "x" (for_all "y" (q [x, y] .<=>. for_all "z" (pApp "f" [z, x] .<=>. pApp "f" [z, y])))))
-      , expected = [ClausalNormalForm
-                    [[((.~.) (pApp "q" [var ("x"),var ("y")])),((.~.) (pApp "f" [var ("z"),var ("x")])),(pApp "f" [var ("z"),var ("y")])],
-                     [((.~.) (pApp "q" [var ("x"),var ("y")])),((.~.) (pApp "f" [var ("z"),var ("y")])),(pApp "f" [var ("z"),var ("x")])],
-                     [(pApp "f" [fApp (toSkolem 1) [var ("x2"),var ("x"),var ("y"),var ("z")],var ("x")]),(pApp "f" [fApp (toSkolem 1) [var ("x2"),var ("x"),var ("y"),var ("z")],var ("y")]),(pApp "q" [var ("x"),var ("y")])],
-                     [((.~.) (pApp "f" [fApp (toSkolem 1) [var ("x2"),var ("x"),var ("y"),var ("z")],var ("y")])),(pApp "f" [fApp (toSkolem 1) [var ("x2"),var ("x"),var ("y"),var ("z")],var ("y")]),(pApp "q" [var ("x"),var ("y")])],
-                     [(pApp "f" [fApp (toSkolem 1) [var ("x2"),var ("x"),var ("y"),var ("z")],var ("x")]),((.~.) (pApp "f" [fApp (toSkolem 1) [var ("x2"),var ("x"),var ("y"),var ("z")],var ("x")])),(pApp "q" [var ("x"),var ("y")])],
-                     [((.~.) (pApp "f" [fApp (toSkolem 1) [var ("x2"),var ("x"),var ("y"),var ("z")],var ("y")])),((.~.) (pApp "f" [fApp (toSkolem 1) [var ("x2"),var ("x"),var ("y"),var ("z")],var ("x")])),(pApp "q" [var ("x"),var ("y")])]]]
+      , formula = (for_all "x" (for_all "x" (for_all "y" (q [x, y] .<=>. for_all "z" (f [z, x] .<=>. f [z, y])))))
+      , expected = [ClauseNormalForm
+                    (toSS
+                     [[(f [z,x]),
+                       (f [sk1 [x,y],y]),
+                       ((.~.) (f [z,y]))],
+                      [(f [z,x]),
+                       ((.~.) (f [z,y])),
+                       ((.~.) (f [sk1 [x,y],x])),
+                       ((.~.) (f [sk1 [x,y],y]))],
+                      [(f [z,x]),
+                       ((.~.) (f [z,y])),
+                       ((.~.) (q [x,y]))],
+                      [(f [z,y]),
+                       (f [sk1 [x,y],y]),
+                       ((.~.) (f [z,x]))],
+                      [(f [z,y]),
+                       ((.~.) (f [z,x])),
+                       ((.~.) (f [sk1 [x,y],x])),
+                       ((.~.) (f [sk1 [x,y],y]))],
+                      [(f [z,y]),
+                       ((.~.) (f [z,x])),
+                       ((.~.) (q [x,y]))],
+                      [(f [sk1 [x,y],y]),
+                       (q [x,y])],
+                      [(q [x,y]),
+                       ((.~.) (f [sk1 [x,y],x])),
+                       ((.~.) (f [sk1 [x,y],y]))]])
+                   ]
       }
     , TestFormula
       { name = "cnf test 10"
       , formula = (for_all "x" (exists "y" ((p [x, y] .<=. for_all "x" (exists "z" (q [y, x, z]) .=>. r [y])))))
-      , expected = [ClausalNormalForm
-                    [[(pApp "q" [fApp (toSkolem 1) [var ("x2")],fApp (toSkolem 2) [var ("x2")],fApp (toSkolem 3) [var ("x2")]]),
-                      (pApp "p" [var ("x2"),fApp (toSkolem 1) [var ("x2")]])],
-                     [((.~.) (pApp "r" [fApp (toSkolem 1) [var ("x2")]])),
-                      (pApp "p" [var ("x2"),fApp (toSkolem 1) [var ("x2")]])]]]
+      , expected = [ClauseNormalForm
+                    (toSS 
+                     [[(pApp ("p") [var ("x"),fApp (toSkolem 1) [var ("x")]]),
+                       (pApp ("q") [fApp (toSkolem 1) [fApp (toSkolem 2) []],fApp (toSkolem 2) [],fApp (toSkolem 3) []])],
+                      [(pApp ("p") [var ("x"),fApp (toSkolem 1) [var ("x")]]),
+                       ((.~.) (pApp ("r") [fApp (toSkolem 1) [fApp (toSkolem 2) []]]))]])
+                   ]
       }
     , TestFormula
       { name = "cnf test 11"
       , formula = (for_all "x" (for_all "z" (p [x, z] .=>. exists "y" ((.~.) (q [x, y] .|. ((.~.) (r [y, z])))))))
-      , expected = [ClausalNormalForm
+      , expected = [ClauseNormalForm
+                    (toSS 
                     [[((.~.) (pApp "p" [var "x",var "z"])),((.~.) (pApp "q" [var "x",fApp (toSkolem 1) [var "x",var "z"]]))],
-                     [((.~.) (pApp "p" [var "x",var "z"])),(pApp "r" [fApp (toSkolem 1) [var "x",var "z"],var "z"])]]]
+                     [((.~.) (pApp "p" [var "x",var "z"])),(pApp "r" [fApp (toSkolem 1) [var "x",var "z"],var "z"])]])]
       }
     , TestFormula
       { name = "cnf test 12"
       , formula = ((p0 .=>. q0) .=>. (((.~.) r0) .=>. (s0 .&. t0)))
-      , expected = [ClausalNormalForm
+      , expected = [ClauseNormalForm
+                    (toSS
                     [[(pApp "p" []),(pApp "r" []),(pApp "s" [])],
                      [((.~.) (pApp "q" [])),(pApp "r" []),(pApp "s" [])],
                      [(pApp "p" []),(pApp "r" []),(pApp "t" [])],
-                     [((.~.) (pApp "q" [])),(pApp "r" []),(pApp "t" [])]]]
+                     [((.~.) (pApp "q" [])),(pApp "r" []),(pApp "t" [])]])]
       }
+    , let p = pApp "p" []
+          true = pApp (fromBool True) []
+          false = pApp (fromBool False) [] in
+      TestFormula
+      { name = "psimplify 50"
+      , formula = true .=>. (p .<=>. (p .<=>. false))
+      , expected = [ SimplifiedForm (p .<=>. (.~.) p) ] }
+    , let true = pApp (fromBool True) []
+          false = pApp (fromBool False) [] in
+      TestFormula
+      { name = "psimplify 51"
+      , formula = (((pApp "x" [] .=>. pApp "y" []) .=>. true) .|. false)
+      , expected = [ SimplifiedForm (pApp (fromBool True) []) ] }
+    , let false = pApp (fromBool False) []
+          q = pApp "q" [] in
+      TestFormula
+      { name = "simplify 140.3"
+      , formula = (for_all "x"
+                   (for_all "y"
+                    (pApp "p" [var "x"] .|. (pApp "p" [var "y"] .&. false))) .=>.
+                   (exists "z" q))
+      , expected = [ SimplifiedForm ((for_all "x" (pApp "p" [var "x"])) .=>.
+                                        (pApp "q" [])) ] }
     , TestFormula
-      { name = "foo"
-      , formula = let p x = pApp "p" [x]
-                      q x = pApp "q" [x]
-                      (x, y, z) = (var "x", var "y", var "z") in
-                  for_all "x" (p x .=>. (exists "y" (exists "z" (q y .|. (.~.) (exists "z" (p z .&. (q z)))))))
-      , expected = [SkolemNormalForm (pApp "p" [])]
-      }
+      { name = "nnf 141.1"
+      , formula = ((for_all "x" (pApp "p" [var "x"])) .=>. ((exists "y" (pApp "q" [var "y"])) .<=>. (exists "z" (pApp "p" [var "z"] .&. pApp "q" [var "z"]))))
+      , expected = [ NegationNormalForm 
+                     ((exists "x" ((.~.) (pApp "p" [var "x"]))) .|.
+                      ((((exists "y" (pApp "q" [var "y"])) .&. ((exists "z" ((pApp "p" [var "z"]) .&. ((pApp "q" [var "z"])))))) .|.
+                        (((for_all "y" ((.~.) (pApp "q" [var "y"]))) .&.
+                          ((for_all "z" (((.~.) (pApp "p" [var "z"])) .|. (((.~.) (pApp "q" [var "z"]))))))))))) ] }
+    , TestFormula
+      { name = "pnf 144.1"
+      , formula = (for_all "x" (pApp "p" [var "x"] .|. pApp "r" [var "y"]) .=>.
+                   (exists "y" (exists "z" (pApp "q" [var "y"] .|. ((.~.) (exists "z" (pApp "p" [var "z"] .&. pApp "q" [var "z"])))))))
+      , expected = [ PrenexNormalForm 
+                     (exists "x" 
+                      (for_all "z"
+                       ((((.~.) (pApp "p" [var "x"])) .&. (((.~.) (pApp "r" [var "y"])))) .|.
+                        (((pApp "q" [var "x"]) .|. ((((.~.) (pApp "p" [var "z"])) .|. (((.~.) (pApp "q" [var "z"])))))))))) ] }
+    , let (x, y, u, v) = (var "x", var "y", var "u", var "v")
+          fv = fApp (toSkolem 2) [u,x]
+          fy = fApp (toSkolem 1) [x] in
+      TestFormula
+      { name = "snf 150.1"
+      , formula = (exists "y" (pApp "<" [x, y] .=>. for_all "u" (exists "v" (pApp "<" [fApp "*" [x, u], fApp "*" [y, v]]))))
+      , expected = [ SkolemNormalForm (((.~.) (pApp "<" [x, fy])) .|. pApp "<" [fApp "*" [x, u], fApp "*" [fy, fv]]) ] }
+    , let p x = pApp "p" [x]
+          q x = pApp "q" [x]
+          (x, y, z) = (var "x", var "y", var "z") in
+      TestFormula
+      { name = "snf 150.2"
+      , formula = (for_all "x" (p x .=>. (exists "y" (exists "z" (q y .|. (.~.) (exists "z" (p z .&. (q z))))))))
+      , expected = [ SkolemNormalForm (((.~.) (p x)) .|. (q (fApp (toSkolem 1) []) .|. (((.~.) (p z)) .|. ((.~.) (q z))))) ] }
     ]
 
 animalKB :: forall formula term v p f. FirstOrderLogic formula term v p f =>
@@ -334,7 +455,7 @@ animalKB =
     , [ TestFormula
        { formula = exists "x" (dog [x] .&. owns [jack, x]) -- [[Pos 1],[Pos 2]]
        , name = "jack owns a dog"
-       , expected = [ClausalNormalForm  [[(pApp "Dog" [fApp (toSkolem 1) []])],[(pApp "Owns" [fApp "Jack" [],fApp (toSkolem 1) []])]]]
+       , expected = [ClauseNormalForm (toSS [[(pApp "Dog" [fApp (toSkolem 1) []])],[(pApp "Owns" [fApp "Jack" [],fApp (toSkolem 1) []])]])]
        -- owns(jack,sK0)
        -- dog (SK0)
                    }
@@ -344,31 +465,31 @@ animalKB =
        , expected = [ PrenexNormalForm (for_all "x" (for_all "y" ((((.~.) (pApp "Dog" [var "y"])) .|.
                                                                            (((.~.) (pApp "Owns" [var "x",var "y"])))) .|.
                                                                           ((pApp "AnimalLover" [var "x"])))))
-                    , ClausalNormalForm [[((.~.) (pApp "Dog" [var "y"])),((.~.) (pApp "Owns" [var "x",var "y"])),(pApp "AnimalLover" [var "x"])]] ]
+                    , ClauseNormalForm (toSS [[((.~.) (pApp "Dog" [var "y"])),((.~.) (pApp "Owns" [var "x",var "y"])),(pApp "AnimalLover" [var "x"])]]) ]
        -- animalLover(X0) | ~owns(X0,sK1(X0)) | ~dog(sK1(X0))
        }
      , TestFormula
        { formula = for_all "x" (animalLover [x] .=>. (for_all "y" ((animal [y]) .=>. ((.~.) (kills [x, y]))))) -- [[Neg 3,Neg 4,Neg 5]]
        , name = "animal lovers don't kill animals"
-       , expected = [ClausalNormalForm  [[((.~.) (pApp "AnimalLover" [var "x"])),((.~.) (pApp "Animal" [var "y"])),((.~.) (pApp "Kills" [var "x",var "y"]))]]]
+       , expected = [ClauseNormalForm  (toSS [[((.~.) (pApp "AnimalLover" [var "x"])),((.~.) (pApp "Animal" [var "y"])),((.~.) (pApp "Kills" [var "x",var "y"]))]])]
        -- ~kills(X0,X2) | ~animal(X2) | ~animalLover(sK2(X0))
        }
      , TestFormula
        { formula = (kills [jack, tuna]) .|. (kills [curiosity, tuna]) -- [[Pos 5,Pos 5]]
        , name = "Either jack or curiosity kills tuna"
-       , expected = [ClausalNormalForm  [[(pApp "Kills" [fApp "Jack" [],fApp "Tuna" []]),(pApp "Kills" [fApp "Curiosity" [],fApp "Tuna" []])]]]
+       , expected = [ClauseNormalForm  (toSS [[(pApp "Kills" [fApp "Jack" [],fApp "Tuna" []]),(pApp "Kills" [fApp "Curiosity" [],fApp "Tuna" []])]])]
        -- kills(curiosity,tuna) | kills(jack,tuna)
        }
      , TestFormula
        { formula = cat [tuna] -- [[Pos 6]]
        , name = "tuna is a cat"
-       , expected = [ClausalNormalForm  [[(pApp "Cat" [fApp "Tuna" []])]]]
+       , expected = [ClauseNormalForm  (toSS [[(pApp "Cat" [fApp "Tuna" []])]])]
        -- cat(tuna)
        }
      , TestFormula
        { formula = for_all "x" ((cat [x]) .=>. (animal [x])) -- [[Neg 6,Pos 4]]
        , name = "a cat is an animal"
-       , expected = [ClausalNormalForm  [[((.~.) (pApp "Cat" [var "x"])),(pApp "Animal" [var "x"])]]]
+       , expected = [ClauseNormalForm  (toSS [[((.~.) (pApp "Cat" [var "x"])),(pApp "Animal" [var "x"])]])]
        -- animal(X0) | ~cat(X0)
        }
      ])
@@ -398,63 +519,61 @@ animalConjectures =
                                        ((pApp "Kills" [fApp ("Jack") [],fApp ("Tuna") []]))))
 
            , PrenexNormalForm
-             (exists "x"
-              (for_all "x2"
-               (for_all "y"
-                (for_all "x3"
-                 (for_all "y2"
-                  (for_all "x4"
-                   ((((pApp "Dog" [var ("x")]) .&.
-                      ((pApp "Owns" [fApp ("Jack") [],var ("x")]))) .&.
-                     ((((((.~.) (pApp "Dog" [var ("y")])) .|.
-                         (((.~.) (pApp "Owns" [var ("x2"),var ("y")])))) .|.
-                        ((pApp "AnimalLover" [var ("x2")]))) .&.
-                       (((((.~.) (pApp "AnimalLover" [var ("x3")])) .|.
-                          ((((.~.) (pApp "Animal" [var ("y2")])) .|.
-                            (((.~.) (pApp "Kills" [var ("x3"),var ("y2")])))))) .&.
-                         ((((pApp "Kills" [fApp ("Jack") [],fApp ("Tuna") []]) .|.
-                            ((pApp "Kills" [fApp ("Curiosity") [],fApp ("Tuna") []]))) .&.
-                           (((pApp "Cat" [fApp ("Tuna") []]) .&.
-                             ((((.~.) (pApp "Cat" [var ("x4")])) .|.
-                               ((pApp "Animal" [var ("x4")]))))))))))))) .&.
-                    (((.~.) (pApp "Kills" [fApp ("Jack") [],fApp ("Tuna") []]))))))))))
-
-           , ClausalNormalForm
-             [[(pApp "Dog" [fApp (toSkolem 1) []])],
-              [(pApp "Owns" [fApp ("Jack") [],fApp (toSkolem 1) []])],
-              [((.~.) (pApp "Dog" [var ("y")])),
-               ((.~.) (pApp "Owns" [var ("x2"),var ("y")])),
-               (pApp "AnimalLover" [var ("x2")])],
-              [((.~.) (pApp "AnimalLover" [var ("x3")])),
-               ((.~.) (pApp "Animal" [var ("y2")])),
-               ((.~.) (pApp "Kills" [var ("x3"),var ("y2")]))],
-              [(pApp "Kills" [fApp ("Jack") [],fApp ("Tuna") []]),
-               (pApp "Kills" [fApp ("Curiosity") [],fApp ("Tuna") []])],
-              [(pApp "Cat" [fApp ("Tuna") []])],
-              [((.~.) (pApp "Cat" [var ("x4")])),
-               (pApp "Animal" [var ("x4")])],
-              [((.~.) (pApp "Kills" [fApp ("Jack") [],fApp ("Tuna") []]))]]
+             (for_all "x"
+              (for_all "y"
+               (exists "x2"
+                ((((pApp ("Dog") [var ("x2")]) .&.
+                   ((pApp ("Owns") [fApp ("Jack") [],var ("x2")]))) .&.
+                  ((((((.~.) (pApp ("Dog") [var ("y")])) .|.
+                      (((.~.) (pApp ("Owns") [var ("x"),var ("y")])))) .|.
+                     ((pApp ("AnimalLover") [var ("x")]))) .&.
+                    (((((.~.) (pApp ("AnimalLover") [var ("x")])) .|.
+                       ((((.~.) (pApp ("Animal") [var ("y")])) .|.
+                         (((.~.) (pApp ("Kills") [var ("x"),var ("y")])))))) .&.
+                      ((((pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []]) .|.
+                         ((pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]))) .&.
+                        (((pApp ("Cat") [fApp ("Tuna") []]) .&.
+                          ((((.~.) (pApp ("Cat") [var ("x")])) .|.
+                            ((pApp ("Animal") [var ("x")]))))))))))))) .&.
+                 (((.~.) (pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])))))))
+           , ClauseNormalForm
+             (toSS
+              [[(pApp ("Animal") [var ("x")]),
+                ((.~.) (pApp ("Cat") [var ("x")]))],
+               [(pApp ("AnimalLover") [var ("x")]),
+                ((.~.) (pApp ("Dog") [var ("y")])),
+                ((.~.) (pApp ("Owns") [var ("x"),var ("y")]))],
+               [(pApp ("Cat") [fApp ("Tuna") []])],
+               [(pApp ("Dog") [fApp (toSkolem 1) []])],
+               [(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),
+                (pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])],
+               [(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem 1) []])],
+               [((.~.) (pApp ("Animal") [var ("y")])),
+                ((.~.) (pApp ("AnimalLover") [var ("x")])),
+                ((.~.) (pApp ("Kills") [var ("x"),var ("y")]))],
+               [((.~.) (pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []]))]])
            , SatPropLogic False ]
        }
      , TestFormula
        { formula = kills [curiosity, tuna]        -- True
        , name = "curiosity kills tuna"
        , expected =
-           [ ClausalNormalForm
+           [ ClauseNormalForm
+             (toSS
              [[(pApp "Dog" [fApp (toSkolem 1) []])],
               [(pApp "Owns" [fApp ("Jack") [],fApp (toSkolem 1) []])],
               [((.~.) (pApp "Dog" [var ("y")])),
-               ((.~.) (pApp "Owns" [var ("x2"),var ("y")])),
-               (pApp "AnimalLover" [var ("x2")])],
-              [((.~.) (pApp "AnimalLover" [var ("x3")])),
-               ((.~.) (pApp "Animal" [var ("y2")])),
-               ((.~.) (pApp "Kills" [var ("x3"),var ("y2")]))],
+               ((.~.) (pApp "Owns" [var ("x"),var ("y")])),
+               (pApp "AnimalLover" [var ("x")])],
+              [((.~.) (pApp "AnimalLover" [var ("x")])),
+               ((.~.) (pApp "Animal" [var ("y")])),
+               ((.~.) (pApp "Kills" [var ("x"),var ("y")]))],
               [(pApp "Kills" [fApp ("Jack") [],fApp ("Tuna") []]),
                (pApp "Kills" [fApp ("Curiosity") [],fApp ("Tuna") []])],
               [(pApp "Cat" [fApp ("Tuna") []])],
-              [((.~.) (pApp "Cat" [var ("x4")])),
-               (pApp "Animal" [var ("x4")])],
-              [((.~.) (pApp "Kills" [fApp "Curiosity" [],fApp "Tuna" []]))]]
+              [((.~.) (pApp "Cat" [var ("x")])),
+               (pApp "Animal" [var ("x")])],
+              [((.~.) (pApp "Kills" [fApp "Curiosity" [],fApp "Tuna" []]))]])
            , SatPropLogic True ]
        }
      ]
@@ -468,11 +587,11 @@ socratesKB =
     , [ TestFormula
        { name = "all humans are mortal"
        , formula = for_all "x" (human x .=>. mortal x)
-       , expected = [ClausalNormalForm  [[((.~.) (human x)), mortal x]]] }
+       , expected = [ClauseNormalForm  (toSS [[((.~.) (human x)), mortal x]])] }
      , TestFormula
        { name = "socrates is human"
        , formula = for_all "x" (socrates x .=>. human x)
-       , expected = [ClausalNormalForm  [[(.~.) (socrates x), human x]]] }
+       , expected = [ClauseNormalForm  (toSS [[(.~.) (socrates x), human x]])] }
      ])
 
 {-
@@ -484,7 +603,7 @@ socratesConjectures =
        , expected = [ FirstOrderFormula ((.~.) (((for_all' [V "x"] ((pApp "Human" [var "x"]) .=>. ((pApp "Mortal" [var "x"])))) .&.
                                                  ((for_all' [V "x"] ((pApp "Socrates" [var "x"]) .=>. ((pApp "Human" [var "x"])))))) .=>.
                                                 ((for_all' [V "x"] ((pApp "Socrates" [var "x"]) .=>. ((pApp "Mortal" [var "x"])))))))
-                    , ClausalNormalForm  [[((.~.) (pApp "Human" [var "x2"])),(pApp "Mortal" [var "x2"])],
+                    , ClauseNormalForm  [[((.~.) (pApp "Human" [var "x2"])),(pApp "Mortal" [var "x2"])],
                                           [((.~.) (pApp "Socrates" [var "x2"])),(pApp "Human" [var "x2"])],
                                           [(pApp "Socrates" [fApp (toSkolem 1) [var "x2",var "x2"]])],
                                           [((.~.) (pApp "Mortal" [fApp (toSkolem 1) [var "x2",var "x2"]]))]]
@@ -499,10 +618,10 @@ socratesConjectures =
                                                 (((.~.) (for_all' [V "x"] ((pApp "Socrates" [var "x"]) .=>. ((pApp "Mortal" [var "x"]))))))))
                     -- [~human(x) | mortal(x)], [~socrates(Sk1(x,y)) | human(Sk1(x,y))], socrates(Sk1(x,y)), ~mortal(Sk1(x,y))
                     -- ~1 | 2, ~3 | 4, 3, ~5?
-                    , ClausalNormalForm [[((.~.) (pApp "Human" [x])), (pApp "Mortal" [x])],
+                    , ClauseNormalForm [[((.~.) (pApp "Human" [x])), (pApp "Mortal" [x])],
                                          [((.~.) (pApp "Socrates" [fApp (toSkolem 1) [x,y]])), (pApp "Human" [fApp (toSkolem 1) [x,y]])],
                                          [(pApp "Socrates" [fApp (toSkolem 1) [x,y]])], [((.~.) (pApp "Mortal" [fApp (toSkolem 1) [x,y]]))]]
-                    , ClausalNormalForm [[((.~.) (pApp "Human" [var "x2"])), (pApp "Mortal" [var "x2"])],
+                    , ClauseNormalForm [[((.~.) (pApp "Human" [var "x2"])), (pApp "Mortal" [var "x2"])],
                                          [((.~.) (pApp "Socrates" [var "x2"])), (pApp "Human" [var "x2"])],
                                          [((.~.) (pApp "Socrates" [var "x"])), (pApp "Mortal" [var "x"])]] ]
        }
@@ -547,100 +666,107 @@ chang43Conjecture =
                       -- (∀x P(i[x],x,e)) &
                       -- (∃x P(x,x,e) & (∃u∃v∃w P(u,v,w) & ~P(v,u,w)))
                     , NegationNormalForm
-                      (((for_all' ["x","y"]
-                         (exists "z"
-                          (pApp "P" [var ("x"),var ("y"),var ("z")]))) .&.
-                        ((((for_all' ["x2","y2","z2","u","v","w"]
-                            (((((.~.) (pApp "P" [var ("x2"),var ("y2"),var ("u")])) .|.
-                               (((.~.) (pApp "P" [var ("y2"),var ("z2"),var ("v")])))) .|.
-                              (((.~.) (pApp "P" [var ("u"),var ("z2"),var ("w")])))) .|.
-                             ((pApp "P" [var ("x2"),var ("v"),var ("w")])))) .&.
-                           ((for_all' ["x3","y3","z3","u2","v2","w2"]
-                             (((((.~.) (pApp "P" [var ("x3"),var ("y3"),var ("u2")])) .|.
-                                (((.~.) (pApp "P" [var ("y3"),var ("z3"),var ("v2")])))) .|.
-                               (((.~.) (pApp "P" [var ("x3"),var ("v2"),var ("w2")])))) .|.
-                              ((pApp "P" [var ("u2"),var ("z3"),var ("w2")])))))) .&.
-                          ((((for_all "x4"
-                              (pApp "P" [var ("x4"),fApp ("e") [],var ("x4")])) .&.
-                             ((for_all "x5"
-                               (pApp "P" [fApp ("e") [],var ("x5"),var ("x5")])))) .&.
-                            (((for_all "x6"
-                               (pApp "P" [var ("x6"),fApp ("i") [var ("x6")],fApp ("e") []])) .&.
-                              ((for_all "x7"
-                                (pApp "P" [fApp ("i") [var ("x7")],var ("x7"),fApp ("e") []])))))))))) .&.
-                       ((exists "x8"
-                         ((pApp "P" [var ("x8"),var ("x8"),fApp ("e") []]) .&.
-                          ((exists' ["u3","v3","w3"]
-                            ((pApp "P" [var ("u3"),var ("v3"),var ("w3")]) .&.
-                             (((.~.) (pApp "P" [var ("v3"),var ("u3"),var ("w3")]))))))))))
+                      (((for_all "x"
+                         (for_all "y"
+                          (exists "z"
+                           (pApp ("P") [var ("x"),var ("y"),var ("z")])))) .&.
+                        ((((for_all "x"
+                            (for_all "y"
+                             (for_all "z"
+                              (for_all "u"
+                               (for_all "v"
+                                (for_all "w"
+                                 (((((.~.) (pApp ("P") [var ("x"),var ("y"),var ("u")])) .|.
+                                    (((.~.) (pApp ("P") [var ("y"),var ("z"),var ("v")])))) .|.
+                                   (((.~.) (pApp ("P") [var ("u"),var ("z"),var ("w")])))) .|.
+                                  ((pApp ("P") [var ("x"),var ("v"),var ("w")]))))))))) .&.
+                           ((for_all "x"
+                             (for_all "y"
+                              (for_all "z"
+                               (for_all "u"
+                                (for_all "v"
+                                 (for_all "w"
+                                  (((((.~.) (pApp ("P") [var ("x"),var ("y"),var ("u")])) .|.
+                                     (((.~.) (pApp ("P") [var ("y"),var ("z"),var ("v")])))) .|.
+                                    (((.~.) (pApp ("P") [var ("x"),var ("v"),var ("w")])))) .|.
+                                   ((pApp ("P") [var ("u"),var ("z"),var ("w")]))))))))))) .&.
+                          ((((for_all "x" (pApp ("P") [var ("x"),fApp ("e") [],var ("x")])) .&.
+                             ((for_all "x" (pApp ("P") [fApp ("e") [],var ("x"),var ("x")])))) .&.
+                            (((for_all "x" (pApp ("P") [var ("x"),fApp ("i") [var ("x")],fApp ("e") []])) .&.
+                              ((for_all "x" (pApp ("P") [fApp ("i") [var ("x")],var ("x"),fApp ("e") []])))))))))) .&.
+                       ((exists "x"
+                         ((pApp ("P") [var ("x"),var ("x"),fApp ("e") []]) .&.
+                          ((exists "u"
+                            (exists "v"
+                             (exists "w"
+                              ((pApp ("P") [var ("u"),var ("v"),var ("w")]) .&.
+                               (((.~.) (pApp ("P") [var ("v"),var ("u"),var ("w")]))))))))))))
                     , PrenexNormalForm
                       (for_all "x"
                        (for_all "y"
-                        (exists "z"
-                         (for_all "x2"
-                          (for_all "y2"
-                           (for_all "z2"
-                            (for_all "u"
-                             (for_all "v"
-                              (for_all "w"
-                               (for_all "x3"
-                                (for_all "y3"
-                                 (for_all "z3"
-                                  (for_all "u2"
-                                   (for_all "v2"
-                                    (for_all "w2"
-                                     (for_all "x4"
-                                      (for_all "x5"
-                                       (for_all "x6"
-                                        (for_all "x7"
-                                         (exists "x8"
-                                          (exists "u3"
-                                           (exists "v3"
-                                            (exists "w3"
-                                             (((pApp "P" [var ("x"),var ("y"),var ("z")]) .&.
-                                               ((((((((.~.) (pApp "P" [var ("x2"),var ("y2"),var ("u")])) .|.
-                                                     (((.~.) (pApp "P" [var ("y2"),var ("z2"),var ("v")])))) .|.
-                                                    (((.~.) (pApp "P" [var ("u"),var ("z2"),var ("w")])))) .|.
-                                                   ((pApp "P" [var ("x2"),var ("v"),var ("w")]))) .&.
-                                                  ((((((.~.) (pApp "P" [var ("x3"),var ("y3"),var ("u2")])) .|.
-                                                      (((.~.) (pApp "P" [var ("y3"),var ("z3"),var ("v2")])))) .|.
-                                                     (((.~.) (pApp "P" [var ("x3"),var ("v2"),var ("w2")])))) .|.
-                                                    ((pApp "P" [var ("u2"),var ("z3"),var ("w2")]))))) .&.
-                                                 ((((pApp "P" [var ("x4"),fApp ("e") [],var ("x4")]) .&.
-                                                    ((pApp "P" [fApp ("e") [],var ("x5"),var ("x5")]))) .&.
-                                                   (((pApp "P" [var ("x6"),fApp ("i") [var ("x6")],fApp ("e") []]) .&.
-                                                     ((pApp "P" [fApp ("i") [var ("x7")],var ("x7"),fApp ("e") []]))))))))) .&.
-                                              (((pApp "P" [var ("x8"),var ("x8"),fApp ("e") []]) .&.
-                                                (((pApp "P" [var ("u3"),var ("v3"),var ("w3")]) .&.
-                                                  (((.~.) (pApp "P" [var ("v3"),var ("u3"),var ("w3")])))))))))))))))))))))))))))))))
+                        (for_all "z"
+                         (for_all "u"
+                          (for_all "v"
+                           (for_all "w"
+                            (exists "z2"
+                             (exists "x2"
+                              (exists "u2"
+                               (exists "v2"
+                                (exists "w2"
+                                 (((pApp ("P") [var ("x"),var ("y"),var ("z2")]) .&.
+                                   ((((((((.~.) (pApp ("P") [var ("x"),var ("y"),var ("u")])) .|.
+                                         (((.~.) (pApp ("P") [var ("y"),var ("z"),var ("v")])))) .|.
+                                        (((.~.) (pApp ("P") [var ("u"),var ("z"),var ("w")])))) .|.
+                                       ((pApp ("P") [var ("x"),var ("v"),var ("w")]))) .&.
+                                      ((((((.~.) (pApp ("P") [var ("x"),var ("y"),var ("u")])) .|.
+                                          (((.~.) (pApp ("P") [var ("y"),var ("z"),var ("v")])))) .|.
+                                         (((.~.) (pApp ("P") [var ("x"),var ("v"),var ("w")])))) .|.
+                                        ((pApp ("P") [var ("u"),var ("z"),var ("w")]))))) .&.
+                                     ((((pApp ("P") [var ("x"),fApp ("e") [],var ("x")]) .&.
+                                        ((pApp ("P") [fApp ("e") [],var ("x"),var ("x")]))) .&.
+                                       (((pApp ("P") [var ("x"),fApp ("i") [var ("x")],fApp ("e") []]) .&.
+                                         ((pApp ("P") [fApp ("i") [var ("x")],var ("x"),fApp ("e") []]))))))))) .&.
+                                  (((pApp ("P") [var ("x2"),var ("x2"),fApp ("e") []]) .&.
+                                    (((pApp ("P") [var ("u2"),var ("v2"),var ("w2")]) .&.
+                                      (((.~.) (pApp ("P") [var ("v2"),var ("u2"),var ("w2")])))))))))))))))))))
                     , SkolemNormalForm
-                      (for_all "x" (for_all "y" (for_all "x2" (for_all "y2" (for_all "z2" (for_all "u" (for_all "v" (for_all "w" (for_all "x3" (for_all "y3" (for_all "z3" (for_all "u2" (for_all "v2" (for_all "w2" (for_all "x4" (for_all "x5" (for_all "x6" (for_all "x7" (((pApp "P" [var ("x"),var ("y"),fApp (toSkolem 1) [var ("x"),var ("y")]]) .&. ((((((((.~.) (pApp "P" [var ("x2"),var ("y2"),var ("u")])) .|. (((.~.) (pApp "P" [var ("y2"),var ("z2"),var ("v")])))) .|. (((.~.) (pApp "P" [var ("u"),var ("z2"),var ("w")])))) .|. ((pApp "P" [var ("x2"),var ("v"),var ("w")]))) .&. ((((((.~.) (pApp "P" [var ("x3"),var ("y3"),var ("u2")])) .|. (((.~.) (pApp "P" [var ("y3"),var ("z3"),var ("v2")])))) .|. (((.~.) (pApp "P" [var ("x3"),var ("v2"),var ("w2")])))) .|. ((pApp "P" [var ("u2"),var ("z3"),var ("w2")]))))) .&. ((((pApp "P" [var ("x4"),fApp ("e") [],var ("x4")]) .&. ((pApp "P" [fApp ("e") [],var ("x5"),var ("x5")]))) .&. (((pApp "P" [var ("x6"),fApp ("i") [var ("x6")],fApp ("e") []]) .&. ((pApp "P" [fApp ("i") [var ("x7")],var ("x7"),fApp ("e") []]))))))))) .&. (((pApp "P" [fApp (toSkolem 2) [var ("x"),var ("y"),var ("x2"),var ("y2"),var ("z2"),var ("u"),var ("v"),var ("w"),var ("x3"),var ("y3"),var ("z3"),var ("u2"),var ("v2"),var ("w2"),var ("x4"),var ("x5"),var ("x6"),var ("x7")],fApp (toSkolem 2) [var ("x"),var ("y"),var ("x2"),var ("y2"),var ("z2"),var ("u"),var ("v"),var ("w"),var ("x3"),var ("y3"),var ("z3"),var ("u2"),var ("v2"),var ("w2"),var ("x4"),var ("x5"),var ("x6"),var ("x7")],fApp ("e") []]) .&. (((pApp "P" [fApp (toSkolem 3) [var ("x"),var ("y"),var ("x2"),var ("y2"),var ("z2"),var ("u"),var ("v"),var ("w"),var ("x3"),var ("y3"),var ("z3"),var ("u2"),var ("v2"),var ("w2"),var ("x4"),var ("x5"),var ("x6"),var ("x7")],fApp (toSkolem 4) [var ("x"),var ("y"),var ("x2"),var ("y2"),var ("z2"),var ("u"),var ("v"),var ("w"),var ("x3"),var ("y3"),var ("z3"),var ("u2"),var ("v2"),var ("w2"),var ("x4"),var ("x5"),var ("x6"),var ("x7")],fApp (toSkolem 5) [var ("x"),var ("y"),var ("x2"),var ("y2"),var ("z2"),var ("u"),var ("v"),var ("w"),var ("x3"),var ("y3"),var ("z3"),var ("u2"),var ("v2"),var ("w2"),var ("x4"),var ("x5"),var ("x6"),var ("x7")]]) .&. (((.~.) (pApp "P" [fApp (toSkolem 4) [var ("x"),var ("y"),var ("x2"),var ("y2"),var ("z2"),var ("u"),var ("v"),var ("w"),var ("x3"),var ("y3"),var ("z3"),var ("u2"),var ("v2"),var ("w2"),var ("x4"),var ("x5"),var ("x6"),var ("x7")],fApp (toSkolem 3) [var ("x"),var ("y"),var ("x2"),var ("y2"),var ("z2"),var ("u"),var ("v"),var ("w"),var ("x3"),var ("y3"),var ("z3"),var ("u2"),var ("v2"),var ("w2"),var ("x4"),var ("x5"),var ("x6"),var ("x7")],fApp (toSkolem 5) [var ("x"),var ("y"),var ("x2"),var ("y2"),var ("z2"),var ("u"),var ("v"),var ("w"),var ("x3"),var ("y3"),var ("z3"),var ("u2"),var ("v2"),var ("w2"),var ("x4"),var ("x5"),var ("x6"),var ("x7")]]))))))))))))))))))))))))))
+                      (((pApp ("P") [var ("x"),var ("y"),fApp (toSkolem 1) [var ("x"),var ("y")]]) .&.
+                        ((((((((.~.) (pApp ("P") [var ("x"),var ("y"),var ("u")])) .|.
+                              (((.~.) (pApp ("P") [var ("y"),var ("z"),var ("v")])))) .|.
+                             (((.~.) (pApp ("P") [var ("u"),var ("z"),var ("w")])))) .|.
+                            ((pApp ("P") [var ("x"),var ("v"),var ("w")]))) .&.
+                           ((((((.~.) (pApp ("P") [var ("x"),var ("y"),var ("u")])) .|.
+                               (((.~.) (pApp ("P") [var ("y"),var ("z"),var ("v")])))) .|.
+                              (((.~.) (pApp ("P") [var ("x"),var ("v"),var ("w")])))) .|.
+                             ((pApp ("P") [var ("u"),var ("z"),var ("w")]))))) .&.
+                          ((((pApp ("P") [var ("x"),fApp ("e") [],var ("x")]) .&.
+                             ((pApp ("P") [fApp ("e") [],var ("x"),var ("x")]))) .&.
+                            (((pApp ("P") [var ("x"),fApp ("i") [var ("x")],fApp ("e") []]) .&.
+                              ((pApp ("P") [fApp ("i") [var ("x")],var ("x"),fApp ("e") []]))))))))) .&.
+                       (((pApp ("P") [fApp (toSkolem 2) [],fApp (toSkolem 2) [],fApp ("e") []]) .&.
+                         (((pApp ("P") [fApp (toSkolem 3) [],fApp (toSkolem 4) [],fApp (toSkolem 5) []]) .&.
+                           (((.~.) (pApp ("P") [fApp (toSkolem 4) [],fApp (toSkolem 3) [],fApp (toSkolem 5) []]))))))))
                     , SkolemNumbers (S.fromList [1,2,3,4,5])
                     -- From our algorithm
 
-                    , let a = fApp (toSkolem 3) [var ("x"),var ("y"),var ("x2"),var ("y2"),var ("z2"),var ("u"),var ("v"),var ("w"),var ("x3"),var ("y3"),var ("z3"),var ("u2"),var ("v2"),var ("w2"),var ("x4"),var ("x5"),var ("x6"),var ("x7")]
-                          b = fApp (toSkolem 4) [var ("x"),var ("y"),var ("x2"),var ("y2"),var ("z2"),var ("u"),var ("v"),var ("w"),var ("x3"),var ("y3"),var ("z3"),var ("u2"),var ("v2"),var ("w2"),var ("x4"),var ("x5"),var ("x6"),var ("x7")]
-                          c = fApp (toSkolem 5) [var ("x"),var ("y"),var ("x2"),var ("y2"),var ("z2"),var ("u"),var ("v"),var ("w"),var ("x3"),var ("y3"),var ("z3"),var ("u2"),var ("v2"),var ("w2"),var ("x4"),var ("x5"),var ("x6"),var ("x7")]
-                      in 
-                      ClausalNormalForm
-                      [[(pApp "P" [var ("x"),var ("y"),fApp (toSkolem 1) [var ("x"),var ("y")]])],
-                       [((.~.) (pApp "P" [var ("x2"),var ("y2"),var ("u")])),
-                        ((.~.) (pApp "P" [var ("y2"),var ("z2"),var ("v")])),
-                        ((.~.) (pApp "P" [var ("u"),var ("z2"),var ("w")])),
-                        (pApp "P" [var ("x2"),var ("v"),var ("w")])],
-                       [((.~.) (pApp "P" [var ("x3"),var ("y3"),var ("u2")])),
-                        ((.~.) (pApp "P" [var ("y3"),var ("z3"),var ("v2")])),
-                        ((.~.) (pApp "P" [var ("x3"),var ("v2"),var ("w2")])),
-                        (pApp "P" [var ("u2"),var ("z3"),var ("w2")])],
-                       [(pApp "P" [var ("x4"),fApp ("e") [],var ("x4")])],
-                       [(pApp "P" [fApp ("e") [],var ("x5"),var ("x5")])],
-                       [(pApp "P" [var ("x6"),fApp ("i") [var ("x6")],fApp ("e") []])],
-                       [(pApp "P" [fApp ("i") [var ("x7")],var ("x7"),fApp ("e") []])],
-                       [(pApp "P" [fApp (toSkolem 2) [var ("x"),var ("y"),var ("x2"),var ("y2"),var ("z2"),var ("u"),var ("v"),var ("w"),var ("x3"),var ("y3"),var ("z3"),var ("u2"),var ("v2"),var ("w2"),var ("x4"),var ("x5"),var ("x6"),var ("x7")],
-                                        fApp (toSkolem 2) [var ("x"),var ("y"),var ("x2"),var ("y2"),var ("z2"),var ("u"),var ("v"),var ("w"),var ("x3"),var ("y3"),var ("z3"),var ("u2"),var ("v2"),var ("w2"),var ("x4"),var ("x5"),var ("x6"),var ("x7")],
-                                        fApp ("e") []])],
-                       [(pApp "P" [a, b, c])],
-                       [((.~.) (pApp "P" [b, a, c]))]]
+                    , ClauseNormalForm
+                      (toSS 
+                      [[(pApp ("P") [var ("x"),var ("y"),fApp (toSkolem 1) [var ("x"),var ("y")]])],
+                       [((.~.) (pApp ("P") [var ("x"),var ("y"),var ("u")])),
+                        ((.~.) (pApp ("P") [var ("y"),var ("z"),var ("v")])),
+                        ((.~.) (pApp ("P") [var ("u"),var ("z"),var ("w")])),
+                        (pApp ("P") [var ("x"),var ("v"),var ("w")])],
+                       [((.~.) (pApp ("P") [var ("x"),var ("y"),var ("u")])),
+                        ((.~.) (pApp ("P") [var ("y"),var ("z"),var ("v")])),
+                        ((.~.) (pApp ("P") [var ("x"),var ("v"),var ("w")])),
+                        (pApp ("P") [var ("u"),var ("z"),var ("w")])],
+                       [(pApp ("P") [var ("x"),fApp ("e") [],var ("x")])],
+                       [(pApp ("P") [fApp ("e") [],var ("x"),var ("x")])],
+                       [(pApp ("P") [var ("x"),fApp ("i") [var ("x")],fApp ("e") []])],
+                       [(pApp ("P") [fApp ("i") [var ("x")],var ("x"),fApp ("e") []])],
+                       [(pApp ("P") [fApp (toSkolem 2) [],fApp (toSkolem 2) [],fApp ("e") []])],
+                       [(pApp ("P") [fApp (toSkolem 3) [],fApp (toSkolem 4) [],fApp (toSkolem 5) []])],
+                       [((.~.) (pApp ("P") [fApp (toSkolem 4) [],fApp (toSkolem 3) [],fApp (toSkolem 5) []]))]])
 
                     -- From the book
 {-
@@ -648,7 +774,7 @@ chang43Conjecture =
                               (fApp (toSkolem 3) [var ("x"),var ("y"),var ("x2"),var ("y2"),var ("z2"),var ("u"),var ("v"),var ("w"),var ("x2"),var ("y2"),var ("z2"),var ("u2"),var ("v2"),var ("w2"),var ("x3"),var ("x3"),var ("x3"),var ("x3")],
                                fApp (toSkolem 4) [var ("x"),var ("y"),var ("x2"),var ("y2"),var ("z2"),var ("u"),var ("v"),var ("w"),var ("x2"),var ("y2"),var ("z2"),var ("u2"),var ("v2"),var ("w2"),var ("x3"),var ("x3"),var ("x3"),var ("x3")],
                                fApp (toSkolem 5) [var ("x"),var ("y"),var ("x2"),var ("y2"),var ("z2"),var ("u"),var ("v"),var ("w"),var ("x2"),var ("y2"),var ("z2"),var ("u2"),var ("v2"),var ("w2"),var ("x3"),var ("x3"),var ("x3"),var ("x3")]) in
-                      ClausalNormalForm
+                      ClauseNormalForm
                       [[(pApp "P" [var "x",var "y",fApp (toSkolem 1) [var "x",var "y"]])],
                        [((.~.) (pApp "P" [var "x",var "y",var "u"])),
                         ((.~.) (pApp "P" [var "y",var "z",var "v"])),
@@ -713,27 +839,27 @@ chang43ConjectureRenamed =
                               ((for_all "x8" ((pApp "P" [var "x8",var "x8",fApp "e" []]) .=>.
                                                   ((for_all' ["u3","v3","w3"] ((pApp "P" [var "u3",var "v3",var "w3"]) .=>.
                                                                                     ((pApp "P" [var "v3",var "u3",var "w3"]))))))))))
-                    , let a = fApp (toSkolem 3) [var "x",var "y",var "x2",var "y2",var "z2",var "u",var "v",var "w",var "x3",var "y3",var "z3",var "u2",var "v2",var "w2",var "x4",var "x5",var "x6",var "x7"]
-                          b = fApp (toSkolem 4) [var "x",var "y",var "x2",var "y2",var "z2",var "u",var "v",var "w",var "x3",var "y3",var "z3",var "u2",var "v2",var "w2",var "x4",var "x5",var "x6",var "x7"]
-                          c = fApp (toSkolem 5) [var "x",var "y",var "x2",var "y2",var "z2",var "u",var "v",var "w",var "x3",var "y3",var "z3",var "u2",var "v2",var "w2",var "x4",var "x5",var "x6",var "x7"]
-                          x' = fApp (toSkolem 2) [var "x",var "y",var "x2",var "y2",var "z2",var "u",var "v",var "w",var "x3",var "y3",var "z3",var "u2",var "v2",var "w2",var "x4",var "x5",var "x6",var "x7"] in 
-                      ClausalNormalForm
-                      [[(pApp "P" [var "x",var "y",fApp (toSkolem 1) [var "x",var "y"]])],
-                       [((.~.) (pApp "P" [var "x2",var "y2",var "u"])),
-                        ((.~.) (pApp "P" [var "y2",var "z2",var "v"])),
-                        ((.~.) (pApp "P" [var "u",var "z2",var "w"])),
-                        (pApp "P" [var "x2",var "v",var "w"])],
-                       [((.~.) (pApp "P" [var "x3",var "y3",var "u2"])),
-                        ((.~.) (pApp "P" [var "y3",var "z3",var "v2"])),
-                        ((.~.) (pApp "P" [var "x3",var "v2",var "w2"])),
-                        (pApp "P" [var "u2",var "z3",var "w2"])],
-                       [(pApp "P" [var "x4",fApp "e" [],var "x4"])],
-                       [(pApp "P" [fApp "e" [],var "x5",var "x5"])],
-                       [(pApp "P" [var "x6",fApp "i" [var "x6"],fApp "e" []])],
-                       [(pApp "P" [fApp "i" [var "x7"],var "x7",fApp "e" []])],
-                       [(pApp "P" [x', x', fApp "e" []])],
-                       [(pApp "P" [a, b, c])],
-                       [((.~.) (pApp "P" [b, a, c]))]]                      
+                    , let a = fApp (toSkolem 3) []
+                          b = fApp (toSkolem 4) []
+                          c = fApp (toSkolem 5) [] in
+                      ClauseNormalForm
+                      (toSS
+                      [[(pApp ("P") [var ("x"),var ("y"),fApp (toSkolem 1) [var ("x"),var ("y")]])],
+                       [((.~.) (pApp ("P") [var ("x"),var ("y"),var ("u")])),
+                        ((.~.) (pApp ("P") [var ("y"),var ("z2"),var ("v")])),
+                        ((.~.) (pApp ("P") [var ("u"),var ("z2"),var ("w")])),
+                        (pApp ("P") [var ("x"),var ("v"),var ("w")])],
+                       [((.~.) (pApp ("P") [var ("x"),var ("y"),var ("u")])),
+                        ((.~.) (pApp ("P") [var ("y"),var ("z2"),var ("v")])),
+                        ((.~.) (pApp ("P") [var ("x"),var ("v"),var ("w")])),
+                        (pApp ("P") [var ("u"),var ("z2"),var ("w")])],
+                       [(pApp ("P") [var ("x"),fApp ("e") [],var ("x")])],
+                       [(pApp ("P") [fApp ("e") [],var ("x"),var ("x")])],
+                       [(pApp ("P") [var ("x"),fApp ("i") [var ("x")],fApp ("e") []])],
+                       [(pApp ("P") [fApp ("i") [var ("x")],var ("x"),fApp ("e") []])],
+                       [(pApp ("P") [fApp (toSkolem 2) [],fApp (toSkolem 2) [],fApp ("e") []])],
+                       [(pApp ("P") [a,b,c])],
+                       [((.~.) (pApp ("P") [b,a,c]))]])                      
                     ]
                 }
 
@@ -852,11 +978,11 @@ proofs =
          [ ChiouKB [WithId {wiItem = inf' [(pApp "Human" [var "x"])] [(pApp "Mortal" [var "x"])], wiIdent = 1},
                     WithId {wiItem = inf' [(pApp "Socrates" [var "x"])] [(pApp "Human" [var "x"])], wiIdent = 2}]
          , ChiouResult (True,
-                        [(inf' [] [(pApp "Socrates" [fApp (toSkolem 1) []])],fromList []),
-                         (inf' [(pApp "Mortal" [fApp (toSkolem 1) []])] [],fromList []),
-                         (inf' [] [(pApp "Human" [fApp (toSkolem 1) []])],fromList []),
-                         (inf' [(pApp "Human" [fApp (toSkolem 1) []])] [],fromList []),
-                         (inf' [] [(pApp "Mortal" [fApp (toSkolem 1) []])],fromList []),
+                        [(inf' [] [(pApp "Socrates" [fApp (toSkolem 3) []])],fromList []),
+                         (inf' [(pApp "Mortal" [fApp (toSkolem 3) []])] [],fromList []),
+                         (inf' [] [(pApp "Human" [fApp (toSkolem 3) []])],fromList []),
+                         (inf' [(pApp "Human" [fApp (toSkolem 3) []])] [],fromList []),
+                         (inf' [] [(pApp "Mortal" [fApp (toSkolem 3) []])],fromList []),
                          (inf' [] [],fromList [])])]
       }
     , let x = var "x" in
@@ -872,19 +998,22 @@ proofs =
       }
     , let x = var "x" in
       TestProof
-      { proofName = "socrates exists and is is not mortal"
+      { proofName = "socrates exists and is not mortal"
       , proofKnowledge = kbKnowledge socratesKB
       , conjecture = (.~.) (exists "x" (socrates [x]) .&. for_all "x" (socrates [x] .=>. mortal [x]))
       , proofExpected = 
          [ ChiouKB [WithId {wiItem = inf' [(pApp "Human" [var "x"])] [(pApp "Mortal" [var "x"])], wiIdent = 1},
                     WithId {wiItem = inf' [(pApp "Socrates" [var "x"])] [(pApp "Human" [var "x"])], wiIdent = 2}]
          , ChiouResult (False,
-                        [(inf' [] [(pApp "Socrates" [fApp (toSkolem 1) []])],fromList []),
-                         (inf' [(pApp "Socrates" [var "x2"])] [(pApp "Mortal" [var "x2"])],fromList [("x2",var "x2")]),
-                         (inf' [] [(pApp "Human" [fApp (toSkolem 1) []])],fromList []),
-                         (inf' [] [(pApp "Mortal" [fApp (toSkolem 1) []])],fromList [("x2",var "x2")])])]
+                        [(makeINF' ([(pApp ("Socrates") [var ("x")])]) ([(pApp ("Mortal") [var ("x")])]),             fromList [("x",var ("x"))]),
+                         (makeINF' ([])                                ([(pApp ("Socrates") [fApp (toSkolem 3) []])]),fromList []),
+                         (makeINF' ([])                                ([(pApp ("Mortal") [fApp (toSkolem 3) []])]),  fromList []),
+                         (makeINF' ([])                                ([(pApp ("Human") [fApp (toSkolem 3) []])]),   fromList [])])]
       }
     ]
 
 inf' :: Implicative inf formula => [formula] -> [formula] -> inf
 inf' l1 l2 = makeINF (S.fromList l1) (S.fromList l2)
+
+toLL = map S.toList . S.toList
+toSS = S.fromList . map S.fromList

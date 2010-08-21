@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, TypeSynonymInstances, UndecidableInstances #-}
+{-# OPTIONS -Wwarn #-}
 module Test.Types
     ( -- * Formula parameter types
       V(..)
@@ -26,7 +27,7 @@ import qualified Logic.Instances.Native as P
 import Logic.Logic (Boolean(..))
 import Logic.Monad (WithId)
 import Logic.Resolution (SetOfSupport)
-import Text.PrettyPrint ((<>), text)
+import Text.PrettyPrint (Doc, (<>), text)
 
 newtype V = V String deriving (Eq, Ord, Data, Typeable)
 
@@ -102,13 +103,15 @@ data TestFormula formula
 
 -- |Some values that we might expect after transforming the formula.
 data Expected formula
-    = ClausalNormalForm [[formula]]
-    | DisjunctiveNormalForm formula
-    | PrenexNormalForm formula
+    = FirstOrderFormula formula
+    | SimplifiedForm formula
     | NegationNormalForm formula
+    | PrenexNormalForm formula
     | SkolemNormalForm formula
     | SkolemNumbers (S.Set Int)
-    | FirstOrderFormula formula
+    -- | ConjunctiveNormalForm formula
+    | ClauseNormalForm (S.Set (S.Set formula))
+    | TrivialClauses [(Bool, (S.Set formula))]
     | ConvertToChiou formula
     -- | SatChiou (Maybe Bool, [C.ImplicativeNormalForm V Pr AtomicFunction])
     | SatPropLogic Bool
@@ -167,3 +170,8 @@ data ProofExpected inf v term
       ChiouResult (Bool, SetOfSupport inf v term{- (C.ImplicativeNormalForm V Pr AtomicFunction) V (C.CTerm V AtomicFunction) -})
     | ChiouKB [WithId inf{- (C.ImplicativeNormalForm V Pr AtomicFunction) -}]
     deriving (Data, Typeable)
+
+-- This allows you to use an expression that returns the Doc type in a
+-- unit test, such as prettyForm 0.
+instance Eq Doc where
+    a == b = show a == show b
