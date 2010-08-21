@@ -22,15 +22,15 @@ import Logic.Logic (Logic(..), Boolean(..))
 import Logic.Monad (WithId(..))
 import Test.Types (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..))
 
-allFormulas :: forall formula term v p f. (FirstOrderLogic formula term v p f, Typeable formula) =>
-               [TestFormula formula]
+allFormulas :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f, Typeable formula) =>
+               [TestFormula inf formula term v p f]
 allFormulas = (formulas ++
                concatMap snd [animalKB, chang43KB] ++
                animalConjectures ++
                [chang43Conjecture, chang43ConjectureRenamed])
 
-formulas :: forall formula term v p f. FirstOrderLogic formula term v p f =>
-            [TestFormula formula]
+formulas :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f) =>
+            [TestFormula inf formula term v p f]
 formulas =
     let n = (.~.) :: Logic formula => formula -> formula
         p = pApp "p" :: [term] -> formula
@@ -437,20 +437,20 @@ formulas =
       , expected = [ SkolemNormalForm (((.~.) (p x)) .|. (q (fApp (toSkolem 1) []) .|. (((.~.) (p z)) .|. ((.~.) (q z))))) ] }
     ]
 
-animalKB :: forall formula term v p f. FirstOrderLogic formula term v p f =>
-            (String, [TestFormula formula])
+animalKB :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f) =>
+            (String, [TestFormula inf formula term v p f])
 animalKB =
     let x = var "x"
         y = var "y"
-        dog = pApp "Dog" -- :: [ATerm] -> Formula
-        cat = pApp "Cat" -- :: [ATerm] -> Formula
-        owns = pApp "Owns" -- :: [ATerm] -> Formula
-        kills = pApp "Kills" -- :: [ATerm] -> Formula
-        animal = pApp "Animal" -- :: [ATerm] -> Formula
-        animalLover = pApp "AnimalLover" -- :: [ATerm] -> Formula
-        jack = fApp "Jack" [] -- :: ATerm
-        tuna = fApp "Tuna" [] -- :: ATerm
-        curiosity = fApp "Curiosity" [] {- :: ATerm -} in
+        dog = pApp "Dog"
+        cat = pApp "Cat"
+        owns = pApp "Owns"
+        kills = pApp "Kills"
+        animal = pApp "Animal"
+        animalLover = pApp "AnimalLover"
+        jack = fApp "Jack" []
+        tuna = fApp "Tuna" []
+        curiosity = fApp "Curiosity" [] in
     ("animal"
     , [ TestFormula
        { formula = exists "x" (dog [x] .&. owns [jack, x]) -- [[Pos 1],[Pos 2]]
@@ -494,7 +494,8 @@ animalKB =
        }
      ])
 
-animalConjectures :: forall formula term v p f. FirstOrderLogic formula term v p f => [TestFormula formula]
+animalConjectures :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f) =>
+                     [TestFormula inf formula term v p f]
 animalConjectures =
     let kills = pApp "Kills" :: [term] -> formula
         jack = fApp "Jack" [] :: term
@@ -552,6 +553,17 @@ animalConjectures =
                 ((.~.) (pApp ("AnimalLover") [var ("x")])),
                 ((.~.) (pApp ("Kills") [var ("x"),var ("y")]))],
                [((.~.) (pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []]))]])
+           , SatChiou
+             (Just False,
+              [makeINF' ([(pApp ("Cat") [var ("x")])])                                                                              ([(pApp ("Animal") [var ("x")])]),
+               makeINF' ([(pApp ("Dog") [var ("y")]),(pApp ("Owns") [var ("x"),var ("y")])])                                        ([(pApp ("AnimalLover") [var ("x")])]),
+               makeINF' ([])                                                                                                        ([(pApp ("Cat") [fApp ("Tuna") []])]),
+               makeINF' ([])                                                                                                        ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
+               makeINF' ([])                                                                                                        ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),
+                                                                                                                                      (pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]),
+               makeINF' ([])                                                                                                        ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem 1) []])]),
+               makeINF' ([(pApp ("Animal") [var ("y")]),(pApp ("AnimalLover") [var ("x")]),(pApp ("Kills") [var ("x"),var ("y")])]) ([]),
+               makeINF' ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])])                                                    ([])])
            , SatPropLogic False ]
        }
      , TestFormula
@@ -647,7 +659,8 @@ chang43KB =
                     , expected = [] }
       ])
 
-chang43Conjecture :: forall formula term v p f. FirstOrderLogic formula term v p f => TestFormula formula
+chang43Conjecture :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f) =>
+                     TestFormula inf formula term v p f
 chang43Conjecture =
     let e = (fApp "e" [])
         (x, u, v, w) = (var "x", var "u", var "v", var "w") in
@@ -806,7 +819,8 @@ chang43Conjecture =
 > putStrLn (runNormal (cnfTrace f))
 -}
 
-chang43ConjectureRenamed :: forall formula term v p f. FirstOrderLogic formula term v p f => TestFormula formula
+chang43ConjectureRenamed :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f) =>
+                            TestFormula inf formula term v p f
 chang43ConjectureRenamed =
     let e = fApp "e" []
         (x, y, z, u, v, w) = (var "x", var "y", var "z", var "u", var "v", var "w")
@@ -863,8 +877,8 @@ chang43ConjectureRenamed =
                     ]
                 }
 
-withKB :: forall formula term v p f. FirstOrderLogic formula term v p f =>
-          (String, [TestFormula formula]) -> TestFormula formula -> TestFormula formula
+withKB :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f) =>
+          (String, [TestFormula inf formula term v p f]) -> TestFormula inf formula term v p f -> TestFormula inf formula term v p f
 withKB (kbName, knowledge) conjecture =
     conjecture { name = name conjecture ++ " with " ++ kbName ++ " knowledge base"
                -- Here we say that the conjunction of the knowledge
@@ -877,8 +891,9 @@ withKB (kbName, knowledge) conjecture =
       conj [x] = x
       conj (x:xs) = x .&. conj xs
 
-kbKnowledge :: forall formula term v p f. FirstOrderLogic formula term v p f => (String, [TestFormula formula]) -> (String, [formula])
-kbKnowledge kb = (fst (kb :: (String, [TestFormula formula])), map formula (snd kb))
+kbKnowledge :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f) =>
+               (String, [TestFormula inf formula term v p f]) -> (String, [formula])
+kbKnowledge kb = (fst (kb :: (String, [TestFormula inf formula term v p f])), map formula (snd kb))
 
 proofs :: forall inf formula term v p f. (FirstOrderLogic formula term v p f, Implicative inf formula) =>
           [TestProof inf formula term v]
@@ -902,7 +917,7 @@ proofs =
 
     [ TestProof
       { proofName = "jack kills tuna"
-      , proofKnowledge = kbKnowledge animalKB
+      , proofKnowledge = kbKnowledge (animalKB :: (String, [TestFormula inf formula term v p f]))
       , conjecture = kills [jack, tuna]
       , proofExpected = 
           [ ChiouKB [WithId {wiItem = makeINF (S.fromList []) (S.fromList [(pApp "Dog" [fApp (toSkolem 1) []])]), wiIdent = 1},
@@ -928,7 +943,7 @@ proofs =
       }
     , TestProof
       { proofName = "curiosity kills tuna"
-      , proofKnowledge = kbKnowledge animalKB
+      , proofKnowledge = kbKnowledge (animalKB :: (String, [TestFormula inf formula term v p f]))
       , conjecture = kills [curiosity, tuna]
       , proofExpected =
           [ ChiouKB [WithId {wiItem = inf' [] [(pApp "Dog" [fApp (toSkolem 1) []])], wiIdent = 1},
@@ -972,7 +987,7 @@ proofs =
     , let x = var "x" in
       TestProof
       { proofName = "socrates is mortal"
-      , proofKnowledge = kbKnowledge socratesKB
+      , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula inf formula term v p f]))
       , conjecture = for_all "x" (socrates [x] .=>. mortal [x])
       , proofExpected = 
          [ ChiouKB [WithId {wiItem = inf' [(pApp "Human" [var "x"])] [(pApp "Mortal" [var "x"])], wiIdent = 1},
@@ -988,7 +1003,7 @@ proofs =
     , let x = var "x" in
       TestProof
       { proofName = "socrates is not mortal"
-      , proofKnowledge = kbKnowledge socratesKB
+      , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula inf formula term v p f]))
       , conjecture = (.~.) (for_all "x" (socrates [x] .=>. mortal [x]))
       , proofExpected = 
          [ ChiouKB [WithId {wiItem = inf' [(pApp "Human" [var "x"])] [(pApp "Mortal" [var "x"])], wiIdent = 1},
@@ -999,7 +1014,7 @@ proofs =
     , let x = var "x" in
       TestProof
       { proofName = "socrates exists and is not mortal"
-      , proofKnowledge = kbKnowledge socratesKB
+      , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula inf formula term v p f]))
       , conjecture = (.~.) (exists "x" (socrates [x]) .&. for_all "x" (socrates [x] .=>. mortal [x]))
       , proofExpected = 
          [ ChiouKB [WithId {wiItem = inf' [(pApp "Human" [var "x"])] [(pApp "Mortal" [var "x"])], wiIdent = 1},

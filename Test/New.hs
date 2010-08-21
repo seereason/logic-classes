@@ -6,7 +6,7 @@ import Control.Monad.Reader (MonadPlus(..), msum)
 import Data.Generics (Data, Typeable, listify)
 import qualified Data.Set as S
 import Logic.Clause (Literal)
-import Logic.FirstOrder (FirstOrderLogic, convertFOF, fromSkolem, showForm, prettyForm)
+import Logic.FirstOrder (FirstOrderLogic, convertFOF, fromSkolem)
 import qualified Logic.Harrison as Harrison
 import Logic.Implicative (Implicative)
 import Logic.KnowledgeBase (loadKB, theoremKB, getKB)
@@ -25,7 +25,7 @@ gFind :: (MonadPlus m, Data a, Typeable b) => a -> m b
 gFind = msum . map return . listify (const True)
 
 tests :: (FirstOrderLogic formula term v p f, Implicative inf formula, Show term) =>
-         [TestFormula formula] -> [TestProof inf formula term v] -> Test
+         [TestFormula inf formula term v p f] -> [TestProof inf formula term v] -> Test
 tests fs ps =
     TestLabel "New" $ TestList (map doTest fs ++ map doProof ps)
 
@@ -42,8 +42,8 @@ skolemSet =
 skolemNumber :: FirstOrderLogic formula term v p f => f -> [Int]
 skolemNumber f = maybe [] (: []) (fromSkolem f)
 
-doTest :: forall formula term v p f. (FirstOrderLogic formula term v p f, Literal formula, Data formula) =>
-          TestFormula formula -> Test
+doTest :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f, Literal formula, Data formula) =>
+          TestFormula inf formula term v p f -> Test
 doTest f =
     TestLabel (name f) $ TestList $ 
     map doExpected (expected f)
@@ -60,18 +60,14 @@ doTest f =
           TestCase (assertEqual (name f ++ " skolem normal form") (p f') (p (runNormal (skolemNormalForm (formula f)))))
       doExpected (SkolemNumbers f') =
           TestCase (assertEqual (name f ++ " skolem numbers") f' (skolemSet (runNormal (skolemNormalForm (formula f)))))
-{-
-      doExpected (ConjunctiveNormalForm f') =
-          TestCase (assertEqual (name f ++ " conjunctive normal form") (p f') (p (runNormal (conjunctiveNormalForm (formula f)))))
--}
       doExpected (ClauseNormalForm fss) =
           TestCase (assertEqual (name f ++ " clause normal form") fss (S.map (S.map p) (runNormal (clauseNormalForm (formula f)))))
       doExpected (TrivialClauses flags) =
           TestCase (assertEqual (name f ++ " trivial clauses") flags (map (\ x -> (Harrison.trivial x, x)) (S.toList (runNormal (clauseNormalForm (formula f))))))
       doExpected (ConvertToChiou result) =
           TestCase (assertEqual (name f ++ " converted to Chiou") result (convertFOF id id id (formula f)))
-      -- doExpected (SatChiou result) =
-      --     TestCase (assertEqual (name f ++ " Chiou.satisfiable") result (head (runProver' (loadKB [{-convertFOF id id id-} (formula f)]))))
+      doExpected (SatChiou result) =
+          TestCase (assertEqual (name f ++ " Chiou.satisfiable") result (head (runProver' (loadKB [{- convertFOF id id id -} (formula f)]))))
       doExpected (SatPropLogic result) =
           TestCase (assertEqual (name f ++ " satisfiable") result (runNormal (satisfiable (formula f))))
       p = id -- prettyForm 0
@@ -96,8 +92,8 @@ doProof p =
       c = conjecture p :: formula
 
 -- Knowledge Base tests.
-kbTests :: (FirstOrderLogic formula term v p f, Show formula, Literal formula, Data formula, Ord formula) =>
-           (String, [TestFormula formula], [TestFormula formula]) -> Test
+kbTests :: (Implicative inf formula, FirstOrderLogic formula term v p f, Show formula, Literal formula, Data formula, Ord formula) =>
+           (String, [TestFormula inf formula term v p f], [TestFormula inf formula term v p f]) -> Test
 kbTests (kbname, knowledge, conjectures) =
     TestLabel (kbname ++ " knowledge base") $ TestList $
     map conjectureTests conjectures

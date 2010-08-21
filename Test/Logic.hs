@@ -5,6 +5,7 @@ module Test.Logic (tests) where
 
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
+import Logic.Clause (Literal(..))
 import qualified Logic.Instances.Native as P
 import Logic.Logic (Logic(..), Boolean(..))
 import Logic.Monad (runNormal)
@@ -449,4 +450,4 @@ table f =
       cnf :: [[formula]]
       cnf = fromSS (runNormal (clauseNormalForm f))
       fromSS = map Set.toList . Set.toList
-      n f = foldF (\ n -> N (A n)) (\ _ _ _ -> A f) (\ _ _ _ -> A f) (\ _ _ _ -> A f) (\ _ _ -> A f) f
+      n f = (if inverted f then N . A . invert else A) $ f

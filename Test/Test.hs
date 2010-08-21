@@ -14,7 +14,8 @@ main = runTestTT (TestList [Logic.tests,
                             Chiou0.tests,
                             -- TPTP.tests,  -- This has a problem in the rendering code - it loops
                             New.tests
-                                   (Data.allFormulas :: [TestFormula (Formula V Pr AtomicFunction)])
+                                   (Data.allFormulas :: [TestFormula (ImplicativeNormalForm V Pr AtomicFunction)
+                                                                         (Formula V Pr AtomicFunction) (PTerm V AtomicFunction) V Pr AtomicFunction])
                                    (Data.proofs :: [TestProof (ImplicativeNormalForm V Pr AtomicFunction)
                                                                   (Formula V Pr AtomicFunction) (PTerm V AtomicFunction) V])]) >>= 
        \ counts' -> exitWith (if errors counts' /= 0 || failures counts' /= 0 then ExitFailure 1 else ExitSuccess)

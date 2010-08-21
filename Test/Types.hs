@@ -21,7 +21,8 @@ import qualified Data.Set as S
 import Data.String (IsString(fromString))
 --import Logic.Chiou.FirstOrderLogic (Sentence, CTerm)
 --import Logic.Chiou.NormalForm (ImplicativeNormalForm(..), NormalTerm(..))
-import Logic.FirstOrder (Skolem(..), Pretty(..), showForm)
+import Logic.FirstOrder (Skolem(..), Pretty(..), showForm, FirstOrderLogic)
+import Logic.Implicative (Implicative(..))
 import qualified Logic.Instances.Chiou as C
 import qualified Logic.Instances.Native as P
 import Logic.Logic (Boolean(..))
@@ -94,15 +95,15 @@ instance Pretty AtomicFunction where
     pretty (Fn s) = text s
     pretty (Skolem n) = text ("sK" ++ show n)
 
-data TestFormula formula
+data TestFormula inf formula term v p f
     = TestFormula
       { formula :: formula
       , name :: String
-      , expected :: [Expected formula]
+      , expected :: [Expected inf formula term v p f]
       } deriving (Data, Typeable)
 
 -- |Some values that we might expect after transforming the formula.
-data Expected formula
+data (Implicative inf formula, FirstOrderLogic formula term v p f) => Expected inf formula term v p f
     = FirstOrderFormula formula
     | SimplifiedForm formula
     | NegationNormalForm formula
@@ -113,7 +114,7 @@ data Expected formula
     | ClauseNormalForm (S.Set (S.Set formula))
     | TrivialClauses [(Bool, (S.Set formula))]
     | ConvertToChiou formula
-    -- | SatChiou (Maybe Bool, [C.ImplicativeNormalForm V Pr AtomicFunction])
+    | SatChiou (Maybe Bool, [inf] {-[C.ImplicativeNormalForm v p f]-})
     | SatPropLogic Bool
     deriving (Data, Typeable)
 
