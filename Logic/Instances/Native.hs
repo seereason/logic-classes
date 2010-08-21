@@ -8,6 +8,7 @@ module Logic.Instances.Native
     ( Formula(..)
     , PTerm(..)
     , ImplicativeNormalForm(..)
+    , makeINF'
     ) where
 
 import Data.Data (Data)
@@ -60,8 +61,13 @@ instance (Ord v, IsString v, Enum v, Data v, Pretty v, Show v,
     pos (INF _ rhs) = rhs
     makeINF = INF
 
+-- |A version of MakeINF that takes lists instead of sets, used for
+-- implementing a more attractive show method.
+makeINF' :: Implicative inf lit => [lit] -> [lit] -> inf
+makeINF' n p = makeINF (S.fromList n) (S.fromList p)
+
 instance (FirstOrderLogic (Formula v p f) (PTerm v f) v p f, Show (Formula v p f)) => Show (ImplicativeNormalForm v p f) where
-    show x = "makeINF (" ++ show (neg x) ++ ") (" ++ show (pos x) ++ ")"
+    show x = "makeINF' (" ++ show (S.toList (neg x)) ++ ") (" ++ show (S.toList (pos x)) ++ ")"
     
 instance Logic (Formula v p f) where
     x .<=>. y = BinOp  x (:<=>:) y
