@@ -2,6 +2,7 @@ haskell-logic (0.19) unstable; urgency=low
 
   * Extensive work on polymorphic version of Resolution prover and test cases.
   * Emergency check-in due to dying disk.
+  * Implement skolemization and cnf algorithms from Harrison book.
 
  -- David Fox <dsf@seereason.com>  Tue, 17 Aug 2010 14:55:39 -0700
 
