@@ -170,7 +170,7 @@ showForm formula =
       n f = "((.~.) " ++ showForm f ++ ")"
       q All v f = "(for_all " ++ show v ++ " " ++ showForm f ++ ")"
       q Exists v f = "(exists " ++  show v ++ " " ++ showForm f ++ ")"
-      b f1 op f2 = "(" ++ showForm f1 ++ " " ++ showFormOp op ++ " " ++ parenForm f2 ++ ")"
+      b f1 op f2 = "(" ++ parenForm f1 ++ " " ++ showFormOp op ++ " " ++ parenForm f2 ++ ")"
       i :: term -> InfixPred -> term -> String
       i t1 op t2 = "(" ++ parenTerm t1 ++ " " ++ showTermOp op ++ " " ++ parenTerm t2 ++ ")"
       a :: p -> [term] -> String
