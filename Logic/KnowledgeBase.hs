@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, TypeSynonymInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, TypeSynonymInstances #-}
 {-# OPTIONS -Wall -Wwarn #-}
 
 {- KnowledgeBase.hs -}
@@ -12,6 +12,7 @@ module Logic.KnowledgeBase
     , askKB
     , theoremKB
     , inconsistantKB
+    , ProofResult(..)
     , validKB
     , tellKB
     , loadKB
@@ -20,7 +21,7 @@ module Logic.KnowledgeBase
 
 import Control.Monad.State (MonadState(get, put), modify)
 import Control.Monad.Trans (lift)
-import Data.Generics (Data)
+import Data.Generics (Data, Typeable)
 import Data.List (partition)
 import Logic.Clause (Literal(..))
 import Logic.FirstOrder (FirstOrderLogic)
@@ -30,6 +31,14 @@ import Logic.NormalForm (implicativeNormalForm)
 import Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Prelude hiding (negate)
 
+data ProofResult
+    = Disproved
+    -- ^ The conjecture is unsatisfiable
+    | Proved
+    -- ^ The negated conjecture is unsatisfiable
+    | Invalid
+    -- ^ Both are satisfiable
+    deriving (Data, Typeable, Eq, Show)
 -- |Reset the knowledgebase to empty.
 emptyKB :: Monad m => ProverT inf m ()
 emptyKB = put zeroKB
@@ -65,33 +74,31 @@ askKB s = theoremKB s >>= return . fst
 
 -- |See whether the sentence is true, false or invalid.  Return proofs
 -- for truth and falsity.
---validKB :: (Implicative inf (NormalSentence v p f), Pretty f, Skolem f, Eq f, Ord v, Enum v, Data v, Data f, Eq p, Boolean p, Data p, Pretty p, Pretty v, Monad m) =>
---           Sentence v p f -> ProverT' v (C.CTerm v f) inf m (Maybe Bool, SetOfSupport inf v (NormalTerm v f), SetOfSupport inf v (NormalTerm v f))
 validKB :: (FirstOrderLogic formula term v p f, Eq term, Implicative inf formula, Data formula, Monad m) =>
-           formula -> ProverT' v term inf m (Maybe Bool, SetOfSupport inf v term, SetOfSupport inf v term)
+           formula -> ProverT' v term inf m (ProofResult, SetOfSupport inf v term, SetOfSupport inf v term)
 validKB s =
     theoremKB s >>= \ (proved, proof1) ->
     inconsistantKB s >>= \ (disproved, proof2) ->
-    return (if proved then Just True else if disproved then Just False else Nothing, proof1, proof2)
+    return (if proved then Proved else if disproved then Disproved else Invalid, proof1, proof2)
 
 -- |Validate a sentence and insert it into the knowledgebase.  Returns
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
 tellKB :: (FirstOrderLogic formula term v p f, Implicative inf formula, Data formula, Eq term, Monad m) =>
-          formula -> ProverT' v term inf m (Maybe Bool, [inf])
+          formula -> ProverT' v term inf m (ProofResult, [inf])
 tellKB s =
     do st <- get
        inf <- lift (implicativeNormalForm s) >>= return . toImplicative id
        let inf' = map (withId (sentenceCount st)) inf
        (valid, _, _) <- validKB s
        case valid of
-         Just False -> return ()
+         Disproved -> return ()
          _ -> put st { knowledgeBase = knowledgeBase st ++ inf'
                      , sentenceCount = sentenceCount st + 1 }
        return (valid, map wiItem inf')
 
 loadKB :: (FirstOrderLogic formula term v p f, Implicative inf formula, Eq term, Data formula, Monad m) =>
-          [formula] -> ProverT' v term inf m [(Maybe Bool, [inf])]
+          [formula] -> ProverT' v term inf m [(ProofResult, [inf])]
 loadKB sentences = mapM tellKB sentences
 
 -- |Delete an entry from the KB.

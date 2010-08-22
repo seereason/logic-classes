@@ -33,6 +33,7 @@ module Logic.NormalForm
     , prenexNormalForm
     , skolemNormalForm
     , clauseNormalForm
+    , trivial
     , cnfTrace
     , implicativeNormalForm
     ) where

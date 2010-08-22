@@ -89,7 +89,7 @@ class (Ord v, Enum v, Data v,
 class (Ord v, IsString v, Pretty v, Show v, 
        Ord p, IsString p, Boolean p, Data p, Pretty p, Show p,
        Ord f, IsString f, Pretty f, Show f,
-       Logic formula, Ord formula, Data formula, Show formula, Eq term,
+       Logic formula, Ord formula, Data formula, Show formula, Eq term, Show term,
        Term term v f) => FirstOrderLogic formula term v p f
                        | formula -> term
                        , formula -> v

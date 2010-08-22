@@ -12,7 +12,7 @@ import qualified Logic.FirstOrder as Logic
 import Logic.FirstOrder (FirstOrderLogic(..), Term(..), Skolem(..))
 import Logic.Implicative (Implicative(..))
 import Logic.Instances.Native (Formula, PTerm, ImplicativeNormalForm, makeINF')
-import Logic.KnowledgeBase (loadKB, theoremKB {-, askKB, showKB-})
+import Logic.KnowledgeBase (ProofResult(..), loadKB, theoremKB {-, askKB, showKB-})
 import Logic.Logic (Logic(..), Boolean(..))
 import Logic.Monad (NormalT, runNormal, ProverT, runProver')
 import Logic.NormalForm (clauseNormalForm)
@@ -27,14 +27,14 @@ loadTest :: Test
 loadTest =
     TestCase (assertEqual "Chiuo0 - loadKB test" expected (runProver' (loadKB sentences)))
     where
-      expected :: [(Maybe Bool, [ImplicativeNormalForm V Pr AtomicFunction])]
-      expected = [(Nothing,[makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
+      expected :: [(ProofResult, [ImplicativeNormalForm V Pr AtomicFunction])]
+      expected = [(Invalid,[makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
                             makeINF' ([]) ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem 1) []])])]),
-                  (Nothing,[makeINF' ([(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [var ("x"),var ("y")])]) ([(pApp ("AnimalLover") [var ("x")])])]),
-                  (Nothing,[makeINF' ([(pApp ("Animal") [var ("y")]),(pApp ("AnimalLover") [var ("x")]),(pApp ("Kills") [var ("x"),var ("y")])]) ([])]),
-                  (Nothing,[makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])])]),
-                  (Nothing,[makeINF' ([]) ([(pApp ("Cat") [fApp ("Tuna") []])])]),
-                  (Nothing,[makeINF' ([(pApp ("Cat") [var ("x")])]) ([(pApp ("Animal") [var ("x")])])])]
+                  (Invalid,[makeINF' ([(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [var ("x"),var ("y")])]) ([(pApp ("AnimalLover") [var ("x")])])]),
+                  (Invalid,[makeINF' ([(pApp ("Animal") [var ("y")]),(pApp ("AnimalLover") [var ("x")]),(pApp ("Kills") [var ("x"),var ("y")])]) ([])]),
+                  (Invalid,[makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])])]),
+                  (Invalid,[makeINF' ([]) ([(pApp ("Cat") [fApp ("Tuna") []])])]),
+                  (Invalid,[makeINF' ([(pApp ("Cat") [var ("x")])]) ([(pApp ("Animal") [var ("x")])])])]
 
 proofTest1 :: Test
 proofTest1 = TestCase (assertEqual "Chiuo0 - proof test 1" proof1 (runProver' (loadKB sentences >> theoremKB (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []]))))
@@ -90,7 +90,7 @@ testProof label (question, expectedAnswer, expectedProof) =
                 "\n Actual:\n  " ++ show actual')
     else liftIO (putStrLn (label ++ " ok"))
 
-loadCmd :: Monad m => ProverT (ImplicativeNormalForm V Pr AtomicFunction) (NormalT V (PTerm V AtomicFunction) m) [(Maybe Bool, [ImplicativeNormalForm V Pr AtomicFunction])]
+loadCmd :: Monad m => ProverT (ImplicativeNormalForm V Pr AtomicFunction) (NormalT V (PTerm V AtomicFunction) m) [(ProofResult, [ImplicativeNormalForm V Pr AtomicFunction])]
 loadCmd = loadKB sentences
 
 sentences :: [Formula V Pr AtomicFunction]
