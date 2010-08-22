@@ -44,7 +44,7 @@ import Data.Maybe (isJust)
 import Logic.Clause (Literal(..))
 import Logic.FirstOrder
 import Logic.Logic
-import Logic.Monad (NormalT, LogicState(..), putVars)
+import Logic.Monad (NormalT, LogicState(..))
 import qualified Logic.Set as S
 import Text.PrettyPrint (hcat, vcat, text, nest, ($$), brackets, render)
 
@@ -59,24 +59,22 @@ simplify fm =
           fm
 
 -- |Do one step of simplify for propositional formulas:
--- 
--- Eliminate quantifiers that don't appear in the formula, and
--- perform the following transformations everywhere, plus any
+-- Perform the following transformations everywhere, plus any
 -- commuted versions for &, |, and <=>.
 -- 
 -- @
---  ~False      True
---  ~True       False
---  True & P    P
---  False & P   False
---  True | P    True
---  False | P   P
---  True => P   P
---  False => P  True
---  P => True   P
---  P => False  True
---  True <=> P  P
---  False <=> P ~P
+--  ~False      -> True
+--  ~True       -> False
+--  True & P    -> P
+--  False & P   -> False
+--  True | P    -> True
+--  False | P   -> P
+--  True => P   -> P
+--  False => P  -> True
+--  P => True   -> P
+--  P => False  -> True
+--  True <=> P  -> P
+--  False <=> P -> ~P
 -- @
 -- 
 psimplify1 :: forall formula term v p f. FirstOrderLogic formula term v p f => formula -> formula
@@ -166,19 +164,19 @@ nnf fm =
       nnfNotBinOp p (:<=>:) q = (nnf p .&. nnf ((.~.) q)) .|. nnf ((.~.) p) .&. nnf q
 
 -- |Convert to Prenex normal form, with all quantifiers at the left.
-prenexNormalForm :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
+prenexNormalForm :: (FirstOrderLogic formula term v p f) => formula -> formula
 prenexNormalForm = prenex . negationNormalForm
 
 -- |Recursivly apply pullQuants anywhere a quantifier might not be
 -- leftmost.
-prenex :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula 
+prenex :: (FirstOrderLogic formula term v p f) => formula -> formula 
 prenex fm =
-    foldF (\ _ -> return fm) q b (\ _ _ _ -> return fm) (\ _ _ -> return fm) fm
+    foldF (\ _ -> fm) q b (\ _ _ _ -> fm) (\ _ _ -> fm) fm
     where
-      q op x p = prenex p >>= return . quant op x
-      b l (:&:) r = prenex l >>= \ l' -> prenex r >>= \ r' -> pullQuants (l' .&. r')
-      b l (:|:) r = prenex l >>= \ l' -> prenex r >>= \ r' -> pullQuants (l' .|. r')
-      b _ _ _ = return fm
+      q op x p = quant op x (prenex p)
+      b l (:&:) r = pullQuants (prenex l .&. prenex r)
+      b l (:|:) r = pullQuants (prenex l .|. prenex r)
+      b _ _ _ = fm
 
 -- |Perform transformations to move quantifiers outside of binary
 -- operators:
@@ -195,12 +193,12 @@ prenex fm =
 --  (7) ∃x F[x] | G        ∃x    (F[x] | G)
 --  (8) ∃x F[x] | ∃x G[x]  ∃x Yx (F[x] | G[x])
 -- @
-pullQuants :: forall m formula term v p f. (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
+pullQuants :: forall formula term v p f. (FirstOrderLogic formula term v p f) => formula -> formula
 pullQuants fm =
-    foldF (\ _ -> return fm) (\ _ _ _ -> return fm) pullQuantsBinop (\ _ _ _ -> return fm) (\ _ _ -> return fm) fm
+    foldF (\ _ -> fm) (\ _ _ _ -> fm) pullQuantsBinop (\ _ _ _ -> fm) (\ _ _ -> fm) fm
     where
       getQuant = foldF (\ _ -> Nothing) (\ op v f -> Just (op, v, f)) (\ _ _ _ -> Nothing) (\ _ _ _ -> Nothing) (\ _ _ -> Nothing)
-      pullQuantsBinop :: formula -> BinOp -> formula -> NormalT v term m formula
+      pullQuantsBinop :: formula -> BinOp -> formula -> formula
       pullQuantsBinop l op r = 
           case (getQuant l, op, getQuant r) of
             (Just (All, vl, l'),    (:&:), Just (All, vr, r'))    -> pullq True  True  fm for_all (.&.) vl vr l' r'
@@ -213,36 +211,31 @@ pullQuants fm =
             (_,                     (:&:), Just (Exists, vr, r')) -> pullq False True  fm exists  (.&.) vr vr l  r'
             (Just (Exists, vl, l'), (:|:), _)                     -> pullq True  False fm exists  (.|.) vl vl l' r
             (_,                     (:|:), Just (Exists, vr, r')) -> pullq False True  fm exists  (.|.) vr vr l  r'
-            _                                                     -> return fm
+            _                                                     -> fm
 
 -- |Helper function to rename variables when we want to enclose a
 -- formula containing a free occurrence of that variable a quantifier
 -- that quantifies it.
-pullq :: (Monad m, FirstOrderLogic formula term v p f) =>
-         Bool -> Bool -> formula -> (v -> formula -> formula) -> (formula -> formula -> formula) -> v -> v -> formula -> formula -> NormalT v term m formula
+pullq :: (FirstOrderLogic formula term v p f) =>
+         Bool -> Bool -> formula -> (v -> formula -> formula) -> (formula -> formula -> formula) -> v -> v -> formula -> formula -> formula
 pullq l r fm mkq op x y p q =
-    do z <- putVars (freeVars fm) >> variant x
-       let p' = if l then substitute x (var z) p else p
-           q' = if r then substitute y (var z) q else q
-       fm' <- pullQuants (op p' q')
-       return $ mkq z fm'
+    let z = variant (freeVars fm) x
+        p' = if l then substitute x (var z) p else p
+        q' = if r then substitute y (var z) q else q
+        fm' = pullQuants (op p' q') in
+    mkq z fm'
 
 -- |Find a variable name which is not in the variables set which is
 -- stored in the monad.  This is initialized above with the free
 -- variables in the formula.  (FIXME: this is not worth putting in
 -- a monad, just pass in the set of free variables.)
-variant :: (Monad m, FirstOrderLogic formula term v p f) => v -> NormalT v term m v
-variant x =
-    do state <- get
-       let names = varNames state
-       if S.member x names then variant (succ x) else
-           do put (state {varNames = S.insert x names})
-              return x
+variant :: (Enum v, Ord v) => S.Set v -> v -> v
+variant names x = if S.member x names then variant names (succ x) else x
 
 -- |We get Skolem Normal Form by skolemizing and then converting to
 -- Prenex Normal Form, and finally eliminating the remaining quantifiers.
 skolemNormalForm :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
-skolemNormalForm f = askolemize f >>= prenexNormalForm >>= return . specialize
+skolemNormalForm f = askolemize f >>= return . specialize . prenexNormalForm
 
 -- |I need to consult the Harrison book for the reasons why we don't
 -- |just Skolemize the result of prenexNormalForm.
@@ -341,7 +334,7 @@ cnfTrace :: (Monad m, FirstOrderLogic formula term v p f, Literal formula, Prett
             formula -> NormalT v term m String
 cnfTrace f =
     do let simplified = simplify f
-       pnf <- prenexNormalForm f
+           pnf = prenexNormalForm f
        snf <- skolemNormalForm f
        cnf <- clauseNormalForm f
        return . render . vcat $

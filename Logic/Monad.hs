@@ -5,7 +5,6 @@ module Logic.Monad
     , NormalT
     , runNormalT
     , runNormal
-    , putVars
     , LiteralMap
     , LiteralMapT
     , runLiteralMap
@@ -27,10 +26,9 @@ module Logic.Monad
     ) where
 
 import Control.Monad.Identity (Identity(runIdentity))
-import Control.Monad.State (StateT(runStateT), evalStateT, modify)
+import Control.Monad.State (StateT(runStateT), evalStateT)
 import Data.Generics (Data, Typeable)
 import qualified Data.Map as Map
-import qualified Data.Set as Set
 
 -- |The logic monad contains (will contain) several types of state to
 -- support the operations done on logic formulas: Skolemization,
@@ -47,16 +45,12 @@ data LogicState v term
         -- current scope, in the order they were encountered.  During
         -- Skolemization these are the parameters passed to the Skolem
         -- function.
-      , varNames :: Set.Set v
-        -- ^ The set of variable names which have been quantified so
-        -- var.  This is used to find unique names for new variables.
       }
 
 newLogicState :: LogicState v term
 newLogicState = LogicState { skolemCount = 1
                            , skolemMap = Map.empty
-                           , univQuant = []
-                           , varNames = Set.empty }
+                           , univQuant = [] }
 
 type NormalT v term m = StateT (LogicState v term) m
 
@@ -65,9 +59,6 @@ runNormalT action = (runStateT action) newLogicState >>= return . fst
 
 runNormal :: NormalT v term Identity a -> a
 runNormal = runIdentity . runNormalT
-
-putVars :: Monad m => Set.Set v -> NormalT v term m ()
-putVars s = modify (\ state -> state {varNames = s})
  
 -- |A Monad for creating and maintaining a map from literals of type p
 -- to literals of type Int.
