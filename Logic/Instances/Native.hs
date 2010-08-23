@@ -12,12 +12,13 @@ module Logic.Instances.Native
     ) where
 
 import Data.Data (Data)
+import Data.List (isPrefixOf)
 import qualified Data.Set as S
 import Data.String (IsString)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
-import Logic.FirstOrder (Term(..), FirstOrderLogic(..), Quant(..), InfixPred(..), Skolem(..), Pretty, quant', showForm, showTerm)
+import Logic.FirstOrder (Term(..), FirstOrderLogic(..), Quant(..), Skolem(..), Predicate(..), Pretty, quant', showForm, showTerm)
 import Logic.Implicative (Implicative(..))
 import Logic.Logic (Logic(..), BinOp(..), Boolean(..))
 import Logic.Propositional (PropositionalLogic(..))
@@ -43,6 +44,18 @@ data PTerm v f
                                     -- is another term.
     deriving (Eq,Ord,Read,Data,Typeable)
 
+data InfixPred = (:=:) | (:!=:) deriving (Eq,Ord,Show,Data,Typeable,Enum,Bounded)
+
+-- |We need to implement read manually here due to
+-- <http://hackage.haskell.org/trac/ghc/ticket/4136>
+instance Read InfixPred where
+    readsPrec _ s = 
+        map (\ (x, t) -> (x, drop (length t) s))
+            (take 1 (dropWhile (\ (_, t) -> not (isPrefixOf t s)) prs))
+        where
+          prs = [((:=:), ":=:"),
+                 ((:!=:), ":!=:")]
+
 instance (FirstOrderLogic (Formula v p f) (PTerm v f) v p f, Show v, Show p, Show f) => Show (Formula v p f) where
     show = showForm
 
@@ -54,7 +67,7 @@ data ImplicativeNormalForm v p f =
     deriving (Eq, Data, Typeable)
 
 instance (Ord v, IsString v, Enum v, Data v, Pretty v, Show v,
-          Ord p, IsString p, Boolean p, Data p, Pretty p, Show p,
+          Ord p, IsString p, Boolean p, Data p, Pretty p, Show p, Predicate p,
           Ord f, IsString f, Skolem f, Data f, Pretty f, Show f,
           Show (Formula v p f)) => Implicative (ImplicativeNormalForm v p f) (Formula v p f) where
     neg (INF lhs _) = lhs
@@ -77,7 +90,7 @@ instance Logic (Formula v p f) where
     (.~.) x   = (:~:) x
 
 instance (Ord v, IsString v, Enum v, Data v, Pretty v, Show v,
-          Ord p, IsString p, Boolean p, Data p, Pretty p, Show p,
+          Ord p, IsString p, Boolean p, Data p, Pretty p, Show p, Predicate p,
           Ord f, IsString f, Skolem f, Data f, Pretty f, Show f,
           Logic (Formula v p f), Show (Formula v p f)) =>
          PropositionalLogic (Formula v p f) (Formula v p f) where
@@ -107,39 +120,44 @@ instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term (PTerm v f) v f
     fApp x args = FunApp x args
 
 instance (Ord v, IsString v, Enum v, Data v, Pretty v, Show v,
-          Ord p, IsString p, Boolean p, Data p, Pretty p,  Show p,
+          Ord p, IsString p, Boolean p, Data p, Pretty p,  Show p, Predicate p,
           Ord f, IsString f, Skolem f, Data f, Pretty f, Show f,
           Show (Formula v p f),
           PropositionalLogic (Formula v p f) (Formula v p f), Term (PTerm v f) v f) =>
           FirstOrderLogic (Formula v p f) (PTerm v f) v p f where
     for_all v x = Quant All [v] x
     exists v x = Quant Exists [v] x
-    foldF n q b i p f =
+    foldF n q b p f =
         case f of
           (:~:) f' -> n f'
           -- Be careful not to create quants with empty variable lists
           Quant op (v:vs) f' -> q op v (quant' op vs f')
-          Quant _ [] f' -> foldF n q b i p f'
+          Quant _ [] f' -> foldF n q b p f'
           BinOp l op r -> b l op r
-          InfixPred l op r -> i l op r
+          InfixPred l (:=:) r -> p eq [l, r]
+          InfixPred l (:!=:) r -> foldF n q b p ((.~.) (l .=. r))
           PredApp pr ts -> p pr ts
-    zipF n q b i p f1 f2 =
+    zipF n q b p f1 f2 =
         case (f1, f2) of
           ((:~:) f1', (:~:) f2') -> n f1' f2' 
           (Quant q1 (v1:vs1) f1', Quant q2 (v2:vs2) f2') -> q q1 v1 (Quant q1 vs1 f1') q2 v2 (Quant q2 vs2 f2')
-          (Quant _ [] f1', Quant _ [] f2') -> zipF n q b i p f1' f2'
+          (Quant _ [] f1', Quant _ [] f2') -> zipF n q b p f1' f2'
           (BinOp l1 op1 r1, BinOp l2 op2 r2) -> b l1 op1 r1 l2 op2 r2
-          (InfixPred l1 op1 r1, InfixPred l2 op2 r2) -> i l1 op1 r1 l2 op2 r2
+          (InfixPred l1 (:=:) r1, InfixPred l2 (:=:) r2) -> p eq [l1, r1] eq [l2, r2]
+          (InfixPred l1 (:!=:) r1, InfixPred l2 (:!=:) r2) -> zipF n q b p ((.~.) (l1 .=. r1)) ((.~.) (l2 .=. r2))
           (PredApp p1 ts1, PredApp p2 ts2) -> p p1 ts1 p2 ts2
           _ -> Nothing
+    pApp x [a, b] | x == eq = InfixPred a (:=:) b
     pApp x args = PredApp x args
     x .=. y = InfixPred x (:=:) y
     x .!=. y = InfixPred x (:!=:) y
 
+instance Version InfixPred
 instance Version (PTerm v f)
 instance Version (Formula v p f)
 
+$(deriveSerialize ''InfixPred)
 $(deriveSerialize ''PTerm)
 $(deriveSerialize ''Formula)
 
-$(deriveNewData [''PTerm, ''Formula])
+$(deriveNewData [''InfixPred, ''PTerm, ''Formula])

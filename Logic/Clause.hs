@@ -27,8 +27,8 @@ class Literal lit => ClauseNormal cnf lit | cnf -> lit where
 
 -- |A FirstOrderLogic formula can always be a literal.
 instance FirstOrderLogic formula term v p f => Literal formula where
-    invert f = foldF id (\ _ _ _ -> (.~.) f) (\ _ _ _ -> (.~.) f) (\ _ _ _ -> (.~.) f) (\ _ _ -> (.~.) f) f
-    inverted = foldF (\ _ -> True) (\ _ _ _ -> False) (\ _ _ _ -> False) (\ _ _ _ -> False) (\ _ _ -> False)
+    invert f = foldF id (\ _ _ _ -> (.~.) f) (\ _ _ _ -> (.~.) f) (\ _ _ -> (.~.) f) f
+    inverted = foldF (\ _ -> True) (\ _ _ _ -> False) (\ _ _ _ -> False) (\ _ _ -> False)
 
 -- |The literals in a ClauseNormal formula.
 class (Eq lit, Ord lit) => Literal lit where

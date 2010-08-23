@@ -16,11 +16,11 @@ module Test.Types
 
 import Control.Monad.Reader (MonadPlus(..), msum)
 import Data.Char (isDigit)
-import Data.Generics (Data, Typeable, listify)
+import Data.Generics (Data, Typeable, listify, Fixity(..))
 import qualified Data.Set as S
 import Data.String (IsString(fromString))
 import Logic.Clause (Literal)
-import Logic.FirstOrder (Skolem(..), Pretty(..), showForm, FirstOrderLogic, convertFOF)
+import Logic.FirstOrder (Skolem(..), Pretty(..), showForm, FirstOrderLogic, convertFOF, Predicate(..))
 import Logic.Implicative (Implicative(..))
 import qualified Logic.Instances.Chiou as C
 import qualified Logic.Instances.Native as P
@@ -58,6 +58,7 @@ data Pr
     = Pr String
     | T
     | F
+    | Equals
     deriving (Eq, Ord, Data, Typeable)
 
 instance IsString Pr where
@@ -76,6 +77,12 @@ instance Pretty Pr where
     pretty T = text "True"
     pretty F = text "False"
     pretty (Pr s) = text s
+
+instance Predicate Pr where
+    eq = Equals
+    fixity Equals = Infix
+    fixity _ = Prefix
+    
 
 data AtomicFunction
     = Fn String

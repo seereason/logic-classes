@@ -17,7 +17,7 @@ module Logic.Instances.Chiou
 import Data.Generics (Data, Typeable)
 import qualified Data.Set as S
 import Data.String (IsString(..))
-import Logic.FirstOrder (FirstOrderLogic(..), InfixPred(..), Pretty, Term(..))
+import Logic.FirstOrder (FirstOrderLogic(..), Pretty, Term(..))
 import qualified Logic.FirstOrder as Logic
 import Logic.Implicative (Implicative(..))
 import Logic.Logic (Logic(..), BinOp(..), Boolean(..))
@@ -80,7 +80,7 @@ instance Logic (Sentence v p f) where
     (.~.) x   = Not x
 
 instance (Ord v, IsString v, Data v, Pretty v, Show v, Enum v, 
-          Ord p, IsString p, Data p, Pretty p, Show p, Boolean p, 
+          Ord p, IsString p, Data p, Pretty p, Show p, Boolean p, Logic.Predicate p,
           Ord f, IsString f, Data f, Pretty f, Show f, Skolem f, 
           Logic (Sentence v p f)) =>
          PropositionalLogic (Sentence v p f) (Sentence v p f) where
@@ -117,13 +117,13 @@ instance Skolem AtomicFunction where
 
 instance (Pretty v, Pretty p, Pretty f, Show v, Show p, Show f, -- debugging
           Ord v, IsString v, Enum v, Data v,
-          Ord p, IsString p, Boolean p, Data p,
+          Ord p, IsString p, Boolean p, Data p, Logic.Predicate p,
           Ord f, IsString f, Skolem f, Data f, 
           PropositionalLogic (Sentence v p f) (Sentence v p f)) =>
           FirstOrderLogic (Sentence v p f) (CTerm v f) v p f where
     for_all v x = Quantifier ForAll [v] x
     exists v x = Quantifier ExistsCh [v] x
-    foldF n q b i p f =
+    foldF n q b p f =
         case f of
           Not x -> n x
           Quantifier op (v:vs) f' ->
@@ -134,14 +134,14 @@ instance (Pretty v, Pretty p, Pretty f, Show v, Show p, Show f, -- debugging
               -- Quantifier so as not to create quantifications with
               -- empty variable lists.
               q op' v (Logic.quant' op' vs f')
-          Quantifier _ [] f' -> foldF n q b i p f'
+          Quantifier _ [] f' -> foldF n q b p f'
           Connective f1 Imply f2 -> b f1 (:=>:) f2
           Connective f1 Equiv f2 -> b f1 (:<=>:) f2
           Connective f1 And f2 -> b f1 (:&:) f2
           Connective f1 Or f2 -> b f1 (:|:) f2
           Predicate name ts -> p name ts
-          Equal t1 t2 -> i t1 (:=:) t2
-    zipF n q b i p f1 f2 =
+          Equal t1 t2 -> p Logic.eq [t1, t2]
+    zipF n q b p f1 f2 =
         case (f1, f2) of
           (Not f1', Not f2') -> n f1' f2'
           (Quantifier op1 (v1:vs1) f1', Quantifier op2 (v2:vs2) f2') ->
@@ -152,7 +152,7 @@ instance (Pretty v, Pretty p, Pretty f, Show v, Show p, Show f, -- debugging
                    q op' v1 (Quantifier op1 vs1 f1') All v2 (Quantifier op2 vs2 f2')
               else Nothing
           (Quantifier q1 [] f1', Quantifier q2 [] f2') ->
-              if q1 == q2 then zipF n q b i p f1' f2' else Nothing
+              if q1 == q2 then zipF n q b p f1' f2' else Nothing
           (Connective l1 op1 r1, Connective l2 op2 r2) ->
               case (op1, op2) of
                 (And, And) -> b l1 (:&:) r1 l2 (:&:) r2
@@ -160,9 +160,10 @@ instance (Pretty v, Pretty p, Pretty f, Show v, Show p, Show f, -- debugging
                 (Imply, Imply) -> b l1 (:=>:) r1 l2 (:=>:) r2
                 (Equiv, Equiv) -> b l1 (:<=>:) r1 l2 (:<=>:) r2
                 _ -> Nothing
-          (Equal l1 r1, Equal l2 r2) -> i l1 (:=:) r1 l2 (:=:) r2
+          (Equal l1 r1, Equal l2 r2) -> p Logic.eq [l1,r1] Logic.eq [l2,r2]
           (Predicate p1 ts1, Predicate p2 ts2) -> p p1 ts1 p2 ts2
           _ -> Nothing
+    pApp x [a, b] | x == Logic.eq = Equal a b
     pApp x args = Predicate x args
     -- fApp (AtomicSkolemFunction n) [] = SkolemConstant n
     -- fApp (AtomicSkolemFunction n) ts = SkolemFunction n ts
@@ -222,20 +223,20 @@ instance Logic (NormalSentence v p f) where
     _ .|. _ = error "NormalSentence |"
 
 instance (IsString v, Pretty v, Show v,
-          Ord p, IsString p, Boolean p, Data p, Pretty p, Show p,
+          Ord p, IsString p, Boolean p, Data p, Pretty p, Show p, Logic.Predicate p,
           Ord f, IsString f, Pretty f, Show f,
           Logic (NormalSentence v p f), Logic.Term (NormalTerm v f) v f) => FirstOrderLogic (NormalSentence v p f) (NormalTerm v f) v p f where
     for_all _ _ = error "FirstOrderLogic NormalSentence"
     exists _ _ = error "FirstOrderLogic NormalSentence"
-    foldF n _ _ i p f =
+    foldF n _ _ p f =
         case f of
           NFNot x -> n x
-          NFEqual t1 t2 -> i t1 (:=:) t2
+          NFEqual t1 t2 -> p Logic.eq [t1, t2]
           NFPredicate pr ts -> p pr ts
-    zipF n _ _ i p f1 f2 =
+    zipF n _ _ p f1 f2 =
         case (f1, f2) of
           (NFNot f1', NFNot f2') -> n f1' f2'
-          (NFEqual f1l f1r, NFEqual f2l f2r) -> i f1l (:=:) f1r f2l (:=:) f2r
+          (NFEqual f1l f1r, NFEqual f2l f2r) -> p Logic.eq [f1l, f1r] Logic.eq [f2l, f2r]
           (NFPredicate p1 ts1, NFPredicate p2 ts2) -> p p1 ts1 p2 ts2
           _ -> Nothing
     pApp p args = NFPredicate p args
@@ -264,14 +265,17 @@ toTerm :: (Ord v, Enum v, Data v, Eq f, Logic.Skolem f, Data f) => NormalTerm v 
 toTerm (NormalFunction f ts) = Logic.fApp f (map toTerm ts)
 toTerm (NormalVariable v) = Logic.var v
 
-fromSentence :: FirstOrderLogic (Sentence v p f) (CTerm v f) v p f => Sentence v p f -> NormalSentence v p f
-fromSentence = foldF (NFNot . fromSentence)
+fromSentence :: forall v p f. FirstOrderLogic (Sentence v p f) (CTerm v f) v p f =>
+                Sentence v p f -> NormalSentence v p f
+fromSentence = foldF 
+                 (NFNot . fromSentence)
                  (\ _ _ _ -> error "fromSentence 1")
                  (\ _ _ _ -> error "fromSentence 2")
-                 (\ t1 op t2 -> case op of
-                                  (:=:) -> NFEqual (fromTerm t1) (fromTerm t2)
-                                  _ -> error "fromSentence 3")
-                 (\ p ts -> NFPredicate p (map fromTerm ts))
+                 (\ p ts ->
+                      case ts of
+                        [t1,t2] | p == Logic.eq -> NFEqual (fromTerm t1) (fromTerm t2)
+                        _ | p == Logic.eq -> error ("Arity error for " ++ show p)
+                        _ -> NFPredicate p (map fromTerm ts))
 
 
 fromTerm :: CTerm v f -> NormalTerm v f

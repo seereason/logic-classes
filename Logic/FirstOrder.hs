@@ -12,6 +12,7 @@
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
 module Logic.FirstOrder
     ( Skolem(..)
+    , Predicate(..)
     , FirstOrderLogic(..)
     , Term(..)
     , Quant(..)
@@ -20,8 +21,6 @@ module Logic.FirstOrder
     , quant'
     , for_all'
     , exists'
-    , InfixPred(..)
-    , infixPred
     , showForm
     , showTerm
     , freeVars
@@ -40,9 +39,9 @@ module Logic.FirstOrder
     , conj
     ) where
 
-import Data.Data (Data)
+import Data.Data (Data, Fixity(..))
 import Data.Function (on)
-import Data.List (isPrefixOf, intercalate, intersperse)
+import Data.List (intercalate, intersperse)
 import Data.Monoid (mappend)
 import qualified Data.Set as S
 import Data.String (IsString)
@@ -64,6 +63,13 @@ instance Pretty String where
 class Skolem f where
     toSkolem :: Int -> f
     fromSkolem  :: f -> Maybe Int
+
+-- |Some predicates are displayed using prefix notation, a few using
+-- infix.  In particular, equality is a special predicate that we require
+-- to exist by forcing an implementation of eq.
+class Predicate p where
+    fixity :: p -> Fixity
+    eq :: p
 
 class (Ord v, Enum v, Data v,
        Eq f, Skolem f, Data f) => Term term v f | term -> v, term -> f where
@@ -87,7 +93,7 @@ class (Ord v, Enum v, Data v,
 -- instance for (FirstOrderLogic Formula term V p f)@ because the
 -- function doesn't mention the Term type.
 class (Ord v, IsString v, Pretty v, Show v, 
-       Ord p, IsString p, Boolean p, Data p, Pretty p, Show p,
+       Ord p, IsString p, Boolean p, Data p, Pretty p, Show p, Predicate p,
        Ord f, IsString f, Pretty f, Show f,
        Logic formula, Ord formula, Data formula, Show formula, Eq term, Show term,
        Term term v f) => FirstOrderLogic formula term v p f
@@ -109,18 +115,17 @@ class (Ord v, IsString v, Pretty v, Show v,
     foldF :: (formula -> r)
           -> (Quant -> v -> formula -> r)
           -> (formula -> BinOp -> formula -> r)
-          -> (term -> InfixPred -> term -> r)
           -> (p -> [term] -> r)
           -> (formula)
           -> r
     zipF :: (formula -> formula -> Maybe r)
          -> (Quant -> v -> formula -> Quant -> v -> formula -> Maybe r)
          -> (formula -> BinOp -> formula -> formula -> BinOp -> formula -> Maybe r)
-         -> (term -> InfixPred -> term -> term -> InfixPred -> term -> Maybe r)
          -> (p -> [term] -> p -> [term] -> Maybe r)
          -> formula -> formula -> Maybe r
     -- | Equality of Terms
     (.=.) :: term -> term -> formula
+    a .=. b = pApp eq [a, b]
     -- | Inequality of Terms
     (.!=.) :: term -> term -> formula
     a .!=. b = (.~.) (a .=. b)
@@ -155,32 +160,39 @@ quant' :: FirstOrderLogic formula term v p f =>
 quant' All = for_all'
 quant' Exists = exists'
 
+{-
 -- | Helper function for building folds.
 infixPred :: FirstOrderLogic formula term v p f => 
              term -> InfixPred -> term -> formula
 infixPred t1 (:=:) t2 = t1 .=. t2
 infixPred t1 (:!=:) t2 = t1 .!=. t2
+-}
 
 -- | Display a formula in a format that can be read into the interpreter.
 showForm :: forall formula term v p f. (FirstOrderLogic formula term v p f, Show v, Show p, Show f) => 
             formula -> String
 showForm formula =
-    foldF n q b i a formula
+    foldF n q b a formula
     where
       n f = "((.~.) " ++ showForm f ++ ")"
       q All v f = "(for_all " ++ show v ++ " " ++ showForm f ++ ")"
       q Exists v f = "(exists " ++  show v ++ " " ++ showForm f ++ ")"
       b f1 op f2 = "(" ++ parenForm f1 ++ " " ++ showFormOp op ++ " " ++ parenForm f2 ++ ")"
-      i :: term -> InfixPred -> term -> String
-      i t1 op t2 = "(" ++ parenTerm t1 ++ " " ++ showTermOp op ++ " " ++ parenTerm t2 ++ ")"
+{-    i :: term -> InfixPred -> term -> String
+      i t1 op t2 = "(" ++ parenTerm t1 ++ " " ++ showTermOp op ++ " " ++ parenTerm t2 ++ ")" -}
       a :: p -> [term] -> String
       a p ts =
-          let p' = if p == fromBool True
-                   then "(fromBool True)" 
-                   else if p == fromBool False
-                        then "(fromBool False)"
-                        else show p in
-          "(pApp (" ++ p' ++ ") [" ++ intercalate "," (map showTerm ts) ++ "])"
+          case (fixity p, ts) of
+            (Infix, [t1, t2]) ->
+                "(" ++ parenTerm t1 ++ " " ++ showPred p ++ " " ++ parenTerm t2 ++ ")"
+            (Infix, _) -> error "Infix predicates must be arity 2"
+            (Prefix, _) ->
+                let p' = if p == fromBool True
+                         then "(fromBool True)" 
+                         else if p == fromBool False
+                              then "(fromBool False)"
+                              else showPred p in
+                "(pApp (" ++ p' ++ ") [" ++ intercalate "," (map showTerm ts) ++ "])"
       parenForm x = "(" ++ showForm x ++ ")"
       parenTerm :: term -> String
       parenTerm x = "(" ++ showTerm x ++ ")"
@@ -188,8 +200,9 @@ showForm formula =
       showFormOp (:=>:) = ".=>."
       showFormOp (:&:) = ".&."
       showFormOp (:|:) = ".|."
-      showTermOp (:=:) = ".=."
-      showTermOp (:!=:) = ".!=."
+      showPred p
+          | p == eq = ".=."
+          | True = show p
 
 showTerm :: forall formula term v p f. (FirstOrderLogic formula term v p f, Show v, Show p, Show f) => 
             term -> String
@@ -213,18 +226,20 @@ prettyForm prec formula =
                  (:<=>:) -> parensIf (prec > 2) $ (prettyForm 2 f1 <+> formOp op <+> prettyForm 2 f2)
                  (:&:) -> parensIf (prec > 3) $ (prettyForm 3 f1 <+> formOp op <+> prettyForm 3 f2)
                  (:|:) -> parensIf {-(prec > 4)-} True $ (prettyForm 4 f1 <+> formOp op <+> prettyForm 4 f2))
-          i
+          -- i
           pr
           formula
     where
-      i :: term -> InfixPred -> term -> Doc
-      i t1 op t2 = parensIf (prec > 6) (prettyTerm t1 <+> termOp op <+> prettyTerm t2)
       pr :: p -> [term] -> Doc
-      pr p ts = pretty p <> case ts of
-                              [] -> empty
-                              _ -> parens (hcat (intersperse (text ",") (map prettyTerm ts)))
-      -- parenForm x = parens (prettyForm x)
-      -- parenTerm x = parens (term x)
+      pr p ts
+          | fixity p == Infix
+            = case ts of
+                [t1, t2] -> parensIf (prec > 6) (prettyTerm t1 <+> prettyPred p <+> prettyTerm t2)
+                _ -> error "Arity mismatch"
+          | True
+            = pretty p <> case ts of
+                            [] -> empty
+                            _ -> parens (hcat (intersperse (text ",") (map prettyTerm ts)))
       parensIf False = id
       parensIf _ = parens . nest 1
       prettyQuant All v = text {-"∀"-} "!" <> pretty v
@@ -233,8 +248,9 @@ prettyForm prec formula =
       formOp (:=>:) = text "=>"
       formOp (:&:) = text "&"
       formOp (:|:) = text "|"
-      termOp (:=:) = text "="
-      termOp (:!=:) = text "!="
+      prettyPred p
+          | p == eq = text "="
+          | True = text (show p)
 
 prettyTerm :: forall v f term. (Pretty f, Pretty v, Term term v f) => term -> Doc
 prettyTerm t = foldT (pretty :: v -> Doc) (\ fn ts -> (pretty :: f -> Doc) fn <> brackets (hcat (intersperse (text ",") (map prettyTerm ts)))) t
@@ -245,26 +261,12 @@ prettyTerm t = foldT (pretty :: v -> Doc) (\ fn ts -> (pretty :: f -> Doc) fn <>
 -- benefits.
 data Quant = All | Exists deriving (Eq,Ord,Show,Read,Data,Typeable,Enum,Bounded)
 
--- | /Term -> Term -> Formula/ infix connectives
-data InfixPred = (:=:) | (:!=:) deriving (Eq,Ord,Show,Data,Typeable,Enum,Bounded)
-
--- |We need to implement read manually here due to
--- <http://hackage.haskell.org/trac/ghc/ticket/4136>
-instance Read InfixPred where
-    readsPrec _ s = 
-        map (\ (x, t) -> (x, drop (length t) s))
-            (take 1 (dropWhile (\ (_, t) -> not (isPrefixOf t s)) prs))
-        where
-          prs = [((:=:), ":=:"),
-                 ((:!=:), ":!=:")]
-
 -- |Find the free (unquantified) variables in a formula.
 freeVars :: FirstOrderLogic formula term v p f => formula -> S.Set v
 freeVars f =
     foldF freeVars   
           (\_ v x -> S.delete v (freeVars x))                    
           (\x _ y -> (mappend `on` freeVars) x y)
-          (\x _ y -> (mappend `on` freeVarsOfTerm) x y)
           (\_ args -> S.unions (fmap freeVarsOfTerm args))
           f
     where
@@ -276,7 +278,6 @@ quantVars =
     foldF quantVars   
           (\ _ v x -> S.insert v (quantVars x))
           (\ x _ y -> (mappend `on` quantVars) x y)
-          (\ _ _ _ -> S.empty)
           (\ _ _ -> S.empty)
 
 -- |Find the free and quantified variables in a formula.
@@ -285,7 +286,6 @@ allVars f =
     foldF freeVars   
           (\_ v x -> S.insert v (allVars x))
           (\x _ y -> (mappend `on` allVars) x y)
-          (\x _ y -> (mappend `on` allVarsOfTerm) x y)
           (\_ args -> S.unions (fmap allVarsOfTerm args))
           f
     where
@@ -306,7 +306,6 @@ substitute old new formula =
               -- we can stop doing the substitution.
               (\ q v f' -> quant q v (if old == v then f' else sf f'))
               (\ f1 op f2 -> binOp (sf f1) op (sf f2))
-              (\ t1 op t2 -> infixPred (st t1) op (st t2))
               (\ p ts -> pApp p (map st ts))
               formula
     where
@@ -324,14 +323,13 @@ convertFOF :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
                FirstOrderLogic formula2 term2 v2 p2 f2) =>
               (v1 -> v2) -> (p1 -> p2) -> (f1 -> f2) -> formula1 -> formula2
 convertFOF convertV convertP convertF formula =
-    foldF n q b i p formula
+    foldF n q b p formula
     where
       convert' = convertFOF convertV convertP convertF
       convertTerm' = convertTerm convertV convertF
       n f = (.~.) (convert' f)
       q x v f = quant x (convertV v) (convert' f)
       b f1 op f2 = binOp (convert' f1) op (convert' f2)
-      i t1 op t2 = infixPred (convertTerm' t1) op (convertTerm' t2)
       p x ts = pApp (convertP x) (map convertTerm' ts)
 
 convertTerm :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
@@ -353,28 +351,23 @@ toPropositional :: forall formula1 term v p f formula2 atom.
                     PropositionalLogic formula2 atom) =>
                    (formula1 -> formula2) -> formula1 -> formula2
 toPropositional convertAtom formula =
-    foldF n q b i p formula
+    foldF n q b p formula
     where
       convert' = toPropositional convertAtom
       n f = (.~.) (convert' f)
       q _ _ _ = error "toPropositional: invalid argument"
       b f1 op f2 = binOp (convert' f1) op (convert' f2)
-      i _ _ _ = convertAtom formula
       p _ _ = convertAtom formula
 
+-- |Names for for_all and exists inspired by the conventions of the
+-- TPTP project.
 (!) :: FirstOrderLogic formula term v p f => v -> formula -> formula
 (!) = for_all
 (?) :: FirstOrderLogic formula term v p f => v -> formula -> formula
 (?) = exists
-{-
-($$) :: FirstOrderLogic formula term v p f => p -> [term] -> formula
-($$) = pApp
--}
 
-instance Version InfixPred
 instance Version Quant
 
-$(deriveSerialize ''InfixPred)
 $(deriveSerialize ''Quant)
 
-$(deriveNewData [''InfixPred, ''Quant])
+$(deriveNewData [''Quant])

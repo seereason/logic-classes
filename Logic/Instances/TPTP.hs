@@ -7,6 +7,7 @@ import Codec.TPTP (F(..), Formula, BinOp(..), V(..), T(..), Term0(..), AtomicWor
 import qualified Codec.TPTP as TPTP
 import Control.Monad.Identity (Identity(..))
 import Data.Char (isDigit, ord)
+import Data.Data(Fixity(..))
 import Data.Generics (Data, Typeable)
 import Data.String (IsString(..))
 import qualified Logic.FirstOrder as Logic
@@ -108,21 +109,26 @@ instance Logic.PropositionalLogic Formula Formula where
               p' p ts = a (F (Identity (PredApp p ts)))
               unwrapF' (F x) = F x -- copoint x
 
-instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.FirstOrderLogic Formula (T Identity) V AtomicWord AtomicFunction where
+instance Logic.Predicate AtomicWord where
+    eq = "="
+    fixity "=" = Infix
+    fixity _ = Prefix
+
+instance Logic.FirstOrderLogic Formula (T Identity) V AtomicWord AtomicFunction where
     for_all vars x = for_all vars x
     exists vars x = exists vars x
     -- Use the TPTP fold to implement the Logic fold.  This means
     -- building wrappers around some of the functions so that when
     -- the wrappers are passed TPTP types they turn them into Logic
     -- values to pass to the argument functions.
-    foldF n q b i p form =
+    foldF n q b p form =
         TPTP.foldF n q' b' i' p (unwrapF' form)
         where q' op (v:vs) form' =
                   let op' = case op of
                               TPTP.All -> Logic.All
                               TPTP.Exists -> Logic.Exists in
                   q op' v (foldr (\ v' f -> Logic.quant op' v' f) form' vs)
-              q' _ [] form' = foldF n q b i p form'
+              q' _ [] form' = foldF n q b p form'
               b' f1 (:<=>:) f2 = b f1 (Logic.:<=>:) f2
               b' f1 (:<=:) f2 = b f2 (Logic.:=>:) f1
               b' f1 (:=>:) f2 = b f1 (Logic.:=>:) f2
@@ -133,8 +139,8 @@ instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.FirstOrderLog
               b' f1 (:|:) f2 = b f1 (Logic.:|:) f2
               b' f1 (:~|:) f2 = TPTP.foldF n q' b' i' p ((.~.) (f1 .|. f2))
               b' f1 (:<~>:) f2 = TPTP.foldF n q' b' i' p ((((.~.) f1) .&. f2) .|. (f1 .&. ((.~.) f2)))
-              i' t1 (:=:) t2 = i t1 (Logic.:=:) t2
-              i' _t1 (:!=:) _t2 = undefined
+              i' t1 (:=:) t2 = p Logic.eq [t1,t2]
+              i' t1 (:!=:) t2 = TPTP.foldF n q' b' i' p ((.~.) (t1 .=. t2))
               unwrapF' (F x) = F x -- copoint x
     zipF = error "Unimplemented: Logic.Instances.TPTP.zipF"
     x .=. y   = x .=. y

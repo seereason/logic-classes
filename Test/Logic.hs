@@ -3,6 +3,7 @@
 {-# OPTIONS -Wall -Wwarn -fno-warn-name-shadowing -fno-warn-orphans #-}
 module Test.Logic (tests) where
 
+import Data.Data (Fixity(..))
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 import Logic.Clause (Literal(..))
@@ -10,7 +11,7 @@ import qualified Logic.Instances.Native as P
 import Logic.Logic (Logic(..), Boolean(..))
 import Logic.Monad (runNormal)
 import Logic.NormalForm (clauseNormalForm, clauseNormalForm)
-import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), Term(..), showForm, freeVars, substitute)
+import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), Term(..), Predicate(..), showForm, freeVars, substitute)
 import Logic.Satisfiable (theorem, inconsistant)
 import PropLogic (PropForm(..), TruthTable, truthTable)
 import qualified TextDisplay as TD
@@ -23,6 +24,11 @@ instance Boolean String where
     fromBool = show
 
 type TestFormula = P.Formula V String AtomicFunction
+
+instance Predicate String where
+    eq = "="
+    fixity "=" = Infix
+    fixity _ = Prefix
 
 tests :: Test
 tests = TestLabel "Logic" $ TestList (precTests ++ theoremTests)
