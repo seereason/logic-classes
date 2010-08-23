@@ -7,8 +7,9 @@
 module Logic.Logic
     ( Logic(..)
     , BinOp(..)
-    , binOp
     , Boolean(..)
+    , Combine(..)
+    , combine
     ) where
 
 import Data.Data (Data)
@@ -66,6 +67,11 @@ data BinOp
     |  (:|:)  -- ^ OR
     deriving (Eq,Ord,Read,Data,Typeable,Enum,Bounded)
 
+data Combine formula
+    = BinOp formula BinOp formula
+    | (:~:) formula
+    deriving (Eq,Ord,Read,Data,Typeable)
+
 -- |We need to implement read manually here due to
 -- <http://hackage.haskell.org/trac/ghc/ticket/4136>
 {-
@@ -88,16 +94,18 @@ instance Show BinOp where
 
 -- | A helper function for building folds:
 -- @
---   foldF0 (.~.) binOp atomic
+--   foldF0 combine atomic
 -- @
 -- is a no-op
-binOp :: Logic formula => formula -> BinOp -> formula -> formula
-binOp f1 (:<=>:) f2 = f1 .<=>. f2
-binOp f1 (:=>:) f2 = f1 .=>. f2
-binOp f1 (:&:) f2 = f1 .&. f2
-binOp f1 (:|:) f2 = f1 .|. f2
+combine :: Logic formula => Combine formula -> formula
+combine (BinOp f1 (:<=>:) f2) = f1 .<=>. f2
+combine (BinOp f1 (:=>:) f2) = f1 .=>. f2
+combine (BinOp f1 (:&:) f2) = f1 .&. f2
+combine (BinOp f1 (:|:) f2) = f1 .|. f2
+combine ((:~:) f) = (.~.) f
 
 instance Version BinOp
+instance Version (Combine formula)
 
 -- |For some functions the atomic predicate type needs to have True
 -- and False elements.
@@ -105,5 +113,6 @@ class Boolean p where
     fromBool :: Bool -> p
 
 $(deriveSerialize ''BinOp)
+$(deriveSerialize ''Combine)
 
-$(deriveNewData [''BinOp])
+$(deriveNewData [''BinOp, ''Combine])

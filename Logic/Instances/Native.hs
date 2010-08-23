@@ -21,6 +21,7 @@ import Happstack.State (Version, deriveSerialize)
 import Logic.FirstOrder (Term(..), FirstOrderLogic(..), Quant(..), Skolem(..), Predicate(..), Pretty, quant', showForm, showTerm)
 import Logic.Implicative (Implicative(..))
 import Logic.Logic (Logic(..), BinOp(..), Boolean(..))
+import qualified Logic.Logic as Logic
 import Logic.Propositional (PropositionalLogic(..))
     
 -- | The range of a formula is {True, False} when it has no free variables.
@@ -98,11 +99,11 @@ instance (Ord v, IsString v, Enum v, Data v, Pretty v, Show v,
     atomic (InfixPred t1 (:!=:) t2) = t1 .!=. t2
     atomic (PredApp p ts) = pApp p ts
     atomic _ = error "atomic method of PropositionalLogic for Parameterized: invalid argument"
-    foldF0 n b a formula =
+    foldF0 c a formula =
         case formula of
-          (:~:) x -> n x
+          (:~:) x -> c ((Logic.:~:) x)
           Quant _ _ _ -> error "foldF0: quantifiers should not be present"
-          BinOp f1 op f2 -> b f1 op f2
+          BinOp f1 op f2 -> c (Logic.BinOp f1 op f2)
           InfixPred t1 op t2 -> a (InfixPred t1 op t2)
           PredApp p ts -> a (PredApp p ts)
 
@@ -127,24 +128,24 @@ instance (Ord v, IsString v, Enum v, Data v, Pretty v, Show v,
           FirstOrderLogic (Formula v p f) (PTerm v f) v p f where
     for_all v x = Quant All [v] x
     exists v x = Quant Exists [v] x
-    foldF n q b p f =
+    foldF q c p f =
         case f of
-          (:~:) f' -> n f'
+          (:~:) f' -> c ((Logic.:~:) f')
           -- Be careful not to create quants with empty variable lists
           Quant op (v:vs) f' -> q op v (quant' op vs f')
-          Quant _ [] f' -> foldF n q b p f'
-          BinOp l op r -> b l op r
+          Quant _ [] f' -> foldF q c p f'
+          BinOp l op r -> c (Logic.BinOp l op r)
           InfixPred l (:=:) r -> p eq [l, r]
-          InfixPred l (:!=:) r -> foldF n q b p ((.~.) (l .=. r))
+          InfixPred l (:!=:) r -> foldF q c p ((.~.) (l .=. r))
           PredApp pr ts -> p pr ts
-    zipF n q b p f1 f2 =
+    zipF q c p f1 f2 =
         case (f1, f2) of
-          ((:~:) f1', (:~:) f2') -> n f1' f2' 
+          ((:~:) f1', (:~:) f2') -> c ((Logic.:~:) f1') ((Logic.:~:) f2')
           (Quant q1 (v1:vs1) f1', Quant q2 (v2:vs2) f2') -> q q1 v1 (Quant q1 vs1 f1') q2 v2 (Quant q2 vs2 f2')
-          (Quant _ [] f1', Quant _ [] f2') -> zipF n q b p f1' f2'
-          (BinOp l1 op1 r1, BinOp l2 op2 r2) -> b l1 op1 r1 l2 op2 r2
+          (Quant _ [] f1', Quant _ [] f2') -> zipF q c p f1' f2'
+          (BinOp l1 op1 r1, BinOp l2 op2 r2) -> c (Logic.BinOp l1 op1 r1) (Logic.BinOp l2 op2 r2)
           (InfixPred l1 (:=:) r1, InfixPred l2 (:=:) r2) -> p eq [l1, r1] eq [l2, r2]
-          (InfixPred l1 (:!=:) r1, InfixPred l2 (:!=:) r2) -> zipF n q b p ((.~.) (l1 .=. r1)) ((.~.) (l2 .=. r2))
+          (InfixPred l1 (:!=:) r1, InfixPred l2 (:!=:) r2) -> zipF q c p ((.~.) (l1 .=. r1)) ((.~.) (l2 .=. r2))
           (PredApp p1 ts1, PredApp p2 ts2) -> p p1 ts1 p2 ts2
           _ -> Nothing
     pApp x [a, b] | x == eq = InfixPred a (:=:) b

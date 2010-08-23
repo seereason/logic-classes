@@ -20,7 +20,7 @@ import Data.String (IsString(..))
 import Logic.FirstOrder (FirstOrderLogic(..), Pretty, Term(..))
 import qualified Logic.FirstOrder as Logic
 import Logic.Implicative (Implicative(..))
-import Logic.Logic (Logic(..), BinOp(..), Boolean(..))
+import Logic.Logic (Logic(..), BinOp(..), Combine(..), Boolean(..))
 import Logic.Propositional (PropositionalLogic(..))
 import Logic.FirstOrder (Skolem(..), Quant(..))
 
@@ -89,14 +89,14 @@ instance (Ord v, IsString v, Data v, Pretty v, Show v, Enum v,
     atomic (Not _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Predicate p ts) = pApp p ts
     atomic (Equal t1 t2) = t1 .=. t2
-    foldF0 n b a formula =
+    foldF0 c a formula =
         case formula of
-          Not x -> n x
+          Not x -> c ((:~:) x)
           Quantifier _ _ _ -> error "Logic.Instance.Chiou.foldF0: unexpected"
-          Connective f1 Imply f2 -> b f1 (:=>:) f2
-          Connective f1 Equiv f2 -> b f1 (:<=>:) f2
-          Connective f1 And f2 -> b f1 (:&:) f2
-          Connective f1 Or f2 -> b f1 (:|:) f2
+          Connective f1 Imply f2 -> c (BinOp f1 (:=>:) f2)
+          Connective f1 Equiv f2 -> c (BinOp f1 (:<=>:) f2)
+          Connective f1 And f2 -> c (BinOp f1 (:&:) f2)
+          Connective f1 Or f2 -> c (BinOp f1 (:|:) f2)
           Predicate p ts -> a (Predicate p ts)
           Equal t1 t2 -> a (Equal t1 t2)
 
@@ -123,9 +123,9 @@ instance (Pretty v, Pretty p, Pretty f, Show v, Show p, Show f, -- debugging
           FirstOrderLogic (Sentence v p f) (CTerm v f) v p f where
     for_all v x = Quantifier ForAll [v] x
     exists v x = Quantifier ExistsCh [v] x
-    foldF n q b p f =
+    foldF q c p f =
         case f of
-          Not x -> n x
+          Not x -> c ((:~:) x)
           Quantifier op (v:vs) f' ->
               let op' = case op of
                           ForAll -> Logic.All
@@ -134,16 +134,16 @@ instance (Pretty v, Pretty p, Pretty f, Show v, Show p, Show f, -- debugging
               -- Quantifier so as not to create quantifications with
               -- empty variable lists.
               q op' v (Logic.quant' op' vs f')
-          Quantifier _ [] f' -> foldF n q b p f'
-          Connective f1 Imply f2 -> b f1 (:=>:) f2
-          Connective f1 Equiv f2 -> b f1 (:<=>:) f2
-          Connective f1 And f2 -> b f1 (:&:) f2
-          Connective f1 Or f2 -> b f1 (:|:) f2
+          Quantifier _ [] f' -> foldF q c p f'
+          Connective f1 Imply f2 -> c (BinOp f1 (:=>:) f2)
+          Connective f1 Equiv f2 -> c (BinOp f1 (:<=>:) f2)
+          Connective f1 And f2 -> c (BinOp f1 (:&:) f2)
+          Connective f1 Or f2 -> c (BinOp f1 (:|:) f2)
           Predicate name ts -> p name ts
           Equal t1 t2 -> p Logic.eq [t1, t2]
-    zipF n q b p f1 f2 =
+    zipF q c p f1 f2 =
         case (f1, f2) of
-          (Not f1', Not f2') -> n f1' f2'
+          (Not f1', Not f2') -> c ((:~:) f1') ((:~:) f2')
           (Quantifier op1 (v1:vs1) f1', Quantifier op2 (v2:vs2) f2') ->
               if op1 == op2
               then let op' = case op1 of
@@ -152,13 +152,13 @@ instance (Pretty v, Pretty p, Pretty f, Show v, Show p, Show f, -- debugging
                    q op' v1 (Quantifier op1 vs1 f1') All v2 (Quantifier op2 vs2 f2')
               else Nothing
           (Quantifier q1 [] f1', Quantifier q2 [] f2') ->
-              if q1 == q2 then zipF n q b p f1' f2' else Nothing
+              if q1 == q2 then zipF q c p f1' f2' else Nothing
           (Connective l1 op1 r1, Connective l2 op2 r2) ->
               case (op1, op2) of
-                (And, And) -> b l1 (:&:) r1 l2 (:&:) r2
-                (Or, Or) -> b l1 (:|:) r1 l2 (:|:) r2
-                (Imply, Imply) -> b l1 (:=>:) r1 l2 (:=>:) r2
-                (Equiv, Equiv) -> b l1 (:<=>:) r1 l2 (:<=>:) r2
+                (And, And) -> c (BinOp l1 (:&:) r1) (BinOp l2 (:&:) r2)
+                (Or, Or) -> c (BinOp l1 (:|:) r1) (BinOp l2 (:|:) r2)
+                (Imply, Imply) -> c (BinOp l1 (:=>:) r1) (BinOp l2 (:=>:) r2)
+                (Equiv, Equiv) -> c (BinOp l1 (:<=>:) r1) (BinOp l2 (:<=>:) r2)
                 _ -> Nothing
           (Equal l1 r1, Equal l2 r2) -> p Logic.eq [l1,r1] Logic.eq [l2,r2]
           (Predicate p1 ts1, Predicate p2 ts2) -> p p1 ts1 p2 ts2
@@ -228,14 +228,14 @@ instance (IsString v, Pretty v, Show v,
           Logic (NormalSentence v p f), Logic.Term (NormalTerm v f) v f) => FirstOrderLogic (NormalSentence v p f) (NormalTerm v f) v p f where
     for_all _ _ = error "FirstOrderLogic NormalSentence"
     exists _ _ = error "FirstOrderLogic NormalSentence"
-    foldF n _ _ p f =
+    foldF _ c p f =
         case f of
-          NFNot x -> n x
+          NFNot x -> c ((:~:) x)
           NFEqual t1 t2 -> p Logic.eq [t1, t2]
           NFPredicate pr ts -> p pr ts
-    zipF n _ _ p f1 f2 =
+    zipF _ c p f1 f2 =
         case (f1, f2) of
-          (NFNot f1', NFNot f2') -> n f1' f2'
+          (NFNot f1', NFNot f2') -> c ((:~:) f1') ((:~:) f2')
           (NFEqual f1l f1r, NFEqual f2l f2r) -> p Logic.eq [f1l, f1r] Logic.eq [f2l, f2r]
           (NFPredicate p1 ts1, NFPredicate p2 ts2) -> p p1 ts1 p2 ts2
           _ -> Nothing
@@ -268,9 +268,11 @@ toTerm (NormalVariable v) = Logic.var v
 fromSentence :: forall v p f. FirstOrderLogic (Sentence v p f) (CTerm v f) v p f =>
                 Sentence v p f -> NormalSentence v p f
 fromSentence = foldF 
-                 (NFNot . fromSentence)
                  (\ _ _ _ -> error "fromSentence 1")
-                 (\ _ _ _ -> error "fromSentence 2")
+                 (\ cm ->
+                      case cm of
+                        ((:~:) f) -> NFNot (fromSentence f)
+                        _ -> error "fromSentence 2")
                  (\ p ts ->
                       case ts of
                         [t1,t2] | p == Logic.eq -> NFEqual (fromTerm t1) (fromTerm t2)

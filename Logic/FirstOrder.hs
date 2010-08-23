@@ -112,15 +112,13 @@ class (Ord v, IsString v, Pretty v, Show v,
     -- but extended to cover both the existing formula types and the
     -- ones introduced here.  @foldF (.~.) quant binOp infixPred pApp@
     -- is a no op.  The argument order is taken from Logic-TPTP.
-    foldF :: (formula -> r)
-          -> (Quant -> v -> formula -> r)
-          -> (formula -> BinOp -> formula -> r)
+    foldF :: (Quant -> v -> formula -> r)
+          -> (Combine formula -> r)
           -> (p -> [term] -> r)
-          -> (formula)
+          -> formula
           -> r
-    zipF :: (formula -> formula -> Maybe r)
-         -> (Quant -> v -> formula -> Quant -> v -> formula -> Maybe r)
-         -> (formula -> BinOp -> formula -> formula -> BinOp -> formula -> Maybe r)
+    zipF :: (Quant -> v -> formula -> Quant -> v -> formula -> Maybe r)
+         -> (Combine formula -> Combine formula -> Maybe r)
          -> (p -> [term] -> p -> [term] -> Maybe r)
          -> formula -> formula -> Maybe r
     -- | Equality of Terms
@@ -155,6 +153,9 @@ quant :: FirstOrderLogic formula term v p f =>
 quant All v f = for_all v f
 quant Exists v f = exists v f
 
+-- |Legacy version of quant from when we supported lists of quantified
+-- variables.  It also has the virtue of eliding quantifications with
+-- empty variable lists (by calling for_all' and exists'.)
 quant' :: FirstOrderLogic formula term v p f => 
          Quant -> [v] -> formula -> formula
 quant' All = for_all'
@@ -172,14 +173,12 @@ infixPred t1 (:!=:) t2 = t1 .!=. t2
 showForm :: forall formula term v p f. (FirstOrderLogic formula term v p f, Show v, Show p, Show f) => 
             formula -> String
 showForm formula =
-    foldF n q b a formula
+    foldF q c a formula
     where
-      n f = "((.~.) " ++ showForm f ++ ")"
       q All v f = "(for_all " ++ show v ++ " " ++ showForm f ++ ")"
       q Exists v f = "(exists " ++  show v ++ " " ++ showForm f ++ ")"
-      b f1 op f2 = "(" ++ parenForm f1 ++ " " ++ showFormOp op ++ " " ++ parenForm f2 ++ ")"
-{-    i :: term -> InfixPred -> term -> String
-      i t1 op t2 = "(" ++ parenTerm t1 ++ " " ++ showTermOp op ++ " " ++ parenTerm t2 ++ ")" -}
+      c (BinOp f1 op f2) = "(" ++ parenForm f1 ++ " " ++ showFormOp op ++ " " ++ parenForm f2 ++ ")"
+      c ((:~:) f) = "((.~.) " ++ showForm f ++ ")"
       a :: p -> [term] -> String
       a p ts =
           case (fixity p, ts) of
@@ -218,15 +217,16 @@ prettyForm :: forall formula term v p f.
               (FirstOrderLogic formula term v p f, Term term v f, Pretty v, Pretty f, Pretty p) =>
               Int -> formula -> Doc
 prettyForm prec formula =
-    foldF (\ f -> text {-"¬"-} "~" <> prettyForm 5 f)
-          (\ qop v f -> parensIf (prec > 1) $ prettyQuant qop v <+> prettyForm 1 f)
-          (\ f1 op f2 ->
-               case op of
-                 (:=>:) -> parensIf (prec > 2) $ (prettyForm 2 f1 <+> formOp op <+> prettyForm 2 f2)
-                 (:<=>:) -> parensIf (prec > 2) $ (prettyForm 2 f1 <+> formOp op <+> prettyForm 2 f2)
-                 (:&:) -> parensIf (prec > 3) $ (prettyForm 3 f1 <+> formOp op <+> prettyForm 3 f2)
-                 (:|:) -> parensIf {-(prec > 4)-} True $ (prettyForm 4 f1 <+> formOp op <+> prettyForm 4 f2))
-          -- i
+    foldF (\ qop v f -> parensIf (prec > 1) $ prettyQuant qop v <+> prettyForm 1 f)
+          (\ cm ->
+               case cm of
+                 (BinOp f1 op f2) ->
+                     case op of
+                       (:=>:) -> parensIf (prec > 2) $ (prettyForm 2 f1 <+> formOp op <+> prettyForm 2 f2)
+                       (:<=>:) -> parensIf (prec > 2) $ (prettyForm 2 f1 <+> formOp op <+> prettyForm 2 f2)
+                       (:&:) -> parensIf (prec > 3) $ (prettyForm 3 f1 <+> formOp op <+> prettyForm 3 f2)
+                       (:|:) -> parensIf {-(prec > 4)-} True $ (prettyForm 4 f1 <+> formOp op <+> prettyForm 4 f2)
+                 ((:~:) f) -> text {-"¬"-} "~" <> prettyForm 5 f)
           pr
           formula
     where
@@ -264,9 +264,11 @@ data Quant = All | Exists deriving (Eq,Ord,Show,Read,Data,Typeable,Enum,Bounded)
 -- |Find the free (unquantified) variables in a formula.
 freeVars :: FirstOrderLogic formula term v p f => formula -> S.Set v
 freeVars f =
-    foldF freeVars   
-          (\_ v x -> S.delete v (freeVars x))                    
-          (\x _ y -> (mappend `on` freeVars) x y)
+    foldF (\_ v x -> S.delete v (freeVars x))                    
+          (\ cm ->
+               case cm of
+                 BinOp x _ y -> (mappend `on` freeVars) x y
+                 (:~:) f' -> freeVars f')
           (\_ args -> S.unions (fmap freeVarsOfTerm args))
           f
     where
@@ -275,17 +277,21 @@ freeVars f =
 -- |Find the variables that are quantified in a formula
 quantVars :: FirstOrderLogic formula term v p f => formula -> S.Set v
 quantVars =
-    foldF quantVars   
-          (\ _ v x -> S.insert v (quantVars x))
-          (\ x _ y -> (mappend `on` quantVars) x y)
+    foldF (\ _ v x -> S.insert v (quantVars x))
+          (\ cm ->
+               case cm of
+                 BinOp x _ y -> (mappend `on` quantVars) x y
+                 ((:~:) f) -> quantVars f)
           (\ _ _ -> S.empty)
 
 -- |Find the free and quantified variables in a formula.
 allVars :: FirstOrderLogic formula term v p f => formula -> S.Set v
 allVars f =
-    foldF freeVars   
-          (\_ v x -> S.insert v (allVars x))
-          (\x _ y -> (mappend `on` allVars) x y)
+    foldF (\_ v x -> S.insert v (allVars x))
+          (\ cm ->
+               case cm of
+                 BinOp x _ y -> (mappend `on` allVars) x y
+                 (:~:) f' -> freeVars f')
           (\_ args -> S.unions (fmap allVarsOfTerm args))
           f
     where
@@ -301,13 +307,14 @@ univquant_free_vars cnf' =
 substitute :: FirstOrderLogic formula term v p f => v -> term -> formula -> formula
 substitute old new formula | var old == new = formula
 substitute old new formula =
-    foldF (\ f' -> (.~.) (sf f'))
-              -- If the old variable appears in a quantifier
-              -- we can stop doing the substitution.
-              (\ q v f' -> quant q v (if old == v then f' else sf f'))
-              (\ f1 op f2 -> binOp (sf f1) op (sf f2))
-              (\ p ts -> pApp p (map st ts))
-              formula
+    foldF -- If the old variable appears in a quantifier
+          -- we can stop doing the substitution.
+          (\ q v f' -> quant q v (if old == v then f' else sf f'))
+          (\ cm -> case cm of
+                     ((:~:) f') -> combine ((:~:) (sf f'))
+                     (BinOp f1 op f2) -> combine (BinOp (sf f1) op (sf f2)))
+          (\ p ts -> pApp p (map st ts))
+          formula
     where
       sf = substitute old new
       st t = foldT sv (\ func ts -> fApp func (map st ts)) t
@@ -323,13 +330,13 @@ convertFOF :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
                FirstOrderLogic formula2 term2 v2 p2 f2) =>
               (v1 -> v2) -> (p1 -> p2) -> (f1 -> f2) -> formula1 -> formula2
 convertFOF convertV convertP convertF formula =
-    foldF n q b p formula
+    foldF q c p formula
     where
       convert' = convertFOF convertV convertP convertF
       convertTerm' = convertTerm convertV convertF
-      n f = (.~.) (convert' f)
       q x v f = quant x (convertV v) (convert' f)
-      b f1 op f2 = binOp (convert' f1) op (convert' f2)
+      c (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
+      c ((:~:) f) = combine ((:~:) (convert' f))
       p x ts = pApp (convertP x) (map convertTerm' ts)
 
 convertTerm :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
@@ -351,12 +358,12 @@ toPropositional :: forall formula1 term v p f formula2 atom.
                     PropositionalLogic formula2 atom) =>
                    (formula1 -> formula2) -> formula1 -> formula2
 toPropositional convertAtom formula =
-    foldF n q b p formula
+    foldF q c p formula
     where
       convert' = toPropositional convertAtom
-      n f = (.~.) (convert' f)
       q _ _ _ = error "toPropositional: invalid argument"
-      b f1 op f2 = binOp (convert' f1) op (convert' f2)
+      c (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
+      c ((:~:) f) = combine ((:~:) (convert' f))
       p _ _ = convertAtom formula
 
 -- |Names for for_all and exists inspired by the conventions of the

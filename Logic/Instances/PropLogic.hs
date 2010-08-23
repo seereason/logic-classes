@@ -15,30 +15,28 @@ instance Logic (PropForm a) where
 
 instance Logic (PropForm a) => PropositionalLogic (PropForm a) a where
     atomic = A
-    foldF0 n b a formula =
+    foldF0 c a formula =
         case formula of
           -- EJ [x,y,z,...] -> CJ [EJ [x,y], EJ[y,z], ...]
           EJ [] -> error "Empty EJ"
-          EJ [x] -> fold' x
-          EJ [x0, x1] -> b x0 (:<=>:) x1
-          EJ xs -> fold' (CJ (map (\ (x0, x1) -> EJ [x0, x1]) (pairs xs)))
+          EJ [x] -> foldF0 c a x
+          EJ [x0, x1] -> c (BinOp x0 (:<=>:) x1)
+          EJ xs -> foldF0 c a (CJ (map (\ (x0, x1) -> EJ [x0, x1]) (pairs xs)))
           SJ [] -> error "Empty SJ"
-          SJ [x] -> fold' x
-          SJ [x0, x1] -> b x0 (:=>:) x1
-          SJ xs -> fold' (CJ (map (\ (x0, x1) -> SJ [x0, x1]) (pairs xs)))
+          SJ [x] -> foldF0 c a x
+          SJ [x0, x1] -> c (BinOp x0 (:=>:) x1)
+          SJ xs -> foldF0 c a (CJ (map (\ (x0, x1) -> SJ [x0, x1]) (pairs xs)))
           DJ [] -> error "Empty disjunct"
-          DJ [x] -> fold' x
-          DJ (x0:xs) -> b x0 (:|:) (DJ xs)
+          DJ [x] -> foldF0 c a x
+          DJ (x0:xs) -> c (BinOp x0 (:|:) (DJ xs))
           CJ [] -> error "Empty conjunct"
-          CJ [x] -> fold' x
-          CJ (x0:xs) -> b x0 (:&:) (CJ xs)
-          N x -> n x
+          CJ [x] -> foldF0 c a x
+          CJ (x0:xs) -> c (BinOp x0 (:&:) (CJ xs))
+          N x -> c ((:~:) x)
           -- Not sure what to do about these - so far not an issue.
           T -> error "foldF0 method of PropForm: T"
           F -> error "foldF0 method of PropForm: F"
           A x -> a x
-        where
-          fold' = foldF0 n b a
 
 pairs :: [a] -> [(a, a)]
 pairs (x:y:zs) = (x,y) : pairs (y:zs)

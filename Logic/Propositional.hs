@@ -32,8 +32,7 @@ class Logic formula => PropositionalLogic formula atom | formula -> atom where
     -- to its parameter functions, one to handle binary operators, one
     -- for negations, and one for atomic formulas.  See examples of its
     -- use to implement the polymorphic functions below.
-    foldF0 :: (formula -> r)
-           -> (formula -> BinOp -> formula -> r)
+    foldF0 :: (Combine formula -> r)
            -> (atom -> r)
            -> formula
            -> r
@@ -41,10 +40,10 @@ class Logic formula => PropositionalLogic formula atom | formula -> atom where
 -- | Show a formula in a format that can be evaluated 
 showForm0 :: (PropositionalLogic formula atom) => (atom -> String) -> formula -> String
 showForm0 showAtom formula =
-    foldF0 n b a formula
+    foldF0 c a formula
     where
-      n f = "(.~.) " ++ parenForm f
-      b f1 op f2 = parenForm f1 ++ " " ++ showFormOp op ++ " " ++ parenForm f2
+      c ((:~:) f) = "(.~.) " ++ parenForm f
+      c (BinOp f1 op f2) = parenForm f1 ++ " " ++ showFormOp op ++ " " ++ parenForm f2
       a = showAtom
       parenForm x = "(" ++ showForm0 showAtom x ++ ")"
       showFormOp (:<=>:) = ".<=>."
@@ -59,9 +58,9 @@ convertProp :: forall formula1 atom1 formula2 atom2.
                 PropositionalLogic formula2 atom2) =>
                (atom1 -> atom2) -> formula1 -> formula2
 convertProp convertA formula =
-    foldF0 n b a formula
+    foldF0 c a formula
     where
       convert' = convertProp convertA
-      n f = (.~.) (convert' f)
-      b f1 op f2 = binOp (convert' f1) op (convert' f2)
+      c ((:~:) f) = (.~.) (convert' f)
+      c (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
       a = atomic . convertA
