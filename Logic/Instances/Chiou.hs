@@ -19,6 +19,7 @@ import qualified Data.Set as S
 import Data.String (IsString(..))
 import Logic.FirstOrder (FirstOrderLogic(..), Pretty, Term(..))
 import qualified Logic.FirstOrder as Logic
+import qualified Logic.FirstOrder as L
 import Logic.Implicative (Implicative(..))
 import Logic.Logic (Logic(..), BinOp(..), Combine(..), Boolean(..))
 import Logic.Propositional (PropositionalLogic(..))
@@ -80,7 +81,7 @@ instance Logic (Sentence v p f) where
     (.~.) x   = Not x
 
 instance (Ord v, IsString v, Data v, Pretty v, Show v, Enum v, 
-          Ord p, IsString p, Data p, Pretty p, Show p, Boolean p, Logic.Predicate p,
+          Ord p, IsString p, Data p, Pretty p, Show p, Boolean p,
           Ord f, IsString f, Data f, Pretty f, Show f, Skolem f, 
           Logic (Sentence v p f)) =>
          PropositionalLogic (Sentence v p f) (Sentence v p f) where
@@ -117,7 +118,7 @@ instance Skolem AtomicFunction where
 
 instance (Pretty v, Pretty p, Pretty f, Show v, Show p, Show f, -- debugging
           Ord v, IsString v, Enum v, Data v,
-          Ord p, IsString p, Boolean p, Data p, Logic.Predicate p,
+          Ord p, IsString p, Boolean p, Data p,
           Ord f, IsString f, Skolem f, Data f, 
           PropositionalLogic (Sentence v p f) (Sentence v p f)) =>
           FirstOrderLogic (Sentence v p f) (CTerm v f) v p f where
@@ -139,8 +140,8 @@ instance (Pretty v, Pretty p, Pretty f, Show v, Show p, Show f, -- debugging
           Connective f1 Equiv f2 -> c (BinOp f1 (:<=>:) f2)
           Connective f1 And f2 -> c (BinOp f1 (:&:) f2)
           Connective f1 Or f2 -> c (BinOp f1 (:|:) f2)
-          Predicate name ts -> p name ts
-          Equal t1 t2 -> p Logic.eq [t1, t2]
+          Predicate name ts -> p (L.Apply name ts)
+          Equal t1 t2 -> p (L.Equal t1 t2)
     zipF q c p f1 f2 =
         case (f1, f2) of
           (Not f1', Not f2') -> c ((:~:) f1') ((:~:) f2')
@@ -160,15 +161,13 @@ instance (Pretty v, Pretty p, Pretty f, Show v, Show p, Show f, -- debugging
                 (Imply, Imply) -> c (BinOp l1 (:=>:) r1) (BinOp l2 (:=>:) r2)
                 (Equiv, Equiv) -> c (BinOp l1 (:<=>:) r1) (BinOp l2 (:<=>:) r2)
                 _ -> Nothing
-          (Equal l1 r1, Equal l2 r2) -> p Logic.eq [l1,r1] Logic.eq [l2,r2]
-          (Predicate p1 ts1, Predicate p2 ts2) -> p p1 ts1 p2 ts2
+          (Equal l1 r1, Equal l2 r2) -> p (L.Equal l1 r1) (L.Equal l2 r2)
+          (Predicate p1 ts1, Predicate p2 ts2) -> p (L.Apply p1 ts1) (L.Apply p2 ts2)
           _ -> Nothing
-    pApp x [a, b] | x == Logic.eq = Equal a b
     pApp x args = Predicate x args
     -- fApp (AtomicSkolemFunction n) [] = SkolemConstant n
     -- fApp (AtomicSkolemFunction n) ts = SkolemFunction n ts
     x .=. y = Equal x y
-    x .!=. y = Not (Equal x y)
 
 {-
 instance (FirstOrderLogic (Sentence v p f) (CTerm v f) v p f, Show v, Show p, Show f) => Show (Sentence v p f) where
@@ -223,7 +222,7 @@ instance Logic (NormalSentence v p f) where
     _ .|. _ = error "NormalSentence |"
 
 instance (IsString v, Pretty v, Show v,
-          Ord p, IsString p, Boolean p, Data p, Pretty p, Show p, Logic.Predicate p,
+          Ord p, IsString p, Boolean p, Data p, Pretty p, Show p,
           Ord f, IsString f, Pretty f, Show f,
           Logic (NormalSentence v p f), Logic.Term (NormalTerm v f) v f) => FirstOrderLogic (NormalSentence v p f) (NormalTerm v f) v p f where
     for_all _ _ = error "FirstOrderLogic NormalSentence"
@@ -231,13 +230,13 @@ instance (IsString v, Pretty v, Show v,
     foldF _ c p f =
         case f of
           NFNot x -> c ((:~:) x)
-          NFEqual t1 t2 -> p Logic.eq [t1, t2]
-          NFPredicate pr ts -> p pr ts
+          NFEqual t1 t2 -> p (L.Equal t1 t2)
+          NFPredicate pr ts -> p (L.Apply pr ts)
     zipF _ c p f1 f2 =
         case (f1, f2) of
           (NFNot f1', NFNot f2') -> c ((:~:) f1') ((:~:) f2')
-          (NFEqual f1l f1r, NFEqual f2l f2r) -> p Logic.eq [f1l, f1r] Logic.eq [f2l, f2r]
-          (NFPredicate p1 ts1, NFPredicate p2 ts2) -> p p1 ts1 p2 ts2
+          (NFEqual f1l f1r, NFEqual f2l f2r) -> p (L.Equal f1l f1r) (L.Equal f2l f2r)
+          (NFPredicate p1 ts1, NFPredicate p2 ts2) -> p (L.Apply p1 ts1) (L.Apply p2 ts2)
           _ -> Nothing
     pApp p args = NFPredicate p args
     x .=. y = NFEqual x y
@@ -273,11 +272,12 @@ fromSentence = foldF
                       case cm of
                         ((:~:) f) -> NFNot (fromSentence f)
                         _ -> error "fromSentence 2")
-                 (\ p ts ->
-                      case ts of
-                        [t1,t2] | p == Logic.eq -> NFEqual (fromTerm t1) (fromTerm t2)
-                        _ | p == Logic.eq -> error ("Arity error for " ++ show p)
-                        _ -> NFPredicate p (map fromTerm ts))
+                 (\ pa ->
+                      case pa of
+                        L.Equal t1 t2 -> NFEqual (fromTerm t1) (fromTerm t2)
+                        L.NotEqual t1 t2 -> NFNot (NFEqual (fromTerm t1) (fromTerm t2))
+                        L.Constant x -> NFPredicate (fromBool x) []
+                        L.Apply p ts -> NFPredicate p (map fromTerm ts))
 
 
 fromTerm :: CTerm v f -> NormalTerm v f

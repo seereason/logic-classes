@@ -7,11 +7,10 @@ import Codec.TPTP (F(..), Formula, BinOp(..), V(..), T(..), Term0(..), AtomicWor
 import qualified Codec.TPTP as TPTP
 import Control.Monad.Identity (Identity(..))
 import Data.Char (isDigit, ord)
-import Data.Data(Fixity(..))
 import Data.Generics (Data, Typeable)
 import Data.String (IsString(..))
 import qualified Logic.FirstOrder as Logic
-import Logic.FirstOrder (FirstOrderLogic(..), Term(..), Pretty(..))
+import Logic.FirstOrder (FirstOrderLogic(..), Term(..), Pretty(..), Predicate(..))
 import qualified Logic.Logic as Logic
 import Logic.Logic (Logic(..), Boolean(..))
 import qualified Logic.Propositional as Logic
@@ -54,7 +53,7 @@ instance Logic.Skolem AtomicFunction where
 
 -- |This is not a safe way to implement booleans.
 instance Logic.Boolean AtomicWord where
-    fromBool flag = AtomicWord (show flag)
+    fromBool = AtomicWord . show
 
 instance Logic.Pretty AtomicFunction where
     pretty (Atom w) = Logic.pretty w
@@ -110,11 +109,6 @@ instance Logic.PropositionalLogic Formula Formula where
               p' p ts = a (F (Identity (PredApp p ts)))
               unwrapF' (F x) = F x -- copoint x
 
-instance Logic.Predicate AtomicWord where
-    eq = "="
-    fixity "=" = Infix
-    fixity _ = Prefix
-
 instance Logic.FirstOrderLogic Formula (T Identity) V AtomicWord AtomicFunction where
     for_all vars x = for_all vars x
     exists vars x = exists vars x
@@ -123,7 +117,7 @@ instance Logic.FirstOrderLogic Formula (T Identity) V AtomicWord AtomicFunction 
     -- the wrappers are passed TPTP types they turn them into Logic
     -- values to pass to the argument functions.
     foldF q c p form =
-        TPTP.foldF n' q' b' i' p (unwrapF' form)
+        TPTP.foldF n' q' b' i' p' (unwrapF' form)
         where q' op (v:vs) form' =
                   let op' = case op of
                               TPTP.All -> Logic.All
@@ -137,17 +131,18 @@ instance Logic.FirstOrderLogic Formula (T Identity) V AtomicWord AtomicFunction 
               b' f1 (:&:) f2 = c (Logic.BinOp f1 (Logic.:&:) f2)
               -- The :~&: operator is not present in the Logic BinOp type,
               -- so we need to somehow use the equivalent ~(a&b)
-              b' f1 (:~&:) f2 = TPTP.foldF n' q' b' i' p ((.~.) (f1 .&. f2))
+              b' f1 (:~&:) f2 = TPTP.foldF n' q' b' i' p' ((.~.) (f1 .&. f2))
               b' f1 (:|:) f2 = c (Logic.BinOp f1 (Logic.:|:) f2)
-              b' f1 (:~|:) f2 = TPTP.foldF n' q' b' i' p ((.~.) (f1 .|. f2))
-              b' f1 (:<~>:) f2 = TPTP.foldF n' q' b' i' p ((((.~.) f1) .&. f2) .|. (f1 .&. ((.~.) f2)))
-              i' t1 (:=:) t2 = p Logic.eq [t1,t2]
-              i' t1 (:!=:) t2 = TPTP.foldF n' q' b' i' p ((.~.) (t1 .=. t2))
+              b' f1 (:~|:) f2 = TPTP.foldF n' q' b' i' p' ((.~.) (f1 .|. f2))
+              b' f1 (:<~>:) f2 = TPTP.foldF n' q' b' i' p' ((((.~.) f1) .&. f2) .|. (f1 .&. ((.~.) f2)))
+              i' t1 (:=:) t2 = p (Equal t1 t2)
+              i' t1 (:!=:) t2 = p (NotEqual t1 t2) -- TPTP.foldF n' q' b' i' p' ((.~.) (t1 .=. t2))
+              p' pr ts = p (Apply pr ts)
               unwrapF' (F x) = F x -- copoint x
     zipF = error "Unimplemented: Logic.Instances.TPTP.zipF"
     x .=. y   = x .=. y
     x .!=. y  = x .!=. y
-    pApp x args = pApp x args
+    pApp p ts = pApp p ts
 
 instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.Term (T Identity) V AtomicFunction where
     foldT v fa term =

@@ -56,7 +56,7 @@ simplify fm =
           (\ cm -> case cm of
                      (:~:) p -> simplify1 ((.~.) (simplify p))
                      BinOp p op q -> simplify1 (combine (BinOp (simplify p) op (simplify q))))
-          (\ _ _ -> simplify1 fm)
+          (\ _ -> simplify1 fm)
           fm
 
 -- |Do one step of simplify for propositional formulas:
@@ -80,7 +80,7 @@ simplify fm =
 -- 
 psimplify1 :: forall formula term v p f. FirstOrderLogic formula term v p f => formula -> formula
 psimplify1 fm =
-    foldF (\ _ _ _ -> fm) simplifyCombine (\ _ _ -> fm) fm
+    foldF (\ _ _ _ -> fm) simplifyCombine (\ _ -> fm) fm
     where
       simplifyCombine ((:~:) f) = foldF (\ _ _ _ -> fm) simplifyNotCombine simplifyNotPred f
       simplifyCombine (BinOp l op r) =
@@ -104,21 +104,24 @@ psimplify1 fm =
             _                                 -> fm
       simplifyNotCombine ((:~:) f) = f
       simplifyNotCombine _ = fm
-      simplifyNotPred pr ts
+      simplifyNotPred (Apply pr ts)
           | pr == fromBool False = pApp (fromBool True) ts
           | pr == fromBool True = pApp (fromBool False) ts
           | True = (.~.) (pApp pr ts)
+      simplifyNotPred (Constant x) = pApp (fromBool (not x)) []
+      simplifyNotPred (Equal t1 t2) = t1 .!=. t2
+      simplifyNotPred (NotEqual t1 t2) = t1 .=. t2
       -- Return a Maybe Bool depending upon whether a formula is true,
       -- false, or something else.
       pBool :: formula -> Maybe Bool
-      pBool = foldF (\ _ _ _ -> Nothing) (\ _ -> Nothing)
-                    (\ pr _ts -> if pr == fromBool True
-                                 then Just True
-                                 else if pr == fromBool False
-                                      then Just False
-                                      else Nothing)
-      true = pApp (fromBool True) []
-      false = pApp (fromBool False) []
+      pBool = foldF (\ _ _ _ -> Nothing) (\ _ -> Nothing) p
+          where p (Apply pr _ts) =
+                    if pr == fromBool True
+                    then Just True
+                    else if pr == fromBool False
+                         then Just False
+                         else Nothing
+                p _ = Nothing
       
 -- |Extend psimplify1 to handle quantifiers.  Any quantifier which has
 -- no corresponding free occurrences of the quantified variable is
@@ -127,7 +130,7 @@ simplify1 :: FirstOrderLogic formula term v p f => formula -> formula
 simplify1 fm =
     foldF (\ _ v p -> if S.member v (freeVars p) then fm else p)
           (\ _ -> psimplify1 fm)
-          (\ _ _ -> psimplify1 fm)
+          (\ _ -> psimplify1 fm)
           fm
 
 -- | Simplify and recursively apply nnf.
@@ -149,10 +152,10 @@ negationNormalForm = nnf . simplify
 -- 
 nnf :: FirstOrderLogic formula term v p f => formula -> formula
 nnf fm =
-    foldF nnfQuant nnfCombine (\ _ _ -> fm) fm
+    foldF nnfQuant nnfCombine (\ _ -> fm) fm
     where
       nnfQuant op v p = quant op v (nnf p)
-      nnfCombine ((:~:) p) = foldF nnfNotQuant nnfNotCombine (\ _ _ -> fm) p
+      nnfCombine ((:~:) p) = foldF nnfNotQuant nnfNotCombine (\ _ -> fm) p
       nnfCombine (BinOp p (:=>:) q) = nnf ((.~.) p) .|. (nnf q)
       nnfCombine (BinOp p (:<=>:) q) =  (nnf p .&. nnf q) .|. (nnf ((.~.) p) .&. nnf ((.~.) q))
       nnfCombine (BinOp p (:&:) q) = nnf p .&. nnf q
@@ -173,7 +176,7 @@ prenexNormalForm = prenex . negationNormalForm
 -- leftmost.
 prenex :: (FirstOrderLogic formula term v p f) => formula -> formula 
 prenex fm =
-    foldF q c (\ _ _ -> fm) fm
+    foldF q c (\ _ -> fm) fm
     where
       q op x p = quant op x (prenex p)
       c (BinOp l (:&:) r) = pullQuants (prenex l .&. prenex r)
@@ -197,9 +200,9 @@ prenex fm =
 -- @
 pullQuants :: forall formula term v p f. (FirstOrderLogic formula term v p f) => formula -> formula
 pullQuants fm =
-    foldF (\ _ _ _ -> fm) pullQuantsCombine (\ _ _ -> fm) fm
+    foldF (\ _ _ _ -> fm) pullQuantsCombine (\ _ -> fm) fm
     where
-      getQuant = foldF (\ op v f -> Just (op, v, f)) (\ _ -> Nothing) (\ _ _ -> Nothing)
+      getQuant = foldF (\ op v f -> Just (op, v, f)) (\ _ -> Nothing) (\ _ -> Nothing)
       pullQuantsCombine ((:~:) _) = fm
       pullQuantsCombine (BinOp l op r) = 
           case (getQuant l, op, getQuant r) of
@@ -253,7 +256,7 @@ askolemize = skolem . nnf . simplify
 -- appeared.
 skolem :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
 skolem fm =
-    foldF q c (\ _ _ -> return fm) fm
+    foldF q c (\ _ -> return fm) fm
     where
       q Exists y p =
           do let xs = freeVars fm
@@ -276,7 +279,7 @@ skolem2 cons p q =
 
 specialize :: FirstOrderLogic formula term v p f => formula -> formula
 specialize f =
-    foldF q (\ _ -> f) (\ _ _ -> f) f
+    foldF q (\ _ -> f) (\ _ -> f) f
     where
       q All _ f' = specialize f'
       q _ _ _ = f
@@ -297,10 +300,13 @@ simpcnf :: forall formula term v p f. (FirstOrderLogic formula term v p f, Liter
 simpcnf fm =
     foldF (\ _ _ _ -> cjs') (\ _ -> cjs') p fm
     where
-      p pr _ts
+      p (Apply pr _ts)
           | pr == fromBool False = S.empty
           | pr == fromBool True = S.singleton S.empty
           | True = cjs'
+      p (Equal _ _) = cjs'
+      p (NotEqual _ _) = cjs'
+      p (Constant _) = cjs'
       -- Discard any clause that is the proper subset of another clause
       cjs' = S.filter keep cjs
       keep x = not (S.or (S.map (S.isProperSubsetOf x) cjs))
@@ -316,7 +322,7 @@ trivial lits =
 -- | CNF: (a | b | c) & (d | e | f)
 purecnf :: forall formula term v p f. FirstOrderLogic formula term v p f => formula -> S.Set (S.Set formula)
 purecnf fm =
-    foldF (\ _ _ _ -> ss fm) c (\ _ _ -> ss fm) fm
+    foldF (\ _ _ _ -> ss fm) c (\ _ -> ss fm) fm
     where
       ss = S.singleton . S.singleton
       -- ((a | b) & (c | d) | ((e | f) & (g | h)) -> ((a | b | e | f) & (c | d | e | f) & (c | d | e | f) & (c | d | g | h))
@@ -379,7 +385,7 @@ implicativeNormalForm formula =
                 (\ cm -> case cm of
                            ((:~:) f') -> (f' : n, p)
                            _ -> error "collect 2")
-                (\ _ _ -> (n, f : p))
+                (\ _ -> (n, f : p))
                 f
       imply :: ([formula], [formula]) -> ([formula], [formula])
       imply (n, p) = (reverse n, reverse p)

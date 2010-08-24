@@ -15,9 +15,10 @@ module Logic.Resolution
 import Data.Map (Map, empty)
 import qualified Data.Map as M
 import qualified Data.Set as S
+import Logic.FirstOrder (Predicate(..))
 import qualified Logic.FirstOrder as Logic
 import Logic.Implicative (Implicative(..))
-import Logic.Logic (Combine(..))
+import Logic.Logic (Combine(..), Boolean(..))
 
 type Subst v term = Map v term
 
@@ -87,7 +88,11 @@ getSubstSentence formula theta =
                 (\ cm -> case cm of
                            ((:~:) s) -> getSubstSentence s theta
                            _ -> error "getSubstSentence")
-                (\ _ ts -> getSubstsTerms ts theta)
+                (\ pa -> case pa of
+                           Equal t1 t2 -> getSubstsTerms [t1, t2] theta
+                           NotEqual t1 t2 -> getSubstsTerms [t1, t2] theta
+                           Constant _ -> theta
+                           Apply _ ts -> getSubstsTerms ts theta)
                 formula
 
 getSubstsTerms :: Logic.Term term v f => [term] -> Subst v term -> Subst v term
@@ -123,7 +128,9 @@ isRenameOfSentence :: Logic.FirstOrderLogic formula term v p f => formula -> for
 isRenameOfSentence f1 f2 =
     maybe False id $
     Logic.zipF (\ _ _ _ _ _ _ -> Just False) (\ _ _ -> Just False) p f1 f2
-    where p p1 ts1 p2 ts2 = Just (p1 == p2 && isRenameOfTerms ts1 ts2)
+    where p (Equal t1l t1r) (Equal t2l t2r) = Just (isRenameOfTerm t1l t2l && isRenameOfTerm t1r t2r)
+          p (Apply p1 ts1) (Apply p2 ts2) = Just (p1 == p2 && isRenameOfTerms ts1 ts2)
+          p _ _ = Nothing
 
 isRenameOfTerm :: Logic.Term term v f => term -> term -> Bool
 isRenameOfTerm t1 t2 =
@@ -172,18 +179,17 @@ demodulate (inf1, theta1) (inf2, theta2) =
           Logic.foldF (\ _ _ _ -> error "demodulate") (\ _ -> error "demodulate") p lit1
       _ -> Nothing
     where
-      p op [t1,t2]
-          | op == Logic.eq =
-              case findUnify t1 t2 (S.union lhs2 rhs2) of
-                Just ((t1', t2'), theta1', theta2') ->
-                    let substLhs2 = S.map (\x -> subst x theta2') lhs2
-                        substRhs2 = S.map (\x -> subst x theta2') rhs2
-                        lhs = S.map (\x -> replaceTerm x (t1', t2')) substLhs2
-                        rhs = S.map (\x -> replaceTerm x (t1', t2')) substRhs2
-                        theta = M.unionWith (\ l _r -> l) (updateSubst theta1 theta1') (updateSubst theta2 theta2') in
-                    Just (makeINF lhs rhs, theta)
-                Nothing -> Nothing
-      p _ _ = Nothing
+      p (Logic.Equal t1 t2) =
+          case findUnify t1 t2 (S.union lhs2 rhs2) of
+            Just ((t1', t2'), theta1', theta2') ->
+                let substLhs2 = S.map (\x -> subst x theta2') lhs2
+                    substRhs2 = S.map (\x -> subst x theta2') rhs2
+                    lhs = S.map (\x -> replaceTerm x (t1', t2')) substLhs2
+                    rhs = S.map (\x -> replaceTerm x (t1', t2')) substRhs2
+                    theta = M.unionWith (\ l _r -> l) (updateSubst theta1 theta1') (updateSubst theta2 theta2') in
+                Just (makeINF lhs rhs, theta)
+            Nothing -> Nothing
+      p _ = Nothing
       lhs2 = neg inf2
       rhs2 = pos inf2
 
@@ -196,7 +202,11 @@ unify' :: Logic.FirstOrderLogic formula term v p f =>
 unify' f1 f2 theta1 theta2 =
     Logic.zipF (\ _ _ _ _ _ _ -> error "unify'")
                (\ _ _ -> error "unify'")
-               (\ p1 ts1 p2 ts2 -> if p1 == p2 then unifyTerms ts1 ts2 theta1 theta2 else Nothing)
+               (\ pa1 pa2 ->
+                    case (pa1, pa2) of
+                      (Equal l1 r1, Equal l2 r2) -> unifyTerms [l1, r1] [l2, r2] theta1 theta2
+                      (Apply p1 ts1, Apply p2 ts2) -> if p1 == p2 then unifyTerms ts1 ts2 theta1 theta2 else Nothing
+                      _ -> Nothing)
                f1 f2
 
 unifyTerm :: Logic.FirstOrderLogic formula term v p f => term -> term -> Subst v term -> Subst v term -> Maybe (Subst v term, Subst v term)
@@ -266,13 +276,20 @@ getTerms formula =
     Logic.foldF (\ _ _ _ -> error "getTerms") (\ _ -> error "getTerms") p formula
     where
       getTerms' t = Logic.foldT (\ v -> [Logic.var v]) (\ f ts -> Logic.fApp f ts : concatMap getTerms' ts) t
-      p _ ts = concatMap getTerms' ts
+      p (Equal t1 t2) = getTerms' t1 ++ getTerms' t2
+      p (NotEqual t1 t2) = getTerms' t1 ++ getTerms' t2
+      p (Constant _) = []
+      p (Apply _ ts) = concatMap getTerms' ts
 
 replaceTerm :: (Eq term, Logic.FirstOrderLogic formula term v p f) => formula -> (term, term) -> formula
 replaceTerm formula (tl', tr') =
     Logic.foldF (\ _ _ _ -> error "error in replaceTerm")
                 (\ _ -> error "error in replaceTerm")
-                (\ p ts -> Logic.pApp p (map (\ t -> replaceTerm' t) ts))
+                (\ pa -> case pa of
+                           Equal t1 t2 -> (replaceTerm' t1) Logic..=. (replaceTerm' t2)
+                           NotEqual t1 t2 -> (replaceTerm' t1) Logic..!=. (replaceTerm' t2)
+                           Constant x -> Logic.pApp (fromBool x) []
+                           Apply p ts -> Logic.pApp p (map (\ t -> replaceTerm' t) ts))
                 formula
     where
       replaceTerm' t =
@@ -286,7 +303,11 @@ subst formula theta =
                 (\ cm -> case cm of
                            ((:~:) _) -> formula
                            _ -> error "subst")
-                (\ p ts -> Logic.pApp p (substTerms ts theta))
+                (\ pa -> case pa of
+                           Equal t1 t2 -> (substTerm t1 theta) Logic..=. (substTerm t2 theta)
+                           NotEqual t1 t2 -> (substTerm t1 theta) Logic..!=. (substTerm t2 theta)
+                           Constant x -> Logic.pApp (fromBool x) []
+                           Apply p ts -> Logic.pApp p (substTerms ts theta))
                 formula
 
 substTerm :: Logic.Term term v f => term -> Subst v term -> term

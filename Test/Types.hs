@@ -78,12 +78,6 @@ instance Pretty Pr where
     pretty F = text "False"
     pretty (Pr s) = text s
 
-instance Predicate Pr where
-    eq = Equals
-    fixity Equals = Infix
-    fixity _ = Prefix
-    
-
 data AtomicFunction
     = Fn String
     | Skolem Int

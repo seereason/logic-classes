@@ -1,3 +1,12 @@
+haskell-logic (0.20) unstable; urgency=low
+
+  * Reduce the number of arguments to foldF to three, one for quantifiers,
+    one for combining formulas, one for predicates.
+  * Add a Predicate type for a temporary representation of a predicate and
+    its arguments, this is the type now passed to foldF.
+
+ -- David Fox <dsf@seereason.com>  Mon, 23 Aug 2010 22:14:22 -0700
+
 haskell-logic (0.19) unstable; urgency=low
 
   * Extensive work on polymorphic version of Resolution prover and test cases.

@@ -314,8 +314,8 @@ formulas =
       , formula = exists "x" (p .<=>. f')
       , expected = [ PrenexNormalForm (exists "x" ((p .&. f') .|. ((((.~.) p) .&. (((.~.) f'))))))
                    , SkolemNormalForm ((p .&. f) .|. (((.~.) p) .&. (((.~.) f))))
-                   , TrivialClauses [(False,S.fromList [(pApp ("f") [fApp (toSkolem 1) []]),((.~.) (pApp ("p") []))]),
-                                     (False,S.fromList [(pApp ("p") []),((.~.) (pApp ("f") [fApp (toSkolem 1) []]))])]
+                   , TrivialClauses [(False,S.fromList [((.~.) (pApp ("f") [fApp (toSkolem 1) []])),(pApp ("p") [])]),
+                                     (False,S.fromList [((.~.) (pApp ("p") [])),(pApp ("f") [fApp (toSkolem 1) []])])]
                    , ClauseNormalForm (toSS [[(f), ((.~.) p)], [p, ((.~.) f)]])]
       }
     , TestFormula
@@ -565,18 +565,20 @@ animalConjectures =
                [((.~.) (pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []]))]])
            , ChiouKB1
              (Invalid,
-              [makeINF' ([(pApp ("Cat") [var ("x")])])                           ([(pApp ("Animal") [var ("x")])]),
-               makeINF' ([(pApp ("Dog") [var ("y")]),
-                          (pApp ("Owns") [var ("x"),var ("y")])])                ([(pApp ("AnimalLover") [var ("x")])]),
-               makeINF' ([])                                                     ([(pApp ("Cat") [fApp ("Tuna") []])]),
-               makeINF' ([])                                                     ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
-               makeINF' ([])                                                     ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),
-                                                                                   (pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]),
-               makeINF' ([])                                                     ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem 1) []])]),
-               makeINF' ([(pApp ("Animal") [var ("y")]),
-                          (pApp ("AnimalLover") [var ("x")]),
-                          (pApp ("Kills") [var ("x"),var ("y")])])               ([]),
-               makeINF' ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]) ([])])
+              [makeINF' ([(pApp ("Animal") [var ("y")]),(pApp ("AnimalLover") [var ("x")]),(pApp ("Kills") [var ("x"),var ("y")])])
+                        ([]),
+               makeINF' ([(pApp ("Cat") [var ("x")])])
+                        ([(pApp ("Animal") [var ("x")])]),
+               makeINF' ([(pApp ("Dog") [var ("y")]),(pApp ("Owns") [var ("x"),var ("y")])])
+                        ([(pApp ("AnimalLover") [var ("x")])]),
+               makeINF' ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])])
+                        ([]),makeINF' ([]) ([(pApp ("Cat") [fApp ("Tuna") []])]),
+               makeINF' ([])
+                        ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
+               makeINF' ([])
+                        ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]),
+               makeINF' ([])
+                        ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem 1) []])])])
            ]
        }
      , TestFormula
@@ -1010,12 +1012,12 @@ proofs =
          [ ChiouKB [WithId {wiItem = inf' [(pApp "Human" [var "x"])] [(pApp "Mortal" [var "x"])], wiIdent = 1},
                     WithId {wiItem = inf' [(pApp "Socrates" [var "x"])] [(pApp "Human" [var "x"])], wiIdent = 2}]
          , ChiouResult (True,
-                        [(inf' [] [(pApp "Socrates" [fApp (toSkolem 3) []])],fromList []),
-                         (inf' [(pApp "Mortal" [fApp (toSkolem 3) []])] [],fromList []),
-                         (inf' [] [(pApp "Human" [fApp (toSkolem 3) []])],fromList []),
-                         (inf' [(pApp "Human" [fApp (toSkolem 3) []])] [],fromList []),
-                         (inf' [] [(pApp "Mortal" [fApp (toSkolem 3) []])],fromList []),
-                         (inf' [] [],fromList [])])]
+                        [(makeINF' ([(pApp ("Mortal") [fApp (toSkolem 3) []])]) ([]),fromList []),
+                         (makeINF' ([]) ([(pApp ("Socrates") [fApp (toSkolem 3) []])]),fromList []),
+                         (makeINF' ([(pApp ("Human") [fApp (toSkolem 3) []])]) ([]),fromList []),
+                         (makeINF' ([]) ([(pApp ("Human") [fApp (toSkolem 3) []])]),fromList []),
+                         (makeINF' ([(pApp ("Socrates") [fApp (toSkolem 3) []])]) ([]),fromList []),
+                         (makeINF' ([]) ([]),fromList [])])]
       }
     , let x = var "x" in
       TestProof

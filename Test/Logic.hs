@@ -3,7 +3,6 @@
 {-# OPTIONS -Wall -Wwarn -fno-warn-name-shadowing -fno-warn-orphans #-}
 module Test.Logic (tests) where
 
-import Data.Data (Fixity(..))
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 import Logic.Clause (Literal(..))
@@ -11,7 +10,7 @@ import qualified Logic.Instances.Native as P
 import Logic.Logic (Logic(..), Boolean(..))
 import Logic.Monad (runNormal)
 import Logic.NormalForm (clauseNormalForm, clauseNormalForm)
-import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), Term(..), Predicate(..), showForm, freeVars, substitute)
+import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), Term(..), showForm, freeVars, substitute)
 import Logic.Satisfiable (theorem, inconsistant)
 import PropLogic (PropForm(..), TruthTable, truthTable)
 import qualified TextDisplay as TD
@@ -24,11 +23,6 @@ instance Boolean String where
     fromBool = show
 
 type TestFormula = P.Formula V String AtomicFunction
-
-instance Predicate String where
-    eq = "="
-    fixity "=" = Infix
-    fixity _ = Prefix
 
 tests :: Test
 tests = TestLabel "Logic" $ TestList (precTests ++ theoremTests)
@@ -202,18 +196,18 @@ theoremTests =
                    (pApp ("M") [fApp (toSkolem 1) []]),
                    (pApp ("S") [var ("y")]),
                    (pApp ("S") [fApp (toSkolem 1) []])],
-                  Just (CJ [DJ [A (pApp ("H") [fApp (toSkolem 1) []]),
+                  Just (CJ [DJ [N (A (pApp ("H") [fApp (toSkolem 1) []])),
+                                N (A (pApp ("M") [fApp (toSkolem 1) []])),
+                                N (A (pApp ("S") [var ("y")])),
+                                A (pApp ("M") [var ("y")])],
+                            DJ [N (A (pApp ("M") [fApp (toSkolem 1) []])),
+                                N (A (pApp ("S") [var ("y")])),
                                 A (pApp ("M") [var ("y")]),
-                                A (pApp ("S") [fApp (toSkolem 1) []]),
-                                N (A (pApp ("S") [var ("y")]))],
-                            DJ [A (pApp ("M") [var ("y")]),
-                                A (pApp ("S") [fApp (toSkolem 1) []]),
-                                N (A (pApp ("M") [fApp (toSkolem 1) []])),
-                                N (A (pApp ("S") [var ("y")]))],
-                            DJ [A (pApp ("M") [var ("y")]),
-                                N (A (pApp ("H") [fApp (toSkolem 1) []])),
-                                N (A (pApp ("M") [fApp (toSkolem 1) []])),
-                                N (A (pApp ("S") [var ("y")]))]]),
+                                A (pApp ("S") [fApp (toSkolem 1) []])],
+                            DJ [N (A (pApp ("S") [var ("y")])),
+                                A (pApp ("H") [fApp (toSkolem 1) []]),
+                                A (pApp ("M") [var ("y")]),
+                                A (pApp ("S") [fApp (toSkolem 1) []])]]),
                   [([False,False,False,False,False],True),
                    ([False,False,False,False,True],True),
                    ([False,False,False,True,False],False),
@@ -255,9 +249,9 @@ theoremTests =
                 ([(pApp ("H") [var ("x")]),
                   (pApp ("M") [var ("x")]),
                   (pApp ("S") [var ("x")])]
-                ,Just (CJ [DJ [A (pApp ("H") [var ("x")]),N (A (pApp ("S") [var ("x")]))],
-                           DJ [A (pApp ("M") [var ("x")]),N (A (pApp ("H") [var ("x")]))],
-                           DJ [A (pApp ("M") [var ("x")]),N (A (pApp ("S") [var ("x")]))]]),
+                ,Just (CJ [DJ [N (A (pApp ("H") [var ("x")])),A (pApp ("M") [var ("x")])],
+                           DJ [N (A (pApp ("S") [var ("x")])),A (pApp ("H") [var ("x")])],
+                           DJ [N (A (pApp ("S") [var ("x")])),A (pApp ("M") [var ("x")])]]),
                  [([False,False,False],True),
                   ([False,False,True],False),
                   ([False,True,False],True),
@@ -282,10 +276,10 @@ theoremTests =
                    (pApp ("M") [var ("x")]),
                    (pApp ("S") [var ("x")]),
                    (pApp ("S") [fApp ("socrates") []])],
-                  Just (CJ [DJ [A (pApp ("H") [var ("x")]),N (A (pApp ("S") [var ("x")]))],
-                            DJ [A (pApp ("M") [var ("x")]),N (A (pApp ("H") [var ("x")]))],
-                            DJ [A (pApp ("S") [fApp ("socrates") []])],
-                            DJ [N (A (pApp ("M") [var ("x")])),N (A (pApp ("S") [var ("x")]))]]),
+                  Just (CJ [DJ [N (A (pApp ("H") [var ("x")])),A (pApp ("M") [var ("x")])],
+                            DJ [N (A (pApp ("M") [var ("x")])),N (A (pApp ("S") [var ("x")]))],
+                            DJ [N (A (pApp ("S") [var ("x")])),A (pApp ("H") [var ("x")])],
+                            DJ [A (pApp ("S") [fApp ("socrates") []])]]),
                   [([False,False,False,False],False),
                    ([False,False,False,True],True),
                    ([False,False,True,False],False),
@@ -302,10 +296,10 @@ theoremTests =
                    ([True,True,False,True],True),
                    ([True,True,True,False],False),
                    ([True,True,True,True],False)]),
-                 (toSS [[(pApp ("H") [var ("x")]),((.~.) (pApp ("S") [var ("x")]))],
-                        [(pApp ("M") [var ("x")]),((.~.) (pApp ("H") [var ("x")]))],
-                        [(pApp ("S") [fApp ("socrates") []])],
-                        [((.~.) (pApp ("M") [var ("x")])),((.~.) (pApp ("S") [var ("x")]))]]))
+                 toSS [[((.~.) (pApp ("H") [var ("x")])),(pApp ("M") [var ("x")])],
+                       [((.~.) (pApp ("M") [var ("x")])),((.~.) (pApp ("S") [var ("x")]))],
+                       [((.~.) (pApp ("S") [var ("x")])),(pApp ("H") [var ("x")])],
+                       [(pApp ("S") [fApp ("socrates") []])]])
                 -- This represents a list of beliefs like those in our
                 -- database: socrates is a man, all men are mortal,
                 -- each with its own quantified variable.  In
@@ -334,12 +328,8 @@ theoremTests =
                        (pApp ("F") [fApp (toSkolem 1) []]),
                        (pApp ("L") [var ("x")]),
                        (pApp ("L") [fApp (toSkolem 1) []])],
-                      Just (CJ [DJ [A (pApp ("L") [fApp (toSkolem 1) []]),
-                                    N (A (pApp ("F") [var ("x2")])),
-                                    N (A (pApp ("L") [var ("x")]))],
-                                DJ [N (A (pApp ("F") [var ("x2")])),
-                                    N (A (pApp ("F") [fApp (toSkolem 1) []])),
-                                    N (A (pApp ("L") [var ("x")]))]]),
+                      Just (CJ [DJ [N (A (pApp ("F") [var ("x2")])),N (A (pApp ("F") [fApp (toSkolem 1) []])),N (A (pApp ("L") [var ("x")]))],
+                                DJ [N (A (pApp ("F") [var ("x2")])),N (A (pApp ("L") [var ("x")])),A (pApp ("L") [fApp (toSkolem 1) []])]]),
                       [([False,False,False,False],True),
                        ([False,False,False,True],True),
                        ([False,False,True,False],True),
@@ -363,12 +353,8 @@ theoremTests =
               (.~.) (exists "z" (pApp "F" [var "z"]))                       -- Someone / Nobody is funny
           input = table formula
           expected = ([(pApp ("F") [var ("z")]),(pApp ("F") [fApp (toSkolem 1) []]),(pApp ("L") [var ("y")]),(pApp ("L") [fApp (toSkolem 1) []])],
-                      Just (CJ [DJ [A (pApp ("L") [fApp (toSkolem 1) []]),
-                                    N (A (pApp ("F") [var ("z")])),
-                                    N (A (pApp ("L") [var ("y")]))],
-                                DJ [N (A (pApp ("F") [var ("z")])),
-                                    N (A (pApp ("F") [fApp (toSkolem 1) []])),
-                                    N (A (pApp ("L") [var ("y")]))]]),
+                      Just (CJ [DJ [N (A (pApp ("F") [var ("z")])),N (A (pApp ("F") [fApp (toSkolem 1) []])),N (A (pApp ("L") [var ("y")]))],
+                                DJ [N (A (pApp ("F") [var ("z")])),N (A (pApp ("L") [var ("y")])),A (pApp ("L") [fApp (toSkolem 1) []])]]),
                       [([False,False,False,False],True),
                        ([False,False,False,True],True),
                        ([False,False,True,False],True),
