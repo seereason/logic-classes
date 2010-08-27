@@ -429,7 +429,7 @@ prepare formula = ({- flatten . -} fromJust . toPropositional convertA . cnf . (
 convertA = Just . A
 -}
 
-table :: forall formula term v p f. (FirstOrderLogic formula term v p f, Ord formula, Eq term, Skolem f, IsString v, Enum v, TD.Display formula) =>
+table :: forall formula term v p f. (Literal formula, FirstOrderLogic formula term v p f, Ord formula, Eq term, Skolem f, IsString v, Enum v, TD.Display formula) =>
          formula -> TruthTable formula
 table f =
     -- truthTable :: Ord a => PropForm a -> TruthTable a

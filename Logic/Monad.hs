@@ -3,8 +3,11 @@ module Logic.Monad
     ( LogicState(..)
     , newLogicState
     , NormalT
+    , NormalT'
     , runNormalT
     , runNormal
+    , runNormalT'
+    , runNormal'
     , LiteralMap
     , LiteralMapT
     , runLiteralMap
@@ -53,12 +56,19 @@ newLogicState = LogicState { skolemCount = 1
                            , univQuant = [] }
 
 type NormalT v term m = StateT (LogicState v term) m
+type NormalT' formula v term m a = NormalT v term (LiteralMapT formula m) a
 
 runNormalT :: Monad m => NormalT v term m a -> m a
 runNormalT action = (runStateT action) newLogicState >>= return . fst
 
+runNormalT' :: Monad m => NormalT' formula v term m a -> m a
+runNormalT' action = runLiteralMapM (runNormalT action)
+
 runNormal :: NormalT v term Identity a -> a
 runNormal = runIdentity . runNormalT
+
+runNormal' :: NormalT' formula v term Identity a -> a
+runNormal' = runIdentity . runNormalT'
  
 -- |A Monad for creating and maintaining a map from literals of type p
 -- to literals of type Int.

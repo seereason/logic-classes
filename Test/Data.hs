@@ -14,6 +14,7 @@ module Test.Data
 -}
     ) where
 
+import Data.Boolean.SatSolver (Literal(..))
 import Data.Generics (Typeable)
 import Data.Map (fromList)
 import qualified Data.Set as S
@@ -195,15 +196,15 @@ formulas =
     , TestFormula
       { formula = n p0 .|. q0 .&. p0 .|. r0 .&. n q0 .&. n r0
       , name = "chang 7.2.1a - unsat"
-      , expected = [ SatPropLogic False ] }
+      , expected = [ SatSolverSat False ] }
     , TestFormula
       { formula = p0 .|. q0 .|. r0 .&. n p0 .&. n q0 .&. n r0 .|. s0 .&. n s0
       , name = "chang 7.2.1b - unsat"
-      , expected = [SatPropLogic False] }
+      , expected = [ SatSolverSat False ] }
     , TestFormula
       { formula = p0 .|. q0 .&. q0 .|. r0 .&. r0 .|. s0 .&. n r0 .|. n p0 .&. n s0 .|. n q0 .&. n q0 .|. n r0
       , name = "chang 7.2.1c - unsat"
-      , expected = [SatPropLogic False] }
+      , expected = [ SatSolverSat False ] }
     , let q = pApp "q"
           f = pApp "f"
           sk1 = f [fApp (toSkolem 1) [x,x,y,z],y]
@@ -601,7 +602,18 @@ animalConjectures =
               [((.~.) (pApp "Cat" [var ("x")])),
                (pApp "Animal" [var ("x")])],
               [((.~.) (pApp "Kills" [fApp "Curiosity" [],fApp "Tuna" []]))]])
-           , SatPropLogic True ]
+           , PropLogicSat True
+           , SatSolverCNF [ [Neg 1,Neg 2,Neg 3]    -- animallover(x)|animal(y)|kills(x,y)
+                          , [Neg 4,Pos 5]          -- ~cat(x)|animal(x)
+                          , [Neg 6,Neg 7,Pos 2]    -- ~dog(y)|~owns(x,y)|animallover(x)
+                          , [Neg 8]                -- ~kills(curisity,tuna)
+                          , [Pos 8,Pos 11]         -- kills(curiosity,tuna)|kills(jack,tuna)
+                          , [Pos 9]                -- cat(tuna)
+                          , [Pos 10]               -- owns(jack,sk1)
+                          , [Pos 12]               -- dog(sk1)
+                          ]
+           , SatSolverSat True
+           ]
        }
      ]
 

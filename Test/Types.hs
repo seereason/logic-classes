@@ -15,21 +15,24 @@ module Test.Types
     ) where
 
 import Control.Monad.Reader (MonadPlus(..), msum)
+import Data.Boolean.SatSolver (CNF)
 import Data.Char (isDigit)
 import Data.Generics (Data, Typeable, listify, Fixity(..))
 import qualified Data.Set as S
 import Data.String (IsString(fromString))
-import Logic.Clause (Literal)
-import Logic.FirstOrder (Skolem(..), Pretty(..), showForm, FirstOrderLogic, convertFOF, Predicate(..))
+import Logic.Clause (Literal, ClauseNormal(satisfiable))
+import Logic.FirstOrder (showForm, FirstOrderLogic, convertFOF, Predicate(..), Pretty(..), Skolem(..))
 import Logic.Implicative (Implicative(..))
 import qualified Logic.Instances.Chiou as C
 import qualified Logic.Instances.Native as P
+import Logic.Instances.PropLogic (plSat)
+import qualified Logic.Instances.SatSolver as SS
 import Logic.KnowledgeBase (ProofResult, loadKB, theoremKB, getKB)
 import Logic.Logic (Boolean(..))
-import Logic.Monad (WithId, runNormal, runProver')
+import Logic.Monad (WithId, runNormal, runProver', runNormal', runNormalT')
 import Logic.NormalForm (simplify, negationNormalForm, prenexNormalForm, skolemNormalForm, clauseNormalForm, trivial)
 import Logic.Resolution (SetOfSupport)
-import Logic.Satisfiable (satisfiable) 
+
 import Test.HUnit
 import Text.PrettyPrint (Doc, (<>), text)
 
@@ -123,7 +126,9 @@ data (Implicative inf formula, FirstOrderLogic formula term v p f) => Expected i
     | TrivialClauses [(Bool, (S.Set formula))]
     | ConvertToChiou formula
     | ChiouKB1 (ProofResult, [inf])
-    | SatPropLogic Bool
+    | PropLogicSat Bool
+    | SatSolverCNF CNF
+    | SatSolverSat Bool
     deriving (Data, Typeable)
 
 doTest :: (Implicative inf formula, FirstOrderLogic formula term v p f, Literal formula, Data formula, Show term) =>
@@ -152,8 +157,12 @@ doTest f =
           TestCase (assertEqual (name f ++ " converted to Chiou") result (convertFOF id id id (formula f)))
       doExpected (ChiouKB1 result) =
           TestCase (assertEqual (name f ++ " Chiou KB") result (runProver' (loadKB [formula f] >>= return . head)))
-      doExpected (SatPropLogic result) =
-          TestCase (assertEqual (name f ++ " PropLogic.satisfiable") result (runNormal (satisfiable (formula f))))
+      doExpected (PropLogicSat result) =
+          TestCase (assertEqual (name f ++ " PropLogic.satisfiable") result (runNormal (plSat (formula f))))
+      doExpected (SatSolverCNF result) =
+          TestCase (assertEqual (name f ++ " SatSolver CNF") result (runNormal' (SS.toCNF (formula f))))
+      doExpected (SatSolverSat result) =
+          TestCase (assertEqual (name f ++ " SatSolver CNF") result (null (runNormalT' (SS.toCNF (formula f) >>= satisfiable))))
       p = id -- prettyForm 0
 
 skolemSet :: (FirstOrderLogic formula term v p f, Data f, Typeable f, Data formula) => formula -> S.Set Int

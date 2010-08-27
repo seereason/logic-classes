@@ -17,7 +17,8 @@ module Logic.Instances.Chiou
 import Data.Generics (Data, Typeable)
 import qualified Data.Set as S
 import Data.String (IsString(..))
-import Logic.FirstOrder (FirstOrderLogic(..), Pretty, Term(..))
+import Logic.Clause (Literal(..))
+import Logic.FirstOrder (FirstOrderLogic(..), Pretty)
 import qualified Logic.FirstOrder as Logic
 import qualified Logic.FirstOrder as L
 import Logic.Implicative (Implicative(..))
@@ -72,6 +73,13 @@ data Quantifier
     = ForAll
     | ExistsCh
     deriving (Eq, Ord, Show, Data, Typeable)
+
+instance (Eq v, Eq p, Eq f, Ord v, Ord p, Ord f) => Literal (Sentence v p f) where
+    invert (Not (Not s)) = invert s
+    invert (Not s) = s
+    invert s = Not s
+    inverted (Not s) = not (inverted s)
+    inverted _ = False
 
 instance Logic (Sentence v p f) where
     x .<=>. y = Connective x Equiv y

@@ -29,7 +29,7 @@ Library
                    Logic.Resolution
                    Logic.Satisfiable
                    Logic.Set
- Build-Depends:    base, containers, fgl, happstack-data, happstack-state,
+ Build-Depends:    base, containers, fgl, happstack-data, happstack-state, incremental-sat-solver,
                    mtl, syb-with-class, text, logic-TPTP, PropLogic, pretty, syb
 
 Executable tests

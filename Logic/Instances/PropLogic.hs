@@ -1,10 +1,18 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
 {-# OPTIONS -fno-warn-orphans #-}
-module Logic.Instances.PropLogic where
+module Logic.Instances.PropLogic
+    ( flatten
+    , plSat
+    ) where
 
-import PropLogic
+import Logic.Clause (Literal)
+import Logic.FirstOrder (FirstOrderLogic, toPropositional)
 import Logic.Logic
+import Logic.Monad (NormalT)
+import Logic.NormalForm (clauseNormalForm)
 import Logic.Propositional
+import qualified Logic.Set as S
+import PropLogic
 
 instance Logic (PropForm a) where
     x .<=>. y = EJ [x, y]
@@ -57,3 +65,24 @@ flatten (EJ xs) = EJ (map flatten xs)
 flatten (SJ xs) = SJ (map flatten xs)
 flatten (N x) = N (flatten x)
 flatten x = x
+
+plSat :: (Monad m, FirstOrderLogic formula term v p f, Literal formula, Ord formula) =>
+                formula -> NormalT v term m Bool
+plSat f = clauses f >>= return . satisfiable
+
+clauses :: (Monad m, FirstOrderLogic formula term v p f, Literal formula) => formula -> NormalT v term m (PropForm formula)
+clauses f = clauseNormalForm f >>= return . CJ . map (DJ . map (toPropositional A)) . map S.toList . S.toList
+
+{-
+inconsistant :: (Monad m, FirstOrderLogic formula term v p f, Literal formula, Ord formula) =>
+                formula -> NormalT v term m Bool
+inconsistant f =  satisfiable f >>= return . not
+
+theorem :: (Monad m, FirstOrderLogic formula term v p f, Literal formula, Ord formula) =>
+           formula -> NormalT v term m Bool
+theorem f = inconsistant ((.~.) f)
+
+invalid :: (Monad m, FirstOrderLogic formula term v p f, Literal formula, Ord formula) =>
+           formula -> NormalT v term m Bool
+invalid f = inconsistant f >>= \ fi -> theorem f >>= \ ft -> return (not (fi || ft))
+-}
