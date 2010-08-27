@@ -76,7 +76,8 @@ data Predicate p term
     deriving (Eq, Ord, Show, Read, Data, Typeable)
 
 class (Ord v, Enum v, Data v,
-       Eq f, Skolem f, Data f) => Term term v f | term -> v, term -> f where
+       Eq f, Skolem f, Data f,
+       Eq term) => Term term v f | term -> v, term -> f where
     var :: v -> term
     -- ^ Build a term which is a variable reference.
     fApp :: f -> [term] -> term
