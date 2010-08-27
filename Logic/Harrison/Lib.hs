@@ -560,7 +560,7 @@ let tryapplyl f x = tryapplyd f x [];;
 let defined f x = try apply f x; true with Failure _ -> false;;
 -}
 defined :: Ord a => M.Map a b -> a -> Bool
-defined f x = isJust (M.lookup x f)
+defined = flip M.member
 {-
 
 (* ------------------------------------------------------------------------- *)
