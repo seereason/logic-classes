@@ -6,11 +6,17 @@ module Logic.Set
     , or
     , distrib
     , flatten
+    , toSS
+    , fromSS
+    , mapM
+    , ssMapM
     , module Data.Set
     ) where
 
+import qualified Control.Monad as M
+import qualified Data.List as L
 import Data.Set
-import Prelude hiding (any, all, null, filter, map, and, or)
+import Prelude hiding (any, all, null, filter, map, and, or, mapM)
 
 any :: Ord a => (a -> Bool) -> Set a -> Bool
 any f s = not . null . filter id . map f $ s
@@ -32,3 +38,15 @@ or = any id
 
 and :: Set Bool -> Bool
 and = all id
+
+mapM :: (Monad m, Ord b) => (a -> m b) -> Set a -> m (Set b)
+mapM f s = M.mapM f (toList s) >>= return . fromList
+
+ssMapM :: (Monad m, Ord a, Ord b) => (a -> m b) -> Set (Set a) -> m (Set (Set b))
+ssMapM f s = M.mapM (M.mapM f) (fromSS s) >>= return . toSS
+
+toSS :: Ord a => [[a]] -> Set (Set a)
+toSS = fromList . L.map fromList
+
+fromSS :: Ord a => Set (Set a) -> [[a]]
+fromSS = L.map toList . toList
