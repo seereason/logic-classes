@@ -75,12 +75,12 @@ data Predicate p term
     | Apply p [term]    
     deriving (Eq, Ord, Show, Read, Data, Typeable)
 
-class ( Ord v
-      , Enum v
-      , Data v
-      , Eq f
-      , Skolem f
-      , Data f
+class ( Ord v     -- Required so variables can be inserted into maps and sets
+      , Enum v    -- Used to rename variable during conversion to prenex
+      , Data v    -- For serialization
+      , Eq f      -- We need to check functions for equality during unification
+      , Skolem f  -- Used to create skolem functions and constants
+      , Data f    -- For serialization
       ) => Term term v f | term -> v, term -> f where
     var :: v -> term
     -- ^ Build a term which is a variable reference.
@@ -101,17 +101,32 @@ class ( Ord v
 -- without them the univquant_free_vars function gives the error @No
 -- instance for (FirstOrderLogic Formula term V p f)@ because the
 -- function doesn't mention the Term type.
-class (Ord v, IsString v, Pretty v, Show v, 
-       Ord p, IsString p, Data p, Boolean p, Pretty p, Show p,
-       Ord f, IsString f, Pretty f, Show f,
-       Logic formula, Ord formula, Data formula, Show formula, Show term,
-       Term term v f) => FirstOrderLogic formula term v p f
-                       | formula -> term
-                       , formula -> v
-                       , formula -> p
-                       , term -> formula
-                       , term -> v
-                       , term -> f where
+class ( Term term v f
+      , Logic formula  -- Basic logic operations
+      , Data formula   -- Allows us to use Data.Generics functions on formulas
+      , Boolean p      -- To implement true and false below
+      , Eq p           -- Required during resolution
+      , Ord v
+      , IsString v
+      , Pretty v
+      , Show v
+      , Ord p
+      , IsString p
+      , Data p
+      , Pretty p
+      , Show p
+      , Ord f
+      , IsString f
+      , Pretty f
+      , Show f
+      , Ord formula
+      , Show formula
+      , Show term
+      ) => FirstOrderLogic formula term v p f
+                                    | formula -> term
+                                    , term -> formula  -- Would like to get rid of this
+                                    , formula -> v
+                                    , formula -> p where
     -- | Universal quantification - for all x (formula x)
     for_all :: v -> formula -> formula
     -- | Existential quantification - there exists x such that (formula x)
