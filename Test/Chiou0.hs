@@ -20,6 +20,8 @@ import Logic.Resolution (SetOfSupport)
 import Test.HUnit
 import Test.Types (V(..), Pr(..), AtomicFunction(..))
 
+type TTerm = PTerm V AtomicFunction
+
 tests :: Test
 tests = TestLabel "Chiou0" $ TestList [loadTest, proofTest1, proofTest2]
 

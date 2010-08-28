@@ -65,11 +65,11 @@ precTests =
       b = pApp ("b") []
       c = pApp ("c") []
 
-x :: (FirstOrderLogic formula term v p f, IsString v) => term
+x :: P.PTerm V AtomicFunction
 x = var (fromString "x")
-y :: (FirstOrderLogic formula term v p f, IsString v) => term
+y :: P.PTerm V AtomicFunction
 y = var (fromString "y")
-z :: (FirstOrderLogic formula term v p f, IsString v) => term
+z :: P.PTerm V AtomicFunction
 z = var (fromString "z")
 
 -- |Here is an example of automatic conversion from a FirstOrderLogic

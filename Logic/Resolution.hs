@@ -210,7 +210,7 @@ unify' f1 f2 theta1 theta2 =
                       _ -> Nothing)
                f1 f2
 
-unifyTerm :: Logic.FirstOrderLogic formula term v p f => term -> term -> Subst v term -> Subst v term -> Maybe (Subst v term, Subst v term)
+unifyTerm :: Logic.Term term v f => term -> term -> Subst v term -> Subst v term -> Maybe (Subst v term, Subst v term)
 unifyTerm t1 t2 theta1 theta2 =
     Logic.foldT (\ v1 ->
                      maybe (Just (M.insert v1 t2 theta1, theta2))
@@ -226,7 +226,7 @@ unifyTerm t1 t2 theta1 theta2 =
                                  t2)
                 t1
 
-unifyTerms :: Logic.FirstOrderLogic formula term v p f =>
+unifyTerms :: Logic.Term term v f =>
               [term] -> [term] -> Subst v term -> Subst v term -> Maybe (Subst v term, Subst v term)
 unifyTerms [] [] theta1 theta2 = Just (theta1, theta2)
 unifyTerms (t1:ts1) (t2:ts2) theta1 theta2 =
