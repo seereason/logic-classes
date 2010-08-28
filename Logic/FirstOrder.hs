@@ -44,7 +44,6 @@ import Data.Function (on)
 import Data.List (intercalate, intersperse)
 import Data.Monoid (mappend)
 import qualified Data.Set as S
-import Data.String (IsString)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
@@ -106,13 +105,8 @@ class ( Term term v f
       , Data formula   -- Allows us to use Data.Generics functions on formulas
       , Boolean p      -- To implement true and false below
       , Eq p           -- Required during resolution
-      , Ord v
-      , IsString v
       , Ord p
-      , IsString p
-      , Data p
       , Ord f
-      , IsString f
       , Ord formula
       ) => FirstOrderLogic formula term v p f
                                     | formula -> term

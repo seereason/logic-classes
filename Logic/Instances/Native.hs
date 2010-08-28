@@ -13,7 +13,6 @@ module Logic.Instances.Native
 
 import Data.Data (Data)
 import qualified Data.Set as S
-import Data.String (IsString)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
@@ -63,7 +62,7 @@ instance (FirstOrderLogic (Formula v p f) (PTerm v f) v p f, Show v, Show p, Sho
 instance (FirstOrderLogic (Formula v p f) (PTerm v f) v p f, Show v, Show p, Show f) => Show (PTerm v f) where
     show = showTerm
 
-data ImplicativeNormalForm v p f =
+data (Ord v, Ord p, Ord f) => ImplicativeNormalForm v p f =
     INF (S.Set (Formula v p f)) (S.Set (Formula v p f))
     deriving (Eq, Data, Typeable)
 
@@ -74,10 +73,7 @@ instance (Eq v, Eq p, Eq f, Ord v, Ord p, Ord f) => Literal (Formula v p f) wher
     inverted (Combine ((:~:) x)) = not (inverted x)
     inverted _ = False
 
-instance (Ord v, IsString v, Enum v, Data v,
-          Ord p, IsString p, Boolean p, Data p,
-          Ord f, IsString f, Skolem f, Data f,
-          Show (Formula v p f)) => Implicative (ImplicativeNormalForm v p f) (Formula v p f) where
+instance (Ord v, Ord p, Ord f) => Implicative (ImplicativeNormalForm v p f) (Formula v p f) where
     neg (INF lhs _) = lhs
     pos (INF _ rhs) = rhs
     makeINF = INF
@@ -97,9 +93,9 @@ instance Logic (Formula v p f) where
     x .&.   y = Combine (BinOp  x (:&:)   y)
     (.~.) x   = Combine ((:~:) x)
 
-instance (Ord v, IsString v, Enum v, Data v, Pretty v, Show v,
-          Ord p, IsString p, Boolean p, Data p, Pretty p, Show p,
-          Ord f, IsString f, Skolem f, Data f, Pretty f, Show f,
+instance (Ord v, Enum v, Data v, Pretty v, Show v,
+          Ord p, Boolean p, Data p, Pretty p, Show p,
+          Ord f, Skolem f, Data f, Pretty f, Show f,
           Logic (Formula v p f), Show (Formula v p f)) =>
          PropositionalLogic (Formula v p f) (Formula v p f) where
     atomic (Predicate (Equal t1 t2)) = t1 .=. t2
@@ -125,9 +121,9 @@ instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term (PTerm v f) v f
     var = Var
     fApp x args = FunApp x args
 
-instance (Ord v, IsString v, Enum v, Data v, Pretty v, Show v,
-          Ord p, IsString p, Boolean p, Data p, Pretty p, Show p,
-          Ord f, IsString f, Skolem f, Data f, Pretty f, Show f,
+instance (Ord v, Enum v, Data v, Pretty v, Show v,
+          Ord p, Boolean p, Data p, Pretty p, Show p,
+          Ord f, Skolem f, Data f, Pretty f, Show f,
           Show (Formula v p f),
           PropositionalLogic (Formula v p f) (Formula v p f), Term (PTerm v f) v f) =>
           FirstOrderLogic (Formula v p f) (PTerm v f) v p f where

@@ -18,6 +18,7 @@ import Data.Boolean.SatSolver (Literal(..))
 import Data.Generics (Typeable)
 import Data.Map (fromList)
 import qualified Data.Set as S
+import Data.String (IsString)
 import qualified Logic.Instances.Chiou as C
 import Logic.FirstOrder (FirstOrderLogic(..), for_all', exists', Term(..), Skolem(toSkolem), convertFOF)
 import Logic.Implicative (Implicative(..))
@@ -33,14 +34,14 @@ tests :: (FirstOrderLogic formula term v p f, Implicative inf formula, Eq term, 
 tests fs ps =
     TestLabel "New" $ TestList (map doTest fs ++ map doProof ps)
 
-allFormulas :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f, Typeable formula) =>
+allFormulas :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f, Typeable formula, IsString v, IsString p, IsString f) =>
                [TestFormula inf formula term v p f]
 allFormulas = (formulas ++
                concatMap snd [animalKB, chang43KB] ++
                animalConjectures ++
                [chang43Conjecture, chang43ConjectureRenamed])
 
-formulas :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f) =>
+formulas :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f, IsString v, IsString p, IsString f) =>
             [TestFormula inf formula term v p f]
 formulas =
     let n = (.~.) :: Logic formula => formula -> formula
@@ -448,7 +449,7 @@ formulas =
       , expected = [ SkolemNormalForm (((.~.) (p x)) .|. (q (fApp (toSkolem 1) []) .|. (((.~.) (p z)) .|. ((.~.) (q z))))) ] }
     ]
 
-animalKB :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f) =>
+animalKB :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f, IsString v, IsString p, IsString f) =>
             (String, [TestFormula inf formula term v p f])
 animalKB =
     let x = var "x"
@@ -505,7 +506,7 @@ animalKB =
        }
      ])
 
-animalConjectures :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f) =>
+animalConjectures :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f, IsString v, IsString p, IsString f) =>
                      [TestFormula inf formula term v p f]
 animalConjectures =
     let kills = pApp "Kills" :: [term] -> formula
@@ -686,7 +687,7 @@ chang43KB =
                     , expected = [] }
       ])
 
-chang43Conjecture :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f) =>
+chang43Conjecture :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f, IsString v, IsString p, IsString f) =>
                      TestFormula inf formula term v p f
 chang43Conjecture =
     let e = (fApp "e" [])
@@ -846,7 +847,7 @@ chang43Conjecture =
 > putStrLn (runNormal (cnfTrace f))
 -}
 
-chang43ConjectureRenamed :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f) =>
+chang43ConjectureRenamed :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f, IsString v, IsString p, IsString f) =>
                             TestFormula inf formula term v p f
 chang43ConjectureRenamed =
     let e = fApp "e" []
@@ -922,7 +923,7 @@ kbKnowledge :: forall inf formula term v p f. (Implicative inf formula, FirstOrd
                (String, [TestFormula inf formula term v p f]) -> (String, [formula])
 kbKnowledge kb = (fst (kb :: (String, [TestFormula inf formula term v p f])), map formula (snd kb))
 
-proofs :: forall inf formula term v p f. (FirstOrderLogic formula term v p f, Implicative inf formula) =>
+proofs :: forall inf formula term v p f. (FirstOrderLogic formula term v p f, Implicative inf formula, IsString v, IsString p, IsString f) =>
           [TestProof inf formula term v]
 proofs =
     let -- dog = pApp "Dog" :: [term] -> formula
