@@ -75,9 +75,13 @@ data Predicate p term
     | Apply p [term]    
     deriving (Eq, Ord, Show, Read, Data, Typeable)
 
-class (Ord v, Enum v, Data v,
-       Eq f, Skolem f, Data f,
-       Eq term) => Term term v f | term -> v, term -> f where
+class ( Ord v
+      , Enum v
+      , Data v
+      , Eq f
+      , Skolem f
+      , Data f
+      ) => Term term v f | term -> v, term -> f where
     var :: v -> term
     -- ^ Build a term which is a variable reference.
     fApp :: f -> [term] -> term
@@ -100,7 +104,7 @@ class (Ord v, Enum v, Data v,
 class (Ord v, IsString v, Pretty v, Show v, 
        Ord p, IsString p, Data p, Boolean p, Pretty p, Show p,
        Ord f, IsString f, Pretty f, Show f,
-       Logic formula, Ord formula, Data formula, Show formula, Eq term, Show term,
+       Logic formula, Ord formula, Data formula, Show formula, Show term,
        Term term v f) => FirstOrderLogic formula term v p f
                        | formula -> term
                        , formula -> v
@@ -205,7 +209,7 @@ showForm formula =
       showCombine (:&:) = ".&."
       showCombine (:|:) = ".|."
 
-showTerm :: forall formula term v p f. (FirstOrderLogic formula term v p f, Show v, Show p, Show f) => 
+showTerm :: forall term v f. (Term term v f, Show v, Show f) =>
             term -> String
 showTerm term =
     foldT v f term
@@ -310,22 +314,23 @@ univquant_free_vars cnf' =
 
 -- |Replace each free occurrence of variable old with term new.
 substitute :: FirstOrderLogic formula term v p f => v -> term -> formula -> formula
-substitute old new formula | var old == new = formula
 substitute old new formula =
-    foldF -- If the old variable appears in a quantifier
-          -- we can stop doing the substitution.
-          (\ q v f' -> quant q v (if old == v then f' else sf f'))
-          (\ cm -> case cm of
-                     ((:~:) f') -> combine ((:~:) (sf f'))
-                     (BinOp f1 op f2) -> combine (BinOp (sf f1) op (sf f2)))
-          (\ pa -> case pa of
-                     Equal t1 t2 -> (st t1) .=. (st t2)
-                     NotEqual t1 t2 -> (st t1) .!=. (st t2)
-                     Constant x -> pApp (fromBool x) []
-                     Apply p ts -> pApp p (map st ts))
-          formula
+    foldT (\ new' -> if old == new' then formula else substitute' formula)
+          (\ _ _ -> substitute' formula)
+          new
     where
-      sf = substitute old new
+      substitute' =
+          foldF -- If the old variable appears in a quantifier
+                -- we can stop doing the substitution.
+                (\ q v f' -> quant q v (if old == v then f' else substitute' f'))
+                (\ cm -> case cm of
+                           ((:~:) f') -> combine ((:~:) (substitute' f'))
+                           (BinOp f1 op f2) -> combine (BinOp (substitute' f1) op (substitute' f2)))
+                (\ pa -> case pa of
+                           Equal t1 t2 -> (st t1) .=. (st t2)
+                           NotEqual t1 t2 -> (st t1) .!=. (st t2)
+                           Constant x -> pApp (fromBool x) []
+                           Apply p ts -> pApp p (map st ts))
       st t = foldT sv (\ func ts -> fApp func (map st ts)) t
       sv v = if v == old then new else var v
 
@@ -351,9 +356,9 @@ convertFOF convertV convertP convertF formula =
       p (Apply x ts) = pApp (convertP x) (map convertTerm' ts)
       p (Constant x) = pApp (fromBool x) []
 
-convertTerm :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
-               (FirstOrderLogic formula1 term1 v1 p1 f1,
-                FirstOrderLogic formula2 term2 v2 p2 f2) =>
+convertTerm :: forall term1 v1 f1 term2 v2 f2.
+               (Term term1 v1 f1,
+                Term term2 v2 f2) =>
                (v1 -> v2) -> (f1 -> f2) -> term1 -> term2
 convertTerm convertV convertF term =
     foldT v fn term

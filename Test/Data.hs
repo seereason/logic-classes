@@ -28,7 +28,7 @@ import Logic.Monad (WithId(..))
 import Test.HUnit
 import Test.Types (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof)
 
-tests :: (FirstOrderLogic formula term v p f, Implicative inf formula, Show term) =>
+tests :: (FirstOrderLogic formula term v p f, Implicative inf formula, Eq term, Show term) =>
          [TestFormula inf formula term v p f] -> [TestProof inf formula term v] -> Test
 tests fs ps =
     TestLabel "New" $ TestList (map doTest fs ++ map doProof ps)

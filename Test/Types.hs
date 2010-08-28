@@ -195,7 +195,7 @@ data ProofExpected inf v term
     | ChiouKB [WithId inf]
     deriving (Data, Typeable)
 
-doProof :: forall inf formula term v p f. (FirstOrderLogic formula term v p f, Implicative inf formula, Show inf, Show term) =>
+doProof :: forall inf formula term v p f. (FirstOrderLogic formula term v p f, Implicative inf formula, Eq term, Show inf, Show term) =>
            TestProof inf formula term v -> Test
 doProof p =
     TestLabel (proofName p) $ TestList $

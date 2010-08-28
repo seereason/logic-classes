@@ -14,6 +14,7 @@ module Logic.Resolution
 
 import Data.Map (Map, empty)
 import qualified Data.Map as M
+import Data.Maybe (isJust)
 import qualified Data.Set as S
 import Logic.FirstOrder (Predicate(..))
 import qualified Logic.FirstOrder as Logic
@@ -26,7 +27,7 @@ type SetOfSupport inf v term = [Unification inf v term]
 
 type Unification inf v term = (inf, Subst v term)
 
-prove :: (Implicative inf lit, Eq term, Logic.FirstOrderLogic lit term v p f) =>
+prove :: (Implicative inf lit, Logic.FirstOrderLogic lit term v p f) =>
          (SetOfSupport inf v term) -> (SetOfSupport inf v term) -> [inf] -> (Bool, (SetOfSupport inf v term))
 prove ss1 [] _kb = (False, ss1)
 prove ss1 (s:ss2) kb =
@@ -38,7 +39,7 @@ prove ss1 (s:ss2) kb =
       else
         prove (ss1 ++ [s]) ss' (fst s:kb)
 
-prove' :: (Implicative inf lit, Eq term, Logic.FirstOrderLogic lit term v p f) =>
+prove' :: (Implicative inf lit, Logic.FirstOrderLogic lit term v p f) =>
           (Unification inf v term) -> [inf] -> (SetOfSupport inf v term) -> (SetOfSupport inf v term) -> ((SetOfSupport inf v term), Bool)
 prove' p kb ss1 ss2 =
     let
@@ -171,7 +172,7 @@ resolution (inf1, theta1) (inf2, theta2) =
               Just (makeINF lhs'' rhs'', theta)
         Nothing -> Nothing
 
-demodulate :: (Eq term, Implicative inf lit, Logic.FirstOrderLogic lit term v p f) =>
+demodulate :: (Implicative inf lit, Logic.FirstOrderLogic lit term v p f) =>
               (Unification inf v term) -> (Unification inf v term) -> Maybe (Unification inf v term)
 demodulate (inf1, theta1) (inf2, theta2) =
     case (S.null (neg inf1), S.toList (pos inf1)) of
@@ -257,13 +258,13 @@ tryUnify'' x rhss'' rhss' =
       Nothing -> tryUnify'' x rhss (S.insert rhs rhss')
       Just (theta1, theta2) -> Just (S.union rhss' rhss, theta1, theta2)
 
-findUnify :: (Logic.FirstOrderLogic formula term v p f, Eq term, Logic.Term term v f) =>
+findUnify :: (Logic.FirstOrderLogic formula term v p f, Logic.Term term v f) =>
              term -> term -> S.Set formula -> Maybe ((term, term), Subst v term, Subst v term)
 findUnify tl tr s =
     let
       terms = concatMap getTerms (S.toList s)
       unifiedTerms' = map (\t -> unifyTerm tl t empty empty) terms
-      unifiedTerms = filter (\t -> t /= Nothing) unifiedTerms'
+      unifiedTerms = filter isJust unifiedTerms'
     in
      case unifiedTerms of
        [] -> Nothing
@@ -281,7 +282,7 @@ getTerms formula =
       p (Constant _) = []
       p (Apply _ ts) = concatMap getTerms' ts
 
-replaceTerm :: (Eq term, Logic.FirstOrderLogic formula term v p f) => formula -> (term, term) -> formula
+replaceTerm :: (Logic.FirstOrderLogic formula term v p f) => formula -> (term, term) -> formula
 replaceTerm formula (tl', tr') =
     Logic.foldF (\ _ _ _ -> error "error in replaceTerm")
                 (\ _ -> error "error in replaceTerm")
@@ -293,9 +294,11 @@ replaceTerm formula (tl', tr') =
                 formula
     where
       replaceTerm' t =
-          if t == tl'
+          if termEq t tl'
           then tr'
           else Logic.foldT Logic.var (\ f ts -> Logic.fApp f (map replaceTerm' ts)) t
+      termEq t1 t2 =
+          maybe False id (Logic.zipT (\ v1 v2 -> Just (v1 == v2)) (\ f1 ts1 f2 ts2 -> Just (f1 == f2 && length ts1 == length ts2 && all (uncurry termEq) (zip ts1 ts2))) t1 t2)
 
 subst :: Logic.FirstOrderLogic formula term v p f => formula -> Subst v term -> formula
 subst formula theta =
