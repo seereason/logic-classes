@@ -18,7 +18,7 @@ import Logic.Logic
 -- f@, where a thru f are literals.  One more restriction that is not
 -- implied by the type is that no literal can appear in both the pos
 -- set and the neg set.  Minimum implementation: pos, neg, toINF
-class (Literal lit, Eq inf, Show inf) => Implicative inf lit | inf -> lit where
+class (Literal lit, Eq inf) => Implicative inf lit | inf -> lit where
     neg :: inf -> S.Set lit
                          -- ^ Return the literals that are negated
                          -- and disjuncted on the left side of the

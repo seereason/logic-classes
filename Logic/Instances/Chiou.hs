@@ -55,12 +55,12 @@ data Sentence v p f
     | Not (Sentence v p f)
     | Predicate p [CTerm v f]
     | Equal (CTerm v f) (CTerm v f)
-    deriving (Eq, Ord, Data, Typeable, Show)
+    deriving (Eq, Ord, Data, Typeable)
 
 data CTerm v f
     = Function f [CTerm v f]
     | Variable v
-    deriving (Eq, Ord, Data, Typeable, Show)
+    deriving (Eq, Ord, Data, Typeable)
 
 data Connective
     = Imply
@@ -88,9 +88,9 @@ instance Logic (Sentence v p f) where
     x .&.   y = Connective x And y
     (.~.) x   = Not x
 
-instance (Ord v, IsString v, Data v, Pretty v, Show v, Enum v, 
-          Ord p, IsString p, Data p, Pretty p, Show p, Boolean p,
-          Ord f, IsString f, Data f, Pretty f, Show f, Skolem f, 
+instance (Ord v, IsString v, Data v, Pretty v, Enum v, 
+          Ord p, IsString p, Data p, Pretty p, Boolean p,
+          Ord f, IsString f, Data f, Pretty f, Skolem f, 
           Logic (Sentence v p f)) =>
          PropositionalLogic (Sentence v p f) (Sentence v p f) where
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
@@ -124,7 +124,7 @@ instance Skolem AtomicFunction where
     fromSkolem (AtomicSkolemFunction n) = Just n
     fromSkolem _ = Nothing
 
-instance (Pretty v, Pretty p, Pretty f, Show v, Show p, Show f, -- debugging
+instance (Pretty v, Pretty p, Pretty f, -- debugging
           Ord v, IsString v, Enum v, Data v,
           Ord p, IsString p, Boolean p, Data p,
           Ord f, IsString f, Skolem f, Data f, 
@@ -204,23 +204,22 @@ data ConjunctiveNormalForm v p f =
 
 data ImplicativeNormalForm v p f
     = INF [Sentence v p f] [Sentence v p f]
-    deriving (Eq, Data, Show, Typeable)
+    deriving (Eq, Data, Typeable)
 
 data NormalSentence v p f
     = NFNot (NormalSentence v p f)
     | NFPredicate p [NormalTerm v f]
     | NFEqual (NormalTerm v f) (NormalTerm v f)
-    deriving (Eq, Ord, Show, Data, Typeable)
+    deriving (Eq, Ord, Data, Typeable)
 
 -- We need a distinct type here because of the functional dependencies
 -- in class FirstOrderLogic.
 data NormalTerm v f
     = NormalFunction f [NormalTerm v f]
     | NormalVariable v
-    deriving (Eq, Ord, Show, Data, Typeable)
+    deriving (Eq, Ord, Data, Typeable)
 
-instance (Enum v, Ord p, Show p, Ord f, Show f,
-          FirstOrderLogic (Sentence v p f) (CTerm v f) v p f) => Implicative (ImplicativeNormalForm v p f) (Sentence v p f) where
+instance (Enum v, Ord p, Ord f, FirstOrderLogic (Sentence v p f) (CTerm v f) v p f) => Implicative (ImplicativeNormalForm v p f) (Sentence v p f) where
     neg (INF x _) = S.fromList x
     pos (INF _ x) = S.fromList x
     makeINF lhs rhs = INF (S.toList lhs) (S.toList rhs)
@@ -229,9 +228,9 @@ instance Logic (NormalSentence v p f) where
     (.~.) x   = NFNot x
     _ .|. _ = error "NormalSentence |"
 
-instance (IsString v, Pretty v, Show v,
-          Ord p, IsString p, Boolean p, Data p, Pretty p, Show p,
-          Ord f, IsString f, Pretty f, Show f,
+instance (IsString v, Pretty v,
+          Ord p, IsString p, Boolean p, Data p, Pretty p,
+          Ord f, IsString f, Pretty f,
           Logic (NormalSentence v p f), Logic.Term (NormalTerm v f) v f) => FirstOrderLogic (NormalSentence v p f) (NormalTerm v f) v p f where
     for_all _ _ = error "FirstOrderLogic NormalSentence"
     exists _ _ = error "FirstOrderLogic NormalSentence"

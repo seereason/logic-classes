@@ -131,7 +131,7 @@ data (Implicative inf formula, FirstOrderLogic formula term v p f) => Expected i
     | SatSolverSat Bool
     deriving (Data, Typeable)
 
-doTest :: (Implicative inf formula, FirstOrderLogic formula term v p f, Literal formula, Data formula, Show term) =>
+doTest :: (Implicative inf formula, FirstOrderLogic formula term v p f, Literal formula, Data formula, Show term, Show inf, Show formula) =>
           TestFormula inf formula term v p f -> Test
 doTest f =
     TestLabel (name f) $ TestList $ 
@@ -195,7 +195,7 @@ data ProofExpected inf v term
     | ChiouKB [WithId inf]
     deriving (Data, Typeable)
 
-doProof :: forall inf formula term v p f. (FirstOrderLogic formula term v p f, Implicative inf formula, Eq term, Show inf, Show term) =>
+doProof :: forall inf formula term v p f. (FirstOrderLogic formula term v p f, Implicative inf formula, Eq term, Show inf, Show term, Show v) =>
            TestProof inf formula term v -> Test
 doProof p =
     TestLabel (proofName p) $ TestList $

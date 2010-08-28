@@ -108,20 +108,12 @@ class ( Term term v f
       , Eq p           -- Required during resolution
       , Ord v
       , IsString v
-      , Pretty v
-      , Show v
       , Ord p
       , IsString p
       , Data p
-      , Pretty p
-      , Show p
       , Ord f
       , IsString f
-      , Pretty f
-      , Show f
       , Ord formula
-      , Show formula
-      , Show term
       ) => FirstOrderLogic formula term v p f
                                     | formula -> term
                                     , term -> formula  -- Would like to get rid of this

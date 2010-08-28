@@ -43,7 +43,7 @@ toClauseNormal lit formula = runIdentity . toClauseNormalM (return . lit) $ form
 -- parse-dimacs the literals are just Ints, while in our formula they
 -- are usually string-like.  In this case we need to use a state monad
 -- to build a mapping from formula literals to CNF literals.
-toClauseNormalM :: forall formula term v p f cnf lit m. (Monad m, FirstOrderLogic formula term v p f, Eq formula, ClauseNormal cnf lit, Eq lit, Pretty v, Pretty p, Pretty f) =>
+toClauseNormalM :: forall formula term v p f cnf lit m. (Monad m, FirstOrderLogic formula term v p f, Eq formula, ClauseNormal cnf lit, Eq lit) =>
              (formula -> m lit) -> [[formula]] -> m cnf
 toClauseNormalM lit formula =
     -- If any of the elements of a disjunction is the whole

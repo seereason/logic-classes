@@ -74,9 +74,9 @@ instance (Eq v, Eq p, Eq f, Ord v, Ord p, Ord f) => Literal (Formula v p f) wher
     inverted (Combine ((:~:) x)) = not (inverted x)
     inverted _ = False
 
-instance (Ord v, IsString v, Enum v, Data v, Pretty v, Show v,
-          Ord p, IsString p, Boolean p, Data p, Pretty p, Show p,
-          Ord f, IsString f, Skolem f, Data f, Pretty f, Show f,
+instance (Ord v, IsString v, Enum v, Data v,
+          Ord p, IsString p, Boolean p, Data p,
+          Ord f, IsString f, Skolem f, Data f,
           Show (Formula v p f)) => Implicative (ImplicativeNormalForm v p f) (Formula v p f) where
     neg (INF lhs _) = lhs
     pos (INF _ rhs) = rhs
