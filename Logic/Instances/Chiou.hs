@@ -183,7 +183,7 @@ instance (FirstOrderLogic (Sentence v p f) (CTerm v f) v p f, Show v, Show p, Sh
     show = showTerm
 -}
 
-instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Logic.Term (CTerm v f) v f where
+instance (Ord v, Enum v, Data v, Eq f, Ord f, Skolem f, Data f) => Logic.Term (CTerm v f) v f where
     foldT v fn t =
         case t of
           Variable x -> v x
@@ -202,7 +202,7 @@ data ConjunctiveNormalForm v p f =
 
 data ImplicativeNormalForm v p f
     = INF [Sentence v p f] [Sentence v p f]
-    deriving (Eq, Data, Typeable)
+    deriving (Eq, Ord, Data, Typeable)
 
 data NormalSentence v p f
     = NFNot (NormalSentence v p f)
@@ -250,7 +250,7 @@ instance (IsString v, Pretty v,
     x .=. y = NFEqual x y
     x .!=. y = NFNot (NFEqual x y)
 
-instance (Ord v, Enum v, Data v, Eq f, Logic.Skolem f, Data f) => Logic.Term (NormalTerm v f) v f where
+instance (Ord v, Enum v, Data v, Eq f, Ord f, Logic.Skolem f, Data f) => Logic.Term (NormalTerm v f) v f where
     var = NormalVariable
     fApp = NormalFunction
     foldT v f t =
@@ -268,7 +268,7 @@ toSentence (NFNot s) = (.~.) (toSentence s)
 toSentence (NFEqual t1 t2) = toTerm t1 .=. toTerm t2
 toSentence (NFPredicate p ts) = pApp p (map toTerm ts)
 
-toTerm :: (Ord v, Enum v, Data v, Eq f, Logic.Skolem f, Data f) => NormalTerm v f -> CTerm v f
+toTerm :: (Ord v, Enum v, Data v, Eq f, Ord f, Logic.Skolem f, Data f) => NormalTerm v f -> CTerm v f
 toTerm (NormalFunction f ts) = Logic.fApp f (map toTerm ts)
 toTerm (NormalVariable v) = Logic.var v
 

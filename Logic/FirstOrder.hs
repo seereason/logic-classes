@@ -80,6 +80,7 @@ class ( Ord v     -- Required so variables can be inserted into maps and sets
       , Eq f      -- We need to check functions for equality during unification
       , Skolem f  -- Used to create skolem functions and constants
       , Data f    -- For serialization
+      , Ord term  -- For implementing Ord in NormalLogic
       ) => Term term v f | term -> v, term -> f where
     var :: v -> term
     -- ^ Build a term which is a variable reference.

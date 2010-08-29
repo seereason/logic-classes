@@ -63,7 +63,7 @@ instance (FirstOrderLogic (Formula v p f) (PTerm v f) v p f, Show v, Show p, Sho
 
 data (Ord v, Ord p, Ord f) => ImplicativeNormalForm v p f =
     INF (S.Set (Formula v p f)) (S.Set (Formula v p f))
-    deriving (Eq, Data, Typeable)
+    deriving (Eq, Ord, Data, Typeable)
 
 instance (Ord v, Ord p, Ord f) => Implicative (ImplicativeNormalForm v p f) (Formula v p f) where
     neg (INF lhs _) = lhs
@@ -106,7 +106,7 @@ instance (Ord v, Enum v, Data v, Pretty v, Show v,
           Combine x -> c x
           Predicate x -> a (Predicate x)
 
-instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term (PTerm v f) v f where
+instance (Ord v, Enum v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (PTerm v f) v f where
     foldT vf fn t =
         case t of
           Var v -> vf v
