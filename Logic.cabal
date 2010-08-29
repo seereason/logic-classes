@@ -14,16 +14,21 @@ Cabal-version:    >= 1.2
 
 Library
  GHC-options: -threaded -Wall -Werror -O2
- Exposed-Modules:  Logic.Clause
-                   Logic.FirstOrder
-                   Logic.Implicative
+ Exposed-Modules:  Logic.FirstOrder
+                   Logic.Harrison.FOL
+                   Logic.Harrison.Herbrand
+                   Logic.Harrison.Lib
+                   Logic.Harrison.Prop
+                   Logic.Harrison.Skolem
                    Logic.Instances.Chiou
                    Logic.Instances.Native
                    Logic.Instances.PropLogic
+                   Logic.Instances.SatSolver
                    Logic.Instances.TPTP
                    Logic.KnowledgeBase
                    Logic.Logic
                    Logic.Monad
+                   Logic.Normal
                    Logic.NormalForm
                    Logic.Propositional
                    Logic.Resolution

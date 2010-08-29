@@ -10,11 +10,11 @@ import qualified Data.Set as S
 import Data.String (IsString(..))
 import qualified Logic.FirstOrder as Logic
 import Logic.FirstOrder (FirstOrderLogic(..), Term(..), Skolem(..))
-import Logic.Implicative (Implicative(..))
 import Logic.Instances.Native (Formula, PTerm, ImplicativeNormalForm, makeINF')
 import Logic.KnowledgeBase (ProofResult(..), loadKB, theoremKB {-, askKB, showKB-})
 import Logic.Logic (Literal(..), Logic(..), Boolean(..))
 import Logic.Monad (NormalT, runNormal, ProverT, runProver')
+import Logic.Normal (Implicative(..))
 import Logic.NormalForm (clauseNormalForm)
 import Logic.Resolution (SetOfSupport)
 import Test.HUnit

@@ -7,10 +7,10 @@ import Data.Generics (Data, Typeable, listify)
 import qualified Data.Set as S
 import Logic.Clause (Literal)
 import Logic.FirstOrder (FirstOrderLogic, convertFOF, fromSkolem)
-import Logic.Implicative (Implicative)
 import Logic.KnowledgeBase (loadKB, theoremKB, getKB)
 import Logic.Logic (Logic(..))
 import Logic.Monad (runNormal, runProver')
+import Logic.Normal (Implicative)
 import Logic.NormalForm (simplify, negationNormalForm, prenexNormalForm, skolemNormalForm, clauseNormalForm, trivial)
 import Logic.Satisfiable (satisfiable) 
 import Test.HUnit

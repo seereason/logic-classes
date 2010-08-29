@@ -8,7 +8,6 @@ module Logic.Harrison.Lib
     ) where
 
 import qualified Data.Map as M
-import Data.Maybe (isJust)
 
 {-
 (* ========================================================================= *)

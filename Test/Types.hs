@@ -20,9 +20,8 @@ import Data.Char (isDigit)
 import Data.Generics (Data, Typeable, listify, Fixity(..))
 import qualified Data.Set as S
 import Data.String (IsString(fromString))
-import Logic.Clause (ClauseNormal(satisfiable))
+--import Logic.Clause (ClauseNormal(satisfiable))
 import Logic.FirstOrder (showForm, FirstOrderLogic, convertFOF, Predicate(..), Pretty(..), Skolem(..))
-import Logic.Implicative (Implicative(..))
 import qualified Logic.Instances.Chiou as C
 import qualified Logic.Instances.Native as P
 import Logic.Instances.PropLogic (plSat)
@@ -30,6 +29,7 @@ import qualified Logic.Instances.SatSolver as SS
 import Logic.KnowledgeBase (ProofResult, loadKB, theoremKB, getKB)
 import Logic.Logic (Boolean(..))
 import Logic.Monad (WithId, runNormal, runProver', runNormal', runNormalT')
+import Logic.Normal (ClauseNormal(satisfiable), Implicative(..))
 import Logic.NormalForm (simplify, negationNormalForm, prenexNormalForm, skolemNormalForm, clauseNormalForm, trivial)
 import Logic.Resolution (SetOfSupport)
 

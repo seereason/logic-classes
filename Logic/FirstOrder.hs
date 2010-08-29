@@ -103,6 +103,7 @@ class ( Ord v     -- Required so variables can be inserted into maps and sets
 class ( Term term v f
       , Logic formula  -- Basic logic operations
       , Data formula   -- Allows us to use Data.Generics functions on formulas
+      , Data p
       , Boolean p      -- To implement true and false below
       , Eq p           -- Required during resolution
       , Ord p

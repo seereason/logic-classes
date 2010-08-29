@@ -21,11 +21,11 @@ import qualified Data.Set as S
 import Data.String (IsString)
 import qualified Logic.Instances.Chiou as C
 import Logic.FirstOrder (FirstOrderLogic(..), for_all', exists', Term(..), Skolem(toSkolem), convertFOF)
-import Logic.Implicative (Implicative(..))
 import Logic.Instances.Native (ImplicativeNormalForm(..), makeINF')
 import Logic.KnowledgeBase (ProofResult(..))
 import Logic.Logic (Literal(..), Logic(..), Boolean(..))
 import Logic.Monad (WithId(..))
+import Logic.Normal (Implicative(..))
 import Test.HUnit
 import Test.Types (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof)
 
@@ -567,20 +567,14 @@ animalConjectures =
                [((.~.) (pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []]))]])
            , ChiouKB1
              (Invalid,
-              [makeINF' ([(pApp ("Animal") [var ("y")]),(pApp ("AnimalLover") [var ("x")]),(pApp ("Kills") [var ("x"),var ("y")])])
-                        ([]),
-               makeINF' ([(pApp ("Cat") [var ("x")])])
-                        ([(pApp ("Animal") [var ("x")])]),
-               makeINF' ([(pApp ("Dog") [var ("y")]),(pApp ("Owns") [var ("x"),var ("y")])])
-                        ([(pApp ("AnimalLover") [var ("x")])]),
-               makeINF' ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])])
-                        ([]),makeINF' ([]) ([(pApp ("Cat") [fApp ("Tuna") []])]),
-               makeINF' ([])
-                        ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
-               makeINF' ([])
-                        ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]),
-               makeINF' ([])
-                        ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem 1) []])])])
+              [makeINF' ([]) ([(pApp ("Cat") [fApp ("Tuna") []])]),
+               makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
+               makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]),
+               makeINF' ([]) ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem 1) []])]),
+               makeINF' ([(pApp ("Animal") [var ("y")]),(pApp ("AnimalLover") [var ("x")]),(pApp ("Kills") [var ("x"),var ("y")])]) ([]),
+               makeINF' ([(pApp ("Cat") [var ("x")])]) ([(pApp ("Animal") [var ("x")])]),
+               makeINF' ([(pApp ("Dog") [var ("y")]),(pApp ("Owns") [var ("x"),var ("y")])]) ([(pApp ("AnimalLover") [var ("x")])]),
+               makeINF' ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]) ([])])
            ]
        }
      , TestFormula
@@ -1025,11 +1019,11 @@ proofs =
          [ ChiouKB [WithId {wiItem = inf' [(pApp "Human" [var "x"])] [(pApp "Mortal" [var "x"])], wiIdent = 1},
                     WithId {wiItem = inf' [(pApp "Socrates" [var "x"])] [(pApp "Human" [var "x"])], wiIdent = 2}]
          , ChiouResult (True,
-                        [(makeINF' ([(pApp ("Mortal") [fApp (toSkolem 3) []])]) ([]),fromList []),
-                         (makeINF' ([]) ([(pApp ("Socrates") [fApp (toSkolem 3) []])]),fromList []),
-                         (makeINF' ([(pApp ("Human") [fApp (toSkolem 3) []])]) ([]),fromList []),
+                        [(makeINF' ([]) ([(pApp ("Socrates") [fApp (toSkolem 3) []])]),fromList []),
+                         (makeINF' ([(pApp ("Mortal") [fApp (toSkolem 3) []])]) ([]),fromList []),
                          (makeINF' ([]) ([(pApp ("Human") [fApp (toSkolem 3) []])]),fromList []),
-                         (makeINF' ([(pApp ("Socrates") [fApp (toSkolem 3) []])]) ([]),fromList []),
+                         (makeINF' ([(pApp ("Human") [fApp (toSkolem 3) []])]) ([]),fromList []),
+                         (makeINF' ([]) ([(pApp ("Mortal") [fApp (toSkolem 3) []])]),fromList []),
                          (makeINF' ([]) ([]),fromList [])])]
       }
     , let x = var "x" in
@@ -1052,10 +1046,10 @@ proofs =
          [ ChiouKB [WithId {wiItem = inf' [(pApp "Human" [var "x"])] [(pApp "Mortal" [var "x"])], wiIdent = 1},
                     WithId {wiItem = inf' [(pApp "Socrates" [var "x"])] [(pApp "Human" [var "x"])], wiIdent = 2}]
          , ChiouResult (False,
-                        [(makeINF' ([(pApp ("Socrates") [var ("x")])]) ([(pApp ("Mortal") [var ("x")])]),             fromList [("x",var ("x"))]),
-                         (makeINF' ([])                                ([(pApp ("Socrates") [fApp (toSkolem 3) []])]),fromList []),
-                         (makeINF' ([])                                ([(pApp ("Mortal") [fApp (toSkolem 3) []])]),  fromList []),
-                         (makeINF' ([])                                ([(pApp ("Human") [fApp (toSkolem 3) []])]),   fromList [])])]
+                        [(makeINF' ([])                                ([(pApp ("Socrates") [fApp (toSkolem 3) []])]),fromList []),
+                         (makeINF' ([(pApp ("Socrates") [var ("x")])]) ([(pApp ("Mortal") [var ("x")])]),fromList [("x",var ("x"))]),
+                         (makeINF' ([])                                ([(pApp ("Human") [fApp (toSkolem 3) []])]),fromList []),
+                         (makeINF' ([])                                ([(pApp ("Mortal") [fApp (toSkolem 3) []])]),fromList [("x",var ("x"))])])]
       }
     ]
 

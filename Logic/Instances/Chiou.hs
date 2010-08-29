@@ -20,8 +20,8 @@ import Data.String (IsString(..))
 import Logic.FirstOrder (FirstOrderLogic(..), Pretty)
 import qualified Logic.FirstOrder as Logic
 import qualified Logic.FirstOrder as L
-import Logic.Implicative (Implicative(..))
 import Logic.Logic (Literal(..), Logic(..), BinOp(..), Combine(..), Boolean(..))
+import Logic.Normal (Implicative(..))
 import Logic.Propositional (PropositionalLogic(..))
 import Logic.FirstOrder (Skolem(..), Quant(..))
 

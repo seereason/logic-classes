@@ -17,9 +17,9 @@ import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
 import Logic.FirstOrder (Term(..), FirstOrderLogic(..), Quant(..), Skolem(..), Pretty, Predicate(..), showForm, showTerm)
-import Logic.Implicative (Implicative(..))
 import Logic.Logic (Literal(..), Logic(..), BinOp(..), Boolean(..), Combine(..))
 import qualified Logic.Logic as Logic
+import Logic.Normal (Implicative(..))
 import Logic.Propositional (PropositionalLogic(..))
     
 -- | The range of a formula is {True, False} when it has no free variables.

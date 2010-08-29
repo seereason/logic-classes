@@ -24,9 +24,9 @@ import Control.Monad.Trans (lift)
 import Data.Generics (Data, Typeable)
 import Data.List (partition)
 import Logic.FirstOrder (FirstOrderLogic)
-import Logic.Implicative (Implicative, toImplicative)
 import Logic.Logic (Literal(..))
 import Logic.Monad (ProverT, ProverT', ProverState(..), KnowledgeBase, WithId(..), SentenceCount, withId, zeroKB)
+import Logic.Normal (Implicative(..))
 import Logic.NormalForm (implicativeNormalForm)
 import Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Prelude hiding (negate)
@@ -57,7 +57,7 @@ getKB = get >>= return . knowledgeBase
 -- |Return a flag indicating whether sentence was disproved, along
 -- with a disproof.
 inconsistantKB :: (Monad m, FirstOrderLogic formula term v p f, Data formula, Implicative inf formula) => formula -> ProverT' v term inf m (Bool, SetOfSupport inf v term)
-inconsistantKB s = lift (implicativeNormalForm s) >>= return . getSetOfSupport . toImplicative id >>= \ sos -> getKB >>= return . prove [] sos . map wiItem
+inconsistantKB s = lift (implicativeNormalForm s) >>= return . getSetOfSupport >>= \ sos -> getKB >>= return . prove [] sos . map wiItem
 
 -- |Return a flag indicating whether sentence was proved, along with a
 -- proof.
@@ -88,7 +88,7 @@ tellKB :: (FirstOrderLogic formula term v p f, Implicative inf formula, Data for
           formula -> ProverT' v term inf m (ProofResult, [inf])
 tellKB s =
     do st <- get
-       inf <- lift (implicativeNormalForm s) >>= return . toImplicative id
+       inf <- lift (implicativeNormalForm s)
        let inf' = map (withId (sentenceCount st)) inf
        (valid, _, _) <- validKB s
        case valid of

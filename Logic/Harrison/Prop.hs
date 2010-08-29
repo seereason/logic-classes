@@ -8,6 +8,7 @@ module Logic.Harrison.Prop
 
 import Logic.FirstOrder (FirstOrderLogic(..), Predicate(..), Quant(..), quant)
 import Logic.Logic (Literal(..), Logic(..), Combine(..), Boolean(..), BinOp(..))
+import qualified Logic.Normal as Normal
 import qualified Logic.Set as S
 
 {-
@@ -587,7 +588,8 @@ let simpcnf fm =
   filter (fun c -> not(exists (fun c' -> psubset c' c) cjs)) cjs;;
 -}
 
-simpcnf :: forall formula term v p f. (FirstOrderLogic formula term v p f, Literal formula) => formula -> S.Set (S.Set formula)
+simpcnf :: forall formula term v p f lit. (FirstOrderLogic formula term v p f, Normal.NormalLogic lit term v p f) =>
+           formula -> S.Set (S.Set lit)
 simpcnf fm =
     foldF (\ _ _ _ -> cjs') (\ _ -> cjs') p fm
     where
@@ -601,30 +603,24 @@ simpcnf fm =
       -- Discard any clause that is the proper subset of another clause
       cjs' = S.filter keep cjs
       keep x = not (S.or (S.map (S.isProperSubsetOf x) cjs))
-      cjs = S.filter (not . trivial) (purecnf (nnf fm))
+      cjs = S.filter (not . trivial) (purecnf (nnf fm)) :: S.Set (S.Set lit)
 
 -- |Harrison page 59.  Look for complementary pairs in a clause.
 trivial :: (Literal lit, Ord lit) => S.Set lit -> Bool
 trivial lits =
     not . S.null $ S.intersection (S.map (.~.) n) p
-    where
-      (n, p) = S.partition negated lits
+    where (n, p) = S.partition negated lits
 
 -- | CNF: (a | b | c) & (d | e | f)
-purecnf :: forall formula term v p f. FirstOrderLogic formula term v p f => formula -> S.Set (S.Set formula)
+purecnf :: forall formula term v p f lit. (FirstOrderLogic formula term v p f, Normal.NormalLogic lit term v p f) =>
+           formula -> S.Set (S.Set lit)
 purecnf fm =
-    foldF (\ _ _ _ -> ss fm) c (\ _ -> ss fm) fm
+    foldF (\ _ _ _ -> ss (Normal.convertToNormal fm)) c (\ _ -> ss (Normal.convertToNormal fm)) fm
     where
       ss = S.singleton . S.singleton
-      -- ((a | b) & (c | d) | ((e | f) & (g | h)) -> ((a | b | e | f) & (c | d | e | f) & (c | d | e | f) & (c | d | g | h))
-      c (BinOp l (:|:) r) =
-          let lss = purecnf l
-              rss = purecnf r in
-          S.distrib lss rss
-      -- [[a,b],[c,d]] | [[e,f],[g,y]] -> [[a,b],[c,d],[e,f],[g,h]]
-      -- a & b -> [[a], [b]]
+      c (BinOp l (:|:) r) = S.distrib (purecnf l) (purecnf r)
       c (BinOp l (:&:) r) = S.union (purecnf l) (purecnf r)
-      c _ = ss fm
+      c _ = ss (Normal.convertToNormal fm)
 {-
 
 let cnf fm = list_conj(map list_disj (simpcnf fm));;

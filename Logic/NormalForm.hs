@@ -47,6 +47,7 @@ import Logic.Harrison.Skolem (prenex, askolemize, simplify, specialize)
 import Logic.Harrison.Prop (nnf, trivial, simpcnf)
 import Logic.Logic
 import Logic.Monad (NormalT)
+import Logic.Normal (NormalLogic(..), Implicative(makeINF))
 import qualified Logic.Set as S
 import Text.PrettyPrint (hcat, vcat, text, nest, ($$), brackets, render)
 
@@ -71,8 +72,8 @@ skolemNormalForm f = askolemize f >>= return . specialize . prenexNormalForm
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-clauseNormalForm :: (Monad m, FirstOrderLogic formula term v p f, Literal formula) =>
-       formula -> NormalT v term m (S.Set (S.Set formula))
+clauseNormalForm :: (Monad m, FirstOrderLogic formula term v p f, NormalLogic lit term v p f) =>
+       formula -> NormalT v term m (S.Set (S.Set lit))
 clauseNormalForm fm = skolemNormalForm fm >>= return . simpcnf
 
 cnfTrace :: (Monad m, FirstOrderLogic formula term v p f, Literal formula, Pretty v, Pretty p, Pretty f) =>
@@ -113,27 +114,26 @@ cnfTrace f =
 --    a | b | c => e
 --    a | b | c => f
 -- @
-implicativeNormalForm :: forall m formula term v p f. 
-                         (Monad m, FirstOrderLogic formula term v p f, Literal formula, Data formula) =>
-                         formula -> NormalT v term m [([formula], [formula])]
+implicativeNormalForm :: forall m formula term v p f lit inf. 
+                         (Monad m, FirstOrderLogic formula term v p f, Data formula, NormalLogic lit term v p f, Implicative inf lit) =>
+                         formula -> NormalT v term m [inf] -- Should be a set
 implicativeNormalForm formula =
-    clauseNormalForm formula >>= return . concatMap split . map (imply . foldl collect ([], [])) . map S.toList . S.toList
+    do cnf <- clauseNormalForm formula
+       let pairs = S.map (S.fold collect (S.empty, S.empty)) cnf :: S.Set (S.Set lit, S.Set lit)
+           pairs' = S.flatten (S.map split pairs) :: S.Set (S.Set lit, S.Set lit)
+       return (map (\ (n,p) -> makeINF n p) (S.toList pairs'))
+    -- clauseNormalForm formula >>= return . S.unions . S.map split . map (S.fold collect (S.empty, S.empty))
     where
-      collect :: ([formula], [formula]) -> formula -> ([formula], [formula])
-      collect (n, p) f =
-          foldF (\ _ _ _ -> error "collect 1")
-                (\ cm -> case cm of
-                           ((:~:) f') -> (f' : n, p)
-                           _ -> error "collect 2")
-                (\ _ -> (n, f : p))
+      collect :: lit -> (S.Set lit, S.Set lit) -> (S.Set lit, S.Set lit)
+      collect f (n, p) =
+          foldN (\ f' -> (S.insert f' n, p))
+                (\ _ -> (n, S.insert f p))
                 f
-      imply :: ([formula], [formula]) -> ([formula], [formula])
-      imply (n, p) = (reverse n, reverse p)
-      split :: ([formula], [formula]) -> [([formula], [formula])]
+      split :: (S.Set lit, S.Set lit) -> S.Set (S.Set lit, S.Set lit)
       split (lhs, rhs) =
           if any isJust (map fromSkolem (gFind rhs :: [f]))
-          then map (\ x -> (lhs, [x])) rhs
-          else [(lhs, rhs)]
+          then S.map (\ x -> (lhs, S.singleton x)) rhs
+          else S.singleton (lhs, rhs)
 
 -- | @gFind a@ will extract any elements of type @b@ from
 -- @a@'s structure in accordance with the MonadPlus
