@@ -45,17 +45,18 @@ inf' l1 l2 = makeINF (S.fromList l1) (S.fromList l2)
 
 proof1 :: (Bool, SetOfSupport (ImplicativeNormalForm V Pr AtomicFunction) V (PTerm V AtomicFunction))
 proof1 = (False,
-          [(makeINF' ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]) ([]),fromList []),
-           (makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []])]),fromList []),
-           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("AnimalLover") [fApp ("Curiosity") []])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList []),
-           (makeINF' ([(pApp ("AnimalLover") [fApp ("Curiosity") []]),(pApp ("Cat") [fApp ("Tuna") []])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList []),
-           (makeINF' ([(pApp ("AnimalLover") [fApp ("Curiosity") []])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList [])])          
+          (S.fromList
+           [(makeINF' ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]) ([]),fromList []),
+            (makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []])]),fromList []),
+            (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("AnimalLover") [fApp ("Curiosity") []])]) ([]),fromList []),
+            (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList []),
+            (makeINF' ([(pApp ("AnimalLover") [fApp ("Curiosity") []]),(pApp ("Cat") [fApp ("Tuna") []])]) ([]),fromList []),
+            (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList []),
+            (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList []),
+            (makeINF' ([(pApp ("AnimalLover") [fApp ("Curiosity") []])]) ([]),fromList []),
+            (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList []),
+            (makeINF' ([(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList []),
+            (makeINF' ([(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList [])]))
 
 proofTest2 :: Test
 proofTest2 = TestCase (assertEqual "Chiuo0 - proof test 2" proof2 (runProver' (loadKB sentences >> theoremKB conjecture)))
@@ -65,28 +66,27 @@ proofTest2 = TestCase (assertEqual "Chiuo0 - proof test 2" proof2 (runProver' (l
 
 proof2 :: (Bool, SetOfSupport (ImplicativeNormalForm V Pr AtomicFunction) V (PTerm V AtomicFunction))
 proof2 = (True,
-          [(makeINF' ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []])]) ([]),fromList []),
+          S.fromList
+          [(makeINF' ([]) ([]),fromList []),
            (makeINF' ([]) ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]),fromList []),
-           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("AnimalLover") [fApp ("Jack") []])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Jack") [],var ("y")])]) ([]),fromList []),
-           (makeINF' ([(pApp ("AnimalLover") [fApp ("Jack") []]),(pApp ("Cat") [fApp ("Tuna") []])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Jack") [],var ("y")])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Jack") [],var ("y")])]) ([]),fromList []),
-           (makeINF' ([(pApp ("AnimalLover") [fApp ("Jack") []])]) ([]),fromList []),
            (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Jack") [],var ("y")])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Jack") [],var ("y")])]) ([]),fromList []),
+           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("AnimalLover") [fApp ("Jack") []])]) ([]),fromList []),
+           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")])]) ([]),fromList []),
+           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Jack") [],var ("y")])]) ([]),fromList []),
+           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Jack") [],var ("y")])]) ([]),fromList []),
+           (makeINF' ([(pApp ("AnimalLover") [fApp ("Jack") []])]) ([]),fromList []),
+           (makeINF' ([(pApp ("AnimalLover") [fApp ("Jack") []]),(pApp ("Cat") [fApp ("Tuna") []])]) ([]),fromList []),
            (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Owns") [fApp ("Jack") [],var ("y")])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Dog") [var ("y2")])]) ([]),fromList []),
-           (makeINF' ([]) ([]),fromList [])])
+           (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")])]) ([]),fromList []),
+           (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Jack") [],var ("y")])]) ([]),fromList []),
+           (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Jack") [],var ("y")])]) ([]),fromList []),
+           (makeINF' ([(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Jack") [],var ("y")])]) ([]),fromList []),
+           (makeINF' ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []])]) ([]),fromList [])])
 
-testProof :: MonadIO m => String -> (Formula V Pr AtomicFunction, Bool, [ImplicativeNormalForm V Pr AtomicFunction]) -> ProverT (ImplicativeNormalForm V Pr AtomicFunction) (NormalT V (PTerm V AtomicFunction) m) ()
+testProof :: MonadIO m => String -> (Formula V Pr AtomicFunction, Bool, (S.Set (ImplicativeNormalForm V Pr AtomicFunction))) -> ProverT (ImplicativeNormalForm V Pr AtomicFunction) (NormalT V (PTerm V AtomicFunction) m) ()
 testProof label (question, expectedAnswer, expectedProof) =
     theoremKB question >>= \ (actualFlag, actualProof) ->
-    let actual' = (actualFlag, map fst actualProof) in
+    let actual' = (actualFlag, S.map fst actualProof) in
     if actual' /= (expectedAnswer, expectedProof)
     then error ("\n Expected:\n  " ++ show (expectedAnswer, expectedProof) ++
                 "\n Actual:\n  " ++ show actual')

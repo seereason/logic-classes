@@ -19,24 +19,32 @@ import qualified Data.Set as S
 import Logic.FirstOrder (Term(..))
 import Logic.Normal (Predicate(..), NormalLogic(..), Implicative(..))
 import qualified Logic.Normal as Normal
+import qualified Logic.Set as S
 
 type Subst v term = Map v term
 
-type SetOfSupport inf v term = [Unification inf v term]
+type SetOfSupport inf v term = S.Set (Unification inf v term)
 
 type Unification inf v term = (inf, Subst v term)
 
 prove :: (Implicative inf lit, NormalLogic lit term v p f) =>
          (SetOfSupport inf v term) -> (SetOfSupport inf v term) -> [inf] -> (Bool, (SetOfSupport inf v term))
-prove ss1 [] _kb = (False, ss1)
-prove ss1 (s:ss2) kb =
-    let
-      (ss', tf) = prove' s kb ss2 ss1
-    in
-      if tf then
-        (True, (ss1 ++ [s] ++ss'))
-      else
-        prove (ss1 ++ [s]) ss' (fst s:kb)
+prove ss1 ss2' kb =
+    case S.minView ss2' of
+      Nothing -> (False, ss1)
+      Just (s, ss2) ->
+          case prove' s kb ss2 ss1 of
+            (ss', True) -> (True, (S.insert s (S.union ss1 ss')))
+            (ss', False) -> prove (S.insert s ss1) ss' (fst s : kb)
+-- prove ss1 [] _kb = (False, ss1)
+-- prove ss1 (s:ss2) kb =
+--     let
+--       (ss', tf) = prove' s kb ss2 ss1
+--     in
+--       if tf then
+--         (True, (ss1 ++ [s] ++ss'))
+--       else
+--         prove (ss1 ++ [s]) ss' (fst s:kb)
 
 prove' :: (Implicative inf lit, NormalLogic lit term v p f) =>
           (Unification inf v term) -> [inf] -> (SetOfSupport inf v term) -> (SetOfSupport inf v term) -> ((SetOfSupport inf v term), Bool)
@@ -46,32 +54,30 @@ prove' p kb ss1 ss2 =
       res2 = map (\x -> resolution (x, empty) p) kb
       dem1 = map (\e -> demodulate p (e, empty)) kb
       dem2 = map (\p' -> demodulate (p', empty) p) kb
-      result = getResult (ss1 ++ ss2) (res1 ++ res2 ++ dem1 ++ dem2)
+      (ss', tf) = getResult (S.union ss1 ss2) (res1 ++ res2 ++ dem1 ++ dem2)
     in
-      case result of
-        ([], _) -> (ss1, False)
-        (l, tf) -> ((ss1 ++ l), tf)
+      if S.null ss' then (ss1, False) else (S.union ss1 ss', tf)
 
 getResult :: (NormalLogic lit term v p f, Implicative inf lit) =>
              (SetOfSupport inf v term) -> [Maybe (Unification inf v term)] -> ((SetOfSupport inf v term), Bool)
-getResult _ [] = ([], False)
+getResult _ [] = (S.empty, False)
 getResult ss (Nothing:xs) = getResult ss xs
 getResult ss ((Just x):xs)  =
     if S.null (neg inf) && S.null (pos inf)
-    then ([x], True)
-    else if or (map (\(e,_) -> isRenameOf (fst x) e) ss) then
+    then (S.singleton x, True)
+    else if S.any id (S.map (\(e,_) -> isRenameOf (fst x) e) ss) then
              getResult ss xs
            else
              case getResult ss xs of
-               (xs', tf) -> (x:xs', tf)
+               (xs', tf) -> (S.insert x xs', tf)
     where
       (inf, _v) = x
 
 -- |Convert the "question" to a set of support.
 getSetOfSupport :: (Implicative inf formula, Normal.NormalLogic formula term v p f) =>
-                   [inf] -> [(inf, Subst v term)]
-getSetOfSupport [] = []
-getSetOfSupport (x:xs) = (x, getSubsts x empty):getSetOfSupport xs
+                   [inf] -> S.Set (inf, Subst v term)
+getSetOfSupport [] = S.empty
+getSetOfSupport (x:xs) = S.insert (x, getSubsts x empty) (getSetOfSupport xs)
 
 getSubsts :: (Implicative inf formula, NormalLogic formula term v p f) =>
              inf -> Subst v term -> Subst v term

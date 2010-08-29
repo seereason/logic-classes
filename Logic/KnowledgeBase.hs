@@ -29,6 +29,7 @@ import Logic.Monad (ProverT, ProverT', ProverState(..), KnowledgeBase, WithId(..
 import Logic.Normal (Implicative(..))
 import Logic.NormalForm (implicativeNormalForm)
 import Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
+import qualified Data.Set as S
 import Prelude hiding (negate)
 
 data ProofResult
@@ -57,7 +58,7 @@ getKB = get >>= return . knowledgeBase
 -- |Return a flag indicating whether sentence was disproved, along
 -- with a disproof.
 inconsistantKB :: (Monad m, FirstOrderLogic formula term v p f, Data formula, Implicative inf formula) => formula -> ProverT' v term inf m (Bool, SetOfSupport inf v term)
-inconsistantKB s = lift (implicativeNormalForm s) >>= return . getSetOfSupport >>= \ sos -> getKB >>= return . prove [] sos . map wiItem
+inconsistantKB s = lift (implicativeNormalForm s) >>= return . getSetOfSupport >>= \ sos -> getKB >>= return . prove S.empty sos . map wiItem
 
 -- |Return a flag indicating whether sentence was proved, along with a
 -- proof.
