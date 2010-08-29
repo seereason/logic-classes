@@ -8,10 +8,10 @@ import Data.Boolean.SatSolver
 import Data.Generics (Data, Typeable)
 import qualified Data.Map as M
 import qualified Logic.Set as S
-import Logic.FirstOrder (FirstOrderLogic(..))
-import qualified Logic.Logic as L
+import Logic.FirstOrder (FirstOrderFormula(..))
+import Logic.Logic (Negatable(..))
 import Logic.Monad (NormalT', LiteralMapT)
-import Logic.Normal (ClauseNormal(..))
+import Logic.Normal (ClauseNormalFormula(..))
 import Logic.NormalForm (clauseNormalForm)
 
 instance Ord Literal where
@@ -20,7 +20,7 @@ instance Ord Literal where
     compare (Pos m) (Pos n) = compare m n
     compare (Neg m) (Neg n) = compare m n
 
-instance L.Literal Literal where
+instance Negatable Literal where
     (.~.) (Pos n) = Neg n
     (.~.) (Neg n) = Pos n
     negated (Pos _) = False
@@ -29,21 +29,21 @@ instance L.Literal Literal where
 deriving instance Data Literal
 deriving instance Typeable Literal
 
-instance ClauseNormal CNF Literal where
+instance ClauseNormalFormula CNF Literal where
     clauses = S.fromList . map S.fromList
     makeCNF = map S.toList . S.toList
     satisfiable cnf = return . not . null $ assertTrue' cnf newSatSolver >>= solve
 
-toCNF :: (Monad m, FirstOrderLogic formula term v p f) =>
+toCNF :: (Monad m, FirstOrderFormula formula term v p f) =>
          formula -> NormalT' formula v term m CNF
 toCNF f = clauseNormalForm f >>= S.ssMapM (lift . toLiteral) >>= return . makeCNF
 
 -- |Convert a [[formula]] to CNF, which means building a map from
 -- formula to Literal.
-toLiteral :: forall m lit. (Monad m, L.Literal lit, Ord lit) =>
+toLiteral :: forall m lit. (Monad m, Negatable lit, Ord lit) =>
              lit -> LiteralMapT lit m Literal
 toLiteral f =
-    literalNumber >>= return . if L.negated f then Neg else Pos
+    literalNumber >>= return . if negated f then Neg else Pos
     where
       literalNumber :: LiteralMapT lit m Int
       literalNumber =
@@ -54,4 +54,4 @@ toLiteral f =
                           return count
             Just n -> return n
       f' :: lit
-      f' = if L.negated f then (L..~.) f else f
+      f' = if negated f then (.~.) f else f

@@ -2,7 +2,7 @@ module Logic.Harrison.Tableaux where
 
 import Control.Applicative.Error (Failing(..))
 import qualified Data.Map as M
-import Logic.FirstOrder (FirstOrderLogic(..), Predicate(..))
+import Logic.FirstOrder (FirstOrderFormula(..), Predicate(..))
 import Logic.Harrison.Unif
 import Logic.Logic (Combine(..))
 
@@ -24,7 +24,7 @@ let rec unify_literals env tmp =
   | False,False -> env
   | _ -> failwith "Can't unify literals";;
 -}
-unifyLiterals :: FirstOrderLogic formula term v p f =>
+unifyLiterals :: FirstOrderFormula formula term v p f =>
                  M.Map v term -> formula -> formula -> Failing (M.Map v term)
 unifyLiterals env f1 f2 =
     maybe (Failure ["Can't unify literals"]) id (zipF q c p f1 f2)

@@ -8,7 +8,7 @@ module Logic.KnowledgeBase
     ( getKB
     , emptyKB
     , unloadKB
-    , deleteKB
+    -- , deleteKB
     , askKB
     , theoremKB
     , inconsistantKB
@@ -19,17 +19,16 @@ module Logic.KnowledgeBase
     , showKB
     ) where
 
-import Control.Monad.State (MonadState(get, put), modify)
+import Control.Monad.State (MonadState(get, put))
 import Control.Monad.Trans (lift)
 import Data.Generics (Data, Typeable)
-import Data.List (partition)
-import Logic.FirstOrder (FirstOrderLogic)
-import Logic.Logic (Literal(..))
+import Logic.FirstOrder (FirstOrderFormula)
+import Logic.Logic (Negatable(..))
 import Logic.Monad (ProverT, ProverT', ProverState(..), KnowledgeBase, WithId(..), SentenceCount, withId, zeroKB)
-import Logic.Normal (Implicative(..))
+import Logic.Normal (ImplicativeNormalFormula(..))
 import Logic.NormalForm (implicativeNormalForm)
 import Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
-import qualified Data.Set as S
+import qualified Logic.Set as S
 import Prelude hiding (negate)
 
 data ProofResult
@@ -45,37 +44,37 @@ emptyKB :: Monad m => ProverT inf m ()
 emptyKB = put zeroKB
 
 -- |Remove a particular sentence from the knowledge base
-unloadKB :: Monad m => SentenceCount -> ProverT inf m (Maybe (KnowledgeBase inf))
+unloadKB :: (Monad m, Ord inf) => SentenceCount -> ProverT inf m (Maybe (KnowledgeBase inf))
 unloadKB n =
     do st <- get
-       let (discard, keep) = partition ((== n) . wiIdent) (knowledgeBase st)
+       let (discard, keep) = S.partition ((== n) . wiIdent) (knowledgeBase st)
        put (st {knowledgeBase = keep}) >> return (Just discard)
 
 -- |Return the contents of the knowledgebase.
-getKB :: Monad m => ProverT inf m [WithId inf]
+getKB :: Monad m => ProverT inf m (S.Set (WithId inf))
 getKB = get >>= return . knowledgeBase
 
 -- |Return a flag indicating whether sentence was disproved, along
 -- with a disproof.
-inconsistantKB :: (Monad m, FirstOrderLogic formula term v p f, Data formula, Implicative inf formula) => formula -> ProverT' v term inf m (Bool, SetOfSupport inf v term)
-inconsistantKB s = lift (implicativeNormalForm s) >>= return . getSetOfSupport >>= \ sos -> getKB >>= return . prove S.empty sos . map wiItem
+inconsistantKB :: (Monad m, FirstOrderFormula formula term v p f, Data formula, ImplicativeNormalFormula inf formula) => formula -> ProverT' v term inf m (Bool, SetOfSupport inf v term)
+inconsistantKB s = lift (implicativeNormalForm s) >>= return . getSetOfSupport >>= \ sos -> getKB >>= return . prove S.empty sos . S.map wiItem
 
 -- |Return a flag indicating whether sentence was proved, along with a
 -- proof.
-theoremKB :: (Monad m, FirstOrderLogic formula term v p f, Data formula, Implicative inf formula) =>
+theoremKB :: (Monad m, FirstOrderFormula formula term v p f, Data formula, ImplicativeNormalFormula inf formula) =>
              formula -> ProverT' v term inf m (Bool, SetOfSupport inf v term)
 theoremKB s = inconsistantKB ((.~.) s)
 
 -- |Try to prove a sentence, return the result and the proof.
 -- askKB should be in KnowledgeBase module. However, since resolution
 -- is here functions are here, it is also placed in this module.
-askKB :: (Monad m, FirstOrderLogic formula term v p f, Data formula, Implicative inf formula) =>
+askKB :: (Monad m, FirstOrderFormula formula term v p f, Data formula, ImplicativeNormalFormula inf formula) =>
          formula -> ProverT' v term inf m Bool
 askKB s = theoremKB s >>= return . fst
 
 -- |See whether the sentence is true, false or invalid.  Return proofs
 -- for truth and falsity.
-validKB :: (FirstOrderLogic formula term v p f, Implicative inf formula, Data formula, Monad m) =>
+validKB :: (FirstOrderFormula formula term v p f, ImplicativeNormalFormula inf formula, Data formula, Monad m) =>
            formula -> ProverT' v term inf m (ProofResult, SetOfSupport inf v term, SetOfSupport inf v term)
 validKB s =
     theoremKB s >>= \ (proved, proof1) ->
@@ -85,24 +84,25 @@ validKB s =
 -- |Validate a sentence and insert it into the knowledgebase.  Returns
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
-tellKB :: (FirstOrderLogic formula term v p f, Implicative inf formula, Data formula, Monad m) =>
-          formula -> ProverT' v term inf m (ProofResult, [inf])
+tellKB :: (FirstOrderFormula formula term v p f, ImplicativeNormalFormula inf formula, Data formula, Monad m) =>
+          formula -> ProverT' v term inf m (ProofResult, S.Set inf)
 tellKB s =
     do st <- get
        inf <- lift (implicativeNormalForm s)
-       let inf' = map (withId (sentenceCount st)) inf
+       let inf' = S.map (withId (sentenceCount st)) inf
        (valid, _, _) <- validKB s
        case valid of
          Disproved -> return ()
-         _ -> put st { knowledgeBase = knowledgeBase st ++ inf'
+         _ -> put st { knowledgeBase = S.union (knowledgeBase st) inf'
                      , sentenceCount = sentenceCount st + 1 }
-       return (valid, map wiItem inf')
+       return (valid, S.map wiItem inf')
 
-loadKB :: (FirstOrderLogic formula term v p f, Implicative inf formula, Data formula, Monad m) =>
-          [formula] -> ProverT' v term inf m [(ProofResult, [inf])]
+loadKB :: (FirstOrderFormula formula term v p f, ImplicativeNormalFormula inf formula, Data formula, Monad m) =>
+          [formula] -> ProverT' v term inf m [(ProofResult, S.Set inf)]
 loadKB sentences = mapM tellKB sentences
 
 -- |Delete an entry from the KB.
+{-
 deleteKB :: Monad m => Int -> ProverT inf m String
 deleteKB i = do st <- get
                 modify (\ st' -> st' {knowledgeBase = deleteElement i (knowledgeBase st')})
@@ -121,14 +121,18 @@ deleteElement i l
 		    p1 ++ (case p2 of
 			       [] -> []
 			       _ -> tail p2)
+-}
 
 -- |Return a text description of the contents of the knowledgebase.
 showKB :: (Show inf, Monad m) => ProverT inf m String
 showKB = get >>= return . reportKB
 
 reportKB :: (Show inf) => ProverState inf -> String
-reportKB (ProverState {knowledgeBase = []}) = "Nothing in Knowledge Base\n"
-reportKB (ProverState {knowledgeBase = [WithId {wiItem = x, wiIdent = n}]}) =
-    show n ++ ") " ++ "\t" ++ show x ++ "\n"
-reportKB st@(ProverState {knowledgeBase = (WithId {wiItem = x, wiIdent = n}:xs)}) =
-    show n ++ ") " ++ "\t" ++ show x ++ "\n" ++ reportKB (st {knowledgeBase = xs})
+reportKB st@(ProverState {knowledgeBase = kb}) =
+    case S.minView kb of
+      Nothing -> "Nothing in Knowledge Base\n"
+      Just (WithId {wiItem = x, wiIdent = n}, kb')
+          | S.null kb' ->
+              show n ++ ") " ++ "\t" ++ show x ++ "\n"
+          | True ->
+              show n ++ ") " ++ "\t" ++ show x ++ "\n" ++ reportKB (st {knowledgeBase = kb'})

@@ -6,10 +6,10 @@ module Test.Logic (tests) where
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 import qualified Logic.Instances.Native as P
-import Logic.Logic (Literal(..), Logic(..), Boolean(..))
+import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
 import Logic.Monad (runNormal)
 import Logic.NormalForm (clauseNormalForm, clauseNormalForm)
-import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), Term(..), showForm, freeVars, substitute)
+import Logic.FirstOrder (Skolem(..), FirstOrderFormula(..), Term(..), showForm, freeVars, substitute)
 import Logic.Satisfiable (theorem, inconsistant)
 import PropLogic (PropForm(..), TruthTable, truthTable)
 import qualified TextDisplay as TD
@@ -26,7 +26,7 @@ type TestFormula = P.Formula V String AtomicFunction
 tests :: Test
 tests = TestLabel "Logic" $ TestList (precTests ++ theoremTests)
 
-formCase :: FirstOrderLogic (P.Formula V String AtomicFunction) (P.PTerm V AtomicFunction) V String AtomicFunction =>
+formCase :: FirstOrderFormula (P.Formula V String AtomicFunction) (P.PTerm V AtomicFunction) V String AtomicFunction =>
             String -> TestFormula -> TestFormula -> Test
 formCase s expected input = TestLabel s $ TestCase (assertEqual s expected input)
 
@@ -71,11 +71,11 @@ y = var (fromString "y")
 z :: P.PTerm V AtomicFunction
 z = var (fromString "z")
 
--- |Here is an example of automatic conversion from a FirstOrderLogic
--- instance to a PropositionalLogic instance.  The result is PropForm
+-- |Here is an example of automatic conversion from a FirstOrderFormula
+-- instance to a PropositionalFormula instance.  The result is PropForm
 -- a where a is the original type, but the a values will always be
 -- "atomic" formulas, never the operators which can be converted into
--- the corresponding operator of a PropositionalLogic instance.
+-- the corresponding operator of a PropositionalFormula instance.
 {-
 test9a :: Test
 test9a = TestCase 
@@ -145,7 +145,7 @@ inf1 =
     where
       expected :: TestFormula
       expected = ((pApp ("p") [var ("x")]) .=>. (((pApp ("q") [var ("x")]) .|. ((pApp ("r") [var ("x")])))))
-      formula :: {- Implicative inf (C.Sentence V String AtomicFunction) (C.Term V AtomicFunction) V String AtomicFunction => -} TestFormula
+      formula :: {- ImplicativeNormalFormula inf (C.Sentence V String AtomicFunction) (C.Term V AtomicFunction) V String AtomicFunction => -} TestFormula
       formula = convertFOF id id id (implicativeNormalForm (convertFOF id id id (for_all ["x"] (p [x] .=>. (q [x] .|. r [x]))) :: C.Sentence V String AtomicFunction) :: C.Sentence V String AtomicFunction)
 -}
 
@@ -428,7 +428,7 @@ prepare formula = ({- flatten . -} fromJust . toPropositional convertA . cnf . (
 convertA = Just . A
 -}
 
-table :: forall formula term v p f. (FirstOrderLogic formula term v p f, Ord formula, Skolem f, IsString v, Enum v, TD.Display formula) =>
+table :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, Skolem f, IsString v, Enum v, TD.Display formula) =>
          formula -> TruthTable formula
 table f =
     -- truthTable :: Ord a => PropForm a -> TruthTable a

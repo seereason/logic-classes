@@ -1,3 +1,12 @@
+haskell-logic (0.21) unstable; urgency=low
+
+  * Rename the *Logic classes -> *Formula
+  * Split a NormalFormula class out of FirstOrderFormula, use it as
+    the result of the clauseNormalForm and implicativeNormalForm
+    functions.
+
+ -- David Fox <dsf@seereason.com>  Sun, 29 Aug 2010 14:27:34 -0700
+
 haskell-logic (0.20) unstable; urgency=low
 
   * Reduce the number of arguments to foldF to three, one for quantifiers,

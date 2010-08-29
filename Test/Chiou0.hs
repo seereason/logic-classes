@@ -8,13 +8,13 @@ import Control.Monad.Trans (MonadIO, liftIO)
 import Data.Map (fromList)
 import qualified Data.Set as S
 import Data.String (IsString(..))
-import qualified Logic.FirstOrder as Logic
-import Logic.FirstOrder (FirstOrderLogic(..), Term(..), Skolem(..))
+import Logic.FirstOrder
+import Logic.FirstOrder (FirstOrderFormula(..), Term(..), Skolem(..))
 import Logic.Instances.Native (Formula, PTerm, ImplicativeNormalForm, makeINF')
 import Logic.KnowledgeBase (ProofResult(..), loadKB, theoremKB {-, askKB, showKB-})
-import Logic.Logic (Literal(..), Logic(..), Boolean(..))
+import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
 import Logic.Monad (NormalT, runNormal, ProverT, runProver')
-import Logic.Normal (Implicative(..))
+import Logic.Normal (ImplicativeNormalFormula(..))
 import Logic.NormalForm (clauseNormalForm)
 import Logic.Resolution (SetOfSupport)
 import Test.HUnit
@@ -29,14 +29,14 @@ loadTest :: Test
 loadTest =
     TestCase (assertEqual "Chiuo0 - loadKB test" expected (runProver' (loadKB sentences)))
     where
-      expected :: [(ProofResult, [ImplicativeNormalForm V Pr AtomicFunction])]
-      expected = [(Invalid,[makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
-                            makeINF' ([]) ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem 1) []])])]),
-                  (Invalid,[makeINF' ([(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [var ("x"),var ("y")])]) ([(pApp ("AnimalLover") [var ("x")])])]),
-                  (Invalid,[makeINF' ([(pApp ("Animal") [var ("y")]),(pApp ("AnimalLover") [var ("x")]),(pApp ("Kills") [var ("x"),var ("y")])]) ([])]),
-                  (Invalid,[makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])])]),
-                  (Invalid,[makeINF' ([]) ([(pApp ("Cat") [fApp ("Tuna") []])])]),
-                  (Invalid,[makeINF' ([(pApp ("Cat") [var ("x")])]) ([(pApp ("Animal") [var ("x")])])])]
+      expected :: [(ProofResult, S.Set (ImplicativeNormalForm V Pr AtomicFunction))]
+      expected = [(Invalid,S.fromList [makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
+                                       makeINF' ([]) ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem 1) []])])]),
+                  (Invalid,S.fromList [makeINF' ([(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [var ("x"),var ("y")])]) ([(pApp ("AnimalLover") [var ("x")])])]),
+                  (Invalid,S.fromList [makeINF' ([(pApp ("Animal") [var ("y")]),(pApp ("AnimalLover") [var ("x")]),(pApp ("Kills") [var ("x"),var ("y")])]) ([])]),
+                  (Invalid,S.fromList [makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])])]),
+                  (Invalid,S.fromList [makeINF' ([]) ([(pApp ("Cat") [fApp ("Tuna") []])])]),
+                  (Invalid,S.fromList [makeINF' ([(pApp ("Cat") [var ("x")])]) ([(pApp ("Animal") [var ("x")])])])]
 
 proofTest1 :: Test
 proofTest1 = TestCase (assertEqual "Chiuo0 - proof test 1" proof1 (runProver' (loadKB sentences >> theoremKB (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []]))))
@@ -92,7 +92,7 @@ testProof label (question, expectedAnswer, expectedProof) =
                 "\n Actual:\n  " ++ show actual')
     else liftIO (putStrLn (label ++ " ok"))
 
-loadCmd :: Monad m => ProverT (ImplicativeNormalForm V Pr AtomicFunction) (NormalT V (PTerm V AtomicFunction) m) [(ProofResult, [ImplicativeNormalForm V Pr AtomicFunction])]
+loadCmd :: Monad m => ProverT (ImplicativeNormalForm V Pr AtomicFunction) (NormalT V (PTerm V AtomicFunction) m) [(ProofResult, S.Set (ImplicativeNormalForm V Pr AtomicFunction))]
 loadCmd = loadKB sentences
 
 sentences :: [Formula V Pr AtomicFunction]

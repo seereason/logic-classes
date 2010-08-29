@@ -17,12 +17,12 @@ module Logic.Instances.Chiou
 import Data.Generics (Data, Typeable)
 import qualified Data.Set as S
 import Data.String (IsString(..))
-import Logic.FirstOrder (FirstOrderLogic(..), Pretty)
+import Logic.FirstOrder (FirstOrderFormula(..), Pretty)
 import qualified Logic.FirstOrder as Logic
 import qualified Logic.FirstOrder as L
-import Logic.Logic (Literal(..), Logic(..), BinOp(..), Combine(..), Boolean(..))
-import Logic.Normal (Implicative(..))
-import Logic.Propositional (PropositionalLogic(..))
+import Logic.Logic (Negatable(..), Logic(..), BinOp(..), Combine(..), Boolean(..))
+import Logic.Normal (ImplicativeNormalFormula(..))
+import Logic.Propositional (PropositionalFormula(..))
 import Logic.FirstOrder (Skolem(..), Quant(..))
 
 
@@ -73,7 +73,7 @@ data Quantifier
     | ExistsCh
     deriving (Eq, Ord, Show, Data, Typeable)
 
-instance Literal (Sentence v p f) where
+instance Negatable (Sentence v p f) where
     (.~.) (Not (Not x)) = (.~.) x
     (.~.) (Not x) = x
     (.~.) x   = Not x
@@ -90,7 +90,7 @@ instance (Ord v, IsString v, Data v, Pretty v, Enum v,
           Ord p, IsString p, Data p, Pretty p, Boolean p,
           Ord f, IsString f, Data f, Pretty f, Skolem f, 
           Logic (Sentence v p f)) =>
-         PropositionalLogic (Sentence v p f) (Sentence v p f) where
+         PropositionalFormula (Sentence v p f) (Sentence v p f) where
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Not _) = error "Logic.Instances.Chiou.atomic: unexpected"
@@ -126,8 +126,8 @@ instance (Pretty v, Pretty p, Pretty f, -- debugging
           Ord v, IsString v, Enum v, Data v,
           Ord p, IsString p, Boolean p, Data p,
           Ord f, IsString f, Skolem f, Data f, 
-          PropositionalLogic (Sentence v p f) (Sentence v p f)) =>
-          FirstOrderLogic (Sentence v p f) (CTerm v f) v p f where
+          PropositionalFormula (Sentence v p f) (Sentence v p f)) =>
+          FirstOrderFormula (Sentence v p f) (CTerm v f) v p f where
     for_all v x = Quantifier ForAll [v] x
     exists v x = Quantifier ExistsCh [v] x
     foldF q c p f =
@@ -176,10 +176,10 @@ instance (Pretty v, Pretty p, Pretty f, -- debugging
     x .=. y = Equal x y
 
 {-
-instance (FirstOrderLogic (Sentence v p f) (CTerm v f) v p f, Show v, Show p, Show f) => Show (Sentence v p f) where
+instance (FirstOrderFormula (Sentence v p f) (CTerm v f) v p f, Show v, Show p, Show f) => Show (Sentence v p f) where
     show = showForm
 
-instance (FirstOrderLogic (Sentence v p f) (CTerm v f) v p f, Show v, Show p, Show f) => Show (CTerm v f) where
+instance (FirstOrderFormula (Sentence v p f) (CTerm v f) v p f, Show v, Show p, Show f) => Show (CTerm v f) where
     show = showTerm
 -}
 
@@ -211,18 +211,18 @@ data NormalSentence v p f
     deriving (Eq, Ord, Data, Typeable)
 
 -- We need a distinct type here because of the functional dependencies
--- in class FirstOrderLogic.
+-- in class FirstOrderFormula.
 data NormalTerm v f
     = NormalFunction f [NormalTerm v f]
     | NormalVariable v
     deriving (Eq, Ord, Data, Typeable)
 
-instance (Enum v, Ord p, Ord f, FirstOrderLogic (Sentence v p f) (CTerm v f) v p f) => Implicative (ImplicativeNormalForm v p f) (Sentence v p f) where
+instance (Enum v, Ord p, Ord f, FirstOrderFormula (Sentence v p f) (CTerm v f) v p f) => ImplicativeNormalFormula (ImplicativeNormalForm v p f) (Sentence v p f) where
     neg (INF x _) = S.fromList x
     pos (INF _ x) = S.fromList x
     makeINF lhs rhs = INF (S.toList lhs) (S.toList rhs)
 
-instance Literal (NormalSentence v p f) where
+instance Negatable (NormalSentence v p f) where
     (.~.) (NFNot (NFNot x)) = ((.~.) x)
     (.~.) (NFNot x)= x
     (.~.) x   = NFNot x
@@ -232,9 +232,9 @@ instance Literal (NormalSentence v p f) where
 instance (IsString v, Pretty v,
           Ord p, IsString p, Boolean p, Data p, Pretty p,
           Ord f, IsString f, Pretty f,
-          Logic (NormalSentence v p f), Logic.Term (NormalTerm v f) v f) => FirstOrderLogic (NormalSentence v p f) (NormalTerm v f) v p f where
-    for_all _ _ = error "FirstOrderLogic NormalSentence"
-    exists _ _ = error "FirstOrderLogic NormalSentence"
+          Logic (NormalSentence v p f), Logic.Term (NormalTerm v f) v f) => FirstOrderFormula (NormalSentence v p f) (NormalTerm v f) v p f where
+    for_all _ _ = error "FirstOrderFormula NormalSentence"
+    exists _ _ = error "FirstOrderFormula NormalSentence"
     foldF _ c p f =
         case f of
           NFNot x -> c ((:~:) x)
@@ -263,7 +263,7 @@ instance (Ord v, Enum v, Data v, Eq f, Ord f, Logic.Skolem f, Data f) => Logic.T
           (NormalFunction f1 ts1, NormalFunction f2 ts2) -> fn f1 ts1 f2 ts2
           _ -> Nothing
 
-toSentence :: FirstOrderLogic (Sentence v p f) (CTerm v f) v p f => NormalSentence v p f -> Sentence v p f
+toSentence :: FirstOrderFormula (Sentence v p f) (CTerm v f) v p f => NormalSentence v p f -> Sentence v p f
 toSentence (NFNot s) = (.~.) (toSentence s)
 toSentence (NFEqual t1 t2) = toTerm t1 .=. toTerm t2
 toSentence (NFPredicate p ts) = pApp p (map toTerm ts)
@@ -272,7 +272,7 @@ toTerm :: (Ord v, Enum v, Data v, Eq f, Ord f, Logic.Skolem f, Data f) => Normal
 toTerm (NormalFunction f ts) = Logic.fApp f (map toTerm ts)
 toTerm (NormalVariable v) = Logic.var v
 
-fromSentence :: forall v p f. FirstOrderLogic (Sentence v p f) (CTerm v f) v p f =>
+fromSentence :: forall v p f. FirstOrderFormula (Sentence v p f) (CTerm v f) v p f =>
                 Sentence v p f -> NormalSentence v p f
 fromSentence = foldF 
                  (\ _ _ _ -> error "fromSentence 1")

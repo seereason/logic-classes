@@ -10,9 +10,9 @@ import Data.Char (isDigit, ord)
 import Data.Generics (Data, Typeable)
 import Data.String (IsString(..))
 import qualified Logic.FirstOrder as Logic
-import Logic.FirstOrder (FirstOrderLogic(..), Term(..), Pretty(..), Predicate(..))
+import Logic.FirstOrder (FirstOrderFormula(..), Term(..), Pretty(..), Predicate(..))
 import qualified Logic.Logic as Logic
-import Logic.Logic (Literal(..), Logic(..), Boolean(..))
+import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
 import qualified Logic.Propositional as Logic
 import Text.PrettyPrint (text)
 
@@ -64,7 +64,7 @@ instance Logic.Pretty AtomicFunction where
 instance Logic.Pretty AtomicWord where
     pretty (AtomicWord s) = text s
 
-instance Logic.Literal Formula where
+instance Logic.Negatable Formula where
     negated (F (Identity ((:~:) x))) = not (negated x)
     negated _ = False
     (.~.) (F (Identity ((:~:) x))) = x
@@ -86,11 +86,11 @@ instance Logic.Logic Formula where
 -- |For types designed to represent first order (predicate) logic, it
 -- is easiest to make the atomic type the same as the formula type,
 -- and then raise an error if we see unexpected non-atomic formulas.
-instance Logic.PropositionalLogic Formula Formula where
+instance Logic.PropositionalFormula Formula Formula where
     atomic (F (Identity (InfixPred t1 (:=:) t2))) = t1 .=. t2
     atomic (F (Identity (InfixPred t1 (:!=:) t2))) = t1 .!=. t2
     atomic (F (Identity (PredApp p ts))) = pApp p ts
-    atomic _ = error "atomic method of PropositionalLogic for TPTP: invalid argument"
+    atomic _ = error "atomic method of PropositionalFormula for TPTP: invalid argument"
     -- Use the TPTP fold to implement the Logic fold.  This means
     -- building wrappers around some of the functions so that when
     -- the wrappers are passed TPTP types they turn them into Logic
@@ -114,7 +114,7 @@ instance Logic.PropositionalLogic Formula Formula where
               p' p ts = a (F (Identity (PredApp p ts)))
               unwrapF' (F x) = F x -- copoint x
 
-instance Logic.FirstOrderLogic Formula (T Identity) V AtomicWord AtomicFunction where
+instance Logic.FirstOrderFormula Formula (T Identity) V AtomicWord AtomicFunction where
     for_all vars x = for_all vars x
     exists vars x = exists vars x
     -- Use the TPTP fold to implement the Logic fold.  This means

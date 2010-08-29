@@ -45,23 +45,22 @@ import Data.Maybe (isJust)
 import Logic.FirstOrder
 import Logic.Harrison.Skolem (prenex, askolemize, simplify, specialize)
 import Logic.Harrison.Prop (nnf, trivial, simpcnf)
-import Logic.Logic
 import Logic.Monad (NormalT)
-import Logic.Normal (NormalLogic(..), Implicative(makeINF))
+import Logic.Normal (Literal(..), ImplicativeNormalFormula(makeINF))
 import qualified Logic.Set as S
 import Text.PrettyPrint (hcat, vcat, text, nest, ($$), brackets, render)
 
 -- | Simplify and recursively apply nnf.
-negationNormalForm :: FirstOrderLogic formula term v p f => formula -> formula
+negationNormalForm :: FirstOrderFormula formula term v p f => formula -> formula
 negationNormalForm = nnf . simplify
 
 -- |Convert to Prenex normal form, with all quantifiers at the left.
-prenexNormalForm :: (FirstOrderLogic formula term v p f) => formula -> formula
+prenexNormalForm :: (FirstOrderFormula formula term v p f) => formula -> formula
 prenexNormalForm = prenex . negationNormalForm
 
 -- |We get Skolem Normal Form by skolemizing and then converting to
 -- Prenex Normal Form, and finally eliminating the remaining quantifiers.
-skolemNormalForm :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
+skolemNormalForm :: (Monad m, FirstOrderFormula formula term v p f) => formula -> NormalT v term m formula
 skolemNormalForm f = askolemize f >>= return . specialize . prenexNormalForm
 
 -- |Convert to Skolem Normal Form and then distribute the disjunctions over the conjunctions:
@@ -72,11 +71,11 @@ skolemNormalForm f = askolemize f >>= return . specialize . prenexNormalForm
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-clauseNormalForm :: (Monad m, FirstOrderLogic formula term v p f, NormalLogic lit term v p f) =>
+clauseNormalForm :: (Monad m, FirstOrderFormula formula term v p f, Literal lit term v p f) =>
        formula -> NormalT v term m (S.Set (S.Set lit))
 clauseNormalForm fm = skolemNormalForm fm >>= return . simpcnf
 
-cnfTrace :: (Monad m, FirstOrderLogic formula term v p f, Literal formula, Pretty v, Pretty p, Pretty f) =>
+cnfTrace :: (Monad m, FirstOrderFormula formula term v p f, Pretty v, Pretty p, Pretty f) =>
             formula -> NormalT v term m String
 cnfTrace f =
     do let simplified = simplify f
@@ -115,13 +114,13 @@ cnfTrace f =
 --    a | b | c => f
 -- @
 implicativeNormalForm :: forall m formula term v p f lit inf. 
-                         (Monad m, FirstOrderLogic formula term v p f, Data formula, NormalLogic lit term v p f, Implicative inf lit) =>
-                         formula -> NormalT v term m [inf] -- Should be a set
+                         (Monad m, FirstOrderFormula formula term v p f, Data formula, Literal lit term v p f, ImplicativeNormalFormula inf lit) =>
+                         formula -> NormalT v term m (S.Set inf)
 implicativeNormalForm formula =
     do cnf <- clauseNormalForm formula
        let pairs = S.map (S.fold collect (S.empty, S.empty)) cnf :: S.Set (S.Set lit, S.Set lit)
            pairs' = S.flatten (S.map split pairs) :: S.Set (S.Set lit, S.Set lit)
-       return (map (\ (n,p) -> makeINF n p) (S.toList pairs'))
+       return (S.map (\ (n,p) -> makeINF n p) pairs')
     -- clauseNormalForm formula >>= return . S.unions . S.map split . map (S.fold collect (S.empty, S.empty))
     where
       collect :: lit -> (S.Set lit, S.Set lit) -> (S.Set lit, S.Set lit)

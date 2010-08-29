@@ -1,21 +1,20 @@
 {-# LANGUAGE FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-orphans #-}
--- |A simplified formula type which is suitable for use as the
--- parameter to the Literal class after converting a first order logic
--- formula to normal form.
+-- |Classes and types representing the result of the normal form
+-- conversion functions.
 module Logic.Normal
     ( Predicate(..)
-    , NormalLogic(..)
-    , convertToNormal
-    , ClauseNormal(..)
-    , Implicative(..)
+    , Literal(..)
+    , fromFirstOrder
+    , ClauseNormalFormula(..)
+    , ImplicativeNormalFormula(..)
     ) where
 
 import Control.Monad.Writer (MonadPlus)
 import Data.Generics (Data)
 import Logic.FirstOrder (Term(..))
 import qualified Logic.FirstOrder as Logic
-import Logic.Logic (Literal(..), Boolean(..))
+import Logic.Logic (Negatable(..), Boolean(..))
 import qualified Logic.Logic as Logic
 import qualified Logic.Set as S
 
@@ -31,9 +30,9 @@ class ( Ord lit
       , Ord p
       , Boolean p
       , Term term v f
-      , Literal lit
+      , Negatable lit
       , Data lit
-      ) => NormalLogic lit term v p f | lit -> term, term -> lit, lit -> v, lit -> p, lit -> f where
+      ) => Literal lit term v p f | lit -> term, term -> lit, lit -> v, lit -> p, lit -> f where
     (.=.) :: term -> term -> lit
     pApp :: p -> [term] -> lit
     foldN :: (lit -> r) -> (Predicate p term -> r) -> lit -> r
@@ -41,7 +40,7 @@ class ( Ord lit
 
 -- |A class to represent formulas in CNF, which is the conjunction of
 -- a set of disjuncted literals each which may or may not be negated.
-class (Literal lit, Eq lit, Ord lit) => ClauseNormal cnf lit | cnf -> lit where
+class (Negatable lit, Eq lit, Ord lit) => ClauseNormalFormula cnf lit | cnf -> lit where
     clauses :: cnf -> S.Set (S.Set lit)
     makeCNF :: S.Set (S.Set lit) -> cnf
     satisfiable :: MonadPlus m => cnf -> m Bool
@@ -51,7 +50,7 @@ class (Literal lit, Eq lit, Ord lit) => ClauseNormal cnf lit | cnf -> lit where
 -- f@, where a thru f are literals.  One more restriction that is not
 -- implied by the type is that no literal can appear in both the pos
 -- set and the neg set.  Minimum implementation: pos, neg, toINF
-class (Literal lit, Eq inf, Ord inf, Ord lit) => Implicative inf lit | inf -> lit where
+class (Negatable lit, Eq inf, Ord inf, Ord lit) => ImplicativeNormalFormula inf lit | inf -> lit where
     neg :: inf -> S.Set lit
                          -- ^ Return the literals that are negated
                          -- and disjuncted on the left side of the
@@ -65,7 +64,9 @@ class (Literal lit, Eq inf, Ord inf, Ord lit) => Implicative inf lit | inf -> li
                          -- implies.
     makeINF :: S.Set lit -> S.Set lit -> inf
 
-instance (Logic.FirstOrderLogic formula term v p f, Ord formula, Ord p) => NormalLogic formula term v p f where
+-- |We can implement a Literal instance using methods from
+-- FirstOrderFormula.
+instance Logic.FirstOrderFormula formula term v p f => Literal formula term v p f where
     (.=.) = (Logic..=.)
     pApp = Logic.pApp
     foldN c p l =
@@ -88,14 +89,14 @@ instance (Logic.FirstOrderLogic formula term v p f, Ord formula, Ord p) => Norma
 -- |Convert any first order logic formula to a normal logic formula,
 -- |provided it doesn't contain any unsupported constructs, such as
 -- |quantifiers, binary operators, boolean constants.
-convertToNormal :: forall formula term v p f lit. (Logic.FirstOrderLogic formula term v p f, NormalLogic lit term v p f) => formula -> lit
-convertToNormal formula =
-    Logic.foldF (\ _ _ _ -> error "convertToNormal") c p formula
+fromFirstOrder :: forall formula term v p f lit. (Logic.FirstOrderFormula formula term v p f, Literal lit term v p f) => formula -> lit
+fromFirstOrder formula =
+    Logic.foldF (\ _ _ _ -> error "toLiteral") c p formula
     where
       c :: Logic.Combine formula -> lit
-      c ((Logic.:~:) f) =  (.~.) (convertToNormal f)
+      c ((Logic.:~:) f) =  (.~.) (fromFirstOrder f)
       c _ = error "comvertToNormal"
       p :: Logic.Predicate p term -> lit
       p (Logic.Equal a b) = a .=. b
       p (Logic.Apply pr ts) = pApp pr ts
-      p _ = error "convertToNormal"
+      p _ = error "toLiteral"

@@ -17,8 +17,7 @@ import qualified Data.Map as M
 import Data.Maybe (isJust)
 import qualified Data.Set as S
 import Logic.FirstOrder (Term(..))
-import Logic.Normal (Predicate(..), NormalLogic(..), Implicative(..))
-import qualified Logic.Normal as Normal
+import Logic.Normal (Predicate(..), Literal(..), ImplicativeNormalFormula(..))
 import qualified Logic.Set as S
 
 type Subst v term = Map v term
@@ -27,15 +26,15 @@ type SetOfSupport inf v term = S.Set (Unification inf v term)
 
 type Unification inf v term = (inf, Subst v term)
 
-prove :: (Implicative inf lit, NormalLogic lit term v p f) =>
-         (SetOfSupport inf v term) -> (SetOfSupport inf v term) -> [inf] -> (Bool, (SetOfSupport inf v term))
+prove :: (ImplicativeNormalFormula inf lit, Literal lit term v p f) =>
+         (SetOfSupport inf v term) -> (SetOfSupport inf v term) -> S.Set inf -> (Bool, (SetOfSupport inf v term))
 prove ss1 ss2' kb =
     case S.minView ss2' of
       Nothing -> (False, ss1)
       Just (s, ss2) ->
           case prove' s kb ss2 ss1 of
             (ss', True) -> (True, (S.insert s (S.union ss1 ss')))
-            (ss', False) -> prove (S.insert s ss1) ss' (fst s : kb)
+            (ss', False) -> prove (S.insert s ss1) ss' (S.insert (fst s) kb)
 -- prove ss1 [] _kb = (False, ss1)
 -- prove ss1 (s:ss2) kb =
 --     let
@@ -46,49 +45,60 @@ prove ss1 ss2' kb =
 --       else
 --         prove (ss1 ++ [s]) ss' (fst s:kb)
 
-prove' :: (Implicative inf lit, NormalLogic lit term v p f) =>
-          (Unification inf v term) -> [inf] -> (SetOfSupport inf v term) -> (SetOfSupport inf v term) -> ((SetOfSupport inf v term), Bool)
+prove' :: (ImplicativeNormalFormula inf lit, Literal lit term v p f) =>
+          (Unification inf v term) -> S.Set inf -> (SetOfSupport inf v term) -> (SetOfSupport inf v term) -> ((SetOfSupport inf v term), Bool)
 prove' p kb ss1 ss2 =
     let
-      res1 = map (\x -> resolution p (x, empty)) kb
-      res2 = map (\x -> resolution (x, empty) p) kb
-      dem1 = map (\e -> demodulate p (e, empty)) kb
-      dem2 = map (\p' -> demodulate (p', empty) p) kb
-      (ss', tf) = getResult (S.union ss1 ss2) (res1 ++ res2 ++ dem1 ++ dem2)
+      res1 = S.map (\x -> resolution p (x, empty)) kb
+      res2 = S.map (\x -> resolution (x, empty) p) kb
+      dem1 = S.map (\e -> demodulate p (e, empty)) kb
+      dem2 = S.map (\p' -> demodulate (p', empty) p) kb
+      (ss', tf) = getResult (S.union ss1 ss2) (S.unions [res1, res2, dem1, dem2])
     in
       if S.null ss' then (ss1, False) else (S.union ss1 ss', tf)
 
-getResult :: (NormalLogic lit term v p f, Implicative inf lit) =>
-             (SetOfSupport inf v term) -> [Maybe (Unification inf v term)] -> ((SetOfSupport inf v term), Bool)
+getResult :: (Literal lit term v p f, ImplicativeNormalFormula inf lit) =>
+             (SetOfSupport inf v term) -> S.Set (Maybe (Unification inf v term)) -> ((SetOfSupport inf v term), Bool)
+getResult ss us =
+    case S.minView us of
+      Nothing ->
+          (S.empty, False)
+      Just (Nothing, xs) ->
+          getResult ss xs
+      Just ((Just x@(inf, _v)), xs) ->
+          if S.null (neg inf) && S.null (pos inf)
+          then (S.singleton x, True)
+          else if S.any id (S.map (\(e,_) -> isRenameOf (fst x) e) ss)
+               then getResult ss xs
+               else let (xs', tf) = getResult ss xs in (S.insert x xs', tf)
+{-
 getResult _ [] = (S.empty, False)
 getResult ss (Nothing:xs) = getResult ss xs
 getResult ss ((Just x):xs)  =
     if S.null (neg inf) && S.null (pos inf)
     then (S.singleton x, True)
-    else if S.any id (S.map (\(e,_) -> isRenameOf (fst x) e) ss) then
-             getResult ss xs
-           else
-             case getResult ss xs of
-               (xs', tf) -> (S.insert x xs', tf)
+    else if S.any id (S.map (\(e,_) -> isRenameOf (fst x) e) ss)
+         then getResult ss xs
+         else let (xs', tf) = getResult ss xs in (S.insert x xs' tf)
     where
       (inf, _v) = x
+-}
 
 -- |Convert the "question" to a set of support.
-getSetOfSupport :: (Implicative inf formula, Normal.NormalLogic formula term v p f) =>
-                   [inf] -> S.Set (inf, Subst v term)
-getSetOfSupport [] = S.empty
-getSetOfSupport (x:xs) = S.insert (x, getSubsts x empty) (getSetOfSupport xs)
+getSetOfSupport :: (ImplicativeNormalFormula inf formula, Literal formula term v p f) =>
+                   S.Set inf -> S.Set (inf, Subst v term)
+getSetOfSupport s = S.map (\ x -> (x, getSubsts x empty)) s
 
-getSubsts :: (Implicative inf formula, NormalLogic formula term v p f) =>
+getSubsts :: (ImplicativeNormalFormula inf formula, Literal formula term v p f) =>
              inf -> Subst v term -> Subst v term
 getSubsts inf theta =
     getSubstSentences (pos inf) (getSubstSentences (neg inf) theta)
 
-getSubstSentences :: NormalLogic formula term v p f => S.Set formula -> Subst v term -> Subst v term
+getSubstSentences :: Literal formula term v p f => S.Set formula -> Subst v term -> Subst v term
 getSubstSentences xs theta = foldr getSubstSentence theta (S.toList xs)
 
 
-getSubstSentence :: NormalLogic formula term v p f => formula -> Subst v term -> Subst v term
+getSubstSentence :: Literal formula term v p f => formula -> Subst v term -> Subst v term
 getSubstSentence formula theta =
     foldN (\ s -> getSubstSentence s theta)
           (\ pa -> case pa of
@@ -111,7 +121,7 @@ getSubstsTerm term theta =
           (\ _ ts -> getSubstsTerms ts theta)
           term
 
-isRenameOf :: (Implicative inf lit, NormalLogic lit term v p f) =>
+isRenameOf :: (ImplicativeNormalFormula inf lit, Literal lit term v p f) =>
               inf -> inf -> Bool
 isRenameOf inf1 inf2 =
     (isRenameOfSentences lhs1 lhs2) && (isRenameOfSentences rhs1 rhs2)
@@ -121,11 +131,11 @@ isRenameOf inf1 inf2 =
       lhs2 = neg inf2
       rhs2 = pos inf2
 
-isRenameOfSentences :: NormalLogic formula term v p f => S.Set formula -> S.Set formula -> Bool
+isRenameOfSentences :: Literal formula term v p f => S.Set formula -> S.Set formula -> Bool
 isRenameOfSentences xs1 xs2 =
     S.size xs1 == S.size xs2 && all (uncurry isRenameOfSentence) (zip (S.toList xs1) (S.toList xs2))
 
-isRenameOfSentence :: NormalLogic formula term v p f => formula -> formula -> Bool
+isRenameOfSentence :: Literal formula term v p f => formula -> formula -> Bool
 isRenameOfSentence f1 f2 =
     maybe False id $
     zipN (\ _ _ -> Just False) p f1 f2
@@ -150,7 +160,7 @@ isRenameOfTerms ts1 ts2 =
     else
       False
 
-resolution :: (NormalLogic lit term v p f, Implicative inf lit) =>
+resolution :: (Literal lit term v p f, ImplicativeNormalFormula inf lit) =>
               (Unification inf v term) -> (Unification inf v term) -> Maybe (Unification inf v term)
 resolution (inf1, theta1) (inf2, theta2) =
     let
@@ -172,7 +182,7 @@ resolution (inf1, theta1) (inf2, theta2) =
               Just (makeINF lhs'' rhs'', theta)
         Nothing -> Nothing
 
-demodulate :: (Implicative inf lit, NormalLogic lit term v p f) =>
+demodulate :: (ImplicativeNormalFormula inf lit, Literal lit term v p f) =>
               (Unification inf v term) -> (Unification inf v term) -> Maybe (Unification inf v term)
 demodulate (inf1, theta1) (inf2, theta2) =
     case (S.null (neg inf1), S.toList (pos inf1)) of
@@ -195,10 +205,10 @@ demodulate (inf1, theta1) (inf2, theta2) =
       rhs2 = pos inf2
 
 -- |Unification: unifies two sentences.
-unify :: NormalLogic formula term v p f => formula -> formula -> Maybe (Subst v term, Subst v term)
+unify :: Literal formula term v p f => formula -> formula -> Maybe (Subst v term, Subst v term)
 unify s1 s2 = unify' s1 s2 empty empty
 
-unify' :: NormalLogic formula term v p f =>
+unify' :: Literal formula term v p f =>
           formula -> formula -> Subst v term -> Subst v term -> Maybe (Subst v term, Subst v term)
 unify' f1 f2 theta1 theta2 =
     zipN (\ _ _ -> error "unify'")
@@ -234,11 +244,11 @@ unifyTerms (t1:ts1) (t2:ts2) theta1 theta2 =
       Just (theta1',theta2') -> unifyTerms ts1 ts2 theta1' theta2'
 unifyTerms _ _ _ _ = Nothing
 
-tryUnify :: (NormalLogic formula term v p f, Ord formula) =>
+tryUnify :: (Literal formula term v p f, Ord formula) =>
             S.Set formula -> S.Set formula -> Maybe ((S.Set formula, Subst v term), (S.Set formula, Subst v term))
 tryUnify lhs rhs = tryUnify' lhs rhs S.empty
 
-tryUnify' :: (NormalLogic formula term v p f, Ord formula) =>
+tryUnify' :: (Literal formula term v p f, Ord formula) =>
              S.Set formula -> S.Set formula -> S.Set formula -> Maybe ((S.Set formula, Subst v term), (S.Set formula, Subst v term))
 tryUnify' lhss _ _ | S.null lhss = Nothing
 tryUnify' lhss'' rhss lhss' =
@@ -248,7 +258,7 @@ tryUnify' lhss'' rhss lhss' =
       Just (rhss', theta1, theta2) ->
 	  Just ((S.union lhss' lhss, theta1), (rhss', theta2))
 
-tryUnify'' :: (NormalLogic formula term v p f, Ord formula) =>
+tryUnify'' :: (Literal formula term v p f, Ord formula) =>
               formula -> S.Set formula -> S.Set formula -> Maybe (S.Set formula, Subst v term, Subst v term)
 tryUnify'' _x rhss _ | S.null rhss = Nothing
 tryUnify'' x rhss'' rhss' =
@@ -257,7 +267,7 @@ tryUnify'' x rhss'' rhss' =
       Nothing -> tryUnify'' x rhss (S.insert rhs rhss')
       Just (theta1, theta2) -> Just (S.union rhss' rhss, theta1, theta2)
 
-findUnify :: (NormalLogic formula term v p f, Term term v f) =>
+findUnify :: (Literal formula term v p f, Term term v f) =>
              term -> term -> S.Set formula -> Maybe ((term, term), Subst v term, Subst v term)
 findUnify tl tr s =
     let
@@ -271,7 +281,7 @@ findUnify tl tr s =
 	 Just ((substTerm tl theta1, substTerm tr theta1), theta1, theta2)
        (Nothing:_) -> error "findUnify"
 
-getTerms :: NormalLogic formula term v p f => formula -> [term]
+getTerms :: Literal formula term v p f => formula -> [term]
 getTerms formula =
     foldN (\ _ -> error "getTerms") p formula
     where
@@ -279,7 +289,7 @@ getTerms formula =
       p (Equal t1 t2) = getTerms' t1 ++ getTerms' t2
       p (Apply _ ts) = concatMap getTerms' ts
 
-replaceTerm :: (NormalLogic lit term v p f) => lit -> (term, term) -> lit
+replaceTerm :: (Literal lit term v p f) => lit -> (term, term) -> lit
 replaceTerm formula (tl', tr') =
     foldN (\ _ -> error "error in replaceTerm")
           (\ pa -> case pa of
@@ -294,7 +304,7 @@ replaceTerm formula (tl', tr') =
       termEq t1 t2 =
           maybe False id (zipT (\ v1 v2 -> Just (v1 == v2)) (\ f1 ts1 f2 ts2 -> Just (f1 == f2 && length ts1 == length ts2 && all (uncurry termEq) (zip ts1 ts2))) t1 t2)
 
-subst :: NormalLogic formula term v p f => formula -> Subst v term -> formula
+subst :: Literal formula term v p f => formula -> Subst v term -> formula
 subst formula theta =
     foldN (\ _ -> formula)
           (\ pa -> case pa of

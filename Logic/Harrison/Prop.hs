@@ -6,9 +6,9 @@ module Logic.Harrison.Prop
     , trivial
     ) where
 
-import Logic.FirstOrder (FirstOrderLogic(..), Predicate(..), Quant(..), quant)
-import Logic.Logic (Literal(..), Logic(..), Combine(..), Boolean(..), BinOp(..))
-import qualified Logic.Normal as Normal
+import Logic.FirstOrder (FirstOrderFormula(..), Predicate(..), Quant(..), quant)
+import Logic.Logic (Negatable(..), Logic(..), Combine(..), Boolean(..), BinOp(..))
+import Logic.Normal (Literal, fromFirstOrder)
 import qualified Logic.Set as S
 
 {-
@@ -284,7 +284,7 @@ let psimplify1 fm =
 --  False <=> P -> ~P
 -- @
 -- 
-psimplify1 :: forall formula term v p f. FirstOrderLogic formula term v p f => formula -> formula
+psimplify1 :: forall formula term v p f. FirstOrderFormula formula term v p f => formula -> formula
 psimplify1 fm =
     foldF (\ _ _ _ -> fm) simplifyCombine (\ _ -> fm) fm
     where
@@ -396,7 +396,7 @@ let nnf fm = nnf(psimplify fm);;
 -- ~~P  P
 -- @
 -- 
-nnf :: FirstOrderLogic formula term v p f => formula -> formula
+nnf :: FirstOrderFormula formula term v p f => formula -> formula
 nnf fm =
     foldF nnfQuant nnfCombine (\ _ -> fm) fm
     where
@@ -588,7 +588,7 @@ let simpcnf fm =
   filter (fun c -> not(exists (fun c' -> psubset c' c) cjs)) cjs;;
 -}
 
-simpcnf :: forall formula term v p f lit. (FirstOrderLogic formula term v p f, Normal.NormalLogic lit term v p f) =>
+simpcnf :: forall formula term v p f lit. (FirstOrderFormula formula term v p f, Literal lit term v p f) =>
            formula -> S.Set (S.Set lit)
 simpcnf fm =
     foldF (\ _ _ _ -> cjs') (\ _ -> cjs') p fm
@@ -606,21 +606,21 @@ simpcnf fm =
       cjs = S.filter (not . trivial) (purecnf (nnf fm)) :: S.Set (S.Set lit)
 
 -- |Harrison page 59.  Look for complementary pairs in a clause.
-trivial :: (Literal lit, Ord lit) => S.Set lit -> Bool
+trivial :: (Negatable lit, Ord lit) => S.Set lit -> Bool
 trivial lits =
     not . S.null $ S.intersection (S.map (.~.) n) p
     where (n, p) = S.partition negated lits
 
 -- | CNF: (a | b | c) & (d | e | f)
-purecnf :: forall formula term v p f lit. (FirstOrderLogic formula term v p f, Normal.NormalLogic lit term v p f) =>
+purecnf :: forall formula term v p f lit. (FirstOrderFormula formula term v p f, Literal lit term v p f) =>
            formula -> S.Set (S.Set lit)
 purecnf fm =
-    foldF (\ _ _ _ -> ss (Normal.convertToNormal fm)) c (\ _ -> ss (Normal.convertToNormal fm)) fm
+    foldF (\ _ _ _ -> ss (fromFirstOrder fm)) c (\ _ -> ss (fromFirstOrder fm)) fm
     where
       ss = S.singleton . S.singleton
       c (BinOp l (:|:) r) = S.distrib (purecnf l) (purecnf r)
       c (BinOp l (:&:) r) = S.union (purecnf l) (purecnf r)
-      c _ = ss (Normal.convertToNormal fm)
+      c _ = ss (fromFirstOrder fm)
 {-
 
 let cnf fm = list_conj(map list_disj (simpcnf fm));;

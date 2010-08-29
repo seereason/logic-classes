@@ -20,28 +20,28 @@ import Data.Map (fromList)
 import qualified Data.Set as S
 import Data.String (IsString)
 import qualified Logic.Instances.Chiou as C
-import Logic.FirstOrder (FirstOrderLogic(..), for_all', exists', Term(..), Skolem(toSkolem), convertFOF)
+import Logic.FirstOrder (FirstOrderFormula(..), for_all', exists', Term(..), Skolem(toSkolem), convertFOF)
 import Logic.Instances.Native (ImplicativeNormalForm(..), makeINF')
 import Logic.KnowledgeBase (ProofResult(..))
-import Logic.Logic (Literal(..), Logic(..), Boolean(..))
+import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
 import Logic.Monad (WithId(..))
-import Logic.Normal (Implicative(..))
+import Logic.Normal (ImplicativeNormalFormula(..))
 import Test.HUnit
 import Test.Types (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof)
 
-tests :: (FirstOrderLogic formula term v p f, Implicative inf formula, Eq term, Show term, Show formula, Show inf, Show v) =>
+tests :: (FirstOrderFormula formula term v p f, ImplicativeNormalFormula inf formula, Eq term, Show term, Show formula, Show inf, Show v) =>
          [TestFormula inf formula term v p f] -> [TestProof inf formula term v] -> Test
 tests fs ps =
     TestLabel "New" $ TestList (map doTest fs ++ map doProof ps)
 
-allFormulas :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f, Typeable formula, IsString v, IsString p, IsString f) =>
+allFormulas :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, Typeable formula, IsString v, IsString p, IsString f) =>
                [TestFormula inf formula term v p f]
 allFormulas = (formulas ++
                concatMap snd [animalKB, chang43KB] ++
                animalConjectures ++
                [chang43Conjecture, chang43ConjectureRenamed])
 
-formulas :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f, IsString v, IsString p, IsString f) =>
+formulas :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
             [TestFormula inf formula term v p f]
 formulas =
     let n = (.~.) :: Logic formula => formula -> formula
@@ -449,7 +449,7 @@ formulas =
       , expected = [ SkolemNormalForm (((.~.) (p x)) .|. (q (fApp (toSkolem 1) []) .|. (((.~.) (p z)) .|. ((.~.) (q z))))) ] }
     ]
 
-animalKB :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f, IsString v, IsString p, IsString f) =>
+animalKB :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
             (String, [TestFormula inf formula term v p f])
 animalKB =
     let x = var "x"
@@ -506,7 +506,7 @@ animalKB =
        }
      ])
 
-animalConjectures :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f, IsString v, IsString p, IsString f) =>
+animalConjectures :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
                      [TestFormula inf formula term v p f]
 animalConjectures =
     let kills = pApp "Kills" :: [term] -> formula
@@ -567,6 +567,7 @@ animalConjectures =
                [((.~.) (pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []]))]])
            , ChiouKB1
              (Invalid,
+              S.fromList 
               [makeINF' ([]) ([(pApp ("Cat") [fApp ("Tuna") []])]),
                makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
                makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]),
@@ -681,7 +682,7 @@ chang43KB =
                     , expected = [] }
       ])
 
-chang43Conjecture :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f, IsString v, IsString p, IsString f) =>
+chang43Conjecture :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
                      TestFormula inf formula term v p f
 chang43Conjecture =
     let e = (fApp "e" [])
@@ -841,7 +842,7 @@ chang43Conjecture =
 > putStrLn (runNormal (cnfTrace f))
 -}
 
-chang43ConjectureRenamed :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f, IsString v, IsString p, IsString f) =>
+chang43ConjectureRenamed :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
                             TestFormula inf formula term v p f
 chang43ConjectureRenamed =
     let e = fApp "e" []
@@ -899,7 +900,7 @@ chang43ConjectureRenamed =
                     ]
                 }
 
-withKB :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f) =>
+withKB :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f) =>
           (String, [TestFormula inf formula term v p f]) -> TestFormula inf formula term v p f -> TestFormula inf formula term v p f
 withKB (kbName, knowledge) conjecture =
     conjecture { name = name conjecture ++ " with " ++ kbName ++ " knowledge base"
@@ -913,11 +914,11 @@ withKB (kbName, knowledge) conjecture =
       conj [x] = x
       conj (x:xs) = x .&. conj xs
 
-kbKnowledge :: forall inf formula term v p f. (Implicative inf formula, FirstOrderLogic formula term v p f) =>
+kbKnowledge :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f) =>
                (String, [TestFormula inf formula term v p f]) -> (String, [formula])
 kbKnowledge kb = (fst (kb :: (String, [TestFormula inf formula term v p f])), map formula (snd kb))
 
-proofs :: forall inf formula term v p f. (FirstOrderLogic formula term v p f, Implicative inf formula, IsString v, IsString p, IsString f) =>
+proofs :: forall inf formula term v p f. (FirstOrderFormula formula term v p f, ImplicativeNormalFormula inf formula, IsString v, IsString p, IsString f) =>
           [TestProof inf formula term v]
 proofs =
     let -- dog = pApp "Dog" :: [term] -> formula
@@ -942,13 +943,14 @@ proofs =
       , proofKnowledge = kbKnowledge (animalKB :: (String, [TestFormula inf formula term v p f]))
       , conjecture = kills [jack, tuna]
       , proofExpected = 
-          [ ChiouKB [WithId {wiItem = makeINF (S.fromList []) (S.fromList [(pApp "Dog" [fApp (toSkolem 1) []])]), wiIdent = 1},
-                     WithId {wiItem = makeINF (S.fromList []) (S.fromList [(pApp "Owns" [fApp "Jack" [],fApp (toSkolem 1) []])]), wiIdent = 1},
-                     WithId {wiItem = makeINF (S.fromList [(pApp "Dog" [var "y"]),(pApp "Owns" [var "x",var "y"])]) (S.fromList [(pApp "AnimalLover" [var "x"])]), wiIdent = 2},
-                     WithId {wiItem = makeINF (S.fromList [(pApp "Animal" [var "y"]),(pApp "AnimalLover" [var "x"]),(pApp "Kills" [var "x",var "y"])]) (S.fromList []), wiIdent = 3},
-                     WithId {wiItem = makeINF (S.fromList []) (S.fromList [(pApp "Kills" [fApp "Curiosity" [],fApp "Tuna" []]),(pApp "Kills" [fApp "Jack" [],fApp "Tuna" []])]), wiIdent = 4},
-                     WithId {wiItem = makeINF (S.fromList []) (S.fromList [(pApp "Cat" [fApp "Tuna" []])]), wiIdent = 5},
-                     WithId {wiItem = makeINF (S.fromList [(pApp "Cat" [var "x"])]) (S.fromList [(pApp "Animal" [var "x"])]), wiIdent = 6}]
+          [ ChiouKB (S.fromList
+                     [WithId {wiItem = makeINF (S.fromList []) (S.fromList [(pApp "Dog" [fApp (toSkolem 1) []])]), wiIdent = 1},
+                      WithId {wiItem = makeINF (S.fromList []) (S.fromList [(pApp "Owns" [fApp "Jack" [],fApp (toSkolem 1) []])]), wiIdent = 1},
+                      WithId {wiItem = makeINF (S.fromList [(pApp "Dog" [var "y"]),(pApp "Owns" [var "x",var "y"])]) (S.fromList [(pApp "AnimalLover" [var "x"])]), wiIdent = 2},
+                      WithId {wiItem = makeINF (S.fromList [(pApp "Animal" [var "y"]),(pApp "AnimalLover" [var "x"]),(pApp "Kills" [var "x",var "y"])]) (S.fromList []), wiIdent = 3},
+                      WithId {wiItem = makeINF (S.fromList []) (S.fromList [(pApp "Kills" [fApp "Curiosity" [],fApp "Tuna" []]),(pApp "Kills" [fApp "Jack" [],fApp "Tuna" []])]), wiIdent = 4},
+                      WithId {wiItem = makeINF (S.fromList []) (S.fromList [(pApp "Cat" [fApp "Tuna" []])]), wiIdent = 5},
+                      WithId {wiItem = makeINF (S.fromList [(pApp "Cat" [var "x"])]) (S.fromList [(pApp "Animal" [var "x"])]), wiIdent = 6}])
           , ChiouResult (False,
                          (S.fromList
                           [(inf' [(pApp "Kills" [fApp "Jack" [],fApp "Tuna" []])] [],fromList []),
@@ -969,17 +971,18 @@ proofs =
       , proofKnowledge = kbKnowledge (animalKB :: (String, [TestFormula inf formula term v p f]))
       , conjecture = kills [curiosity, tuna]
       , proofExpected =
-          [ ChiouKB [WithId {wiItem = inf' []                                 [(pApp "Dog" [fApp (toSkolem 1) []])],                 wiIdent = 1},
-                     WithId {wiItem = inf' []                                 [(pApp "Owns" [fApp "Jack" [],fApp (toSkolem 1) []])], wiIdent = 1},
-                     WithId {wiItem = inf' [(pApp "Dog" [var "y"]),
-                                            (pApp "Owns" [var "x",var "y"])]  [(pApp "AnimalLover" [var "x"])],                      wiIdent = 2},
-                     WithId {wiItem = inf' [(pApp "Animal" [var "y"]),
-                                            (pApp "AnimalLover" [var "x"]),
-                                            (pApp "Kills" [var "x",var "y"])] [], wiIdent = 3},
-                     WithId {wiItem = inf' []                                 [(pApp "Kills" [fApp "Curiosity" [],fApp "Tuna" []]),
-                                                                               (pApp "Kills" [fApp "Jack" [],fApp "Tuna" []])],      wiIdent = 4},
-                     WithId {wiItem = inf' []                                 [(pApp "Cat" [fApp "Tuna" []])],                       wiIdent = 5},
-                     WithId {wiItem = inf' [(pApp "Cat" [var "x"])]           [(pApp "Animal" [var "x"])],                           wiIdent = 6}]
+          [ ChiouKB (S.fromList
+                     [WithId {wiItem = inf' []                                 [(pApp "Dog" [fApp (toSkolem 1) []])],                 wiIdent = 1},
+                      WithId {wiItem = inf' []                                 [(pApp "Owns" [fApp "Jack" [],fApp (toSkolem 1) []])], wiIdent = 1},
+                      WithId {wiItem = inf' [(pApp "Dog" [var "y"]),
+                                             (pApp "Owns" [var "x",var "y"])]  [(pApp "AnimalLover" [var "x"])],                      wiIdent = 2},
+                      WithId {wiItem = inf' [(pApp "Animal" [var "y"]),
+                                             (pApp "AnimalLover" [var "x"]),
+                                             (pApp "Kills" [var "x",var "y"])] [], wiIdent = 3},
+                      WithId {wiItem = inf' []                                 [(pApp "Kills" [fApp "Curiosity" [],fApp "Tuna" []]),
+                                                                                (pApp "Kills" [fApp "Jack" [],fApp "Tuna" []])],      wiIdent = 4},
+                      WithId {wiItem = inf' []                                 [(pApp "Cat" [fApp "Tuna" []])],                       wiIdent = 5},
+                      WithId {wiItem = inf' [(pApp "Cat" [var "x"])]           [(pApp "Animal" [var "x"])],                           wiIdent = 6}])
           , ChiouResult (True,
                          S.fromList 
                          [(makeINF' ([]) ([]),fromList []),
@@ -1016,8 +1019,9 @@ proofs =
       , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula inf formula term v p f]))
       , conjecture = for_all "x" (socrates [x] .=>. mortal [x])
       , proofExpected = 
-         [ ChiouKB [WithId {wiItem = inf' [(pApp "Human" [var "x"])] [(pApp "Mortal" [var "x"])], wiIdent = 1},
-                    WithId {wiItem = inf' [(pApp "Socrates" [var "x"])] [(pApp "Human" [var "x"])], wiIdent = 2}]
+         [ ChiouKB (S.fromList
+                    [WithId {wiItem = inf' [(pApp "Human" [var "x"])] [(pApp "Mortal" [var "x"])], wiIdent = 1},
+                     WithId {wiItem = inf' [(pApp "Socrates" [var "x"])] [(pApp "Human" [var "x"])], wiIdent = 2}])
          , ChiouResult (True,
                         S.fromList 
                         [(makeINF' ([]) ([]),fromList []),
@@ -1032,8 +1036,9 @@ proofs =
       , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula inf formula term v p f]))
       , conjecture = (.~.) (for_all "x" (socrates [x] .=>. mortal [x]))
       , proofExpected = 
-         [ ChiouKB [WithId {wiItem = inf' [(pApp "Human" [var "x"])] [(pApp "Mortal" [var "x"])], wiIdent = 1},
-                    WithId {wiItem = inf' [(pApp "Socrates" [var "x"])] [(pApp "Human" [var "x"])], wiIdent = 2}]
+         [ ChiouKB (S.fromList
+                    [WithId {wiItem = inf' [(pApp "Human" [var "x"])] [(pApp "Mortal" [var "x"])], wiIdent = 1},
+                     WithId {wiItem = inf' [(pApp "Socrates" [var "x"])] [(pApp "Human" [var "x"])], wiIdent = 2}])
          , ChiouResult (False
                        ,(S.fromList [(inf' [(pApp "Socrates" [var "x"])] [(pApp "Mortal" [var "x"])],fromList [("x",var "x")])]))]
       }
@@ -1043,8 +1048,9 @@ proofs =
       , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula inf formula term v p f]))
       , conjecture = (.~.) (exists "x" (socrates [x]) .&. for_all "x" (socrates [x] .=>. mortal [x]))
       , proofExpected = 
-         [ ChiouKB [WithId {wiItem = inf' [(pApp "Human" [var "x"])] [(pApp "Mortal" [var "x"])], wiIdent = 1},
-                    WithId {wiItem = inf' [(pApp "Socrates" [var "x"])] [(pApp "Human" [var "x"])], wiIdent = 2}]
+         [ ChiouKB (S.fromList
+                    [WithId {wiItem = inf' [(pApp "Human" [var "x"])] [(pApp "Mortal" [var "x"])], wiIdent = 1},
+                     WithId {wiItem = inf' [(pApp "Socrates" [var "x"])] [(pApp "Human" [var "x"])], wiIdent = 2}])
          , ChiouResult (False,
                         S.fromList [(makeINF' ([]) ([(pApp ("Human") [fApp (toSkolem 3) []])]),fromList []),
                                     (makeINF' ([]) ([(pApp ("Mortal") [fApp (toSkolem 3) []])]),fromList []),
@@ -1054,7 +1060,7 @@ proofs =
       }
     ]
 
-inf' :: Implicative inf formula => [formula] -> [formula] -> inf
+inf' :: ImplicativeNormalFormula inf formula => [formula] -> [formula] -> inf
 inf' l1 l2 = makeINF (S.fromList l1) (S.fromList l2)
 
 toLL = map S.toList . S.toList

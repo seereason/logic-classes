@@ -16,11 +16,11 @@ import qualified Data.Set as S
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
-import Logic.FirstOrder (Term(..), FirstOrderLogic(..), Quant(..), Skolem(..), Pretty, Predicate(..), showForm, showTerm)
-import Logic.Logic (Literal(..), Logic(..), BinOp(..), Boolean(..), Combine(..))
+import Logic.FirstOrder (Term(..), FirstOrderFormula(..), Quant(..), Skolem(..), Pretty, Predicate(..), showForm, showTerm)
+import Logic.Logic (Negatable(..), Logic(..), BinOp(..), Boolean(..), Combine(..))
 import qualified Logic.Logic as Logic
-import Logic.Normal (Implicative(..))
-import Logic.Propositional (PropositionalLogic(..))
+import Logic.Normal (ImplicativeNormalFormula(..))
+import Logic.Propositional (PropositionalFormula(..))
     
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula v p f
@@ -55,30 +55,30 @@ instance Read InfixPred where
                  ((:!=:), ":!=:")]
 -}
 
-instance (FirstOrderLogic (Formula v p f) (PTerm v f) v p f, Show v, Show p, Show f) => Show (Formula v p f) where
+instance (FirstOrderFormula (Formula v p f) (PTerm v f) v p f, Show v, Show p, Show f) => Show (Formula v p f) where
     show = showForm
 
-instance (FirstOrderLogic (Formula v p f) (PTerm v f) v p f, Show v, Show p, Show f) => Show (PTerm v f) where
+instance (FirstOrderFormula (Formula v p f) (PTerm v f) v p f, Show v, Show p, Show f) => Show (PTerm v f) where
     show = showTerm
 
 data (Ord v, Ord p, Ord f) => ImplicativeNormalForm v p f =
     INF (S.Set (Formula v p f)) (S.Set (Formula v p f))
     deriving (Eq, Ord, Data, Typeable)
 
-instance (Ord v, Ord p, Ord f) => Implicative (ImplicativeNormalForm v p f) (Formula v p f) where
+instance (Ord v, Ord p, Ord f) => ImplicativeNormalFormula (ImplicativeNormalForm v p f) (Formula v p f) where
     neg (INF lhs _) = lhs
     pos (INF _ rhs) = rhs
     makeINF = INF
 
 -- |A version of MakeINF that takes lists instead of sets, used for
 -- implementing a more attractive show method.
-makeINF' :: Implicative inf lit => [lit] -> [lit] -> inf
+makeINF' :: ImplicativeNormalFormula inf lit => [lit] -> [lit] -> inf
 makeINF' n p = makeINF (S.fromList n) (S.fromList p)
 
-instance (FirstOrderLogic (Formula v p f) (PTerm v f) v p f, Show (Formula v p f)) => Show (ImplicativeNormalForm v p f) where
+instance (FirstOrderFormula (Formula v p f) (PTerm v f) v p f, Show (Formula v p f)) => Show (ImplicativeNormalForm v p f) where
     show x = "makeINF' (" ++ show (S.toList (neg x)) ++ ") (" ++ show (S.toList (pos x)) ++ ")"
 
-instance Literal (Formula v p f) where
+instance Negatable (Formula v p f) where
     (.~.) (Combine ((:~:) (Combine ((:~:) x)))) = (.~.) x
     (.~.) (Combine ((:~:) x)) = x
     (.~.) x = Combine ((:~:) x)
@@ -95,11 +95,11 @@ instance (Ord v, Enum v, Data v, Pretty v, Show v,
           Ord p, Boolean p, Data p, Pretty p, Show p,
           Ord f, Skolem f, Data f, Pretty f, Show f,
           Logic (Formula v p f), Show (Formula v p f)) =>
-         PropositionalLogic (Formula v p f) (Formula v p f) where
+         PropositionalFormula (Formula v p f) (Formula v p f) where
     atomic (Predicate (Equal t1 t2)) = t1 .=. t2
     atomic (Predicate (NotEqual t1 t2)) = t1 .!=. t2
     atomic (Predicate (Apply p ts)) = pApp p ts
-    atomic _ = error "atomic method of PropositionalLogic for Parameterized: invalid argument"
+    atomic _ = error "atomic method of PropositionalFormula for Parameterized: invalid argument"
     foldF0 c a formula =
         case formula of
           Quant _ _ _ -> error "foldF0: quantifiers should not be present"
@@ -123,8 +123,8 @@ instance (Ord v, Enum v, Data v, Pretty v, Show v,
           Ord p, Boolean p, Data p, Pretty p, Show p,
           Ord f, Skolem f, Data f, Pretty f, Show f,
           Show (Formula v p f),
-          PropositionalLogic (Formula v p f) (Formula v p f), Term (PTerm v f) v f) =>
-          FirstOrderLogic (Formula v p f) (PTerm v f) v p f where
+          PropositionalFormula (Formula v p f) (Formula v p f), Term (PTerm v f) v f) =>
+          FirstOrderFormula (Formula v p f) (PTerm v f) v p f where
     for_all v x = Quant All v x
     exists v x = Quant Exists v x
     foldF q c p f =

@@ -1,4 +1,4 @@
--- | PropositionalLogic is a multi-parameter type class for
+-- | PropositionalFormula is a multi-parameter type class for
 -- representing instance of propositional (aka zeroth order) logic
 -- datatypes.  These are formulas which have truth values, but no "for
 -- all" or "there exists" quantifiers and thus no variables or terms
@@ -10,7 +10,7 @@
              GeneralizedNewtypeDeriving, MultiParamTypeClasses, RankNTypes, TemplateHaskell, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
 module Logic.Propositional
-    ( PropositionalLogic(..)
+    ( PropositionalFormula(..)
     , showForm0
     , convertProp
     ) where
@@ -25,7 +25,7 @@ import Logic.Logic
 -- raise errors in the implementation if a non-atomic formula somehow
 -- appears where an atomic formula is expected (i.e. as an argument to
 -- atomic or to the third argument of foldF0.)
-class Logic formula => PropositionalLogic formula atom | formula -> atom where
+class Logic formula => PropositionalFormula formula atom | formula -> atom where
     -- | Build an atomic formula from the atom type.
     atomic :: atom -> formula
     -- | A fold function that distributes different sorts of formula
@@ -38,7 +38,7 @@ class Logic formula => PropositionalLogic formula atom | formula -> atom where
            -> r
 
 -- | Show a formula in a format that can be evaluated 
-showForm0 :: (PropositionalLogic formula atom) => (atom -> String) -> formula -> String
+showForm0 :: (PropositionalFormula formula atom) => (atom -> String) -> formula -> String
 showForm0 showAtom formula =
     foldF0 c a formula
     where
@@ -54,8 +54,8 @@ showForm0 showAtom formula =
 -- |Convert any instance of a propositional logic expression to any
 -- other using the supplied atom conversion function.
 convertProp :: forall formula1 atom1 formula2 atom2.
-               (PropositionalLogic formula1 atom1,
-                PropositionalLogic formula2 atom2) =>
+               (PropositionalFormula formula1 atom1,
+                PropositionalFormula formula2 atom2) =>
                (atom1 -> atom2) -> formula1 -> formula2
 convertProp convertA formula =
     foldF0 c a formula

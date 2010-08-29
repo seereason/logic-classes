@@ -30,7 +30,7 @@ let simplify1 fm =
 -- |Extend psimplify1 to handle quantifiers.  Any quantifier which has
 -- no corresponding free occurrences of the quantified variable is
 -- eliminated.
-simplify1 :: FirstOrderLogic formula term v p f => formula -> formula
+simplify1 :: FirstOrderFormula formula term v p f => formula -> formula
 simplify1 fm =
     foldF (\ _ v p -> if S.member v (freeVars p) then fm else p)
           (\ _ -> psimplify1 fm)
@@ -51,7 +51,7 @@ let rec simplify fm =
 -}
 
 -- |Do a bottom-up recursion to simplify a formula.
-simplify :: FirstOrderLogic formula term v p f => formula -> formula
+simplify :: FirstOrderFormula formula term v p f => formula -> formula
 simplify fm =
     foldF (\ op v p -> simplify1 (quant op v (simplify p)))
           (\ cm -> case cm of
@@ -138,7 +138,7 @@ let pnf fm = prenex(nnf(simplify fm));;
 
 -- |Recursivly apply pullQuants anywhere a quantifier might not be
 -- leftmost.
-prenex :: (FirstOrderLogic formula term v p f) => formula -> formula 
+prenex :: (FirstOrderFormula formula term v p f) => formula -> formula 
 prenex fm =
     foldF q c (\ _ -> fm) fm
     where
@@ -162,7 +162,7 @@ prenex fm =
 --  (7) ∃x F[x] | G        ∃x    (F[x] | G)
 --  (8) ∃x F[x] | ∃x G[x]  ∃x Yx (F[x] | G[x])
 -- @
-pullQuants :: forall formula term v p f. (FirstOrderLogic formula term v p f) => formula -> formula
+pullQuants :: forall formula term v p f. (FirstOrderFormula formula term v p f) => formula -> formula
 pullQuants fm =
     foldF (\ _ _ _ -> fm) pullQuantsCombine (\ _ -> fm) fm
     where
@@ -185,7 +185,7 @@ pullQuants fm =
 -- |Helper function to rename variables when we want to enclose a
 -- formula containing a free occurrence of that variable a quantifier
 -- that quantifies it.
-pullq :: (FirstOrderLogic formula term v p f) =>
+pullq :: (FirstOrderFormula formula term v p f) =>
          Bool -> Bool -> formula -> (v -> formula -> formula) -> (formula -> formula -> formula) -> v -> v -> formula -> formula -> formula
 pullq l r fm mkq op x y p q =
     let z = variant (freeVars fm) x
@@ -261,7 +261,7 @@ let skolemize fm = specialize(pnf(askolemize fm));;
 
 -- |I need to consult the Harrison book for the reasons why we don't
 -- |just Skolemize the result of prenexNormalForm.
-askolemize :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
+askolemize :: (Monad m, FirstOrderFormula formula term v p f) => formula -> NormalT v term m formula
 askolemize = skolem . nnf . simplify
 
 -- |Skolemize the formula by removing the existential quantifiers and
@@ -271,7 +271,7 @@ askolemize = skolem . nnf . simplify
 -- are applied to the list of variables which are universally
 -- quantified in the context where the existential quantifier
 -- appeared.
-skolem :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m formula
+skolem :: (Monad m, FirstOrderFormula formula term v p f) => formula -> NormalT v term m formula
 skolem fm =
     foldF q c (\ _ -> return fm) fm
     where
@@ -287,14 +287,14 @@ skolem fm =
       c (BinOp l (:|:) r) = skolem2 (.|.) l r
       c _ = return fm
 
-skolem2 :: (Monad m, FirstOrderLogic formula term v p f) =>
+skolem2 :: (Monad m, FirstOrderFormula formula term v p f) =>
            (formula -> formula -> formula) -> formula -> formula -> NormalT v term m formula
 skolem2 cons p q =
     skolem p >>= \ p' ->
     skolem q >>= \ q' ->
     return (cons p' q')
 
-specialize :: FirstOrderLogic formula term v p f => formula -> formula
+specialize :: FirstOrderFormula formula term v p f => formula -> formula
 specialize f =
     foldF q (\ _ -> f) (\ _ -> f) f
     where

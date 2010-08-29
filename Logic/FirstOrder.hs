@@ -1,4 +1,4 @@
--- | 'FirstOrderLogic' is a multi-parameter type class for
+-- | 'FirstOrderFormula' is a multi-parameter type class for
 -- representing instances of predicate or first order logic datatypes.
 -- It builds on the 'Logic' class and adds the quantifiers @for_all@
 -- and @exists@.  It also adds structure to the atomic formula
@@ -13,7 +13,7 @@
 module Logic.FirstOrder
     ( Skolem(..)
     , Predicate(..)
-    , FirstOrderLogic(..)
+    , FirstOrderFormula(..)
     , Term(..)
     , Quant(..)
     , quant
@@ -48,7 +48,7 @@ import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
 import Logic.Logic
-import Logic.Propositional (PropositionalLogic(..))
+import Logic.Propositional (PropositionalFormula(..))
 import Text.PrettyPrint
 
 class Pretty x where
@@ -80,7 +80,7 @@ class ( Ord v     -- Required so variables can be inserted into maps and sets
       , Eq f      -- We need to check functions for equality during unification
       , Skolem f  -- Used to create skolem functions and constants
       , Data f    -- For serialization
-      , Ord term  -- For implementing Ord in NormalLogic
+      , Ord term  -- For implementing Ord in Literal
       ) => Term term v f | term -> v, term -> f where
     var :: v -> term
     -- ^ Build a term which is a variable reference.
@@ -94,12 +94,12 @@ class ( Ord v     -- Required so variables can be inserted into maps and sets
     -- primitive function to other terms.
     zipT :: (v -> v -> Maybe r) -> (f -> [term] -> f -> [term] -> Maybe r) -> term -> term -> Maybe r
 
--- |The 'PropositionalLogic' type class.  Minimal implementation:
+-- |The 'PropositionalFormula' type class.  Minimal implementation:
 -- @for_all, exists, foldF, foldT, (.=.), pApp, fApp, var@.  The
 -- functional dependencies are necessary here so we can write
 -- functions that don't fix all of the type parameters.  For example,
 -- without them the univquant_free_vars function gives the error @No
--- instance for (FirstOrderLogic Formula term V p f)@ because the
+-- instance for (FirstOrderFormula Formula term V p f)@ because the
 -- function doesn't mention the Term type.
 class ( Term term v f
       , Logic formula  -- Basic logic operations
@@ -110,7 +110,7 @@ class ( Term term v f
       , Ord p
       , Ord f
       , Ord formula
-      ) => FirstOrderLogic formula term v p f
+      ) => FirstOrderFormula formula term v p f
                                     | formula -> term
                                     , term -> formula
                                     , formula -> p where
@@ -119,7 +119,7 @@ class ( Term term v f
     -- | Existential quantification - there exists x such that (formula x)
     exists ::  v -> formula -> formula
 
-    -- | A fold function similar to the one in 'PropositionalLogic'
+    -- | A fold function similar to the one in 'PropositionalFormula'
     -- but extended to cover both the existing formula types and the
     -- ones introduced here.  @foldF (.~.) quant binOp infixPred pApp@
     -- is a no op.  The argument order is taken from Logic-TPTP.
@@ -147,25 +147,27 @@ class ( Term term v f
     false :: formula
     false = pApp (fromBool False) []
 
-for_all' :: FirstOrderLogic formula term v p f => [v] -> formula -> formula
+-- |for_all with a list of variables, for backwards compatibility.
+for_all' :: FirstOrderFormula formula term v p f => [v] -> formula -> formula
 for_all' vs f = foldr for_all f vs
 
-exists' :: FirstOrderLogic formula term v p f => [v] -> formula -> formula
+-- |exists with a list of variables, for backwards compatibility.
+exists' :: FirstOrderFormula formula term v p f => [v] -> formula -> formula
 exists' vs f = foldr for_all f vs
 
--- | Functions to 
-disj :: FirstOrderLogic formula term v p f => [formula] -> formula
+-- | Functions to disjunct or conjunct a list.
+disj :: FirstOrderFormula formula term v p f => [formula] -> formula
 disj [] = false
 disj [x] = x
 disj (x:xs) = x .|. disj xs
 
-conj :: FirstOrderLogic formula term v p f => [formula] -> formula
+conj :: FirstOrderFormula formula term v p f => [formula] -> formula
 conj [] = true
 conj [x] = x
 conj (x:xs) = x .&. conj xs
 
 -- | Helper function for building folds.
-quant :: FirstOrderLogic formula term v p f => 
+quant :: FirstOrderFormula formula term v p f => 
          Quant -> v -> formula -> formula
 quant All v f = for_all v f
 quant Exists v f = exists v f
@@ -173,21 +175,13 @@ quant Exists v f = exists v f
 -- |Legacy version of quant from when we supported lists of quantified
 -- variables.  It also has the virtue of eliding quantifications with
 -- empty variable lists (by calling for_all' and exists'.)
-quant' :: FirstOrderLogic formula term v p f => 
+quant' :: FirstOrderFormula formula term v p f => 
          Quant -> [v] -> formula -> formula
 quant' All = for_all'
 quant' Exists = exists'
 
-{-
--- | Helper function for building folds.
-infixPred :: FirstOrderLogic formula term v p f => 
-             term -> InfixPred -> term -> formula
-infixPred t1 (:=:) t2 = t1 .=. t2
-infixPred t1 (:!=:) t2 = t1 .!=. t2
--}
-
 -- | Display a formula in a format that can be read into the interpreter.
-showForm :: forall formula term v p f. (FirstOrderLogic formula term v p f, Show v, Show p, Show f) => 
+showForm :: forall formula term v p f. (FirstOrderFormula formula term v p f, Show v, Show p, Show f) => 
             formula -> String
 showForm formula =
     foldF q c a formula
@@ -222,7 +216,7 @@ showTerm term =
       f fn ts = "fApp (" ++ show fn ++ ") [" ++ intercalate "," (map showTerm ts) ++ "]"
 
 prettyForm :: forall formula term v p f.
-              (FirstOrderLogic formula term v p f, Term term v f, Pretty v, Pretty f, Pretty p) =>
+              (FirstOrderFormula formula term v p f, Term term v f, Pretty v, Pretty f, Pretty p) =>
               Int -> formula -> Doc
 prettyForm prec formula =
     foldF (\ qop v f -> parensIf (prec > 1) $ prettyQuant qop v <+> prettyForm 1 f)
@@ -265,7 +259,7 @@ prettyTerm t = foldT (pretty :: v -> Doc) (\ fn ts -> (pretty :: f -> Doc) fn <>
 data Quant = All | Exists deriving (Eq,Ord,Show,Read,Data,Typeable,Enum,Bounded)
 
 -- |Find the free (unquantified) variables in a formula.
-freeVars :: FirstOrderLogic formula term v p f => formula -> S.Set v
+freeVars :: FirstOrderFormula formula term v p f => formula -> S.Set v
 freeVars f =
     foldF (\_ v x -> S.delete v (freeVars x))                    
           (\ cm ->
@@ -282,7 +276,7 @@ freeVars f =
       freeVarsOfTerm = foldT S.singleton (\ _ args -> S.unions (fmap freeVarsOfTerm args))
 
 -- |Find the variables that are quantified in a formula
-quantVars :: FirstOrderLogic formula term v p f => formula -> S.Set v
+quantVars :: FirstOrderFormula formula term v p f => formula -> S.Set v
 quantVars =
     foldF (\ _ v x -> S.insert v (quantVars x))
           (\ cm ->
@@ -292,7 +286,7 @@ quantVars =
           (\ _ -> S.empty)
 
 -- |Find the free and quantified variables in a formula.
-allVars :: FirstOrderLogic formula term v p f => formula -> S.Set v
+allVars :: FirstOrderFormula formula term v p f => formula -> S.Set v
 allVars f =
     foldF (\_ v x -> S.insert v (allVars x))
           (\ cm ->
@@ -309,13 +303,13 @@ allVars f =
       allVarsOfTerm = foldT S.singleton (\ _ args -> S.unions (fmap allVarsOfTerm args))
 
 -- | Universally quantify all free variables in the formula (Name comes from TPTP)
-univquant_free_vars :: FirstOrderLogic formula term v p f => formula -> formula
+univquant_free_vars :: FirstOrderFormula formula term v p f => formula -> formula
 univquant_free_vars cnf' =
     if S.null free then cnf' else foldr for_all cnf' (S.toList free)
     where free = freeVars cnf'
 
 -- |Replace each free occurrence of variable old with term new.
-substitute :: FirstOrderLogic formula term v p f => v -> term -> formula -> formula
+substitute :: FirstOrderFormula formula term v p f => v -> term -> formula -> formula
 substitute old new formula =
     foldT (\ new' -> if old == new' then formula else substitute' formula)
           (\ _ _ -> substitute' formula)
@@ -336,14 +330,14 @@ substitute old new formula =
       st t = foldT sv (\ func ts -> fApp func (map st ts)) t
       sv v = if v == old then new else var v
 
-substitutePairs :: FirstOrderLogic formula term v p f => [(v, term)] -> formula -> formula
+substitutePairs :: FirstOrderFormula formula term v p f => [(v, term)] -> formula -> formula
 substitutePairs pairs formula = 
     foldr (\ (old, new) f -> substitute old new f) formula pairs 
 
 -- |Convert any instance of a first order logic expression to any other.
 convertFOF :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
-              (FirstOrderLogic formula1 term1 v1 p1 f1,
-               FirstOrderLogic formula2 term2 v2 p2 f2) =>
+              (FirstOrderFormula formula1 term1 v1 p1 f1,
+               FirstOrderFormula formula2 term2 v2 p2 f2) =>
               (v1 -> v2) -> (p1 -> p2) -> (f1 -> f2) -> formula1 -> formula2
 convertFOF convertV convertP convertF formula =
     foldF q c p formula
@@ -373,8 +367,8 @@ convertTerm convertV convertF term =
 -- will return Nothing if there are any quantifiers, or if it runs
 -- into an atom that it is unable to convert.
 toPropositional :: forall formula1 term v p f formula2 atom.
-                   (FirstOrderLogic formula1 term v p f,
-                    PropositionalLogic formula2 atom) =>
+                   (FirstOrderFormula formula1 term v p f,
+                    PropositionalFormula formula2 atom) =>
                    (formula1 -> formula2) -> formula1 -> formula2
 toPropositional convertAtom formula =
     foldF q c p formula
@@ -387,9 +381,9 @@ toPropositional convertAtom formula =
 
 -- |Names for for_all and exists inspired by the conventions of the
 -- TPTP project.
-(!) :: FirstOrderLogic formula term v p f => v -> formula -> formula
+(!) :: FirstOrderFormula formula term v p f => v -> formula -> formula
 (!) = for_all
-(?) :: FirstOrderLogic formula term v p f => v -> formula -> formula
+(?) :: FirstOrderFormula formula term v p f => v -> formula -> formula
 (?) = exists
 
 instance Version Quant

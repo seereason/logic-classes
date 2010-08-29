@@ -5,7 +5,7 @@
              GeneralizedNewtypeDeriving, MultiParamTypeClasses, RankNTypes, TemplateHaskell, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
 module Logic.Logic
-    ( Literal(..)
+    ( Negatable(..)
     , Logic(..)
     , BinOp(..)
     , Boolean(..)
@@ -21,7 +21,7 @@ import Happstack.State (Version, deriveSerialize)
 -- |The class of formulas that can be negated.  There are some types
 -- that can be negated but do not support the other Boolean Logic
 -- operators, such as the Literal class.
-class Literal formula where
+class Negatable formula where
     -- | Is this negated at the top level?
     negated :: formula -> Bool
     -- | Negation (This needs to check for and remove double negation)
@@ -31,7 +31,7 @@ class Literal formula where
 -- @
 --  (.|.), (.~.)
 -- @
-class Literal formula => Logic formula where
+class Negatable formula => Logic formula where
     -- | Disjunction/OR
     (.|.) :: formula -> formula -> formula
 

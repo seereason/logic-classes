@@ -20,8 +20,8 @@ import Data.Char (isDigit)
 import Data.Generics (Data, Typeable, listify, Fixity(..))
 import qualified Data.Set as S
 import Data.String (IsString(fromString))
---import Logic.Clause (ClauseNormal(satisfiable))
-import Logic.FirstOrder (showForm, FirstOrderLogic, convertFOF, Predicate(..), Pretty(..), Skolem(..))
+--import Logic.Clause (ClauseNormalFormula(satisfiable))
+import Logic.FirstOrder (showForm, FirstOrderFormula, convertFOF, Predicate(..), Pretty(..), Skolem(..))
 import qualified Logic.Instances.Chiou as C
 import qualified Logic.Instances.Native as P
 import Logic.Instances.PropLogic (plSat)
@@ -29,7 +29,7 @@ import qualified Logic.Instances.SatSolver as SS
 import Logic.KnowledgeBase (ProofResult, loadKB, theoremKB, getKB)
 import Logic.Logic (Boolean(..))
 import Logic.Monad (WithId, runNormal, runProver', runNormal', runNormalT')
-import Logic.Normal (ClauseNormal(satisfiable), Implicative(..))
+import Logic.Normal (ClauseNormalFormula(satisfiable), ImplicativeNormalFormula(..))
 import Logic.NormalForm (simplify, negationNormalForm, prenexNormalForm, skolemNormalForm, clauseNormalForm, trivial)
 import Logic.Resolution (SetOfSupport)
 
@@ -115,7 +115,7 @@ data TestFormula inf formula term v p f
       } deriving (Data, Typeable)
 
 -- |Some values that we might expect after transforming the formula.
-data (Implicative inf formula, FirstOrderLogic formula term v p f) => Expected inf formula term v p f
+data (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f) => Expected inf formula term v p f
     = FirstOrderFormula formula
     | SimplifiedForm formula
     | NegationNormalForm formula
@@ -125,13 +125,13 @@ data (Implicative inf formula, FirstOrderLogic formula term v p f) => Expected i
     | ClauseNormalForm (S.Set (S.Set formula))
     | TrivialClauses [(Bool, (S.Set formula))]
     | ConvertToChiou formula
-    | ChiouKB1 (ProofResult, [inf])
+    | ChiouKB1 (ProofResult, S.Set inf)
     | PropLogicSat Bool
     | SatSolverCNF CNF
     | SatSolverSat Bool
     deriving (Data, Typeable)
 
-doTest :: (Implicative inf formula, FirstOrderLogic formula term v p f, Data formula, Show term, Show inf, Show formula) =>
+doTest :: (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, Data formula, Show term, Show inf, Show formula) =>
           TestFormula inf formula term v p f -> Test
 doTest f =
     TestLabel (name f) $ TestList $ 
@@ -165,14 +165,14 @@ doTest f =
           TestCase (assertEqual (name f ++ " SatSolver CNF") result (null (runNormalT' (SS.toCNF (formula f) >>= satisfiable))))
       p = id -- prettyForm 0
 
-skolemSet :: (FirstOrderLogic formula term v p f, Data f, Typeable f, Data formula) => formula -> S.Set Int
+skolemSet :: (FirstOrderFormula formula term v p f, Data f, Typeable f, Data formula) => formula -> S.Set Int
 skolemSet =
     foldr ins S.empty . skolemList
     where
       ins f s = case fromSkolem f of
                   Just n -> S.insert n s
                   Nothing -> s
-      skolemList :: (FirstOrderLogic formula term v p f, Data f, Typeable f, Data formula) => formula -> [f]
+      skolemList :: (FirstOrderFormula formula term v p f, Data f, Typeable f, Data formula) => formula -> [f]
       skolemList inf = gFind inf :: (Typeable f => [f])
 
 -- | @gFind a@ will extract any elements of type @b@ from
@@ -192,10 +192,10 @@ data TestProof inf formula term v
 
 data ProofExpected inf v term
     = ChiouResult (Bool, SetOfSupport inf v term)
-    | ChiouKB [WithId inf]
+    | ChiouKB (S.Set (WithId inf))
     deriving (Data, Typeable)
 
-doProof :: forall inf formula term v p f. (FirstOrderLogic formula term v p f, Implicative inf formula, Eq term, Show inf, Show term, Show v) =>
+doProof :: forall inf formula term v p f. (FirstOrderFormula formula term v p f, ImplicativeNormalFormula inf formula, Eq term, Show inf, Show term, Show v) =>
            TestProof inf formula term v -> Test
 doProof p =
     TestLabel (proofName p) $ TestList $

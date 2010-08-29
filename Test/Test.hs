@@ -17,7 +17,7 @@ main =
     doCounts
     where
       doCounts counts' = exitWith (if errors counts' /= 0 || failures counts' /= 0 then ExitFailure 1 else ExitSuccess)
-      -- Generate the test data with a particular instantiation of FirstOrderLogic.
+      -- Generate the test data with a particular instantiation of FirstOrderFormula.
       formulas = (Data.allFormulas :: [TestFormula (ImplicativeNormalForm V Pr AtomicFunction)
                                        (Formula V Pr AtomicFunction) (PTerm V AtomicFunction) V Pr AtomicFunction])
       proofs = (Data.proofs :: [TestProof (ImplicativeNormalForm V Pr AtomicFunction)

@@ -32,6 +32,7 @@ import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.State (StateT(runStateT), evalStateT)
 import Data.Generics (Data, Typeable)
 import qualified Data.Map as Map
+import qualified Data.Set as S
 
 -- |The logic monad contains (will contain) several types of state to
 -- support the operations done on logic formulas: Skolemization,
@@ -83,7 +84,7 @@ runLiteralMapM action = (runStateT action) (1, Map.empty) >>= return . fst
 
 type SentenceCount = Int
 
-data WithId a = WithId {wiItem :: a, wiIdent :: Int} deriving (Eq, Show, Data, Typeable)
+data WithId a = WithId {wiItem :: a, wiIdent :: Int} deriving (Eq, Ord, Show, Data, Typeable)
 
 withId :: Int -> a -> WithId a
 withId i x = WithId {wiIdent = i, wiItem = x}
@@ -100,7 +101,7 @@ withIdPairs' = map (\ x -> (wiIdent x, wiItem x))
 wiLookupItem :: Int -> [WithId a] -> Maybe a
 wiLookupItem i xs = lookup i (withIdPairs' xs)
 
-type KnowledgeBase inf = [WithId inf]
+type KnowledgeBase inf = S.Set (WithId inf)
 
 data ProverState inf
     = ProverState
@@ -109,7 +110,7 @@ data ProverState inf
 
 zeroKB :: ProverState inf
 zeroKB = ProverState
-         { knowledgeBase = []
+         { knowledgeBase = S.empty
          , sentenceCount = 1 }
 
 -- |A monad for running the knowledge base.
