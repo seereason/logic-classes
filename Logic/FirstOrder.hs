@@ -112,8 +112,7 @@ class ( Term term v f
       , Ord formula
       ) => FirstOrderLogic formula term v p f
                                     | formula -> term
-                                    , term -> formula  -- Would like to get rid of this
-                                    , formula -> v
+                                    , term -> formula
                                     , formula -> p where
     -- | Universal quantification - for all x (formula x)
     for_all :: v -> formula -> formula

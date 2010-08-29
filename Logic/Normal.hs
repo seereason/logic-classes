@@ -33,7 +33,7 @@ class ( Ord lit
       , Term term v f
       , Literal lit
       , Data lit
-      ) => NormalLogic lit term v p f | lit -> term, term -> lit, lit -> v, term -> v, lit -> p, term -> f, lit -> f where
+      ) => NormalLogic lit term v p f | lit -> term, term -> lit, lit -> v, lit -> p, lit -> f where
     (.=.) :: term -> term -> lit
     pApp :: p -> [term] -> lit
     foldN :: (lit -> r) -> (Predicate p term -> r) -> lit -> r
