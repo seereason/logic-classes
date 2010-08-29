@@ -17,12 +17,11 @@ module Logic.Instances.Chiou
 import Data.Generics (Data, Typeable)
 import qualified Data.Set as S
 import Data.String (IsString(..))
-import Logic.Clause (Literal(..))
 import Logic.FirstOrder (FirstOrderLogic(..), Pretty)
 import qualified Logic.FirstOrder as Logic
 import qualified Logic.FirstOrder as L
 import Logic.Implicative (Implicative(..))
-import Logic.Logic (Logic(..), BinOp(..), Combine(..), Boolean(..))
+import Logic.Logic (Literal(..), Logic(..), BinOp(..), Combine(..), Boolean(..))
 import Logic.Propositional (PropositionalLogic(..))
 import Logic.FirstOrder (Skolem(..), Quant(..))
 
@@ -74,19 +73,18 @@ data Quantifier
     | ExistsCh
     deriving (Eq, Ord, Show, Data, Typeable)
 
-instance (Eq v, Eq p, Eq f, Ord v, Ord p, Ord f) => Literal (Sentence v p f) where
-    invert (Not (Not s)) = invert s
-    invert (Not s) = s
-    invert s = Not s
-    inverted (Not s) = not (inverted s)
-    inverted _ = False
+instance Literal (Sentence v p f) where
+    (.~.) (Not (Not x)) = (.~.) x
+    (.~.) (Not x) = x
+    (.~.) x   = Not x
+    negated (Not x) = not (negated x)
+    negated _ = False
 
 instance Logic (Sentence v p f) where
     x .<=>. y = Connective x Equiv y
     x .=>.  y = Connective x Imply y
     x .|.   y = Connective x Or y
     x .&.   y = Connective x And y
-    (.~.) x   = Not x
 
 instance (Ord v, IsString v, Data v, Pretty v, Enum v, 
           Ord p, IsString p, Data p, Pretty p, Boolean p,
@@ -224,9 +222,12 @@ instance (Enum v, Ord p, Ord f, FirstOrderLogic (Sentence v p f) (CTerm v f) v p
     pos (INF _ x) = S.fromList x
     makeINF lhs rhs = INF (S.toList lhs) (S.toList rhs)
 
-instance Logic (NormalSentence v p f) where
+instance Literal (NormalSentence v p f) where
+    (.~.) (NFNot (NFNot x)) = ((.~.) x)
+    (.~.) (NFNot x)= x
     (.~.) x   = NFNot x
-    _ .|. _ = error "NormalSentence |"
+    negated (NFNot x) = not (negated x)
+    negated _ = False
 
 instance (IsString v, Pretty v,
           Ord p, IsString p, Boolean p, Data p, Pretty p,

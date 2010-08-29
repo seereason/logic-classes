@@ -5,7 +5,6 @@ module Logic.Instances.PropLogic
     , plSat
     ) where
 
-import Logic.Clause (Literal)
 import Logic.FirstOrder (FirstOrderLogic, toPropositional)
 import Logic.Logic
 import Logic.Monad (NormalT)
@@ -14,12 +13,18 @@ import Logic.Propositional
 import qualified Logic.Set as S
 import PropLogic
 
+instance Literal (PropForm a) where
+    (.~.) (N (N x)) = (.~.) x
+    (.~.) (N x) = x
+    (.~.) x = N x
+    negated (N x) = not (negated x)
+    negated _ = False
+
 instance Logic (PropForm a) where
     x .<=>. y = EJ [x, y]
     x .=>.  y = SJ [x, y]
     x .|.   y = DJ [x, y]
     x .&.   y = CJ [x, y]
-    (.~.) x   = N x
 
 instance Logic (PropForm a) => PropositionalLogic (PropForm a) a where
     atomic = A
@@ -66,23 +71,23 @@ flatten (SJ xs) = SJ (map flatten xs)
 flatten (N x) = N (flatten x)
 flatten x = x
 
-plSat :: (Monad m, FirstOrderLogic formula term v p f, Literal formula, Ord formula) =>
+plSat :: (Monad m, FirstOrderLogic formula term v p f, Ord formula) =>
                 formula -> NormalT v term m Bool
 plSat f = clauses f >>= return . satisfiable
 
-clauses :: (Monad m, FirstOrderLogic formula term v p f, Literal formula) => formula -> NormalT v term m (PropForm formula)
+clauses :: (Monad m, FirstOrderLogic formula term v p f) => formula -> NormalT v term m (PropForm formula)
 clauses f = clauseNormalForm f >>= return . CJ . map (DJ . map (toPropositional A)) . map S.toList . S.toList
 
 {-
-inconsistant :: (Monad m, FirstOrderLogic formula term v p f, Literal formula, Ord formula) =>
+inconsistant :: (Monad m, FirstOrderLogic formula term v p f, Ord formula) =>
                 formula -> NormalT v term m Bool
 inconsistant f =  satisfiable f >>= return . not
 
-theorem :: (Monad m, FirstOrderLogic formula term v p f, Literal formula, Ord formula) =>
+theorem :: (Monad m, FirstOrderLogic formula term v p f, Ord formula) =>
            formula -> NormalT v term m Bool
 theorem f = inconsistant ((.~.) f)
 
-invalid :: (Monad m, FirstOrderLogic formula term v p f, Literal formula, Ord formula) =>
+invalid :: (Monad m, FirstOrderLogic formula term v p f, Ord formula) =>
            formula -> NormalT v term m Bool
 invalid f = inconsistant f >>= \ fi -> theorem f >>= \ ft -> return (not (fi || ft))
 -}

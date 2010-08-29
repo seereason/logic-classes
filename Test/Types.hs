@@ -20,7 +20,7 @@ import Data.Char (isDigit)
 import Data.Generics (Data, Typeable, listify, Fixity(..))
 import qualified Data.Set as S
 import Data.String (IsString(fromString))
-import Logic.Clause (Literal, ClauseNormal(satisfiable))
+import Logic.Clause (ClauseNormal(satisfiable))
 import Logic.FirstOrder (showForm, FirstOrderLogic, convertFOF, Predicate(..), Pretty(..), Skolem(..))
 import Logic.Implicative (Implicative(..))
 import qualified Logic.Instances.Chiou as C
@@ -131,7 +131,7 @@ data (Implicative inf formula, FirstOrderLogic formula term v p f) => Expected i
     | SatSolverSat Bool
     deriving (Data, Typeable)
 
-doTest :: (Implicative inf formula, FirstOrderLogic formula term v p f, Literal formula, Data formula, Show term, Show inf, Show formula) =>
+doTest :: (Implicative inf formula, FirstOrderLogic formula term v p f, Data formula, Show term, Show inf, Show formula) =>
           TestFormula inf formula term v p f -> Test
 doTest f =
     TestLabel (name f) $ TestList $ 

@@ -23,9 +23,9 @@ import Control.Monad.State (MonadState(get, put), modify)
 import Control.Monad.Trans (lift)
 import Data.Generics (Data, Typeable)
 import Data.List (partition)
-import Logic.Clause (Literal(..))
 import Logic.FirstOrder (FirstOrderLogic)
 import Logic.Implicative (Implicative, toImplicative)
+import Logic.Logic (Literal(..))
 import Logic.Monad (ProverT, ProverT', ProverState(..), KnowledgeBase, WithId(..), SentenceCount, withId, zeroKB)
 import Logic.NormalForm (implicativeNormalForm)
 import Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
@@ -63,7 +63,7 @@ inconsistantKB s = lift (implicativeNormalForm s) >>= return . getSetOfSupport .
 -- proof.
 theoremKB :: (Monad m, FirstOrderLogic formula term v p f, Data formula, Implicative inf formula) =>
              formula -> ProverT' v term inf m (Bool, SetOfSupport inf v term)
-theoremKB s = inconsistantKB (invert s)
+theoremKB s = inconsistantKB ((.~.) s)
 
 -- |Try to prove a sentence, return the result and the proof.
 -- askKB should be in KnowledgeBase module. However, since resolution

@@ -24,7 +24,7 @@ import Logic.FirstOrder (FirstOrderLogic(..), for_all', exists', Term(..), Skole
 import Logic.Implicative (Implicative(..))
 import Logic.Instances.Native (ImplicativeNormalForm(..), makeINF')
 import Logic.KnowledgeBase (ProofResult(..))
-import Logic.Logic (Logic(..), Boolean(..))
+import Logic.Logic (Literal(..), Logic(..), Boolean(..))
 import Logic.Monad (WithId(..))
 import Test.HUnit
 import Test.Types (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof)

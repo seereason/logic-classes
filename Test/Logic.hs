@@ -5,9 +5,8 @@ module Test.Logic (tests) where
 
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
-import Logic.Clause (Literal(..))
 import qualified Logic.Instances.Native as P
-import Logic.Logic (Logic(..), Boolean(..))
+import Logic.Logic (Literal(..), Logic(..), Boolean(..))
 import Logic.Monad (runNormal)
 import Logic.NormalForm (clauseNormalForm, clauseNormalForm)
 import Logic.FirstOrder (Skolem(..), FirstOrderLogic(..), Term(..), showForm, freeVars, substitute)
@@ -429,7 +428,7 @@ prepare formula = ({- flatten . -} fromJust . toPropositional convertA . cnf . (
 convertA = Just . A
 -}
 
-table :: forall formula term v p f. (Literal formula, FirstOrderLogic formula term v p f, Ord formula, Skolem f, IsString v, Enum v, TD.Display formula) =>
+table :: forall formula term v p f. (FirstOrderLogic formula term v p f, Ord formula, Skolem f, IsString v, Enum v, TD.Display formula) =>
          formula -> TruthTable formula
 table f =
     -- truthTable :: Ord a => PropForm a -> TruthTable a
@@ -442,4 +441,4 @@ table f =
       cnf :: [[formula]]
       cnf = fromSS (runNormal (clauseNormalForm f))
       fromSS = map Set.toList . Set.toList
-      n f = (if inverted f then N . A . invert else A) $ f
+      n f = (if negated f then N . A . (.~.) else A) $ f

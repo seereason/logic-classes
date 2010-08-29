@@ -42,7 +42,6 @@ import Control.Monad.State (MonadPlus, msum)
 import Data.Generics (Data, Typeable, listify)
 import Data.List (intersperse)
 import Data.Maybe (isJust)
-import Logic.Clause (Literal(..))
 import Logic.FirstOrder
 import Logic.Harrison.Skolem (prenex, askolemize, simplify, specialize)
 import Logic.Harrison.Prop (nnf, trivial, simpcnf)

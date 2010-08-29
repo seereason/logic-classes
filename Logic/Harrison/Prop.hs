@@ -6,9 +6,8 @@ module Logic.Harrison.Prop
     , trivial
     ) where
 
-import Logic.Clause (Literal(..))
 import Logic.FirstOrder (FirstOrderLogic(..), Predicate(..), Quant(..), quant)
-import Logic.Logic (Logic(..), Combine(..), Boolean(..), BinOp(..))
+import Logic.Logic (Literal(..), Logic(..), Combine(..), Boolean(..), BinOp(..))
 import qualified Logic.Set as S
 
 {-
@@ -605,11 +604,11 @@ simpcnf fm =
       cjs = S.filter (not . trivial) (purecnf (nnf fm))
 
 -- |Harrison page 59.  Look for complementary pairs in a clause.
-trivial :: Literal lit => S.Set lit -> Bool
+trivial :: (Literal lit, Ord lit) => S.Set lit -> Bool
 trivial lits =
-    not . S.null $ S.intersection (S.map invert n) p
+    not . S.null $ S.intersection (S.map (.~.) n) p
     where
-      (n, p) = S.partition inverted lits
+      (n, p) = S.partition negated lits
 
 -- | CNF: (a | b | c) & (d | e | f)
 purecnf :: forall formula term v p f. FirstOrderLogic formula term v p f => formula -> S.Set (S.Set formula)

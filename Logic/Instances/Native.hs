@@ -16,10 +16,9 @@ import qualified Data.Set as S
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
-import Logic.Clause (Literal(..))
 import Logic.FirstOrder (Term(..), FirstOrderLogic(..), Quant(..), Skolem(..), Pretty, Predicate(..), showForm, showTerm)
 import Logic.Implicative (Implicative(..))
-import Logic.Logic (Logic(..), BinOp(..), Boolean(..), Combine(..))
+import Logic.Logic (Literal(..), Logic(..), BinOp(..), Boolean(..), Combine(..))
 import qualified Logic.Logic as Logic
 import Logic.Propositional (PropositionalLogic(..))
     
@@ -66,13 +65,6 @@ data (Ord v, Ord p, Ord f) => ImplicativeNormalForm v p f =
     INF (S.Set (Formula v p f)) (S.Set (Formula v p f))
     deriving (Eq, Data, Typeable)
 
-instance (Eq v, Eq p, Eq f, Ord v, Ord p, Ord f) => Literal (Formula v p f) where
-    invert (Combine ((:~:) (Combine ((:~:) x)))) = invert x
-    invert (Combine ((:~:) x)) = x
-    invert x = (.~.) x
-    inverted (Combine ((:~:) x)) = not (inverted x)
-    inverted _ = False
-
 instance (Ord v, Ord p, Ord f) => Implicative (ImplicativeNormalForm v p f) (Formula v p f) where
     neg (INF lhs _) = lhs
     pos (INF _ rhs) = rhs
@@ -85,13 +77,19 @@ makeINF' n p = makeINF (S.fromList n) (S.fromList p)
 
 instance (FirstOrderLogic (Formula v p f) (PTerm v f) v p f, Show (Formula v p f)) => Show (ImplicativeNormalForm v p f) where
     show x = "makeINF' (" ++ show (S.toList (neg x)) ++ ") (" ++ show (S.toList (pos x)) ++ ")"
+
+instance Literal (Formula v p f) where
+    (.~.) (Combine ((:~:) (Combine ((:~:) x)))) = (.~.) x
+    (.~.) (Combine ((:~:) x)) = x
+    (.~.) x = Combine ((:~:) x)
+    negated (Combine ((:~:) x)) = not (negated x)
+    negated _ = False
     
 instance Logic (Formula v p f) where
     x .<=>. y = Combine (BinOp  x (:<=>:) y)
     x .=>.  y = Combine (BinOp  x (:=>:)  y)
     x .|.   y = Combine (BinOp  x (:|:)   y)
     x .&.   y = Combine (BinOp  x (:&:)   y)
-    (.~.) x   = Combine ((:~:) x)
 
 instance (Ord v, Enum v, Data v, Pretty v, Show v,
           Ord p, Boolean p, Data p, Pretty p, Show p,

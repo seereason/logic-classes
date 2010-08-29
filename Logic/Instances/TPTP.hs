@@ -12,7 +12,7 @@ import Data.String (IsString(..))
 import qualified Logic.FirstOrder as Logic
 import Logic.FirstOrder (FirstOrderLogic(..), Term(..), Pretty(..), Predicate(..))
 import qualified Logic.Logic as Logic
-import Logic.Logic (Logic(..), Boolean(..))
+import Logic.Logic (Literal(..), Logic(..), Boolean(..))
 import qualified Logic.Propositional as Logic
 import Text.PrettyPrint (text)
 
@@ -64,6 +64,12 @@ instance Logic.Pretty AtomicFunction where
 instance Logic.Pretty AtomicWord where
     pretty (AtomicWord s) = text s
 
+instance Logic.Literal Formula where
+    negated (F (Identity ((:~:) x))) = not (negated x)
+    negated _ = False
+    (.~.) (F (Identity ((:~:) x))) = x
+    (.~.) x   = (.~.) x
+
 -- |If this looks confusing, it is because TPTP has the same operators
 -- as Logic, the .&. on the left is the Logic method name and .&. on
 -- the right is the TPTP function.
@@ -76,7 +82,6 @@ instance Logic.Logic Formula where
     x .<~>. y = x .<~>. y
     x .~|.  y = x .~|. y
     x .~&.  y = x .~&. y
-    (.~.) x   = (.~.) x 
 
 -- |For types designed to represent first order (predicate) logic, it
 -- is easiest to make the atomic type the same as the formula type,

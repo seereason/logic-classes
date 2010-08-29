@@ -5,7 +5,6 @@
 -- CNF types defined in the parse-dimacs and funsat packages.
 module Logic.Clause
     ( ClauseNormal(..)
-    , Literal(..)
     , toClauseNormal
     , toClauseNormalM
     , fromClauseNormal
@@ -15,20 +14,15 @@ import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.Writer (MonadPlus)
 import qualified Data.Set as S
 import Logic.FirstOrder
-import Logic.Logic
+import Logic.Logic (Literal(..))
 import Prelude hiding (negate)
 
 -- |A class to represent formulas in CNF, which is the conjunction of
 -- a set of disjuncted literals each which may or may not be negated.
-class Literal lit => ClauseNormal cnf lit | cnf -> lit where
+class (Literal lit, Eq lit, Ord lit) => ClauseNormal cnf lit | cnf -> lit where
     clauses :: cnf -> S.Set (S.Set lit)
     makeCNF :: S.Set (S.Set lit) -> cnf
     satisfiable :: MonadPlus m => cnf -> m Bool
-
--- |The literals in a ClauseNormal formula.
-class (Eq lit, Ord lit) => Literal lit where
-    invert :: lit -> lit
-    inverted :: lit -> Bool
 
 -- |Convert a FirstOrderLogic formula which has been put into clausal
 -- form to another (typically simpler) type which is just an instance
@@ -50,11 +44,10 @@ toClauseNormalM lit formula =
     -- disjunction is true, so it has no effect on the conjunction.
     mapM (mapM lit) formula >>= return . makeCNF . S.fromList . map S.fromList
 
--- |Convert an instance of ClauseNormal into an instance of FirstOrderLogic.
+-- |Convert an instance of ClauseNormal into an instance of
+-- FirstOrderLogic.  Note that the lit function is expected to remove
+-- double negation due to the use of the Literal class.
 fromClauseNormal :: forall formula term v p f cnf lit. (FirstOrderLogic formula term v p f, ClauseNormal cnf lit, Show lit) =>
                    (lit -> formula) -> cnf -> formula
 fromClauseNormal lit cform =
-    conj . map (disj . map lit' . S.toList) . S.toList . clauses $ cform
-    where
-      lit' x | inverted x = (.~.) (lit (invert x))
-      lit' x = lit x
+    conj . map (disj . map lit . S.toList) . S.toList . clauses $ cform

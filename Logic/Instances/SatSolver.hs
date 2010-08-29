@@ -9,6 +9,7 @@ import qualified Data.Map as M
 import qualified Logic.Set as S
 import qualified Logic.Clause as L
 import Logic.FirstOrder (FirstOrderLogic(..))
+import qualified Logic.Logic as L
 import Logic.Monad (NormalT', LiteralMapT)
 import Logic.NormalForm (clauseNormalForm)
 
@@ -19,10 +20,10 @@ instance Ord Literal where
     compare (Neg m) (Neg n) = compare m n
 
 instance L.Literal Literal where
-    invert (Pos n) = Neg n
-    invert (Neg n) = Pos n
-    inverted (Pos n) = False
-    inverted (Neg n) = True
+    (.~.) (Pos n) = Neg n
+    (.~.) (Neg n) = Pos n
+    negated (Pos n) = False
+    negated (Neg n) = True
 
 deriving instance Data Literal
 deriving instance Typeable Literal
@@ -32,15 +33,16 @@ instance L.ClauseNormal CNF Literal where
     makeCNF = map S.toList . S.toList
     satisfiable cnf = return . not . null $ assertTrue' cnf newSatSolver >>= solve
 
-toCNF :: (Monad m, FirstOrderLogic formula term v p f, L.Literal formula) =>
+toCNF :: (Monad m, FirstOrderLogic formula term v p f) =>
          formula -> NormalT' formula v term m CNF
 toCNF f = clauseNormalForm f >>= S.ssMapM (lift . toLiteral) >>= return . L.makeCNF
 
 -- |Convert a [[formula]] to CNF, which means building a map from
 -- formula to Literal.
-toLiteral :: forall m formula. (Monad m, L.Literal formula) => formula -> LiteralMapT formula m Literal
+toLiteral :: forall m formula. (Monad m, L.Literal formula, Ord formula) =>
+             formula -> LiteralMapT formula m Literal
 toLiteral f =
-    literalNumber f' >>= return . if L.inverted f then Neg else Pos
+    literalNumber f' >>= return . if L.negated f then Neg else Pos
     where
       literalNumber :: formula -> LiteralMapT formula m Int
       literalNumber f' =
@@ -51,4 +53,4 @@ toLiteral f =
                           return count
             Just n -> return n
       f' :: formula
-      f' = if L.inverted f then L.invert f else f
+      f' = if L.negated f then (L..~.) f else f
