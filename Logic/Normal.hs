@@ -15,7 +15,7 @@ import Control.Monad.Writer (MonadPlus)
 import Data.Generics (Data)
 import Logic.FirstOrder (Term(..))
 import qualified Logic.FirstOrder as Logic
-import Logic.Logic (Literal, Boolean(..))
+import Logic.Logic (Literal(..), Boolean(..))
 import qualified Logic.Logic as Logic
 import qualified Logic.Set as S
 
@@ -34,7 +34,6 @@ class ( Ord lit
       , Literal lit
       , Data lit
       ) => NormalLogic lit term v p f | lit -> term, term -> lit, lit -> v, term -> v, lit -> p, term -> f, lit -> f where
-    (.~.) :: lit -> lit
     (.=.) :: term -> term -> lit
     pApp :: p -> [term] -> lit
     foldN :: (lit -> r) -> (Predicate p term -> r) -> lit -> r
@@ -67,7 +66,6 @@ class (Literal lit, Eq inf, Ord lit) => Implicative inf lit | inf -> lit where
     makeINF :: S.Set lit -> S.Set lit -> inf
 
 instance (Logic.FirstOrderLogic formula term v p f, Ord formula, Ord p) => NormalLogic formula term v p f where
-    (.~.) = (Logic..~.)
     (.=.) = (Logic..=.)
     pApp = Logic.pApp
     foldN c p l =
