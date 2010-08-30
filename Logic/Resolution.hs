@@ -256,7 +256,7 @@ tryUnify' lhss'' rhss lhss' =
     case tryUnify'' lhs rhss S.empty of
       Nothing -> tryUnify' lhss rhss (S.insert lhs lhss')
       Just (rhss', theta1, theta2) ->
-	  Just ((S.union lhss' lhss, theta1), (rhss', theta2))
+          Just ((S.union lhss' lhss, theta1), (rhss', theta2))
 
 tryUnify'' :: (Literal formula term v p f, Ord formula) =>
               formula -> S.Set formula -> S.Set formula -> Maybe (S.Set formula, Subst v term, Subst v term)
@@ -278,7 +278,7 @@ findUnify tl tr s =
      case unifiedTerms of
        [] -> Nothing
        (Just (theta1, theta2)):_ ->
-	 Just ((substTerm tl theta1, substTerm tr theta1), theta1, theta2)
+         Just ((substTerm tl theta1, substTerm tr theta1), theta1, theta2)
        (Nothing:_) -> error "findUnify"
 
 getTerms :: Literal formula term v p f => formula -> [term]

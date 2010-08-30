@@ -70,33 +70,39 @@ instance Logic.FirstOrderFormula formula term v p f => Literal formula term v p 
     (.=.) = (Logic..=.)
     pApp = Logic.pApp
     foldN c p l =
-        Logic.foldF (\ _ _ _ -> error "foldN") c' p' l
+        Logic.foldF (\ _ _ _ -> error "FirstOrderLogic foldN q") c' p' l
         where
           c' ((Logic.:~:) x) = c x
-          c' _ = error "foldN"
+          c' _ = error "FirstOrderLogic foldN c"
           p' (Logic.Equal a b) = p (Equal a b)
           p' (Logic.Apply pr ts) = p (Apply pr ts)
-          p' _ = error "foldN"
+          p' _ = error "FirstOrderLogic foldN p"
     zipN c p l1 l2 =
-        Logic.zipF (\ _ _ _ _ _ _ -> error "zipN") c' p' l1 l2
+        Logic.zipF (\ _ _ _ _ _ _ -> error "FirstOrderLogic zipN") c' p' l1 l2
         where
           c' ((Logic.:~:) x) ((Logic.:~:) y) = c x y
-          c'  _ _ = error "zipN"
+          c' (Logic.BinOp _ _ _) _ = error "FirstOrderLogic zipN c"
+          c' _ (Logic.BinOp _ _ _) = error "FirstOrderLogic zipN c"
           p' (Logic.Equal a1 b1) (Logic.Equal a2 b2) = p (Equal a1 b1) (Equal a2 b2)
           p' (Logic.Apply p1 ts1) (Logic.Apply p2 ts2) = p (Apply p1 ts1) (Apply p2 ts2)
-          p' _ _ = error "zipN"
+          p' (Logic.Constant _) _ = error "FirstOrderLogic zipN p"
+          p' _ (Logic.Constant _) = error "FirstOrderLogic zipN p"
+          p' (Logic.NotEqual _ _) _ = error "FirstOrderLogic zipN p"
+          p' _ (Logic.NotEqual _ _) = error "FirstOrderLogic zipN p"
+          p' _ _ = Nothing
 
 -- |Convert any first order logic formula to a normal logic formula,
 -- |provided it doesn't contain any unsupported constructs, such as
 -- |quantifiers, binary operators, boolean constants.
 fromFirstOrder :: forall formula term v p f lit. (Logic.FirstOrderFormula formula term v p f, Literal lit term v p f) => formula -> lit
 fromFirstOrder formula =
-    Logic.foldF (\ _ _ _ -> error "toLiteral") c p formula
+    Logic.foldF (\ _ _ _ -> error "toLiteral q") c p formula
     where
       c :: Logic.Combine formula -> lit
       c ((Logic.:~:) f) =  (.~.) (fromFirstOrder f)
-      c _ = error "comvertToNormal"
+      c _ = error "fromFirstOrder"
       p :: Logic.Predicate p term -> lit
       p (Logic.Equal a b) = a .=. b
+      p (Logic.NotEqual a b) = (.~.) (a .=. b)
       p (Logic.Apply pr ts) = pApp pr ts
-      p _ = error "toLiteral"
+      p (Logic.Constant b) = error $ "fromFirstOrder " ++ show b
