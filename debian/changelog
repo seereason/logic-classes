@@ -1,3 +1,11 @@
+haskell-logic (0.21.2) unstable; urgency=low
+
+  * Fix a bug in fromFirstOrder
+  * Add Logic.Set.cartesianProduct, use to implement allpairs
+  * Add purednf and implement purecnf in terms of purednf.
+
+ -- David Fox <dsf@seereason.com>  Mon, 30 Aug 2010 15:44:10 -0700
+
 haskell-logic (0.21) unstable; urgency=low
 
   * Rename the *Logic classes -> *Formula

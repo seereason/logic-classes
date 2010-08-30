@@ -526,6 +526,20 @@ let rec purednf fm =
     And(p,q) -> distrib (purednf p) (purednf q)
   | Or(p,q) -> union (purednf p) (purednf q)
   | _ -> [[fm]];;
+-}
+purednf :: forall formula term v p f lit. (FirstOrderFormula formula term v p f, Literal lit term v p f) =>
+           formula -> S.Set (S.Set lit)
+purednf fm =
+    foldF (\ _ _ _ -> x) c (\ _ -> x)  fm
+    where
+      c :: Combine formula -> S.Set (S.Set lit)
+      c (BinOp p (:&:) q) = S.distrib (purednf p) (purednf q)
+      c (BinOp p (:|:) q) = S.union (purednf p) (purednf q)
+      c _ = x
+      x :: S.Set (S.Set lit)
+      x = S.singleton (S.singleton (fromFirstOrder fm)) :: S.Set (S.Set lit)
+
+{-
 
 (* ------------------------------------------------------------------------- *)
 (* Example.                                                                  *)
@@ -614,13 +628,15 @@ trivial lits =
 -- | CNF: (a | b | c) & (d | e | f)
 purecnf :: forall formula term v p f lit. (FirstOrderFormula formula term v p f, Literal lit term v p f) =>
            formula -> S.Set (S.Set lit)
-purecnf fm =
+purecnf fm = S.map (S.map (.~.)) (purednf (nnf ((.~.) fm)))
+{-
     foldF (\ _ _ _ -> ss (fromFirstOrder fm)) c (\ _ -> ss (fromFirstOrder fm)) fm
     where
       ss = S.singleton . S.singleton
       c (BinOp l (:|:) r) = S.distrib (purecnf l) (purecnf r)
       c (BinOp l (:&:) r) = S.union (purecnf l) (purecnf r)
       c _ = ss (fromFirstOrder fm)
+-}
 {-
 
 let cnf fm = list_conj(map list_disj (simpcnf fm));;

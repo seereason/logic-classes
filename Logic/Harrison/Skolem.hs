@@ -1,6 +1,11 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses,
              RankNTypes, ScopedTypeVariables, UndecidableInstances #-}
-module Logic.Harrison.Skolem where
+module Logic.Harrison.Skolem
+    ( simplify
+    , prenex
+    , askolemize
+    , specialize
+    ) where
 
 import Control.Monad.State (get, put)
 import Logic.FirstOrder

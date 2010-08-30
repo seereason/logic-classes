@@ -1,13 +1,16 @@
 {-# OPTIONS -Wall #-}
 module Logic.Harrison.Lib
-    ( apply
+    ( exists
+    , allpairs
+    , image
+    , apply
     , applyd
     , tryapplyd
     , defined
-    , exists
     ) where
 
 import qualified Data.Map as M
+import qualified Logic.Set as S
 
 {-
 (* ========================================================================= *)
@@ -160,6 +163,11 @@ let rec allpairs f l1 l2 =
   match l1 with
    h1::t1 ->  itlist (fun x a -> f h1 x :: a) l2 (allpairs f t1 l2)
   | [] -> [];;
+-}
+-- |return the cartesian product of two sets.
+allpairs :: (Ord a, Ord b) => S.Set a -> S.Set b -> S.Set (a, b)
+allpairs = S.cartesianProduct
+{-
 
 let rec distinctpairs l =
   match l with
@@ -375,6 +383,10 @@ let rec set_eq s1 s2 = (setify s1 = setify s2);;
 let insert x s = union [x] s;;
 
 let image f s = setify (map f s);;
+-}
+image :: (Ord a, Ord b) => (a -> b) -> [a] -> S.Set b
+image f = S.map f . S.fromList
+{-
 
 (* ------------------------------------------------------------------------- *)
 (* Union of a family of sets.                                                *)

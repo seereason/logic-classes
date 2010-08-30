@@ -10,6 +10,7 @@ module Logic.Set
     , fromSS
     , mapM
     , ssMapM
+    , cartesianProduct
     , module Data.Set
     ) where
 
@@ -50,3 +51,6 @@ toSS = fromList . L.map fromList
 
 fromSS :: Ord a => Set (Set a) -> [[a]]
 fromSS = L.map toList . toList
+
+cartesianProduct :: (Ord a, Ord b) => S.Set a -> S.Set b -> S.Set (a, b)
+cartesianProduct xs ys = S.flatten $ S.map (\ x -> S.map (\ y -> (x, y)) ys) xs
