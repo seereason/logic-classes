@@ -52,5 +52,5 @@ toSS = fromList . L.map fromList
 fromSS :: Ord a => Set (Set a) -> [[a]]
 fromSS = L.map toList . toList
 
-cartesianProduct :: (Ord a, Ord b) => S.Set a -> S.Set b -> S.Set (a, b)
-cartesianProduct xs ys = S.flatten $ S.map (\ x -> S.map (\ y -> (x, y)) ys) xs
+cartesianProduct :: (Ord a, Ord b) => Set a -> Set b -> Set (a, b)
+cartesianProduct xs ys = flatten $ Data.Set.map (\ x -> Data.Set.map (\ y -> (x, y)) ys) xs
