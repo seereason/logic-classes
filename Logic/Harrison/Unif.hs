@@ -67,10 +67,8 @@ unify env ((a,b):oth) =
       vr t x =
           if defined env x
           then unify env ((apply env x, t) : oth)
-          else case isTrivial env x t of
-                 Failure s -> Failure s
-                 Success True -> unify env oth
-                 Success False -> unify (M.insert x t env) oth
+          else isTrivial env x t >>=
+                   \ trivial -> unify (if trivial then env else M.insert x t env) oth
       fn f fargs g gargs =
           if f == g && length fargs == length gargs
           then unify env (zip fargs gargs ++ oth)

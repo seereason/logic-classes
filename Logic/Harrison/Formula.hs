@@ -1,3 +1,15 @@
+module Logic.Harrison.Formula
+    ( mk_and
+    , mk_or
+    , mk_imp
+    , mk_iff
+    , mk_forall
+    , mk_exists
+    ) where
+
+import Logic.FirstOrder (FirstOrderFormula(..))
+import Logic.Logic (Logic(..))
+
 {-
 (* ========================================================================= *)
 (* Polymorphic type of formulas with parser and printer.                     *)
@@ -137,6 +149,14 @@ let print_qformula pfn fm =
 let mk_and p q = And(p,q) and mk_or p q = Or(p,q)
 and mk_imp p q = Imp(p,q) and mk_iff p q = Iff(p,q)
 and mk_forall x p = Forall(x,p) and mk_exists x p = Exists(x,p);;
+-}
+mk_and p q = p .&. q
+mk_or p q = p .|. q
+mk_imp p q = p .=>. q
+mk_iff p q = p .<=>. q
+mk_forall x p = for_all x p
+mk_exists x p = exists x p
+{-
 
 (* ------------------------------------------------------------------------- *)
 (* Destructors.                                                              *)

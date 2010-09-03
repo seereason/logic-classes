@@ -1,5 +1,11 @@
 module Logic.Harrison.Resolution where
 
+import Control.Applicative.Error (Failing(..), failing)
+import qualified Data.Map as M
+import Logic.Harrison.Tableaux (unifyLiterals)
+import Logic.Harrison.Unif (solve)
+import Logic.Normal (Literal)
+
 {-
 (* ========================================================================= *)
 (* Resolution.                                                               *)
@@ -27,10 +33,12 @@ let rec mgu l env =
   | _ -> solve env;;
 
 -}
+mgu :: Literal lit term v p f => [lit] -> M.Map v term -> Failing (M.Map v term)
 mgu l env =
     case l of
-      (a:b:rest) -> mgu (b:rest) (unify_literals env (a,b))
-      _ -> solve env
+      -- Using the monad instance of Failing
+      (a:b:rest) -> unifyLiterals env a b >>= mgu (b:rest)
+      _ -> Success (solve env)
 {-
 
 let unifiable p q = can (unify_literals undefined) (p,q);;
@@ -162,6 +170,14 @@ let pure_resolution fm = resloop([],simpcnf(specialize(pnf fm)));;
 let resolution fm =
   let fm1 = askolemize(Not(generalize fm)) in
   map (pure_resolution ** list_conj) (simpdnf fm1);;
+-}
+resloop used [] = Failure ["No proof found"]
+resloop used unused@(cl:ros) =
+    trace (show (length used) ++ " used; " ++ show (length unused) ++ " unused.")
+    let used' = insert cl used in
+    let news = foldr (@) [] (mapfilter (resolve_clauses cl) used')
+    
+{-
 
 (* ------------------------------------------------------------------------- *)
 (* This is now a lot quicker.                                                *)

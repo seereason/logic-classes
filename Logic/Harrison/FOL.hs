@@ -1,8 +1,16 @@
-module Logic.Harrison.FOL where
+{-# LANGUAGE RankNTypes #-}
+module Logic.Harrison.FOL
+    ( fvt
+    , fv
+    , generalize
+    , tsubst
+    ) where
 
 import qualified Data.Map as M
-import Logic.FirstOrder (Term(..))
+import qualified Data.Set as S
+import Logic.FirstOrder (Term(..), FirstOrderFormula(..), Predicate(..))
 import Logic.Harrison.Lib
+import Logic.Logic (Combine(..))
 
 {-
 
@@ -261,6 +269,11 @@ let rec fvt tm =
   match tm with
     Var x -> [x]
   | Fn(f,args) -> unions (map fvt args);;
+-}
+fvt :: Term term v f => term -> S.Set v
+fvt tm =
+    foldT S.singleton (\ _ args -> S.unions (map fvt args)) tm
+{-
 
 let rec var fm =
    match fm with
@@ -277,12 +290,30 @@ let rec fv fm =
   | Not(p) -> fv p
   | And(p,q) | Or(p,q) | Imp(p,q) | Iff(p,q) -> union (fv p) (fv q)
   | Forall(x,p) | Exists(x,p) -> subtract (fv p) [x];;
+-}
+fv :: forall formula term v p f. FirstOrderFormula formula term v p f => formula -> S.Set v
+fv fm =
+    foldF q c p fm
+    where
+      q _ x f = S.difference (fv f) (S.singleton x)
+      c (BinOp f _ g) = S.union (fv f) (fv g)
+      c ((:~:) f) = fv f
+      p (Apply _ args) = S.unions (map fvt args)
+      p (Constant _) = S.empty
+      p (Equal a b) = S.union (fvt a) (fvt b)
+      p (NotEqual a b) = S.union (fvt a) (fvt b)
+    
+{-
 
 (* ------------------------------------------------------------------------- *)
 (* Universal closure of a formula.                                           *)
 (* ------------------------------------------------------------------------- *)
 
 let generalize fm = itlist mk_forall (fv fm) fm;;
+-}
+generalize :: FirstOrderFormula formula term v p f => formula -> formula
+generalize fm = S.fold for_all fm (fv fm)
+{-
 
 (* ------------------------------------------------------------------------- *)
 (* Substitution within terms.                                                *)

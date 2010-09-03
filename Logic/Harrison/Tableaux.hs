@@ -2,9 +2,9 @@ module Logic.Harrison.Tableaux where
 
 import Control.Applicative.Error (Failing(..))
 import qualified Data.Map as M
-import Logic.FirstOrder (FirstOrderFormula(..), Predicate(..))
-import Logic.Harrison.Unif
+import Logic.Harrison.Unif (unify)
 import Logic.Logic (Combine(..))
+import Logic.Normal (Literal(..), Predicate(..))
 
 {-
 (* ========================================================================= *)
@@ -24,21 +24,18 @@ let rec unify_literals env tmp =
   | False,False -> env
   | _ -> failwith "Can't unify literals";;
 -}
-unifyLiterals :: FirstOrderFormula formula term v p f =>
-                 M.Map v term -> formula -> formula -> Failing (M.Map v term)
+unifyLiterals :: Literal lit term v p f =>
+                 M.Map v term -> lit -> lit -> Failing (M.Map v term)
 unifyLiterals env f1 f2 =
-    maybe (Failure ["Can't unify literals"]) id (zipF q c p f1 f2)
+    maybe (Failure ["Can't unify literals"]) id (zipN c p f1 f2)
     where
-      q _ _ _ _ _ _ = Nothing
-      c ((:~:) p) ((:~:) q) = Just $ unifyLiterals env p q
-      c _ _ = Nothing
+      c p q = Just $ unifyLiterals env p q
       p (Apply p1 a1) (Apply p2 a2) =
-          if p1 == q1 && length a1 == length a2
+          if p1 == p2 && length a1 == length a2
           then Just $ unify env (zip a1 a2)
           else Nothing
-      p (Equal pl pr) (Equal ql qr) = Just $ unify env [(pl .=. pr, ql .=. qr)]
-      p (NotEqual pl pr) (NotEqual ql qr) = Just $ unify env [(pl .!=. pr, ql .!=. qr)]
-      p (Constant False) (Constant False) = Just $ Success env
+      p (Equal pl pr) (Equal ql qr) =
+          Just $ unify env [(pl, ql), (pr, qr)]
       p _ _ = Nothing
 {-
 

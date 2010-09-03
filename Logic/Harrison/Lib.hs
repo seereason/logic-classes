@@ -7,6 +7,7 @@ module Logic.Harrison.Lib
     , applyd
     , tryapplyd
     , defined
+    , itlist
     ) where
 
 import qualified Data.Map as M
@@ -89,6 +90,11 @@ let rec itlist f l b =
   match l with
     [] -> b
   | (h::t) -> f h (itlist f t b);;
+-}
+itlist :: (a -> b -> b) -> [a] -> b -> b
+itlist f xs y = foldr f y xs
+
+{-
 
 let rec end_itlist f l =
   match l with
