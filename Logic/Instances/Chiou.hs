@@ -17,7 +17,7 @@ module Logic.Instances.Chiou
 import Data.Generics (Data, Typeable)
 import qualified Data.Set as S
 import Data.String (IsString(..))
-import Logic.FirstOrder (FirstOrderFormula(..), Pretty)
+import Logic.FirstOrder (FirstOrderFormula(..), Pretty, Arity)
 import qualified Logic.FirstOrder as Logic
 import qualified Logic.FirstOrder as L
 import Logic.Logic (Negatable(..), Logic(..), BinOp(..), Combine(..), Boolean(..))
@@ -64,7 +64,7 @@ instance Logic (Sentence v p f) where
     x .&.   y = Connective x And y
 
 instance (Ord v, IsString v, Data v, Pretty v, L.Variable v, 
-          Ord p, IsString p, Data p, Pretty p, Boolean p,
+          Ord p, IsString p, Data p, Pretty p, Boolean p, Arity p,
           Ord f, IsString f, Data f, Pretty f, Skolem f, 
           Logic (Sentence v p f)) =>
          PropositionalFormula (Sentence v p f) (Sentence v p f) where
@@ -101,7 +101,7 @@ instance Skolem AtomicFunction where
 
 instance (Pretty v, Pretty p, Pretty f, -- debugging
           Ord v, IsString v, L.Variable v, Data v,
-          Ord p, IsString p, Boolean p, Data p,
+          Ord p, IsString p, Boolean p, Arity p, Data p,
           Ord f, IsString f, Skolem f, Data f, 
           PropositionalFormula (Sentence v p f) (Sentence v p f)) =>
           FirstOrderFormula (Sentence v p f) (CTerm v f) v p f where
@@ -207,7 +207,7 @@ instance Negatable (NormalSentence v p f) where
     negated _ = False
 
 instance (IsString v, Pretty v,
-          Ord p, IsString p, Boolean p, Data p, Pretty p,
+          Ord p, IsString p, Boolean p, Arity p, Data p, Pretty p,
           Ord f, IsString f, Pretty f,
           Logic (NormalSentence v p f), Logic.Term (NormalTerm v f) v f) => FirstOrderFormula (NormalSentence v p f) (NormalTerm v f) v p f where
     for_all _ _ = error "FirstOrderFormula NormalSentence"

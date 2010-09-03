@@ -12,6 +12,7 @@
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
 module Logic.FirstOrder
     ( Skolem(..)
+    , Arity(..)
     , Variable(..)
     , Predicate(..)
     , FirstOrderFormula(..)
@@ -81,6 +82,11 @@ data Predicate p term
     | Apply p [term]    
     deriving (Eq, Ord, Show, Read, Data, Typeable)
 
+class Arity p where
+    -- |How many arguments does the predicate take?  Nothing
+    -- means any number of arguments.
+    arity :: p -> Maybe Int
+
 class ( Ord v     -- Required so variables can be inserted into maps and sets
       , Variable v -- Used to rename variable during conversion to prenex
       , Data v    -- For serialization
@@ -113,6 +119,7 @@ class ( Term term v f
       , Data formula   -- Allows us to use Data.Generics functions on formulas
       , Data p
       , Boolean p      -- To implement true and false below
+      , Arity p        -- To decide how many arguments
       , Eq p           -- Required during resolution
       , Ord p
       , Ord f

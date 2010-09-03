@@ -24,6 +24,9 @@ instance Variable V where
              (digits, "SV") -> "SV" ++ show (1 + read (reverse digits) :: Int)
              _ -> "SV1")
 
+instance Logic.Arity AtomicWord where
+    arity _ = Nothing
+
 instance Logic.Pretty V where
     pretty (V s) = text s
 

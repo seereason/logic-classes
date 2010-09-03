@@ -21,7 +21,7 @@ import Data.Generics (Data, Typeable, listify, Fixity(..))
 import qualified Data.Set as S
 import Data.String (IsString(fromString))
 --import Logic.Clause (ClauseNormalFormula(satisfiable))
-import Logic.FirstOrder (showForm, FirstOrderFormula, convertFOF, Predicate(..), Pretty(..), Skolem(..), Variable(next))
+import Logic.FirstOrder (showForm, FirstOrderFormula, convertFOF, Predicate(..), Pretty(..), Skolem(..), Arity(arity), Variable(next))
 import qualified Logic.Instances.Chiou as C
 import qualified Logic.Instances.Native as P
 import Logic.Instances.PropLogic (plSat)
@@ -68,6 +68,12 @@ instance IsString Pr where
 instance Boolean Pr where
     fromBool True = T
     fromBool False = F
+
+instance Arity Pr where
+    arity (Pr _) = Nothing
+    arity T = Just 0
+    arity F = Just 0
+    arity Equals = Just 2
 
 instance Show Pr where
     show T = "fromBool True"

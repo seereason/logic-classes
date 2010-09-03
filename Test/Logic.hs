@@ -9,7 +9,7 @@ import qualified Logic.Instances.Native as P
 import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
 import Logic.Monad (runNormal)
 import Logic.NormalForm (clauseNormalForm, clauseNormalForm)
-import Logic.FirstOrder (Skolem(..), FirstOrderFormula(..), Term(..), Variable, showForm, freeVars, substitute)
+import Logic.FirstOrder (Skolem(..), FirstOrderFormula(..), Term(..), Arity(arity), Variable, showForm, freeVars, substitute)
 import Logic.Satisfiable (theorem, inconsistant)
 import PropLogic (PropForm(..), TruthTable, truthTable)
 import qualified TextDisplay as TD
@@ -148,6 +148,9 @@ inf1 =
       formula :: {- ImplicativeNormalFormula inf (C.Sentence V String AtomicFunction) (C.Term V AtomicFunction) V String AtomicFunction => -} TestFormula
       formula = convertFOF id id id (implicativeNormalForm (convertFOF id id id (for_all ["x"] (p [x] .=>. (q [x] .|. r [x]))) :: C.Sentence V String AtomicFunction) :: C.Sentence V String AtomicFunction)
 -}
+
+instance Arity String where
+    arity _ = Nothing
 
 theoremTests :: [Test]
 theoremTests =
