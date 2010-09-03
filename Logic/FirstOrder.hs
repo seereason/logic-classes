@@ -26,6 +26,7 @@ module Logic.FirstOrder
     , showForm
     , showTerm
     , freeVars
+    , withUnivQuants
     , quantVars
     , allVars
     , univquant_free_vars
@@ -288,6 +289,30 @@ freeVars f =
           f
     where
       freeVarsOfTerm = foldT S.singleton (\ _ args -> S.unions (fmap freeVarsOfTerm args))
+
+-- | Examine the formula to find the list of outermost universally
+-- quantified variables, and call a function with that list and the
+-- formula after the quantifiers are removed.
+withUnivQuants :: FirstOrderFormula formula term v p f => ([v] -> formula -> r) -> formula -> r
+withUnivQuants fn formula =
+    doFormula [] formula
+    where
+      doFormula vs f =
+          foldF (doQuant vs)
+                (\ _ -> fn (reverse vs) f)
+                (\ _ -> fn (reverse vs) f)
+                f
+      doQuant vs All v f = doFormula (v : vs) f
+      doQuant vs Exists v f = fn (reverse vs) (exists v f)
+
+{-
+withImplication :: FirstOrderFormula formula term v p f => r -> (formula -> formula -> r) -> formula -> r
+withImplication def fn formula =
+    foldF (\ _ _ _ -> def) c (\ _ -> def) formula
+    where
+      c (BinOp a (:=>:) b) = fn a b
+      c _ = def
+-}
 
 -- |Find the variables that are quantified in a formula
 quantVars :: FirstOrderFormula formula term v p f => formula -> S.Set v
