@@ -10,21 +10,19 @@ import Data.Char (isDigit, ord)
 import Data.Generics (Data, Typeable)
 import Data.String (IsString(..))
 import qualified Logic.FirstOrder as Logic
-import Logic.FirstOrder (FirstOrderFormula(..), Term(..), Pretty(..), Predicate(..))
+import Logic.FirstOrder (FirstOrderFormula(..), Term(..), Pretty(..), Predicate(..), Variable(next))
 import qualified Logic.Logic as Logic
 import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
 import qualified Logic.Propositional as Logic
 import Text.PrettyPrint (text)
 
 -- |Generate a series of variable names.
-instance Enum V where
-    succ (V s) =
+instance Variable V where
+    next (V s) =
         V (case break (not . isDigit) (reverse s) of
              ("", "SV") -> "SV1"
              (digits, "SV") -> "SV" ++ show (1 + read (reverse digits) :: Int)
              _ -> "SV1")
-    fromEnum _ = error "fromEnum Logic.Instances.TPTP.V"
-    toEnum _ = error "toEnum Logic.Instances.TPTP.V"
 
 instance Logic.Pretty V where
     pretty (V s) = text s

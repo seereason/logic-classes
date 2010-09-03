@@ -25,29 +25,6 @@ import Logic.Normal (ImplicativeNormalFormula(..))
 import Logic.Propositional (PropositionalFormula(..))
 import Logic.FirstOrder (Skolem(..), Quant(..))
 
-
--- |This enum instance is used to generate a series of new variable
--- names.
-{-
-instance Enum String where
-    succ v =
-        toEnum (if n < cnt then n + 1 else if n == cnt then ord pref + cnt else n + cnt)
-            where n = fromEnum v
-    fromEnum s =
-        case break (not . isDigit) (reverse s) of
-          ("", [c]) | ord c >= ord mn && ord c <= ord mx -> ord c - ord mn
-          (n, [c]) | ord c >= ord mn && ord c <= ord mx -> ord c - ord mn + cnt * (read (reverse n) :: Int)
-          _ -> error $ "Invalid variable name: " ++ show s
-    toEnum n =
-        chr (ord mn + pre) : if suf == 0 then "" else show suf
-        where (suf, pre) = divMod n cnt
-
-mn = 'x'
-pref = 'x'
-mx = 'z'
-cnt = ord mx - ord mn + 1
--}
-
 data Sentence v p f
     = Connective (Sentence v p f) Connective (Sentence v p f)
     | Quantifier Quantifier [v] (Sentence v p f)
@@ -86,7 +63,7 @@ instance Logic (Sentence v p f) where
     x .|.   y = Connective x Or y
     x .&.   y = Connective x And y
 
-instance (Ord v, IsString v, Data v, Pretty v, Enum v, 
+instance (Ord v, IsString v, Data v, Pretty v, L.Variable v, 
           Ord p, IsString p, Data p, Pretty p, Boolean p,
           Ord f, IsString f, Data f, Pretty f, Skolem f, 
           Logic (Sentence v p f)) =>
@@ -123,7 +100,7 @@ instance Skolem AtomicFunction where
     fromSkolem _ = Nothing
 
 instance (Pretty v, Pretty p, Pretty f, -- debugging
-          Ord v, IsString v, Enum v, Data v,
+          Ord v, IsString v, L.Variable v, Data v,
           Ord p, IsString p, Boolean p, Data p,
           Ord f, IsString f, Skolem f, Data f, 
           PropositionalFormula (Sentence v p f) (Sentence v p f)) =>
@@ -183,7 +160,7 @@ instance (FirstOrderFormula (Sentence v p f) (CTerm v f) v p f, Show v, Show p, 
     show = showTerm
 -}
 
-instance (Ord v, Enum v, Data v, Eq f, Ord f, Skolem f, Data f) => Logic.Term (CTerm v f) v f where
+instance (Ord v, L.Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Logic.Term (CTerm v f) v f where
     foldT v fn t =
         case t of
           Variable x -> v x
@@ -217,7 +194,7 @@ data NormalTerm v f
     | NormalVariable v
     deriving (Eq, Ord, Data, Typeable)
 
-instance (Enum v, Ord p, Ord f, FirstOrderFormula (Sentence v p f) (CTerm v f) v p f) => ImplicativeNormalFormula (ImplicativeNormalForm v p f) (Sentence v p f) where
+instance (L.Variable v, Ord p, Ord f, FirstOrderFormula (Sentence v p f) (CTerm v f) v p f) => ImplicativeNormalFormula (ImplicativeNormalForm v p f) (Sentence v p f) where
     neg (INF x _) = S.fromList x
     pos (INF _ x) = S.fromList x
     makeINF lhs rhs = INF (S.toList lhs) (S.toList rhs)
@@ -250,7 +227,7 @@ instance (IsString v, Pretty v,
     x .=. y = NFEqual x y
     x .!=. y = NFNot (NFEqual x y)
 
-instance (Ord v, Enum v, Data v, Eq f, Ord f, Logic.Skolem f, Data f) => Logic.Term (NormalTerm v f) v f where
+instance (Ord v, L.Variable v, Data v, Eq f, Ord f, Logic.Skolem f, Data f) => Logic.Term (NormalTerm v f) v f where
     var = NormalVariable
     fApp = NormalFunction
     foldT v f t =
@@ -268,7 +245,7 @@ toSentence (NFNot s) = (.~.) (toSentence s)
 toSentence (NFEqual t1 t2) = toTerm t1 .=. toTerm t2
 toSentence (NFPredicate p ts) = pApp p (map toTerm ts)
 
-toTerm :: (Ord v, Enum v, Data v, Eq f, Ord f, Logic.Skolem f, Data f) => NormalTerm v f -> CTerm v f
+toTerm :: (Ord v, L.Variable v, Data v, Eq f, Ord f, Logic.Skolem f, Data f) => NormalTerm v f -> CTerm v f
 toTerm (NormalFunction f ts) = Logic.fApp f (map toTerm ts)
 toTerm (NormalVariable v) = Logic.var v
 

@@ -21,7 +21,7 @@ import Data.Generics (Data, Typeable, listify, Fixity(..))
 import qualified Data.Set as S
 import Data.String (IsString(fromString))
 --import Logic.Clause (ClauseNormalFormula(satisfiable))
-import Logic.FirstOrder (showForm, FirstOrderFormula, convertFOF, Predicate(..), Pretty(..), Skolem(..))
+import Logic.FirstOrder (showForm, FirstOrderFormula, convertFOF, Predicate(..), Pretty(..), Skolem(..), Variable(next))
 import qualified Logic.Instances.Chiou as C
 import qualified Logic.Instances.Native as P
 import Logic.Instances.PropLogic (plSat)
@@ -47,10 +47,8 @@ instance Show V where
 instance Pretty V where
     pretty (V s) = text s
 
-instance Enum V where
-    toEnum _ = error "toEnum V"
-    fromEnum _ = error "fromEnum V"
-    succ (V s) =
+instance Variable V where
+    next (V s) =
         V (case break (not . isDigit) (reverse s) of
              (_, "") -> "x"
              ("", nondigits) -> nondigits ++ "2"

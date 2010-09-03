@@ -5,7 +5,7 @@ import Control.Applicative.Error (Failing(..))
 import Data.Char (isDigit)
 import Data.Generics (Data, Typeable)
 import Data.String (IsString(..))
-import Logic.FirstOrder (Term(..), Pretty(..), Skolem(..))
+import Logic.FirstOrder (Term(..), Pretty(..), Skolem(..), Variable)
 import Logic.Harrison.Unif
 --import Logic.Instances.Native(PTerm(..))
 --import Test.Types
@@ -23,10 +23,8 @@ instance Show V where
 instance Pretty V where
     pretty (V s) = text s
 
-instance Enum V where
-    toEnum _ = error "toEnum V"
-    fromEnum _ = error "fromEnum V"
-    succ (V s) =
+instance Variable V where
+    next (V s) =
         V (case break (not . isDigit) (reverse s) of
              (_, "") -> "x"
              ("", nondigits) -> nondigits ++ "2"
@@ -63,7 +61,7 @@ data PTerm v f
                                     -- is another term.
     deriving (Eq,Ord,Read,Show,Data,Typeable)
 
-instance (Ord v, Enum v, Data v, Eq f, Skolem f, Data f) => Term (PTerm v f) v f where
+instance (Ord v, Variable v, Data v, Eq f, Skolem f, Data f) => Term (PTerm v f) v f where
     foldT vf fn t =
         case t of
           Var v -> vf v

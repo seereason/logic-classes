@@ -16,7 +16,7 @@ import qualified Data.Set as S
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
-import Logic.FirstOrder (Term(..), FirstOrderFormula(..), Quant(..), Skolem(..), Pretty, Predicate(..), showForm, showTerm)
+import Logic.FirstOrder (Term(..), FirstOrderFormula(..), Quant(..), Skolem(..), Variable, Pretty, Predicate(..), showForm, showTerm)
 import Logic.Logic (Negatable(..), Logic(..), BinOp(..), Boolean(..), Combine(..))
 import qualified Logic.Logic as Logic
 import Logic.Normal (ImplicativeNormalFormula(..))
@@ -91,7 +91,7 @@ instance Logic (Formula v p f) where
     x .|.   y = Combine (BinOp  x (:|:)   y)
     x .&.   y = Combine (BinOp  x (:&:)   y)
 
-instance (Ord v, Enum v, Data v, Pretty v, Show v,
+instance (Ord v, Variable v, Data v, Pretty v, Show v,
           Ord p, Boolean p, Data p, Pretty p, Show p,
           Ord f, Skolem f, Data f, Pretty f, Show f,
           Logic (Formula v p f), Show (Formula v p f)) =>
@@ -106,7 +106,7 @@ instance (Ord v, Enum v, Data v, Pretty v, Show v,
           Combine x -> c x
           Predicate x -> a (Predicate x)
 
-instance (Ord v, Enum v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (PTerm v f) v f where
+instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (PTerm v f) v f where
     foldT vf fn t =
         case t of
           Var v -> vf v
@@ -119,7 +119,7 @@ instance (Ord v, Enum v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (PTerm v
     var = Var
     fApp x args = FunApp x args
 
-instance (Ord v, Enum v, Data v, Pretty v, Show v,
+instance (Ord v, Variable v, Data v, Pretty v, Show v,
           Ord p, Boolean p, Data p, Pretty p, Show p,
           Ord f, Skolem f, Data f, Pretty f, Show f,
           Show (Formula v p f),

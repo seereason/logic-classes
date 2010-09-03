@@ -12,6 +12,7 @@
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
 module Logic.FirstOrder
     ( Skolem(..)
+    , Variable(..)
     , Predicate(..)
     , FirstOrderFormula(..)
     , Term(..)
@@ -51,6 +52,12 @@ import Logic.Logic
 import Logic.Propositional (PropositionalFormula(..))
 import Text.PrettyPrint
 
+-- |A class for finding unused variable names.  The next method
+-- returns the next in an endless sequence of variable names, if we
+-- keep calling it we are bound to find some unused name.
+class Variable v where
+    next :: v -> v
+
 class Pretty x where
     pretty :: x -> Doc
 
@@ -75,7 +82,7 @@ data Predicate p term
     deriving (Eq, Ord, Show, Read, Data, Typeable)
 
 class ( Ord v     -- Required so variables can be inserted into maps and sets
-      , Enum v    -- Used to rename variable during conversion to prenex
+      , Variable v -- Used to rename variable during conversion to prenex
       , Data v    -- For serialization
       , Eq f      -- We need to check functions for equality during unification
       , Skolem f  -- Used to create skolem functions and constants

@@ -9,7 +9,7 @@ import qualified Logic.Instances.Native as P
 import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
 import Logic.Monad (runNormal)
 import Logic.NormalForm (clauseNormalForm, clauseNormalForm)
-import Logic.FirstOrder (Skolem(..), FirstOrderFormula(..), Term(..), showForm, freeVars, substitute)
+import Logic.FirstOrder (Skolem(..), FirstOrderFormula(..), Term(..), Variable, showForm, freeVars, substitute)
 import Logic.Satisfiable (theorem, inconsistant)
 import PropLogic (PropForm(..), TruthTable, truthTable)
 import qualified TextDisplay as TD
@@ -428,7 +428,7 @@ prepare formula = ({- flatten . -} fromJust . toPropositional convertA . cnf . (
 convertA = Just . A
 -}
 
-table :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, Skolem f, IsString v, Enum v, TD.Display formula) =>
+table :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, Skolem f, IsString v, Variable v, TD.Display formula) =>
          formula -> TruthTable formula
 table f =
     -- truthTable :: Ord a => PropForm a -> TruthTable a

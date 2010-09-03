@@ -203,8 +203,8 @@ pullq l r fm mkq op x y p q =
 -- stored in the monad.  This is initialized above with the free
 -- variables in the formula.  (FIXME: this is not worth putting in
 -- a monad, just pass in the set of free variables.)
-variant :: (Enum v, Ord v) => S.Set v -> v -> v
-variant names x = if S.member x names then variant names (succ x) else x
+variant :: (Variable v, Ord v) => S.Set v -> v -> v
+variant names x = if S.member x names then variant names (next x) else x
 {-
 
 (* ------------------------------------------------------------------------- *)
