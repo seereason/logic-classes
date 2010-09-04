@@ -64,9 +64,6 @@ class Variable v where
 class Pretty x where
     pretty :: x -> Doc
 
-instance Pretty String where
-    pretty = text
-
 -- |This class shows how to convert between atomic Skolem functions
 -- and Ints.
 class Skolem f where
@@ -105,9 +102,11 @@ class Arity p where
 class ( Ord v     -- Required so variables can be inserted into maps and sets
       , Variable v -- Used to rename variable during conversion to prenex
       , Data v    -- For serialization
+      , Pretty v
       , Eq f      -- We need to check functions for equality during unification
       , Skolem f  -- Used to create skolem functions and constants
       , Data f    -- For serialization
+      , Pretty f
       , Ord term  -- For implementing Ord in Literal
       ) => Term term v f | term -> v, term -> f where
     var :: v -> term
@@ -137,6 +136,7 @@ class ( Term term v f
       , Arity p        -- To decide how many arguments
       , Eq p           -- Required during resolution
       , Ord p
+      , Pretty p
       , Ord f
       , Ord formula
       ) => FirstOrderFormula formula term v p f
@@ -251,11 +251,13 @@ showTerm term =
       f :: f -> [term] -> String
       f fn ts = "fApp (" ++ show fn ++ ") [" ++ intercalate "," (map showTerm ts) ++ "]"
 
-prettyForm :: forall formula term v p f.
-              (FirstOrderFormula formula term v p f, Term term v f, Pretty v, Pretty f, Pretty p) =>
+prettyTerm :: forall v f term. Term term v f => term -> Doc
+prettyTerm t = foldT pretty (\ fn ts -> pretty fn <> brackets (hcat (intersperse (text ",") (map prettyTerm ts)))) t
+
+prettyForm :: forall formula term v p f. FirstOrderFormula formula term v p f =>
               Int -> formula -> Doc
 prettyForm prec formula =
-    foldF (\ qop v f -> parensIf (prec > 1) $ prettyQuant qop v <+> prettyForm 1 f)
+    foldF (\ qop v f -> parensIf (prec > 1) $ prettyQuant qop <> pretty v <+> prettyForm 1 f)
           (\ cm ->
                case cm of
                  (BinOp f1 op f2) ->
@@ -268,7 +270,6 @@ prettyForm prec formula =
           pr
           formula
     where
-      pr :: Predicate p term -> Doc
       pr (Constant x) = text (show x)
       pr (Equal t1 t2) = parensIf (prec > 6) (prettyTerm t1 <+> text "=" <+> prettyTerm t2)
       pr (NotEqual t1 t2) = parensIf (prec > 6) (prettyTerm t1 <+> text "!=" <+> prettyTerm t2)
@@ -278,15 +279,12 @@ prettyForm prec formula =
                         _ -> parens (hcat (intersperse (text ",") (map prettyTerm ts)))
       parensIf False = id
       parensIf _ = parens . nest 1
-      prettyQuant All v = text {-"∀"-} "!" <> pretty v
-      prettyQuant Exists v = text {-"∃"-} "?" <> pretty v
+      prettyQuant All = text {-"∀"-} "!"
+      prettyQuant Exists = text {-"∃"-} "?"
       formOp (:<=>:) = text "<=>"
       formOp (:=>:) = text "=>"
       formOp (:&:) = text "&"
       formOp (:|:) = text "|"
-
-prettyTerm :: forall v f term. (Pretty f, Pretty v, Term term v f) => term -> Doc
-prettyTerm t = foldT (pretty :: v -> Doc) (\ fn ts -> (pretty :: f -> Doc) fn <> brackets (hcat (intersperse (text ",") (map prettyTerm ts)))) t
 
 -- |The 'Quant' and 'InfixPred' types, like the BinOp type in
 -- 'Logic.Propositional', could be additional parameters to the type

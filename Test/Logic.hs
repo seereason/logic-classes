@@ -13,7 +13,7 @@ import Logic.FirstOrder (Skolem(..), FirstOrderFormula(..), Term(..), Arity(arit
 import Logic.Satisfiable (theorem, inconsistant)
 import PropLogic (PropForm(..), TruthTable, truthTable)
 import qualified TextDisplay as TD
-import Test.Types (V(..), AtomicFunction(..))
+import Test.Types (V(..), AtomicFunction(..), Pr)
 import Test.HUnit
 
 -- |Don't use this at home!  It breaks type safety, fromString "True"
@@ -21,12 +21,12 @@ import Test.HUnit
 instance Boolean String where
     fromBool = show
 
-type TestFormula = P.Formula V String AtomicFunction
+type TestFormula = P.Formula V Pr AtomicFunction
 
 tests :: Test
 tests = TestLabel "Logic" $ TestList (precTests ++ theoremTests)
 
-formCase :: FirstOrderFormula (P.Formula V String AtomicFunction) (P.PTerm V AtomicFunction) V String AtomicFunction =>
+formCase :: FirstOrderFormula (P.Formula V Pr AtomicFunction) (P.PTerm V AtomicFunction) V Pr AtomicFunction =>
             String -> TestFormula -> TestFormula -> Test
 formCase s expected input = TestLabel s $ TestCase (assertEqual s expected input)
 
@@ -354,9 +354,10 @@ theoremTests =
                exists "y" (pApp "L" [var (fromString "y")])) .=>.           -- Someone is a logician
               (.~.) (exists "z" (pApp "F" [var "z"]))                       -- Someone / Nobody is funny
           input = table formula
-          expected = ([(pApp ("F") [var ("z")]),(pApp ("F") [fApp (toSkolem 1) []]),(pApp ("L") [var ("y")]),(pApp ("L") [fApp (toSkolem 1) []])],
-                      Just (CJ [DJ [N (A (pApp ("F") [var ("z")])),N (A (pApp ("F") [fApp (toSkolem 1) []])),N (A (pApp ("L") [var ("y")]))],
-                                DJ [N (A (pApp ("F") [var ("z")])),N (A (pApp ("L") [var ("y")])),A (pApp ("L") [fApp (toSkolem 1) []])]]),
+          expected :: TruthTable TestFormula
+          expected = ([(pApp "F" [var "z"]),(pApp "F" [fApp (toSkolem 1) []]),(pApp "L" [var "y"]),(pApp "L" [fApp (toSkolem 1) []])],
+                      Just (CJ [DJ [N (A (pApp "F" [var "z"])),N (A (pApp "F" [fApp (toSkolem 1) []])),N (A (pApp "L" [var "y"]))],
+                                DJ [N (A (pApp "F" [var "z"])),N (A (pApp "L" [var "y"])),A (pApp "L" [fApp (toSkolem 1) []])]]),
                       [([False,False,False,False],True),
                        ([False,False,False,True],True),
                        ([False,False,True,False],True),

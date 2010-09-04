@@ -107,7 +107,7 @@ instance (Ord v, Variable v, Data v, Pretty v, Show v,
           Combine x -> c x
           Predicate x -> a (Predicate x)
 
-instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (PTerm v f) v f where
+instance (Ord v, Variable v, Data v, Pretty v, Eq f, Ord f, Skolem f, Data f, Pretty f) => Term (PTerm v f) v f where
     foldT vf fn t =
         case t of
           Var v -> vf v

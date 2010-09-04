@@ -177,19 +177,6 @@ instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.Term (T Ident
           NumberLit n -> T {runT = Identity (NumberLitTerm n)}
           Skolem (V s) -> TPTP.fApp (AtomicWord ("Sk(" ++ s ++ ")")) args
 
-instance Show Formula where
-    show = show . pretty . runIdentity . runF
-
-instance Pretty (Formula0 t f) where
-    pretty _f = text "Formula0"
-{-
-    pretty (PredApp p ts) = text "PredApp"
-    pretty (BinOp f1 op f2) = text "BinOp"
-    pretty (InfixPred t1 op t2) = text "InfixPred"
-    pretty (Quant q vs f) = text "Quant"
-    pretty ((:~:) f) = text ":~:"
--}
-
 --deriving instance Show TPTP.Term
 --deriving instance (Show t, Show f) => Show (TPTP.Formula0 t f)
 --deriving instance Show t => Show (TPTP.Term0 t)
