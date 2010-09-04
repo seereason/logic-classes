@@ -6,7 +6,7 @@ module Logic.Harrison.Prop
     , trivial
     ) where
 
-import Logic.FirstOrder (FirstOrderFormula(..), Predicate(..), Quant(..), quant)
+import Logic.FirstOrder (FirstOrderFormula(..), Predicate(..), Quant(..), quant, pApp)
 import Logic.Logic (Negatable(..), Logic(..), Combine(..), Boolean(..), BinOp(..))
 import Logic.Normal (Literal, fromFirstOrder)
 import qualified Logic.Set as S
@@ -311,10 +311,10 @@ psimplify1 fm =
       simplifyNotCombine ((:~:) f) = f
       simplifyNotCombine _ = fm
       simplifyNotPred (Apply pr ts)
-          | pr == fromBool False = pApp (fromBool True) ts
-          | pr == fromBool True = pApp (fromBool False) ts
+          | pr == fromBool False = pApp0 (fromBool True)
+          | pr == fromBool True = pApp0 (fromBool False)
           | True = (.~.) (pApp pr ts)
-      simplifyNotPred (Constant x) = pApp (fromBool (not x)) []
+      simplifyNotPred (Constant x) = pApp0 (fromBool (not x))
       simplifyNotPred (Equal t1 t2) = t1 .!=. t2
       simplifyNotPred (NotEqual t1 t2) = t1 .=. t2
       -- Return a Maybe Bool depending upon whether a formula is true,

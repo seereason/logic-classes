@@ -16,6 +16,7 @@ module Logic.FirstOrder
     , Variable(..)
     , Predicate(..)
     , FirstOrderFormula(..)
+    , pApp
     , Term(..)
     , Quant(..)
     , quant
@@ -80,8 +81,21 @@ data Predicate p term
     = Equal term term
     | NotEqual term term
     | Constant Bool
-    | Apply p [term]    
+    | Apply p [term]
     deriving (Eq, Ord, Show, Read, Data, Typeable)
+
+pApp :: FirstOrderFormula formula term v p f => p -> [term] -> formula
+pApp p ts =
+    case (ts, maybe (length ts) id (arity p)) of
+      ([], 0) -> pApp0 p 
+      ([a], 1) -> pApp1 p a
+      ([a,b], 2) -> pApp2 p a b
+      ([a,b,c], 3) -> pApp3 p a b c
+      ([a,b,c,d], 4) -> pApp4 p a b c d
+      ([a,b,c,d,e], 5) -> pApp5 p a b c d e
+      ([a,b,c,d,e,f], 6) -> pApp6 p a b c d e f
+      ([a,b,c,d,e,f,g], 7) -> pApp7 p a b c d e f g
+      _ -> error ("Arity error: " ++ show (pretty p) ++ " " ++ intercalate " " (map (show . prettyTerm) ts))
 
 class Arity p where
     -- |How many arguments does the predicate take?  Nothing
@@ -109,7 +123,7 @@ class ( Ord v     -- Required so variables can be inserted into maps and sets
     zipT :: (v -> v -> Maybe r) -> (f -> [term] -> f -> [term] -> Maybe r) -> term -> term -> Maybe r
 
 -- |The 'PropositionalFormula' type class.  Minimal implementation:
--- @for_all, exists, foldF, foldT, (.=.), pApp, fApp, var@.  The
+-- @for_all, exists, foldF, foldT, (.=.), pApp0-pApp7, fApp, var@.  The
 -- functional dependencies are necessary here so we can write
 -- functions that don't fix all of the type parameters.  For example,
 -- without them the univquant_free_vars function gives the error @No
@@ -149,7 +163,14 @@ class ( Term term v f
          -> formula -> formula -> Maybe r
     -- | Build a formula by applying zero or more terms to an atomic
     -- predicate.
-    pApp :: p -> [term] -> formula
+    pApp0 :: p  -> formula
+    pApp1 :: p -> term  -> formula
+    pApp2 :: p -> term -> term  -> formula
+    pApp3 :: p -> term -> term -> term  -> formula
+    pApp4 :: p -> term -> term -> term -> term  -> formula
+    pApp5 :: p -> term -> term -> term -> term -> term  -> formula
+    pApp6 :: p -> term -> term -> term -> term -> term -> term -> formula
+    pApp7 :: p -> term -> term -> term -> term -> term -> term -> term -> formula
     -- | Equality of Terms
     (.=.) :: term -> term -> formula
     -- | Inequality of Terms
@@ -157,10 +178,10 @@ class ( Term term v f
     a .!=. b = (.~.) (a .=. b)
     -- | The tautological formula
     true :: formula
-    true = pApp (fromBool True) []
+    true = pApp0 (fromBool True)
     -- | The inconsistant formula
     false :: formula
-    false = pApp (fromBool False) []
+    false = pApp0 (fromBool False)
 
 -- |for_all with a list of variables, for backwards compatibility.
 for_all' :: FirstOrderFormula formula term v p f => [v] -> formula -> formula
@@ -211,7 +232,7 @@ showForm formula =
       a (NotEqual t1 t2) =
           "(" ++ parenTerm t1 ++ " .!=. " ++ parenTerm t2 ++ ")"
       a (Constant x) = "pApp' (Constant " ++ show x ++ ")"
-      a (Apply p ts) = "(pApp (" ++ show p ++ ") [" ++ intercalate "," (map showTerm ts) ++ "])"
+      a (Apply p ts) = "(pApp" ++ show (length ts) ++ " (" ++ show p ++ ") (" ++ intercalate ") (" (map showTerm ts) ++ ")"
       parenForm x = "(" ++ showForm x ++ ")"
       parenTerm :: term -> String
       parenTerm x = "(" ++ showTerm x ++ ")"
@@ -364,7 +385,7 @@ substitute old new formula =
                 (\ pa -> case pa of
                            Equal t1 t2 -> (st t1) .=. (st t2)
                            NotEqual t1 t2 -> (st t1) .!=. (st t2)
-                           Constant x -> pApp (fromBool x) []
+                           Constant x -> pApp0 (fromBool x)
                            Apply p ts -> pApp p (map st ts))
       st t = foldT sv (\ func ts -> fApp func (map st ts)) t
       sv v = if v == old then new else var v

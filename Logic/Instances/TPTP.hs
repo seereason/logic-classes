@@ -10,7 +10,7 @@ import Data.Char (isDigit, ord)
 import Data.Generics (Data, Typeable)
 import Data.String (IsString(..))
 import qualified Logic.FirstOrder as Logic
-import Logic.FirstOrder (FirstOrderFormula(..), Term(..), Pretty(..), Predicate(..), Variable(next))
+import Logic.FirstOrder (FirstOrderFormula(..), Term(..), Pretty(..), Predicate(..), Variable(next), pApp)
 import qualified Logic.Logic as Logic
 import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
 import qualified Logic.Propositional as Logic
@@ -148,7 +148,14 @@ instance Logic.FirstOrderFormula Formula (T Identity) V AtomicWord AtomicFunctio
     zipF = error "Unimplemented: Logic.Instances.TPTP.zipF"
     x .=. y   = x .=. y
     x .!=. y  = x .!=. y
-    pApp p ts = pApp p ts
+    pApp0 p = TPTP.pApp p []
+    pApp1 p a = TPTP.pApp p [a]
+    pApp2 p a b = TPTP.pApp p [a,b]
+    pApp3 p a b c = TPTP.pApp p [a,b,c]
+    pApp4 p a b c d = TPTP.pApp p [a,b,c,d]
+    pApp5 p a b c d e = TPTP.pApp p [a,b,c,d,e]
+    pApp6 p a b c d e f = TPTP.pApp p [a,b,c,d,e,f]
+    pApp7 p a b c d e f g = TPTP.pApp p [a,b,c,d,e,f,g]
 
 instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.Term (T Identity) V AtomicFunction where
     foldT v fa term =

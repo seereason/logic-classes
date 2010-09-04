@@ -23,7 +23,7 @@ import qualified Logic.FirstOrder as L
 import Logic.Logic (Negatable(..), Logic(..), BinOp(..), Combine(..), Boolean(..))
 import Logic.Normal (ImplicativeNormalFormula(..))
 import Logic.Propositional (PropositionalFormula(..))
-import Logic.FirstOrder (Skolem(..), Quant(..))
+import Logic.FirstOrder (Skolem(..), Quant(..), pApp)
 
 data Sentence v p f
     = Connective (Sentence v p f) Connective (Sentence v p f)
@@ -147,7 +147,14 @@ instance (Pretty v, Pretty p, Pretty f, -- debugging
           (Equal l1 r1, Equal l2 r2) -> p (L.Equal l1 r1) (L.Equal l2 r2)
           (Predicate p1 ts1, Predicate p2 ts2) -> p (L.Apply p1 ts1) (L.Apply p2 ts2)
           _ -> Nothing
-    pApp x args = Predicate x args
+    pApp0 x = Predicate x []
+    pApp1 x a = Predicate x [a]
+    pApp2 x a b = Predicate x [a,b]
+    pApp3 x a b c = Predicate x [a,b,c]
+    pApp4 x a b c d = Predicate x [a,b,c,d]
+    pApp5 x a b c d e = Predicate x [a,b,c,d,e]
+    pApp6 x a b c d e f = Predicate x [a,b,c,d,e,f]
+    pApp7 x a b c d e f g = Predicate x [a,b,c,d,e,f,g]
     -- fApp (AtomicSkolemFunction n) [] = SkolemConstant n
     -- fApp (AtomicSkolemFunction n) ts = SkolemFunction n ts
     x .=. y = Equal x y
@@ -223,7 +230,14 @@ instance (IsString v, Pretty v,
           (NFEqual f1l f1r, NFEqual f2l f2r) -> p (L.Equal f1l f1r) (L.Equal f2l f2r)
           (NFPredicate p1 ts1, NFPredicate p2 ts2) -> p (L.Apply p1 ts1) (L.Apply p2 ts2)
           _ -> Nothing
-    pApp p args = NFPredicate p args
+    pApp0 x = NFPredicate x []
+    pApp1 x a = NFPredicate x [a]
+    pApp2 x a b = NFPredicate x [a,b]
+    pApp3 x a b c = NFPredicate x [a,b,c]
+    pApp4 x a b c d = NFPredicate x [a,b,c,d]
+    pApp5 x a b c d e = NFPredicate x [a,b,c,d,e]
+    pApp6 x a b c d e f = NFPredicate x [a,b,c,d,e,f]
+    pApp7 x a b c d e f g = NFPredicate x [a,b,c,d,e,f,g]
     x .=. y = NFEqual x y
     x .!=. y = NFNot (NFEqual x y)
 

@@ -9,7 +9,7 @@ import qualified Logic.Instances.Native as P
 import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
 import Logic.Monad (runNormal)
 import Logic.NormalForm (clauseNormalForm, clauseNormalForm)
-import Logic.FirstOrder (Skolem(..), FirstOrderFormula(..), Term(..), Arity(arity), Variable, showForm, freeVars, substitute)
+import Logic.FirstOrder (Skolem(..), FirstOrderFormula(..), Term(..), Arity(arity), Variable, showForm, freeVars, substitute, pApp)
 import Logic.Satisfiable (theorem, inconsistant)
 import PropLogic (PropForm(..), TruthTable, truthTable)
 import qualified TextDisplay as TD

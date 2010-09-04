@@ -12,13 +12,12 @@ module Logic.Instances.Native
     ) where
 
 import Data.Data (Data)
-import Data.Maybe (fromJust)
 import qualified Data.Set as S
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
 import Logic.FirstOrder (Term(..), FirstOrderFormula(..), Quant(..), Skolem(..), Variable,
-                         Pretty(pretty), Predicate(..), showForm, showTerm, Arity(arity))
+                         Pretty, Predicate(..), showForm, showTerm, Arity, pApp)
 import Logic.Logic (Negatable(..), Logic(..), BinOp(..), Boolean(..), Combine(..))
 import qualified Logic.Logic as Logic
 import Logic.Normal (ImplicativeNormalFormula(..))
@@ -141,12 +140,14 @@ instance (Ord v, Variable v, Data v, Pretty v, Show v,
           (Combine x, Combine y) -> c x y
           (Predicate x, Predicate y) -> p x y
           _ -> Nothing
-    pApp x args =
-        case (arity x) of
-          Just n | n /= length args ->
-                     error ("Expected " ++ show (fromJust (arity x)) ++ " arguments to prediate " ++ show (pretty x)
-                            ++ ", found " ++ show (length args))
-          _ -> Predicate (Apply x args)
+    pApp0 x = Predicate (Apply x [])
+    pApp1 x a = Predicate (Apply x [a])
+    pApp2 x a b = Predicate (Apply x [a,b])
+    pApp3 x a b c = Predicate (Apply x [a,b,c])
+    pApp4 x a b c d = Predicate (Apply x [a,b,c,d])
+    pApp5 x a b c d e = Predicate (Apply x [a,b,c,d,e])
+    pApp6 x a b c d e f = Predicate (Apply x [a,b,c,d,e,f])
+    pApp7 x a b c d e f g = Predicate (Apply x [a,b,c,d,e,f,g])
     x .=. y = Predicate (Equal x y)
     x .!=. y = Predicate (NotEqual x y)
 
