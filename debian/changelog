@@ -1,3 +1,17 @@
+haskell-logic (0.22) unstable; urgency=low
+
+  * Instead of making variables instances of Enum and having non-working
+    fromEnum and toEnum methods, create a class Var with only a "next"
+    method.
+  * Add an Arity class and make it a super class of the predicate types.
+  * Replace the pApp method with pApp0, pApp1, pApp2 ... pApp7, add a
+    pApp function that checks the predicate arity and dispatches to the
+    correct method, or throws an error.
+  * Add withUnivQuant to look at the list of universally quantified
+    variables wrapped around a formula.
+
+ -- David Fox <dsf@seereason.com>  Fri, 03 Sep 2010 12:36:25 -0700
+
 haskell-logic (0.21.2) unstable; urgency=low
 
   * Fix a bug in fromFirstOrder
