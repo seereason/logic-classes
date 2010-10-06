@@ -59,7 +59,11 @@ import Text.PrettyPrint
 -- returns the next in an endless sequence of variable names, if we
 -- keep calling it we are bound to find some unused name.
 class Variable v where
+    one :: v
+    -- ^ Return some commonly used variable, typically x
     next :: v -> v
+    -- ^ Return a different variable name, @iterate next one@ should
+    -- return a list which never repeats.
 
 class Pretty x where
     pretty :: x -> Doc

@@ -21,7 +21,7 @@ import Data.Generics (Data, Typeable, listify, Fixity(..))
 import qualified Data.Set as S
 import Data.String (IsString(fromString))
 --import Logic.Clause (ClauseNormalFormula(satisfiable))
-import Logic.FirstOrder (showForm, FirstOrderFormula, convertFOF, Predicate(..), Pretty(..), Skolem(..), Arity(arity), Variable(next))
+import Logic.FirstOrder (showForm, FirstOrderFormula, convertFOF, Predicate(..), Pretty(..), Skolem(..), Arity(arity), Variable(one, next))
 import qualified Logic.Instances.Chiou as C
 import qualified Logic.Instances.Native as P
 import Logic.Instances.PropLogic (plSat)
@@ -48,6 +48,7 @@ instance Pretty V where
     pretty (V s) = text s
 
 instance Variable V where
+    one = V "x"
     next (V s) =
         V (case break (not . isDigit) (reverse s) of
              (_, "") -> "x"

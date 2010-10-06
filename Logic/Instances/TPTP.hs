@@ -18,11 +18,12 @@ import Text.PrettyPrint (text)
 
 -- |Generate a series of variable names.
 instance Variable V where
+    one = V "VS1"
     next (V s) =
         V (case break (not . isDigit) (reverse s) of
-             ("", "SV") -> "SV1"
-             (digits, "SV") -> "SV" ++ show (1 + read (reverse digits) :: Int)
-             _ -> "SV1")
+             ("", "SV") -> "VS1"
+             (digits, "SV") -> "VS" ++ show (1 + read (reverse digits) :: Int)
+             _ -> "VS1")
 
 instance Logic.Arity AtomicWord where
     arity _ = Nothing
