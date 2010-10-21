@@ -1,3 +1,9 @@
+haskell-logic (0.24) unstable; urgency=low
+
+  * Add a missing paren in the pretty printing and show instances.
+
+ -- David Fox <dsf@seereason.com>  Wed, 20 Oct 2010 21:17:34 -0700
+
 haskell-logic (0.23) unstable; urgency=low
 
   * Add a "one" method to the Variable class which returns any instance of

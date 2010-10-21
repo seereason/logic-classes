@@ -236,7 +236,7 @@ showForm formula =
       a (NotEqual t1 t2) =
           "(" ++ parenTerm t1 ++ " .!=. " ++ parenTerm t2 ++ ")"
       a (Constant x) = "pApp' (Constant " ++ show x ++ ")"
-      a (Apply p ts) = "(pApp" ++ show (length ts) ++ " (" ++ show p ++ ") (" ++ intercalate ") (" (map showTerm ts) ++ ")"
+      a (Apply p ts) = "(pApp" ++ show (length ts) ++ " (" ++ show p ++ ") (" ++ intercalate ") (" (map showTerm ts) ++ "))"
       parenForm x = "(" ++ showForm x ++ ")"
       parenTerm :: term -> String
       parenTerm x = "(" ++ showTerm x ++ ")"
