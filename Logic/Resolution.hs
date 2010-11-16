@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, RankNTypes, ScopedTypeVariables, TypeFamilies #-}
 {-# OPTIONS -Wall -Wwarn #-}
 
 {- Resolution.hs -}
@@ -16,7 +16,7 @@ import Data.Map (Map, empty)
 import qualified Data.Map as M
 import Data.Maybe (isJust)
 import qualified Data.Set as S
-import Logic.FirstOrder (Term(..))
+import Logic.FirstOrder (Term(..), FirstOrderFormula)
 import Logic.Normal (Predicate(..), Literal(..), ImplicativeNormalFormula(..))
 import qualified Logic.Set as S
 
@@ -26,8 +26,9 @@ type SetOfSupport inf v term = S.Set (Unification inf v term)
 
 type Unification inf v term = (inf, Subst v term)
 
-prove :: (ImplicativeNormalFormula inf lit, Literal lit term v p f) =>
-         (SetOfSupport inf v term) -> (SetOfSupport inf v term) -> S.Set inf -> (Bool, (SetOfSupport inf v term))
+prove :: forall lit p f v term inf.
+         (FirstOrderFormula lit term v p f, ImplicativeNormalFormula inf lit) =>
+         SetOfSupport inf v term -> SetOfSupport inf v term -> S.Set inf -> (Bool, SetOfSupport inf v term)
 prove ss1 ss2' kb =
     case S.minView ss2' of
       Nothing -> (False, ss1)
@@ -45,8 +46,9 @@ prove ss1 ss2' kb =
 --       else
 --         prove (ss1 ++ [s]) ss' (fst s:kb)
 
-prove' :: (ImplicativeNormalFormula inf lit, Literal lit term v p f) =>
-          (Unification inf v term) -> S.Set inf -> (SetOfSupport inf v term) -> (SetOfSupport inf v term) -> ((SetOfSupport inf v term), Bool)
+prove' :: forall lit p f inf v term.
+          (FirstOrderFormula lit term v p f, ImplicativeNormalFormula inf lit) =>
+          Unification inf v term -> S.Set inf -> SetOfSupport inf v term -> SetOfSupport inf v term -> (SetOfSupport inf v term, Bool)
 prove' p kb ss1 ss2 =
     let
       res1 = S.map (\x -> resolution p (x, empty)) kb
@@ -135,11 +137,12 @@ isRenameOfSentences :: Literal formula term v p f => S.Set formula -> S.Set form
 isRenameOfSentences xs1 xs2 =
     S.size xs1 == S.size xs2 && all (uncurry isRenameOfSentence) (zip (S.toList xs1) (S.toList xs2))
 
-isRenameOfSentence :: Literal formula term v p f => formula -> formula -> Bool
+isRenameOfSentence :: forall formula term v p f. Literal formula term v p f => formula -> formula -> Bool
 isRenameOfSentence f1 f2 =
     maybe False id $
     zipN (\ _ _ -> Just False) p f1 f2
-    where p (Equal t1l t1r) (Equal t2l t2r) = Just (isRenameOfTerm t1l t2l && isRenameOfTerm t1r t2r)
+    where p :: Predicate p term -> Predicate p term -> Maybe Bool
+          p (Equal t1l t1r) (Equal t2l t2r) = Just (isRenameOfTerm t1l t2l && isRenameOfTerm t1r t2r)
           p (Apply p1 ts1) (Apply p2 ts2) = Just (p1 == p2 && isRenameOfTerms ts1 ts2)
           p _ _ = Nothing
 
@@ -160,8 +163,9 @@ isRenameOfTerms ts1 ts2 =
     else
       False
 
-resolution :: (Literal lit term v p f, ImplicativeNormalFormula inf lit) =>
-              (Unification inf v term) -> (Unification inf v term) -> Maybe (Unification inf v term)
+resolution :: forall formula inf lit p f term v.
+              (FirstOrderFormula lit term v p f, ImplicativeNormalFormula inf lit, formula ~ lit) =>
+             (inf, Subst v term) -> (inf, Subst v term) -> Maybe (inf, Map v term)
 resolution (inf1, theta1) (inf2, theta2) =
     let
         lhs1 = neg inf1
@@ -181,6 +185,29 @@ resolution (inf1, theta1) (inf2, theta2) =
             in
               Just (makeINF lhs'' rhs'', theta)
         Nothing -> Nothing
+    where
+      tryUnify :: (Literal formula term v p f, Ord formula) =>
+                  S.Set formula -> S.Set formula -> Maybe ((S.Set formula, Subst v term), (S.Set formula, Subst v term))
+      tryUnify lhs rhs = tryUnify' lhs rhs S.empty
+                         
+      tryUnify' :: (Literal formula term v p f, Ord formula) =>
+                   S.Set formula -> S.Set formula -> S.Set formula -> Maybe ((S.Set formula, Subst v term), (S.Set formula, Subst v term))
+      tryUnify' lhss _ _ | S.null lhss = Nothing
+      tryUnify' lhss'' rhss lhss' =
+          let (lhs, lhss) = S.deleteFindMin lhss'' in
+          case tryUnify'' lhs rhss S.empty of
+            Nothing -> tryUnify' lhss rhss (S.insert lhs lhss')
+            Just (rhss', theta1, theta2) ->
+                Just ((S.union lhss' lhss, theta1), (rhss', theta2))
+
+      tryUnify'' :: (Literal formula term v p f, Ord formula) =>
+                    formula -> S.Set formula -> S.Set formula -> Maybe (S.Set formula, Subst v term, Subst v term)
+      tryUnify'' _x rhss _ | S.null rhss = Nothing
+      tryUnify'' x rhss'' rhss' =
+          let (rhs, rhss) = S.deleteFindMin rhss'' in
+          case unify x rhs of
+            Nothing -> tryUnify'' x rhss (S.insert rhs rhss')
+            Just (theta1, theta2) -> Just (S.union rhss' rhss, theta1, theta2)
 
 demodulate :: (ImplicativeNormalFormula inf lit, Literal lit term v p f) =>
               (Unification inf v term) -> (Unification inf v term) -> Maybe (Unification inf v term)
@@ -244,34 +271,11 @@ unifyTerms (t1:ts1) (t2:ts2) theta1 theta2 =
       Just (theta1',theta2') -> unifyTerms ts1 ts2 theta1' theta2'
 unifyTerms _ _ _ _ = Nothing
 
-tryUnify :: (Literal formula term v p f, Ord formula) =>
-            S.Set formula -> S.Set formula -> Maybe ((S.Set formula, Subst v term), (S.Set formula, Subst v term))
-tryUnify lhs rhs = tryUnify' lhs rhs S.empty
-
-tryUnify' :: (Literal formula term v p f, Ord formula) =>
-             S.Set formula -> S.Set formula -> S.Set formula -> Maybe ((S.Set formula, Subst v term), (S.Set formula, Subst v term))
-tryUnify' lhss _ _ | S.null lhss = Nothing
-tryUnify' lhss'' rhss lhss' =
-    let (lhs, lhss) = S.deleteFindMin lhss'' in
-    case tryUnify'' lhs rhss S.empty of
-      Nothing -> tryUnify' lhss rhss (S.insert lhs lhss')
-      Just (rhss', theta1, theta2) ->
-          Just ((S.union lhss' lhss, theta1), (rhss', theta2))
-
-tryUnify'' :: (Literal formula term v p f, Ord formula) =>
-              formula -> S.Set formula -> S.Set formula -> Maybe (S.Set formula, Subst v term, Subst v term)
-tryUnify'' _x rhss _ | S.null rhss = Nothing
-tryUnify'' x rhss'' rhss' =
-    let (rhs, rhss) = S.deleteFindMin rhss'' in
-    case unify x rhs of
-      Nothing -> tryUnify'' x rhss (S.insert rhs rhss')
-      Just (theta1, theta2) -> Just (S.union rhss' rhss, theta1, theta2)
-
-findUnify :: (Literal formula term v p f, Term term v f) =>
+findUnify :: forall formula term v p f. (Literal formula term v p f, Term term v f) =>
              term -> term -> S.Set formula -> Maybe ((term, term), Subst v term, Subst v term)
 findUnify tl tr s =
     let
-      terms = concatMap getTerms (S.toList s)
+      terms = concatMap (foldN (\ (_ :: formula) -> error "getTerms") p) (S.toList s)
       unifiedTerms' = map (\t -> unifyTerm tl t empty empty) terms
       unifiedTerms = filter isJust unifiedTerms'
     in
@@ -280,7 +284,15 @@ findUnify tl tr s =
        (Just (theta1, theta2)):_ ->
          Just ((substTerm tl theta1, substTerm tr theta1), theta1, theta2)
        (Nothing:_) -> error "findUnify"
+    where
+      -- getTerms formula = foldN (\ _ -> error "getTerms") p formula
+      p :: Predicate p term -> [term]
+      p (Equal t1 t2) = getTerms' t1 ++ getTerms' t2
+      p (Apply _ ts) = concatMap getTerms' ts
+      getTerms' :: term -> [term]
+      getTerms' t = foldT (\ v -> [var v]) (\ f ts -> fApp f ts : concatMap getTerms' ts) t
 
+{-
 getTerms :: Literal formula term v p f => formula -> [term]
 getTerms formula =
     foldN (\ _ -> error "getTerms") p formula
@@ -288,6 +300,7 @@ getTerms formula =
       getTerms' t = foldT (\ v -> [var v]) (\ f ts -> fApp f ts : concatMap getTerms' ts) t
       p (Equal t1 t2) = getTerms' t1 ++ getTerms' t2
       p (Apply _ ts) = concatMap getTerms' ts
+-}
 
 replaceTerm :: (Literal lit term v p f) => lit -> (term, term) -> lit
 replaceTerm formula (tl', tr') =
