@@ -39,7 +39,7 @@ allFormulas :: forall inf formula term v p f. (ImplicativeNormalFormula inf form
 allFormulas = (formulas ++
                concatMap snd [animalKB, chang43KB] ++
                animalConjectures ++
-               [{-chang43Conjecture, chang43ConjectureRenamed-}])
+               [chang43Conjecture, chang43ConjectureRenamed])
 
 formulas :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
             [TestFormula inf formula term v p f]
@@ -58,7 +58,6 @@ formulas =
         (x, y, z, u, v, w) :: (term, term, term, term, term, term) =
                               (var "x", var "y", var "z", var "u", var "v", var "w") in
     [ 
-{-
       TestFormula
       { formula = p0 .|. q0 .&. r0 .|. n s0 .&. n t0
       , name = "operator precedence"
@@ -448,7 +447,6 @@ formulas =
       { name = "snf 150.2"
       , formula = (for_all "x" (p x .=>. (exists "y" (exists "z" (q y .|. (.~.) (exists "z" (p z .&. (q z))))))))
       , expected = [ SkolemNormalForm (((.~.) (p x)) .|. (q (fApp (toSkolem 1) []) .|. (((.~.) (p z)) .|. ((.~.) (q z))))) ] }
--}
     ]
 
 animalKB :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
@@ -669,8 +667,7 @@ chang43KB =
     let e = fApp "e" []
         (x, y, z, u, v, w) = (var "x", var "y", var "z", var "u", var "v", var "w") in
     ("chang example 4.3"
-    , [ {-
-        TestFormula { name = "closure property"
+    , [ TestFormula { name = "closure property"
                     , formula = for_all' ["x", "y"] (exists "z" (pApp "P" [x,y,z]))
                     , expected = [] }
       , TestFormula { name = "associativity property"
@@ -683,10 +680,8 @@ chang43KB =
       , TestFormula { name = "inverse property"
                     , formula = (for_all "x" (pApp "P" [x,fApp "i" [x], e])) .&. (for_all "x" (pApp "P" [fApp "i" [x], x, e]))
                     , expected = [] }
-         -}
       ])
 
-{-
 chang43Conjecture :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
                      TestFormula inf formula term v p f
 chang43Conjecture =
@@ -837,7 +832,6 @@ chang43Conjecture =
 -}
                     ]
                 }
--}
 
 {-
 % ghci
@@ -848,7 +842,6 @@ chang43Conjecture =
 > putStrLn (runNormal (cnfTrace f))
 -}
 
-{-
 chang43ConjectureRenamed :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
                             TestFormula inf formula term v p f
 chang43ConjectureRenamed =
@@ -906,7 +899,6 @@ chang43ConjectureRenamed =
                        [((.~.) (pApp ("P") [b,a,c]))]])                      
                     ]
                 }
--}
 
 withKB :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f) =>
           (String, [TestFormula inf formula term v p f]) -> TestFormula inf formula term v p f -> TestFormula inf formula term v p f

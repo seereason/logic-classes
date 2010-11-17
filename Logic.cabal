@@ -35,8 +35,3 @@ Library
                    Logic.Set
  Build-Depends:    base, containers, fgl, happstack-data, happstack-state, incremental-sat-solver,
                    mtl, syb-with-class, text, PropLogic, pretty, syb
-
-Executable tests
- Main-Is: Test/Test.hs
- Build-Depends:
-  HUnit
