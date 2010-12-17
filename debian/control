@@ -27,7 +27,7 @@ Build-Depends-Indep: ghc6-doc,
                      haskell-proplogic-doc,
                      libghc6-mtl-doc,
                      libghc6-syb-with-class-doc,
-                     haskell-text-doc
+                     libghc6-text-doc
 Standards-Version: 3.8.1
 
 Package: libghc6-logic-dev
