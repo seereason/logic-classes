@@ -59,7 +59,7 @@ prove' p kb ss1 ss2 =
     in
       if S.null ss' then (ss1, False) else (S.union ss1 ss', tf)
 
-getResult :: (Literal lit term v p f, ImplicativeNormalFormula inf lit) =>
+getResult :: (Literal lit term v p f, ImplicativeNormalFormula inf lit, FirstOrderFormula lit term v p f) =>
              (SetOfSupport inf v term) -> S.Set (Maybe (Unification inf v term)) -> ((SetOfSupport inf v term), Bool)
 getResult ss us =
     case S.minView us of
@@ -123,7 +123,7 @@ getSubstsTerm term theta =
           (\ _ ts -> getSubstsTerms ts theta)
           term
 
-isRenameOf :: (ImplicativeNormalFormula inf lit, Literal lit term v p f) =>
+isRenameOf :: (ImplicativeNormalFormula inf lit, FirstOrderFormula lit term v p f) =>
               inf -> inf -> Bool
 isRenameOf inf1 inf2 =
     (isRenameOfSentences lhs1 lhs2) && (isRenameOfSentences rhs1 rhs2)
@@ -133,7 +133,7 @@ isRenameOf inf1 inf2 =
       lhs2 = neg inf2
       rhs2 = pos inf2
 
-isRenameOfSentences :: Literal formula term v p f => S.Set formula -> S.Set formula -> Bool
+isRenameOfSentences :: Literal lit term v p f => S.Set lit -> S.Set lit -> Bool
 isRenameOfSentences xs1 xs2 =
     S.size xs1 == S.size xs2 && all (uncurry isRenameOfSentence) (zip (S.toList xs1) (S.toList xs2))
 
