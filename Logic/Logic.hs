@@ -17,6 +17,8 @@ import Data.Data (Data)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
+import Text.JSON (JSON(readJSON, showJSON), makeObj, valFromObj,
+                  JSString(fromJSString), JSValue(JSString, JSObject), Result(Error))
 
 -- |The class of formulas that can be negated.  There are some types
 -- that can be negated but do not support the other Boolean Logic
@@ -124,3 +126,42 @@ $(deriveSerialize ''BinOp)
 $(deriveSerialize ''Combine)
 
 $(deriveNewData [''BinOp, ''Combine])
+
+instance JSON BinOp where
+    readJSON (JSString jsstr) =
+        case fromJSString jsstr of
+          "equiv"       -> return (:<=>:)
+          "implies"     -> return (:=>:)
+          "conjunction" -> return (:&:)
+          "disjunction" -> return (:|:)
+          str -> Error $ "readJSON for BinOp did not know what to do with: " ++ str
+    readJSON j = Error $ "readJSON for BinOp did not know what to do with: " ++ show j
+    showJSON (:<=>:) = showJSON "equiv"
+    showJSON (:=>:)  = showJSON "implies"
+    showJSON (:&:)  = showJSON "conjunction"
+    showJSON (:|:)  = showJSON "disjunction"
+
+instance JSON formula => JSON (Combine formula) where
+    readJSON (JSObject jsobj) =
+        do con <- valFromObj "con" jsobj
+           case con of
+             "binOp" -> 
+                 do binOp <- valFromObj "binOp" jsobj
+                    l <- valFromObj "left" jsobj
+                    r <- valFromObj "right" jsobj
+                    return (BinOp l binOp r)
+             "negate" -> 
+                 do f <- valFromObj "formula" jsobj
+                    return ((:~:) f)
+             _ -> Error $ "readJSON for Combine FormulaPF did not know what to do with: " ++ con
+    readJSON j = Error $ "readJSON for Combine FormulaPF did not know what to do with: " ++ show j
+    showJSON (BinOp l binOp r) =
+        makeObj [ ("con",   showJSON "binOp")
+                , ("left",  showJSON l)
+                , ("binOp", showJSON binOp)
+                , ("right", showJSON r)
+                ]
+    showJSON ((:~:) f) =
+        makeObj [ ("con",     showJSON "negate")
+                , ("formula", showJSON f)
+                ]

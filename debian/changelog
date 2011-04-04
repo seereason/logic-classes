@@ -1,3 +1,9 @@
+haskell-logic (0.26) unstable; urgency=low
+
+  * Add JSON instances.
+
+ -- David Fox <dsf@seereason.com>  Mon, 04 Apr 2011 07:21:25 -0600
+
 haskell-logic (0.25) unstable; urgency=low
 
   * Disable the (unused) Logic-TPTP instance, it is blocking the

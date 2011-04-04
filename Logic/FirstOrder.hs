@@ -53,6 +53,8 @@ import Happstack.Data (deriveNewData)
 import Happstack.State (Version, deriveSerialize)
 import Logic.Logic
 import Logic.Propositional (PropositionalFormula(..))
+import Text.JSON (JSON(readJSON, showJSON), makeObj, valFromObj,
+                  JSString(fromJSString), JSValue(JSString, JSObject), Result(Error))
 import Text.PrettyPrint
 
 -- |A class for finding unused variable names.  The next method
@@ -455,3 +457,48 @@ $(deriveSerialize ''Quant)
 $(deriveSerialize ''Predicate)
 
 $(deriveNewData [''Quant, ''Predicate])
+
+instance JSON Quant where
+    readJSON (JSString jsstr) =
+        case fromJSString jsstr of
+          "forall" -> return All
+          "exists" -> return Exists
+          str -> Error $ "readJSON for Quant did not know what to do with: " ++ str
+    readJSON j = Error $ "readJSON for Quant did not know what to do with: " ++ show j
+    showJSON All    = showJSON "forall"
+    showJSON Exists = showJSON "exists"
+
+-- FIXME: handle Constant
+instance (JSON p, JSON term) => JSON (Predicate p term) where
+    readJSON (JSObject jsobj) =
+        do con <- valFromObj "con" jsobj
+           case con of
+             "equal" ->
+                 do t1 <- valFromObj "t1" jsobj
+                    t2 <- valFromObj "t2" jsobj
+                    return (Equal t1 t2)
+             "notEqual" ->
+                 do t1 <- valFromObj "t1" jsobj
+                    t2 <- valFromObj "t2" jsobj
+                    return (NotEqual t1 t2)
+             "apply" ->
+                 do p     <- valFromObj "p" jsobj
+                    terms <- valFromObj "terms" jsobj
+                    return (Apply p terms)
+             _ -> Error $ "readJSON for Predicate did not know what to do with: " ++ con
+    readJSON j = Error $ "readJSON for Predicate did not know what to do with: " ++ show j
+    showJSON (Equal t1 t2) =
+        makeObj [ ("con", showJSON "equal")
+                , ("t1",  showJSON t1)
+                , ("t2",  showJSON t2)
+                ]
+    showJSON (NotEqual t1 t2) =
+        makeObj [ ("con", showJSON "notEqual")
+                , ("t1",  showJSON t1)
+                , ("t2",  showJSON t2)
+                ]
+    showJSON (Apply p terms) =
+        makeObj [ ("con",   showJSON "apply")
+                , ("p",     showJSON p)
+                , ("terms", showJSON terms)
+                ]

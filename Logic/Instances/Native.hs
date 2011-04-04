@@ -22,6 +22,8 @@ import Logic.Logic (Negatable(..), Logic(..), BinOp(..), Boolean(..), Combine(..
 import qualified Logic.Logic as Logic
 import Logic.Normal (ImplicativeNormalFormula(..))
 import Logic.Propositional (PropositionalFormula(..))
+import Text.JSON (JSON(readJSON, showJSON), makeObj, valFromObj,
+                  JSValue(JSObject), Result(Error))
     
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula v p f
@@ -158,3 +160,56 @@ $(deriveSerialize ''PTerm)
 $(deriveSerialize ''Formula)
 
 $(deriveNewData [''PTerm, ''Formula])
+
+instance (JSON v, JSON p, JSON f) => JSON (Formula v p f) where
+    readJSON (JSObject jsobj) =
+               do con <- valFromObj "con" jsobj
+                  case con of
+                    "predicate" -> 
+                        do p <- valFromObj "predicate" jsobj
+                           return (Predicate p)
+                    "combine" ->
+                        do c <- valFromObj "combine" jsobj
+                           return (Combine c)
+                    "quant" ->
+                           do q <- valFromObj "quant" jsobj
+                              v <- valFromObj "v" jsobj
+                              f <- valFromObj "formula" jsobj
+                              return (Quant q v f)
+                    _ -> Error $ "readJSON for FormulaPF did not know what to do with: " ++ con
+    readJSON j = Error $ "readJSON for FormulaPF did not know what to do with: " ++ show j
+    showJSON (Predicate p) =
+        makeObj [ ("con",       showJSON "predicate")
+                , ("predicate", showJSON p)
+                ]
+    showJSON (Combine c) =
+        makeObj [ ("con",       showJSON "combine")
+                , ("combine",   showJSON c)
+                ]
+    showJSON (Quant q v f) =
+        makeObj [ ("con",       showJSON "quant")
+                , ("quant",     showJSON q)
+                , ("v",         showJSON v)
+                , ("formula",   showJSON f)
+                ]
+
+instance (JSON v, JSON f) => JSON (PTerm v f) where
+    readJSON (JSObject jsobj) =
+        do con <- valFromObj "con" jsobj
+           case con of
+             "var" -> do v <- valFromObj "v" jsobj
+                         return (Var v)
+             "fapp" -> do f    <- valFromObj "f" jsobj
+                          args <- valFromObj "args" jsobj
+                          return (FunApp f args)
+             _ -> Error $ "readJSON for PTerm did not know what to do with: " ++ con
+    readJSON j = Error $ "readJSON for PTerm did not know what to do with: " ++ show j
+    showJSON (Var v) =
+        makeObj [ ("con", showJSON "var")
+                , ("v",   showJSON v)
+                ]
+    showJSON (FunApp f args) =
+        makeObj [ ("con",  showJSON "fapp")
+                , ("f",    showJSON f)
+                , ("args", showJSON args)
+                ]
