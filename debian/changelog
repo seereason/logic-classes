@@ -1,3 +1,9 @@
+haskell-logic (0.27) unstable; urgency=low
+
+  * Moved JSON instances back to seereason.
+
+ -- David Fox <dsf@seereason.com>  Wed, 13 Apr 2011 20:53:42 -0700
+
 haskell-logic (0.26) unstable; urgency=low
 
   * Add JSON instances.
