@@ -6,31 +6,31 @@ Build-Depends: debhelper (>= 7.0),
                haskell-devscripts (>= 0.6.15+nmu7),
                hscolour,
                cdbs,
-               ghc6 (>= 6.8),
-               ghc6-prof,
-               libghc6-hunit-prof,
-               libghc6-fgl-prof,
-               libghc6-happstack-data-prof,
-               libghc6-happstack-state-prof,
-               libghc6-incremental-sat-solver-prof,
-               libghc6-proplogic-prof,
-               libghc6-mtl-prof,
-               libghc6-syb-with-class-prof,
-               libghc6-text-prof
-Build-Depends-Indep: ghc6-doc,
+               ghc (>= 6.8),
+               ghc-prof,
+               libghc-hunit-prof,
+               libghc-fgl-prof,
+               libghc-happstack-data-prof,
+               libghc-happstack-state-prof,
+               libghc-incremental-sat-solver-prof,
+               libghc-proplogic-prof,
+               libghc-mtl-prof,
+               libghc-syb-with-class-prof,
+               libghc-text-prof
+Build-Depends-Indep: ghc-doc,
                      haddock,
-                     libghc6-hunit-doc,
-                     libghc6-fgl-doc,
+                     libghc-hunit-doc,
+                     libghc-fgl-doc,
                      haskell-happstack-data-doc,
                      haskell-happstack-state-doc,
-                     libghc6-incremental-sat-solver-doc,
+                     libghc-incremental-sat-solver-doc,
                      haskell-proplogic-doc,
-                     libghc6-mtl-doc,
-                     libghc6-syb-with-class-doc,
-                     libghc6-text-doc
+                     libghc-mtl-doc,
+                     libghc-syb-with-class-doc,
+                     libghc-text-doc
 Standards-Version: 3.8.1
 
-Package: libghc6-logic-dev
+Package: libghc-logic-dev
 Architecture: any
 Section: haskell
 Depends: ${haskell:Depends},
@@ -43,12 +43,12 @@ Description: Library for unifying various treatments of first order logic
  .
  This package contains the normal library files.
 
-Package: libghc6-logic-prof
+Package: libghc-logic-prof
 Architecture: any
 Section: haskell
 Depends: ${haskell:Depends},
          ${misc:Depends},
-         libghc6-logic-dev
+         libghc-logic-dev
 Description: Library for unifying various treatments of first order logic
  Library for unifying various treatments of first order logic
  .
@@ -57,12 +57,12 @@ Description: Library for unifying various treatments of first order logic
  .
  This package contains the libraries compiled with profiling enabled.
 
-Package: libghc6-logic-doc
+Package: libghc-logic-doc
 Architecture: all
 Section: doc
 Depends: ${haskell:Depends},
          ${misc:Depends},
-         ghc6-doc
+         ghc-doc
 Description: Library for unifying various treatments of first order logic
  Library for unifying various treatments of first order logic
  .
