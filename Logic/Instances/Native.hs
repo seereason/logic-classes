@@ -25,9 +25,9 @@ import Logic.Propositional (PropositionalFormula(..))
     
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula v p f
-    = Quant Quant v (Formula v p f) 
+    = Predicate (Predicate p (PTerm v f))
     | Combine (Combine (Formula v p f))
-    | Predicate (Predicate p (PTerm v f))
+    | Quant Quant v (Formula v p f) 
     -- Note that a derived Eq instance is not going to tell us that
     -- a&b is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).
     deriving (Eq,Ord,Read,Data,Typeable)

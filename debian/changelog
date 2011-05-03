@@ -1,3 +1,10 @@
+haskell-logic (0.28) unstable; urgency=low
+
+  * Switch the order of some constructors so that defaultValue of
+    Formula gives us a simpler value.
+
+ -- David Fox <dsf@seereason.com>  Sun, 01 May 2011 11:36:12 -0700
+
 haskell-logic (0.27) unstable; urgency=low
 
   * Moved JSON instances back to seereason.
