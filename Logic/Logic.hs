@@ -14,9 +14,9 @@ module Logic.Logic
     ) where
 
 import Data.Data (Data)
+import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
-import Happstack.State (Version, deriveSerialize)
 
 -- |The class of formulas that can be negated.  There are some types
 -- that can be negated but do not support the other Boolean Logic
@@ -112,15 +112,12 @@ combine (BinOp f1 (:&:) f2) = f1 .&. f2
 combine (BinOp f1 (:|:) f2) = f1 .|. f2
 combine ((:~:) f) = (.~.) f
 
-instance Version BinOp
-instance Version (Combine formula)
-
 -- |For some functions the atomic predicate type needs to have True
 -- and False elements.
 class Boolean p where
     fromBool :: Bool -> p
 
-$(deriveSerialize ''BinOp)
-$(deriveSerialize ''Combine)
+$(deriveSafeCopy 1 'base ''BinOp)
+$(deriveSafeCopy 1 'base ''Combine)
 
 $(deriveNewData [''BinOp, ''Combine])

@@ -12,10 +12,10 @@ module Logic.Instances.Native
     ) where
 
 import Data.Data (Data)
+import Data.SafeCopy (base, deriveSafeCopy)
 import qualified Data.Set as S
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
-import Happstack.State (Version, deriveSerialize)
 import Logic.FirstOrder (Term(..), FirstOrderFormula(..), Quant(..), Skolem(..), Variable,
                          Pretty, Predicate(..), showForm, showTerm, Arity, pApp)
 import Logic.Logic (Negatable(..), Logic(..), BinOp(..), Boolean(..), Combine(..))
@@ -151,10 +151,7 @@ instance (Ord v, Variable v, Data v, Pretty v, Show v,
     x .=. y = Predicate (Equal x y)
     x .!=. y = Predicate (NotEqual x y)
 
-instance Version (PTerm v f)
-instance Version (Formula v p f)
-
-$(deriveSerialize ''PTerm)
-$(deriveSerialize ''Formula)
+$(deriveSafeCopy 1 'base ''PTerm)
+$(deriveSafeCopy 1 'base ''Formula)
 
 $(deriveNewData [''PTerm, ''Formula])

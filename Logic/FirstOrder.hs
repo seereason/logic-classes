@@ -47,10 +47,10 @@ import Data.Data (Data)
 import Data.Function (on)
 import Data.List (intercalate, intersperse)
 import Data.Monoid (mappend)
+import Data.SafeCopy (base, deriveSafeCopy)
 import qualified Data.Set as S
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
-import Happstack.State (Version, deriveSerialize)
 import Logic.Logic
 import Logic.Propositional (PropositionalFormula(..))
 import Text.PrettyPrint
@@ -448,10 +448,7 @@ toPropositional convertAtom formula =
 (?) :: FirstOrderFormula formula term v p f => v -> formula -> formula
 (?) = exists
 
-instance Version Quant
-instance Version (Predicate p term)
-
-$(deriveSerialize ''Quant)
-$(deriveSerialize ''Predicate)
+$(deriveSafeCopy 1 'base ''Quant)
+$(deriveSafeCopy 1 'base ''Predicate)
 
 $(deriveNewData [''Quant, ''Predicate])

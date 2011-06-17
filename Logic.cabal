@@ -1,5 +1,5 @@
 Name:             Logic
-Version:          0.28
+Version:          0.29
 License:          BSD3
 Author:           SeeReason Partners <partners@seereason.com>
 Maintainer:       SeeReason Partners <partners@seereason.com>
@@ -33,5 +33,5 @@ Library
                    Logic.Resolution
                    Logic.Satisfiable
                    Logic.Set
- Build-Depends:    base, containers, fgl, happstack-data, happstack-state, incremental-sat-solver,
-                   mtl, syb-with-class, text, PropLogic, pretty, syb
+ Build-Depends:    base, containers, fgl, happstack-data, incremental-sat-solver,
+                   mtl, syb-with-class, text, PropLogic, pretty, safecopy, syb

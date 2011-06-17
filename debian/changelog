@@ -1,3 +1,9 @@
+haskell-logic (0.29) unstable; urgency=low
+
+  * Ported to safe-copy
+
+ -- Jeremy Shaw <jeremy@seereason.com>  Fri, 17 Jun 2011 11:18:32 -0500
+
 haskell-logic (0.28) unstable; urgency=low
 
   * Switch the order of some constructors so that defaultValue of
