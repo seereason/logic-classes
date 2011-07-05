@@ -537,7 +537,7 @@ purednf fm =
       c (BinOp p (:|:) q) = S.union (purednf p) (purednf q)
       c _ = x
       x :: S.Set (S.Set lit)
-      x = S.singleton (S.singleton (fromFirstOrder fm)) :: S.Set (S.Set lit)
+      x = S.singleton (S.singleton (fromFirstOrder id id id fm)) :: S.Set (S.Set lit)
 
 {-
 

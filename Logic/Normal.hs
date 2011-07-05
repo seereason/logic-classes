@@ -15,7 +15,7 @@ module Logic.Normal
 
 import Control.Monad.Writer (MonadPlus)
 import Data.Generics (Data, Typeable)
-import Logic.FirstOrder (FirstOrderFormula, Term(..))
+import Logic.FirstOrder (FirstOrderFormula, Term(..), convertTerm)
 import qualified Logic.FirstOrder as Logic
 import Logic.Logic (Negatable(..), Boolean(..))
 import qualified Logic.Logic as Logic
@@ -95,18 +95,21 @@ instance Logic.FirstOrderFormula formula term v p f => Literal formula term v p 
           p' _ (Logic.NotEqual _ _) = error "FirstOrderLogic zipN p"
           p' _ _ = Nothing
 
--- |Convert any first order logic formula to a normal logic formula,
--- |provided it doesn't contain any unsupported constructs, such as
--- |quantifiers, binary operators, boolean constants.
-fromFirstOrder :: forall formula term v p f lit. (Logic.FirstOrderFormula formula term v p f, Literal lit term v p f) => formula -> lit
-fromFirstOrder formula =
+-- |Just like Logic.FirstOrder.convertFOF except it rejects anything
+-- with a construct unsupported in a normal logic formula,
+-- i.e. quantifiers and formula combinators other than negation.
+fromFirstOrder :: forall formula term v p f lit term2 v2 p2 f2.
+                  (Logic.FirstOrderFormula formula term v p f, Literal lit term2 v2 p2 f2) =>
+                  (v -> v2) -> (p -> p2) -> (f -> f2) -> formula -> lit
+fromFirstOrder cv cp cf formula =
     Logic.foldF (\ _ _ _ -> error "toLiteral q") c p formula
     where
       c :: Logic.Combine formula -> lit
-      c ((Logic.:~:) f) =  (.~.) (fromFirstOrder f)
+      c ((Logic.:~:) f) =  (.~.) (fromFirstOrder cv cp cf f)
       c _ = error "fromFirstOrder"
       p :: Logic.Predicate p term -> lit
-      p (Logic.Equal a b) = a .=. b
-      p (Logic.NotEqual a b) = (.~.) (a .=. b)
-      p (Logic.Apply pr ts) = pApp pr ts
+      p (Logic.Equal a b) = ct a .=. ct b
+      p (Logic.NotEqual a b) = (.~.) (ct a .=. ct b)
+      p (Logic.Apply pr ts) = pApp (cp pr) (map ct ts)
       p (Logic.Constant b) = error $ "fromFirstOrder " ++ show b
+      ct = convertTerm cv cf
