@@ -42,11 +42,11 @@ import Control.Monad.State (MonadPlus, msum)
 import Data.Generics (Data, Typeable, listify)
 import Data.List (intersperse)
 import Data.Maybe (isJust)
-import Logic.FirstOrder
+import Logic.FirstOrder (FirstOrderFormula, Pretty, fromSkolem, prettyForm)
 import Logic.Harrison.Skolem (prenex, askolemize, simplify, specialize)
 import Logic.Harrison.Prop (nnf, trivial, simpcnf)
 import Logic.Monad (NormalT)
-import Logic.Normal (Literal(..), ImplicativeNormalForm, makeINF)
+import Logic.Normal (Literal(..), ImplicativeNormalForm, makeINF, prettyLit)
 import qualified Logic.Set as S
 import Text.PrettyPrint (hcat, vcat, text, nest, ($$), brackets, render)
 
@@ -71,26 +71,28 @@ skolemNormalForm f = askolemize f >>= return . specialize . prenexNormalForm
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-clauseNormalForm :: (Monad m, FirstOrderFormula formula term v p f, Literal lit term v p f) =>
-       formula -> NormalT v term m (S.Set (S.Set lit))
-clauseNormalForm fm = skolemNormalForm fm >>= return . simpcnf id id id
+clauseNormalForm :: (Monad m, FirstOrderFormula formula term v p f, Literal lit term2 v2 p2 f2) =>
+       (v -> v2) -> (p -> p2) -> (f -> f2) -> formula -> NormalT v term m (S.Set (S.Set lit))
+clauseNormalForm cv cp cf fm = skolemNormalForm fm >>= return . simpcnf cv cp cf
 
-cnfTrace :: forall m formula term v p f. (Monad m, FirstOrderFormula formula term v p f, Pretty v, Pretty p, Pretty f) =>
-            formula -> NormalT v term m String
-cnfTrace f =
+cnfTrace :: forall m formula term v p f lit term2 v2 p2 f2.
+            (Monad m, FirstOrderFormula formula term v p f, Pretty v, Pretty p2, Pretty f, Literal lit term2 v2 p2 f2) =>
+            (v -> v2) -> (p -> p2) -> (f -> f2) -> formula -> NormalT v term m (String, S.Set (S.Set lit))
+cnfTrace cv cp cf f =
     do let simplified = simplify f
            pnf = prenexNormalForm f
        snf <- skolemNormalForm f
-       (cnf :: S.Set (S.Set formula)) <- clauseNormalForm f
-       return . render . vcat $
-                  [text "Original:" $$ nest 2 (prettyForm 0 f),
-                   text "Simplified:" $$ nest 2 (prettyForm 0 simplified),
-                   text "Negation Normal Form:" $$ nest 2 (prettyForm 0 (negationNormalForm f)),
-                   text "Prenex Normal Form:" $$ nest 2 (prettyForm 0 pnf),
-                   text "Skolem Normal Form:" $$ nest 2 (prettyForm 0 snf),
-                   text "Clause Normal Form:" $$ vcat (map prettyClause (fromSS cnf))]
+       cnf <- clauseNormalForm cv cp cf f
+       return (render (vcat
+                       [text "Original:" $$ nest 2 (prettyForm 0 f),
+                        text "Simplified:" $$ nest 2 (prettyForm 0 simplified),
+                        text "Negation Normal Form:" $$ nest 2 (prettyForm 0 (negationNormalForm f)),
+                        text "Prenex Normal Form:" $$ nest 2 (prettyForm 0 pnf),
+                        text "Skolem Normal Form:" $$ nest 2 (prettyForm 0 snf),
+                        text "Clause Normal Form:" $$ vcat (map prettyClause (fromSS cnf))]), cnf)
     where
-      prettyClause = nest 2 . brackets . hcat . intersperse (text ", ") . map (nest 2 . brackets . prettyForm 0)
+      prettyClause (clause :: [lit]) =
+          nest 2 . brackets . hcat . intersperse (text ", ") . map (nest 2 . brackets . prettyLit 0) $ clause
       fromSS = (map S.toList) . S.toList 
 
 -- |Take the clause normal form, and turn it into implicative form,
@@ -117,7 +119,7 @@ implicativeNormalForm :: forall m formula term v p f lit.
                          (Monad m, FirstOrderFormula formula term v p f, Data formula, Literal lit term v p f) =>
                          formula -> NormalT v term m (S.Set (ImplicativeNormalForm lit))
 implicativeNormalForm formula =
-    do cnf <- clauseNormalForm formula
+    do cnf <- clauseNormalForm id id id formula
        let pairs = S.map (S.fold collect (S.empty, S.empty)) cnf :: S.Set (S.Set lit, S.Set lit)
            pairs' = S.flatten (S.map split pairs) :: S.Set (S.Set lit, S.Set lit)
        return (S.map (\ (n,p) -> makeINF n p) pairs')

@@ -17,6 +17,7 @@ import Logic.FirstOrder (Term(..), FirstOrderFormula(..), Quant(..), Skolem(..),
                          Pretty, Predicate(..), showForm, showTerm, Arity, pApp)
 import Logic.Logic (Negatable(..), Logic(..), BinOp(..), Boolean(..), Combine(..))
 import qualified Logic.Logic as Logic
+import qualified Logic.Normal as N
 import Logic.Propositional (PropositionalFormula(..))
     
 -- | The range of a formula is {True, False} when it has no free variables.
@@ -129,6 +130,22 @@ instance (Ord v, Variable v, Data v, Pretty v, Show v,
     pApp7 x a b c d e f g = Predicate (Apply x [a,b,c,d,e,f,g])
     x .=. y = Predicate (Equal x y)
     x .!=. y = Predicate (NotEqual x y)
+
+instance (Pretty v, Pretty f, Variable v, Skolem f, Boolean p,
+          Ord f, Ord v, Ord p, Data p, Data v, Data f) => N.Literal (Formula v p f) (PTerm v f) v p f where
+    x .=. y = Predicate (Equal x y)
+    pApp p ts = Predicate (Apply p ts)
+    foldN c pr l =
+        case l of
+          (Combine ((:~:) x)) -> c x
+          (Predicate (Apply p ts)) -> pr (N.Apply p ts)
+          -- (Predicate (Equal x y)) -> pr (N.Equal x y)
+          _ -> error "Invalid formula used as Literal instance"
+    zipN c pr l1 l2 =
+        case (l1, l2) of
+          (Combine ((:~:) x), Combine ((:~:) y)) -> c x y
+          (Predicate (Apply p1 ts1), Predicate (Apply p2 ts2)) -> pr (N.Apply p1 ts1) (N.Apply p2 ts2)
+          _ -> Nothing
 
 $(deriveSafeCopy 1 'base ''PTerm)
 $(deriveSafeCopy 1 'base ''Formula)

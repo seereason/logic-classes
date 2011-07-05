@@ -11,15 +11,18 @@ module Logic.Normal
     , ImplicativeNormalForm(..)
     , makeINF
     , makeINF'
+    , prettyLit
     ) where
 
 import Control.Monad.Writer (MonadPlus)
 import Data.Generics (Data, Typeable)
-import Logic.FirstOrder (FirstOrderFormula, Term(..), convertTerm)
+import Data.List (intersperse)
+import Logic.FirstOrder (FirstOrderFormula, Term(..), convertTerm, Pretty(pretty), prettyTerm)
 import qualified Logic.FirstOrder as Logic
 import Logic.Logic (Negatable(..), Boolean(..))
 import qualified Logic.Logic as Logic
 import qualified Logic.Set as S
+import Text.PrettyPrint (Doc, text, (<>), (<+>), empty, parens, hcat, nest)
 
 -- |Caution - There are similar declarations with similar names in the
 -- FirstOrder module, these are simplified versions suitable for
@@ -68,33 +71,6 @@ makeINF' n p = makeINF (S.fromList n) (S.fromList p)
 instance (Ord formula, FirstOrderFormula formula term v p f, Show formula) => Show (ImplicativeNormalForm formula) where
     show x = "makeINF' (" ++ show (S.toList (neg x)) ++ ") (" ++ show (S.toList (pos x)) ++ ")"
 
--- |We can implement a Literal instance using methods from
--- FirstOrderFormula.
-instance Logic.FirstOrderFormula formula term v p f => Literal formula term v p f where
-    (.=.) = (Logic..=.)
-    pApp = Logic.pApp
-    foldN c p l =
-        Logic.foldF (\ _ _ _ -> error "FirstOrderLogic foldN q") c' p' l
-        where
-          c' ((Logic.:~:) x) = c x
-          c' _ = error "FirstOrderLogic foldN c"
-          p' (Logic.Equal a b) = p (Equal a b)
-          p' (Logic.Apply pr ts) = p (Apply pr ts)
-          p' _ = error "FirstOrderLogic foldN p"
-    zipN c p l1 l2 =
-        Logic.zipF (\ _ _ _ _ _ _ -> error "FirstOrderLogic zipN") c' p' l1 l2
-        where
-          c' ((Logic.:~:) x) ((Logic.:~:) y) = c x y
-          c' (Logic.BinOp _ _ _) _ = error "FirstOrderLogic zipN c"
-          c' _ (Logic.BinOp _ _ _) = error "FirstOrderLogic zipN c"
-          p' (Logic.Equal a1 b1) (Logic.Equal a2 b2) = p (Equal a1 b1) (Equal a2 b2)
-          p' (Logic.Apply p1 ts1) (Logic.Apply p2 ts2) = p (Apply p1 ts1) (Apply p2 ts2)
-          p' (Logic.Constant _) _ = error "FirstOrderLogic zipN p"
-          p' _ (Logic.Constant _) = error "FirstOrderLogic zipN p"
-          p' (Logic.NotEqual _ _) _ = error "FirstOrderLogic zipN p"
-          p' _ (Logic.NotEqual _ _) = error "FirstOrderLogic zipN p"
-          p' _ _ = Nothing
-
 -- |Just like Logic.FirstOrder.convertFOF except it rejects anything
 -- with a construct unsupported in a normal logic formula,
 -- i.e. quantifiers and formula combinators other than negation.
@@ -113,3 +89,17 @@ fromFirstOrder cv cp cf formula =
       p (Logic.Apply pr ts) = pApp (cp pr) (map ct ts)
       p (Logic.Constant b) = error $ "fromFirstOrder " ++ show b
       ct = convertTerm cv cf
+
+prettyLit :: forall lit term v p f. (Literal lit term v p f, Pretty p) =>
+              Int -> lit -> Doc
+prettyLit prec lit =
+    foldN c p lit
+    where
+      c x = if negated x then text {-"¬"-} "~" <> prettyLit 5 x else prettyLit 5 x
+      p (Equal t1 t2) = parensIf (prec > 6) (prettyTerm t1 <+> text "=" <+> prettyTerm t2)
+      p (Apply pr ts) =
+          pretty pr <> case ts of
+                        [] -> empty
+                        _ -> parens (hcat (intersperse (text ",") (map prettyTerm ts)))
+      parensIf False = id
+      parensIf _ = parens . nest 1

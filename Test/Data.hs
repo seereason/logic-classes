@@ -25,10 +25,11 @@ import Logic.KnowledgeBase (ProofResult(..))
 import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
 import Logic.Monad (WithId(..))
 import Logic.Normal (ImplicativeNormalForm, makeINF, makeINF')
+import qualified Logic.Normal as N
 import Test.HUnit
 import Test.Types (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof)
 
-tests :: (FirstOrderFormula formula term v p f, Eq term, Show term, Show formula, Show v) =>
+tests :: (FirstOrderFormula formula term v p f, N.Literal formula term v p f, Eq term, Show term, Show formula, Show v) =>
          [TestFormula formula term v p f] -> [TestProof formula term v] -> Test
 tests fs ps =
     TestLabel "New" $ TestList (map doTest fs ++ map doProof ps)

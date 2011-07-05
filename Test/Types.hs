@@ -31,7 +31,7 @@ import qualified Logic.Instances.SatSolver as SS
 import Logic.KnowledgeBase (ProofResult, loadKB, theoremKB, getKB)
 import Logic.Logic (Boolean(..))
 import Logic.Monad (WithId, runNormal, runProver', runNormal', runNormalT')
-import Logic.Normal (ClauseNormalFormula(satisfiable), ImplicativeNormalForm(..))
+import Logic.Normal (ClauseNormalFormula(satisfiable), ImplicativeNormalForm(..), Literal)
 import Logic.NormalForm (simplify, negationNormalForm, prenexNormalForm, skolemNormalForm, clauseNormalForm, trivial)
 import Logic.Resolution (SetOfSupport)
 
@@ -141,7 +141,7 @@ data (FirstOrderFormula formula term v p f) => Expected formula term v p f
     | SatSolverSat Bool
     deriving (Data, Typeable)
 
-doTest :: (FirstOrderFormula formula term v p f, Data formula, Show term, Show formula) =>
+doTest :: (FirstOrderFormula formula term v p f, Literal formula term v p f, Data formula, Show term, Show formula) =>
           TestFormula formula term v p f -> Test
 doTest f =
     TestLabel (name f) $ TestList $ 
@@ -160,9 +160,9 @@ doTest f =
       doExpected (SkolemNumbers f') =
           TestCase (assertEqual (name f ++ " skolem numbers") f' (skolemSet (runNormal (skolemNormalForm (formula f)))))
       doExpected (ClauseNormalForm fss) =
-          TestCase (assertEqual (name f ++ " clause normal form") fss (S.map (S.map p) (runNormal (clauseNormalForm (formula f)))))
+          TestCase (assertEqual (name f ++ " clause normal form") fss (S.map (S.map p) (runNormal (clauseNormalForm id id id (formula f)))))
       doExpected (TrivialClauses flags) =
-          TestCase (assertEqual (name f ++ " trivial clauses") flags (map (\ x -> (trivial x, x)) (S.toList (runNormal (clauseNormalForm (formula f))))))
+          TestCase (assertEqual (name f ++ " trivial clauses") flags (map (\ x -> (trivial x, x)) (S.toList (runNormal (clauseNormalForm id id id (formula f))))))
       doExpected (ConvertToChiou result) =
           TestCase (assertEqual (name f ++ " converted to Chiou") result (convertFOF id id id (formula f)))
       doExpected (ChiouKB1 result) =
@@ -205,7 +205,7 @@ data ProofExpected formula v term
     | ChiouKB (S.Set (WithId (ImplicativeNormalForm formula)))
     deriving (Data, Typeable)
 
-doProof :: forall formula term v p f. (FirstOrderFormula formula term v p f, Eq term, Show term, Show v, Show formula) =>
+doProof :: forall formula term v p f. (FirstOrderFormula formula term v p f, Literal formula term v p f, Eq term, Show term, Show v, Show formula) =>
            TestProof formula term v -> Test
 doProof p =
     TestLabel (proofName p) $ TestList $

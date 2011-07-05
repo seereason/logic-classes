@@ -11,7 +11,7 @@ import qualified Logic.Set as S
 import Logic.FirstOrder (FirstOrderFormula(..))
 import Logic.Logic (Negatable(..))
 import Logic.Monad (NormalT', LiteralMapT)
-import Logic.Normal (ClauseNormalFormula(..))
+import qualified Logic.Normal as N
 import Logic.NormalForm (clauseNormalForm)
 
 instance Ord Literal where
@@ -29,14 +29,14 @@ instance Negatable Literal where
 deriving instance Data Literal
 deriving instance Typeable Literal
 
-instance ClauseNormalFormula CNF Literal where
+instance N.ClauseNormalFormula CNF Literal where
     clauses = S.fromList . map S.fromList
     makeCNF = map S.toList . S.toList
     satisfiable cnf = return . not . null $ assertTrue' cnf newSatSolver >>= solve
 
-toCNF :: (Monad m, FirstOrderFormula formula term v p f) =>
+toCNF :: (Monad m, FirstOrderFormula formula term v p f, N.Literal formula term v p f) =>
          formula -> NormalT' formula v term m CNF
-toCNF f = clauseNormalForm f >>= S.ssMapM (lift . toLiteral) >>= return . makeCNF
+toCNF f = clauseNormalForm id id id f >>= S.ssMapM (lift . toLiteral) >>= return . N.makeCNF
 
 -- |Convert a [[formula]] to CNF, which means building a map from
 -- formula to Literal.

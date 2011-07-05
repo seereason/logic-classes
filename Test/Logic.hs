@@ -7,6 +7,7 @@ import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
 import Logic.Monad (runNormal)
+import Logic.Normal (Literal)
 import Logic.NormalForm (clauseNormalForm, clauseNormalForm)
 import Logic.FirstOrder (Skolem(..), FirstOrderFormula(..), Term(..), Arity(arity), Variable, showForm, freeVars, substitute, pApp)
 import Logic.Satisfiable (theorem, inconsistant)
@@ -317,7 +318,7 @@ theoremTests =
                                       (h [x] .=>. m [x]) .&.
                                       (m [x] .=>. ((.~.) (s [x])))) .&.
                          (s [fApp "socrates" []]) in
-                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula, runNormal (clauseNormalForm formula) :: Set.Set (Set.Set TFormula))))
+                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula, runNormal (clauseNormalForm id id id formula) :: Set.Set (Set.Set TFormula))))
     , let (formula :: TFormula) =
               (for_all "x" (pApp "L" [var "x"] .=>. pApp "F" [var "x"]) .&. -- All logicians are funny
                exists "x" (pApp "L" [var "x"])) .=>.                            -- Someone is a logician
@@ -411,7 +412,8 @@ prepare formula = ({- flatten . -} fromJust . toPropositional convertA . cnf . (
 convertA = Just . A
 -}
 
-table :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, Skolem f, IsString v, Variable v, TD.Display formula) =>
+table :: forall formula term v p f. (FirstOrderFormula formula term v p f, Literal formula term v p f,
+                                     Ord formula, Skolem f, IsString v, Variable v, TD.Display formula) =>
          formula -> TruthTable formula
 table f =
     -- truthTable :: Ord a => PropForm a -> TruthTable a
@@ -422,6 +424,6 @@ table f =
       cnf' :: PropForm formula
       cnf' = CJ (map (DJ . map n) cnf)
       cnf :: [[formula]]
-      cnf = fromSS (runNormal (clauseNormalForm f))
+      cnf = fromSS (runNormal (clauseNormalForm id id id f))
       fromSS = map Set.toList . Set.toList
       n f = (if negated f then N . A . (.~.) else A) $ f

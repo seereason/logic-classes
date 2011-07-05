@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS -fno-warn-orphans #-}
 module Logic.Instances.PropLogic
     ( flatten
@@ -8,6 +8,7 @@ module Logic.Instances.PropLogic
 import Logic.FirstOrder (FirstOrderFormula, toPropositional)
 import Logic.Logic
 import Logic.Monad (NormalT)
+import Logic.Normal (Literal)
 import Logic.NormalForm (clauseNormalForm)
 import Logic.Propositional
 import qualified Logic.Set as S
@@ -71,12 +72,12 @@ flatten (SJ xs) = SJ (map flatten xs)
 flatten (N x) = N (flatten x)
 flatten x = x
 
-plSat :: (Monad m, FirstOrderFormula formula term v p f, Ord formula) =>
+plSat :: forall m formula term v p f. (Monad m, FirstOrderFormula formula term v p f, Ord formula, Literal formula term v p f) =>
                 formula -> NormalT v term m Bool
-plSat f = clauses f >>= return . satisfiable
+plSat f = clauses f >>= (\ (x :: PropForm formula) -> return x) >>= return . satisfiable
 
-clauses :: (Monad m, FirstOrderFormula formula term v p f) => formula -> NormalT v term m (PropForm formula)
-clauses f = clauseNormalForm f >>= return . CJ . map (DJ . map (toPropositional A)) . map S.toList . S.toList
+clauses :: forall m formula term v p f. (Monad m, FirstOrderFormula formula term v p f, Literal formula term v p f) => formula -> NormalT v term m (PropForm formula)
+clauses f = clauseNormalForm id id id f >>= return . CJ . map (DJ . map (toPropositional (A :: formula -> PropForm formula))) . map S.toList . S.toList
 
 {-
 inconsistant :: (Monad m, FirstOrderFormula formula term v p f, Ord formula) =>

@@ -25,7 +25,7 @@ import Data.Generics (Data, Typeable)
 import Logic.FirstOrder (FirstOrderFormula)
 import Logic.Logic (Negatable(..))
 import Logic.Monad (ProverT, ProverT', ProverState(..), KnowledgeBase, WithId(..), SentenceCount, withId, zeroKB)
-import Logic.Normal (ImplicativeNormalForm)
+import Logic.Normal (ImplicativeNormalForm, Literal)
 import Logic.NormalForm (implicativeNormalForm)
 import Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
 import qualified Logic.Set as S
@@ -56,25 +56,25 @@ getKB = get >>= return . knowledgeBase
 
 -- |Return a flag indicating whether sentence was disproved, along
 -- with a disproof.
-inconsistantKB :: (Monad m, FirstOrderFormula formula term v p f) => formula -> ProverT' v term (ImplicativeNormalForm formula) m (Bool, SetOfSupport formula v term)
+inconsistantKB :: (Monad m, FirstOrderFormula formula term v p f, Literal formula term v p f) => formula -> ProverT' v term (ImplicativeNormalForm formula) m (Bool, SetOfSupport formula v term)
 inconsistantKB s = lift (implicativeNormalForm s) >>= return . getSetOfSupport >>= \ sos -> getKB >>= return . prove S.empty sos . S.map wiItem
 
 -- |Return a flag indicating whether sentence was proved, along with a
 -- proof.
-theoremKB :: (Monad m, FirstOrderFormula formula term v p f) =>
+theoremKB :: (Monad m, FirstOrderFormula formula term v p f, Literal formula term v p f) =>
              formula -> ProverT' v term (ImplicativeNormalForm formula) m (Bool, SetOfSupport formula v term)
 theoremKB s = inconsistantKB ((.~.) s)
 
 -- |Try to prove a sentence, return the result and the proof.
 -- askKB should be in KnowledgeBase module. However, since resolution
 -- is here functions are here, it is also placed in this module.
-askKB :: (Monad m, FirstOrderFormula formula term v p f) =>
+askKB :: (Monad m, FirstOrderFormula formula term v p f, Literal formula term v p f) =>
          formula -> ProverT' v term (ImplicativeNormalForm formula) m Bool
 askKB s = theoremKB s >>= return . fst
 
 -- |See whether the sentence is true, false or invalid.  Return proofs
 -- for truth and falsity.
-validKB :: (FirstOrderFormula formula term v p f, Monad m) =>
+validKB :: (FirstOrderFormula formula term v p f, Literal formula term v p f, Monad m) =>
            formula -> ProverT' v term (ImplicativeNormalForm formula) m (ProofResult, SetOfSupport formula v term, SetOfSupport formula v term)
 validKB s =
     theoremKB s >>= \ (proved, proof1) ->
@@ -84,7 +84,7 @@ validKB s =
 -- |Validate a sentence and insert it into the knowledgebase.  Returns
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
-tellKB :: (FirstOrderFormula formula term v p f, Monad m) =>
+tellKB :: (FirstOrderFormula formula term v p f, Literal formula term v p f, Monad m) =>
           formula -> ProverT' v term (ImplicativeNormalForm formula) m (ProofResult, S.Set (ImplicativeNormalForm formula))
 tellKB s =
     do st <- get
@@ -97,7 +97,7 @@ tellKB s =
                      , sentenceCount = sentenceCount st + 1 }
        return (valid, S.map wiItem inf')
 
-loadKB :: (FirstOrderFormula formula term v p f, Monad m) =>
+loadKB :: (FirstOrderFormula formula term v p f, Literal formula term v p f, Monad m) =>
           [formula] -> ProverT' v term (ImplicativeNormalForm formula) m [(ProofResult, S.Set (ImplicativeNormalForm formula))]
 loadKB sentences = mapM tellKB sentences
 
