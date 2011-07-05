@@ -527,17 +527,17 @@ let rec purednf fm =
   | Or(p,q) -> union (purednf p) (purednf q)
   | _ -> [[fm]];;
 -}
-purednf :: forall formula term v p f lit. (FirstOrderFormula formula term v p f, Literal lit term v p f) =>
-           formula -> S.Set (S.Set lit)
-purednf fm =
+purednf :: forall formula term v p f lit term2 v2 p2 f2. (FirstOrderFormula formula term v p f, Literal lit term2 v2 p2 f2) =>
+           (v -> v2) -> (p -> p2) -> (f -> f2) -> formula -> S.Set (S.Set lit)
+purednf cv cp cf fm =
     foldF (\ _ _ _ -> x) c (\ _ -> x)  fm
     where
       c :: Combine formula -> S.Set (S.Set lit)
-      c (BinOp p (:&:) q) = S.distrib (purednf p) (purednf q)
-      c (BinOp p (:|:) q) = S.union (purednf p) (purednf q)
+      c (BinOp p (:&:) q) = S.distrib (purednf cv cp cf p) (purednf cv cp cf q)
+      c (BinOp p (:|:) q) = S.union (purednf cv cp cf p) (purednf cv cp cf q)
       c _ = x
       x :: S.Set (S.Set lit)
-      x = S.singleton (S.singleton (fromFirstOrder id id id fm)) :: S.Set (S.Set lit)
+      x = S.singleton (S.singleton (fromFirstOrder cv cp cf fm)) :: S.Set (S.Set lit)
 
 {-
 
@@ -602,9 +602,9 @@ let simpcnf fm =
   filter (fun c -> not(exists (fun c' -> psubset c' c) cjs)) cjs;;
 -}
 
-simpcnf :: forall formula term v p f lit. (FirstOrderFormula formula term v p f, Literal lit term v p f) =>
-           formula -> S.Set (S.Set lit)
-simpcnf fm =
+simpcnf :: forall formula term v p f lit term2 v2 p2 f2. (FirstOrderFormula formula term v p f, Literal lit term2 v2 p2 f2) =>
+           (v -> v2) -> (p -> p2) -> (f -> f2) -> formula -> S.Set (S.Set lit)
+simpcnf cv cp cf fm =
     foldF (\ _ _ _ -> cjs') (\ _ -> cjs') p fm
     where
       p (Apply pr _ts)
@@ -617,7 +617,7 @@ simpcnf fm =
       -- Discard any clause that is the proper subset of another clause
       cjs' = S.filter keep cjs
       keep x = not (S.or (S.map (S.isProperSubsetOf x) cjs))
-      cjs = S.filter (not . trivial) (purecnf (nnf fm)) :: S.Set (S.Set lit)
+      cjs = S.filter (not . trivial) (purecnf cv cp cf (nnf fm)) :: S.Set (S.Set lit)
 
 -- |Harrison page 59.  Look for complementary pairs in a clause.
 trivial :: (Negatable lit, Ord lit) => S.Set lit -> Bool
@@ -626,9 +626,9 @@ trivial lits =
     where (n, p) = S.partition negated lits
 
 -- | CNF: (a | b | c) & (d | e | f)
-purecnf :: forall formula term v p f lit. (FirstOrderFormula formula term v p f, Literal lit term v p f) =>
-           formula -> S.Set (S.Set lit)
-purecnf fm = S.map (S.map (.~.)) (purednf (nnf ((.~.) fm)))
+purecnf :: forall formula term v p f lit term2 v2 p2 f2. (FirstOrderFormula formula term v p f, Literal lit term2 v2 p2 f2) =>
+           (v -> v2) -> (p -> p2) -> (f -> f2) -> formula -> S.Set (S.Set lit)
+purecnf cv cp cf fm = S.map (S.map (.~.)) (purednf cv cp cf (nnf ((.~.) fm)))
 {-
     foldF (\ _ _ _ -> ss (fromFirstOrder fm)) c (\ _ -> ss (fromFirstOrder fm)) fm
     where

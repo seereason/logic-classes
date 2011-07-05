@@ -73,7 +73,7 @@ skolemNormalForm f = askolemize f >>= return . specialize . prenexNormalForm
 -- 
 clauseNormalForm :: (Monad m, FirstOrderFormula formula term v p f, Literal lit term v p f) =>
        formula -> NormalT v term m (S.Set (S.Set lit))
-clauseNormalForm fm = skolemNormalForm fm >>= return . simpcnf
+clauseNormalForm fm = skolemNormalForm fm >>= return . simpcnf id id id
 
 cnfTrace :: (Monad m, FirstOrderFormula formula term v p f, Pretty v, Pretty p, Pretty f) =>
             formula -> NormalT v term m String
