@@ -34,14 +34,14 @@ tests :: (FirstOrderFormula formula term v p f, N.Literal formula term v p f, Eq
 tests fs ps =
     TestLabel "New" $ TestList (map doTest fs ++ map doProof ps)
 
-allFormulas :: forall formula term v p f. (FirstOrderFormula formula term v p f, Typeable formula, IsString v, IsString p, IsString f) =>
+allFormulas :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, Typeable formula, IsString v, IsString p, IsString f) =>
                [TestFormula formula term v p f]
 allFormulas = (formulas ++
                concatMap snd [animalKB, chang43KB] ++
                animalConjectures ++
                [chang43Conjecture, chang43ConjectureRenamed])
 
-formulas :: forall formula term v p f. (FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
+formulas :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, IsString v, IsString p, IsString f) =>
             [TestFormula formula term v p f]
 formulas =
     let n = (.~.) :: Logic formula => formula -> formula
@@ -449,7 +449,7 @@ formulas =
       , expected = [ SkolemNormalForm (((.~.) (p x)) .|. (q (fApp (toSkolem 1) []) .|. (((.~.) (p z)) .|. ((.~.) (q z))))) ] }
     ]
 
-animalKB :: forall formula term v p f. (FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
+animalKB :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, IsString v, IsString p, IsString f) =>
             (String, [TestFormula formula term v p f])
 animalKB =
     let x = var "x"
@@ -506,7 +506,7 @@ animalKB =
        }
      ])
 
-animalConjectures :: forall formula term v p f. (FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
+animalConjectures :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, IsString v, IsString p, IsString f) =>
                      [TestFormula formula term v p f]
 animalConjectures =
     let kills = pApp "Kills" :: [term] -> formula
@@ -682,7 +682,7 @@ chang43KB =
                     , expected = [] }
       ])
 
-chang43Conjecture :: forall formula term v p f. (FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
+chang43Conjecture :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, IsString v, IsString p, IsString f) =>
                      TestFormula formula term v p f
 chang43Conjecture =
     let e = (fApp "e" [])
@@ -842,7 +842,7 @@ chang43Conjecture =
 > putStrLn (runNormal (cnfTrace f))
 -}
 
-chang43ConjectureRenamed :: forall formula term v p f. (FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
+chang43ConjectureRenamed :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, IsString v, IsString p, IsString f) =>
                             TestFormula formula term v p f
 chang43ConjectureRenamed =
     let e = fApp "e" []
@@ -918,7 +918,7 @@ kbKnowledge :: forall formula term v p f. (FirstOrderFormula formula term v p f)
                (String, [TestFormula formula term v p f]) -> (String, [formula])
 kbKnowledge kb = (fst (kb :: (String, [TestFormula formula term v p f])), map formula (snd kb))
 
-proofs :: forall formula term v p f. (FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
+proofs :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, IsString v, IsString p, IsString f) =>
           [TestProof formula term v]
 proofs =
     let -- dog = pApp "Dog" :: [term] -> formula

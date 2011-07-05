@@ -142,7 +142,6 @@ class ( Term term v f
       , Ord p
       , Pretty p
       , Ord f
-      , Ord formula
       ) => FirstOrderFormula formula term v p f
                                     | formula -> term
                                     , formula -> v
