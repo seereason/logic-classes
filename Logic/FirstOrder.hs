@@ -145,8 +145,10 @@ class ( Term term v f
       , Ord formula
       ) => FirstOrderFormula formula term v p f
                                     | formula -> term
-                                    , term -> formula
-                                    , formula -> p where
+                                    , formula -> v
+                                    , formula -> p
+                                    , formula -> f
+                                    , term -> p where
     -- | Universal quantification - for all x (formula x)
     for_all :: v -> formula -> formula
     -- | Existential quantification - there exists x such that (formula x)

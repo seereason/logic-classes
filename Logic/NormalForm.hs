@@ -75,13 +75,13 @@ clauseNormalForm :: (Monad m, FirstOrderFormula formula term v p f, Literal lit 
        formula -> NormalT v term m (S.Set (S.Set lit))
 clauseNormalForm fm = skolemNormalForm fm >>= return . simpcnf id id id
 
-cnfTrace :: (Monad m, FirstOrderFormula formula term v p f, Pretty v, Pretty p, Pretty f) =>
+cnfTrace :: forall m formula term v p f. (Monad m, FirstOrderFormula formula term v p f, Pretty v, Pretty p, Pretty f) =>
             formula -> NormalT v term m String
 cnfTrace f =
     do let simplified = simplify f
            pnf = prenexNormalForm f
        snf <- skolemNormalForm f
-       cnf <- clauseNormalForm f
+       (cnf :: S.Set (S.Set formula)) <- clauseNormalForm f
        return . render . vcat $
                   [text "Original:" $$ nest 2 (prettyForm 0 f),
                    text "Simplified:" $$ nest 2 (prettyForm 0 simplified),
