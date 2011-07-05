@@ -35,7 +35,7 @@ class ( Ord lit
       , Term term v f
       , Negatable lit
       , Data lit
-      ) => Literal lit term v p f | lit -> term, term -> lit, lit -> v, lit -> p, lit -> f where
+      ) => Literal lit term v p f | lit -> term, lit -> v, lit -> p, lit -> f where
     (.=.) :: term -> term -> lit
     pApp :: p -> [term] -> lit
     foldN :: (lit -> r) -> (Predicate p term -> r) -> lit -> r
