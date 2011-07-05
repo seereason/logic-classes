@@ -23,6 +23,7 @@ Library
                    Logic.Instances.Chiou
                    Logic.Instances.Native
                    Logic.Instances.PropLogic
+                   Logic.Instances.Public
                    Logic.Instances.SatSolver
                    Logic.KnowledgeBase
                    Logic.Logic
