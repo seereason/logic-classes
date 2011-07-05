@@ -21,28 +21,27 @@ import qualified Data.Set as S
 import Data.String (IsString)
 import qualified Logic.Instances.Chiou as C
 import Logic.FirstOrder (FirstOrderFormula(..), for_all', exists', Term(..), Skolem(toSkolem), convertFOF, pApp)
-import Logic.Instances.Native (ImplicativeNormalForm(..), makeINF')
 import Logic.KnowledgeBase (ProofResult(..))
 import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
 import Logic.Monad (WithId(..))
-import Logic.Normal (ImplicativeNormalFormula(..))
+import Logic.Normal (ImplicativeNormalForm, makeINF, makeINF')
 import Test.HUnit
 import Test.Types (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof)
 
-tests :: (FirstOrderFormula formula term v p f, ImplicativeNormalFormula inf formula, Eq term, Show term, Show formula, Show inf, Show v) =>
-         [TestFormula inf formula term v p f] -> [TestProof inf formula term v] -> Test
+tests :: (FirstOrderFormula formula term v p f, Eq term, Show term, Show formula, Show v) =>
+         [TestFormula formula term v p f] -> [TestProof formula term v] -> Test
 tests fs ps =
     TestLabel "New" $ TestList (map doTest fs ++ map doProof ps)
 
-allFormulas :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, Typeable formula, IsString v, IsString p, IsString f) =>
-               [TestFormula inf formula term v p f]
+allFormulas :: forall formula term v p f. (FirstOrderFormula formula term v p f, Typeable formula, IsString v, IsString p, IsString f) =>
+               [TestFormula formula term v p f]
 allFormulas = (formulas ++
                concatMap snd [animalKB, chang43KB] ++
                animalConjectures ++
                [chang43Conjecture, chang43ConjectureRenamed])
 
-formulas :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
-            [TestFormula inf formula term v p f]
+formulas :: forall formula term v p f. (FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
+            [TestFormula formula term v p f]
 formulas =
     let n = (.~.) :: Logic formula => formula -> formula
         p = pApp "p" :: [term] -> formula
@@ -449,8 +448,8 @@ formulas =
       , expected = [ SkolemNormalForm (((.~.) (p x)) .|. (q (fApp (toSkolem 1) []) .|. (((.~.) (p z)) .|. ((.~.) (q z))))) ] }
     ]
 
-animalKB :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
-            (String, [TestFormula inf formula term v p f])
+animalKB :: forall formula term v p f. (FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
+            (String, [TestFormula formula term v p f])
 animalKB =
     let x = var "x"
         y = var "y"
@@ -506,8 +505,8 @@ animalKB =
        }
      ])
 
-animalConjectures :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
-                     [TestFormula inf formula term v p f]
+animalConjectures :: forall formula term v p f. (FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
+                     [TestFormula formula term v p f]
 animalConjectures =
     let kills = pApp "Kills" :: [term] -> formula
         jack = fApp "Jack" [] :: term
@@ -682,8 +681,8 @@ chang43KB =
                     , expected = [] }
       ])
 
-chang43Conjecture :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
-                     TestFormula inf formula term v p f
+chang43Conjecture :: forall formula term v p f. (FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
+                     TestFormula formula term v p f
 chang43Conjecture =
     let e = (fApp "e" [])
         (x, u, v, w) = (var "x", var "u", var "v", var "w") in
@@ -842,8 +841,8 @@ chang43Conjecture =
 > putStrLn (runNormal (cnfTrace f))
 -}
 
-chang43ConjectureRenamed :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
-                            TestFormula inf formula term v p f
+chang43ConjectureRenamed :: forall formula term v p f. (FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
+                            TestFormula formula term v p f
 chang43ConjectureRenamed =
     let e = fApp "e" []
         (x, y, z, u, v, w) = (var "x", var "y", var "z", var "u", var "v", var "w")
@@ -900,8 +899,8 @@ chang43ConjectureRenamed =
                     ]
                 }
 
-withKB :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f) =>
-          (String, [TestFormula inf formula term v p f]) -> TestFormula inf formula term v p f -> TestFormula inf formula term v p f
+withKB :: forall formula term v p f. (FirstOrderFormula formula term v p f) =>
+          (String, [TestFormula formula term v p f]) -> TestFormula formula term v p f -> TestFormula formula term v p f
 withKB (kbName, knowledge) conjecture =
     conjecture { name = name conjecture ++ " with " ++ kbName ++ " knowledge base"
                -- Here we say that the conjunction of the knowledge
@@ -914,12 +913,12 @@ withKB (kbName, knowledge) conjecture =
       conj [x] = x
       conj (x:xs) = x .&. conj xs
 
-kbKnowledge :: forall inf formula term v p f. (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f) =>
-               (String, [TestFormula inf formula term v p f]) -> (String, [formula])
-kbKnowledge kb = (fst (kb :: (String, [TestFormula inf formula term v p f])), map formula (snd kb))
+kbKnowledge :: forall formula term v p f. (FirstOrderFormula formula term v p f) =>
+               (String, [TestFormula formula term v p f]) -> (String, [formula])
+kbKnowledge kb = (fst (kb :: (String, [TestFormula formula term v p f])), map formula (snd kb))
 
-proofs :: forall inf formula term v p f. (FirstOrderFormula formula term v p f, ImplicativeNormalFormula inf formula, IsString v, IsString p, IsString f) =>
-          [TestProof inf formula term v]
+proofs :: forall formula term v p f. (FirstOrderFormula formula term v p f, IsString v, IsString p, IsString f) =>
+          [TestProof formula term v]
 proofs =
     let -- dog = pApp "Dog" :: [term] -> formula
         -- cat = pApp "Cat" :: [term] -> formula
@@ -940,7 +939,7 @@ proofs =
 
     [ TestProof
       { proofName = "prove jack kills tuna"
-      , proofKnowledge = kbKnowledge (animalKB :: (String, [TestFormula inf formula term v p f]))
+      , proofKnowledge = kbKnowledge (animalKB :: (String, [TestFormula formula term v p f]))
       , conjecture = kills [jack, tuna]
       , proofExpected = 
           [ ChiouKB (S.fromList
@@ -968,7 +967,7 @@ proofs =
       }
     , TestProof
       { proofName = "prove curiosity kills tuna"
-      , proofKnowledge = kbKnowledge (animalKB :: (String, [TestFormula inf formula term v p f]))
+      , proofKnowledge = kbKnowledge (animalKB :: (String, [TestFormula formula term v p f]))
       , conjecture = kills [curiosity, tuna]
       , proofExpected =
           [ ChiouKB (S.fromList
@@ -1016,7 +1015,7 @@ proofs =
     , let x = var "x" in
       TestProof
       { proofName = "socrates is mortal"
-      , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula inf formula term v p f]))
+      , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula formula term v p f]))
       , conjecture = for_all "x" (socrates [x] .=>. mortal [x])
       , proofExpected = 
          [ ChiouKB (S.fromList
@@ -1033,7 +1032,7 @@ proofs =
     , let x = var "x" in
       TestProof
       { proofName = "socrates is not mortal"
-      , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula inf formula term v p f]))
+      , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula formula term v p f]))
       , conjecture = (.~.) (for_all "x" (socrates [x] .=>. mortal [x]))
       , proofExpected = 
          [ ChiouKB (S.fromList
@@ -1045,7 +1044,7 @@ proofs =
     , let x = var "x" in
       TestProof
       { proofName = "socrates exists and is not mortal"
-      , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula inf formula term v p f]))
+      , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula formula term v p f]))
       , conjecture = (.~.) (exists "x" (socrates [x]) .&. for_all "x" (socrates [x] .=>. mortal [x]))
       , proofExpected = 
          [ ChiouKB (S.fromList
@@ -1060,8 +1059,7 @@ proofs =
       }
     ]
 
-inf' :: ImplicativeNormalFormula inf formula => [formula] -> [formula] -> inf
-inf' l1 l2 = makeINF (S.fromList l1) (S.fromList l2)
+inf' = makeINF'
 
 toLL = map S.toList . S.toList
 toSS = S.fromList . map S.fromList

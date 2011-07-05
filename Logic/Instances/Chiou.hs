@@ -15,13 +15,12 @@ module Logic.Instances.Chiou
     ) where
 
 import Data.Generics (Data, Typeable)
-import qualified Data.Set as S
 import Data.String (IsString(..))
 import Logic.FirstOrder (FirstOrderFormula(..), Pretty, Arity)
 import qualified Logic.FirstOrder as Logic
 import qualified Logic.FirstOrder as L
 import Logic.Logic (Negatable(..), Logic(..), BinOp(..), Combine(..), Boolean(..))
-import Logic.Normal (ImplicativeNormalFormula(..))
+import Logic.Normal (ImplicativeNormalForm(..))
 import Logic.Propositional (PropositionalFormula(..))
 import Logic.FirstOrder (Skolem(..), Quant(..), pApp)
 
@@ -184,10 +183,6 @@ data ConjunctiveNormalForm v p f =
     CNF [Sentence v p f]
     deriving (Eq)
 
-data ImplicativeNormalForm v p f
-    = INF [Sentence v p f] [Sentence v p f]
-    deriving (Eq, Ord, Data, Typeable)
-
 data NormalSentence v p f
     = NFNot (NormalSentence v p f)
     | NFPredicate p [NormalTerm v f]
@@ -200,11 +195,6 @@ data NormalTerm v f
     = NormalFunction f [NormalTerm v f]
     | NormalVariable v
     deriving (Eq, Ord, Data, Typeable)
-
-instance (L.Variable v, Ord p, Ord f, FirstOrderFormula (Sentence v p f) (CTerm v f) v p f) => ImplicativeNormalFormula (ImplicativeNormalForm v p f) (Sentence v p f) where
-    neg (INF x _) = S.fromList x
-    pos (INF _ x) = S.fromList x
-    makeINF lhs rhs = INF (S.toList lhs) (S.toList rhs)
 
 instance Negatable (NormalSentence v p f) where
     (.~.) (NFNot (NFNot x)) = ((.~.) x)

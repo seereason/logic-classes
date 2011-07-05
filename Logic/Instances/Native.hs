@@ -7,20 +7,16 @@
 module Logic.Instances.Native
     ( Formula(..)
     , PTerm(..)
-    , ImplicativeNormalForm(..)
-    , makeINF'
     ) where
 
 import Data.Data (Data)
 import Data.SafeCopy (base, deriveSafeCopy)
-import qualified Data.Set as S
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Logic.FirstOrder (Term(..), FirstOrderFormula(..), Quant(..), Skolem(..), Variable,
                          Pretty, Predicate(..), showForm, showTerm, Arity, pApp)
 import Logic.Logic (Negatable(..), Logic(..), BinOp(..), Boolean(..), Combine(..))
 import qualified Logic.Logic as Logic
-import Logic.Normal (ImplicativeNormalFormula(..))
 import Logic.Propositional (PropositionalFormula(..))
     
 -- | The range of a formula is {True, False} when it has no free variables.
@@ -61,23 +57,6 @@ instance (FirstOrderFormula (Formula v p f) (PTerm v f) v p f, Show v, Show p, S
 
 instance (FirstOrderFormula (Formula v p f) (PTerm v f) v p f, Show v, Show p, Show f) => Show (PTerm v f) where
     show = showTerm
-
-data ImplicativeNormalForm formula =
-    INF (S.Set formula) (S.Set formula)
-    deriving (Eq, Ord, Data, Typeable)
-
-instance (Negatable formula, Ord formula) => ImplicativeNormalFormula (ImplicativeNormalForm formula) formula where
-    neg (INF lhs _) = lhs
-    pos (INF _ rhs) = rhs
-    makeINF = INF
-
--- |A version of MakeINF that takes lists instead of sets, used for
--- implementing a more attractive show method.
-makeINF' :: ImplicativeNormalFormula inf lit => [lit] -> [lit] -> inf
-makeINF' n p = makeINF (S.fromList n) (S.fromList p)
-
-instance (Ord formula, FirstOrderFormula formula term v p f, Show formula) => Show (ImplicativeNormalForm formula) where
-    show x = "makeINF' (" ++ show (S.toList (neg x)) ++ ") (" ++ show (S.toList (pos x)) ++ ")"
 
 instance Negatable (Formula v p f) where
     (.~.) (Combine ((:~:) (Combine ((:~:) x)))) = (.~.) x

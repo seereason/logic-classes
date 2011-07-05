@@ -17,18 +17,18 @@ import qualified Data.Map as M
 import Data.Maybe (isJust)
 import qualified Data.Set as S
 import Logic.FirstOrder (Term(..), FirstOrderFormula)
-import Logic.Normal (Predicate(..), Literal(..), ImplicativeNormalFormula(..))
+import Logic.Normal (Predicate(..), Literal(..), ImplicativeNormalForm(..), makeINF)
 import qualified Logic.Set as S
 
 type Subst v term = Map v term
 
-type SetOfSupport inf v term = S.Set (Unification inf v term)
+type SetOfSupport lit v term = S.Set (Unification lit v term)
 
-type Unification inf v term = (inf, Subst v term)
+type Unification lit v term = (ImplicativeNormalForm lit, Subst v term)
 
-prove :: forall lit p f v term inf.
-         (FirstOrderFormula lit term v p f, ImplicativeNormalFormula inf lit) =>
-         SetOfSupport inf v term -> SetOfSupport inf v term -> S.Set inf -> (Bool, SetOfSupport inf v term)
+prove :: forall lit p f v term.
+         (FirstOrderFormula lit term v p f) =>
+         SetOfSupport lit v term -> SetOfSupport lit v term -> S.Set (ImplicativeNormalForm lit) -> (Bool, SetOfSupport lit v term)
 prove ss1 ss2' kb =
     case S.minView ss2' of
       Nothing -> (False, ss1)
@@ -46,9 +46,9 @@ prove ss1 ss2' kb =
 --       else
 --         prove (ss1 ++ [s]) ss' (fst s:kb)
 
-prove' :: forall lit p f inf v term.
-          (FirstOrderFormula lit term v p f, ImplicativeNormalFormula inf lit) =>
-          Unification inf v term -> S.Set inf -> SetOfSupport inf v term -> SetOfSupport inf v term -> (SetOfSupport inf v term, Bool)
+prove' :: forall lit p f v term.
+          (FirstOrderFormula lit term v p f) =>
+          Unification lit v term -> S.Set (ImplicativeNormalForm lit) -> SetOfSupport lit v term -> SetOfSupport lit v term -> (SetOfSupport lit v term, Bool)
 prove' p kb ss1 ss2 =
     let
       res1 = S.map (\x -> resolution p (x, empty)) kb
@@ -59,8 +59,8 @@ prove' p kb ss1 ss2 =
     in
       if S.null ss' then (ss1, False) else (S.union ss1 ss', tf)
 
-getResult :: (Literal lit term v p f, ImplicativeNormalFormula inf lit, FirstOrderFormula lit term v p f) =>
-             (SetOfSupport inf v term) -> S.Set (Maybe (Unification inf v term)) -> ((SetOfSupport inf v term), Bool)
+getResult :: (Literal lit term v p f, FirstOrderFormula lit term v p f) =>
+             (SetOfSupport lit v term) -> S.Set (Maybe (Unification lit v term)) -> ((SetOfSupport lit v term), Bool)
 getResult ss us =
     case S.minView us of
       Nothing ->
@@ -87,12 +87,12 @@ getResult ss ((Just x):xs)  =
 -}
 
 -- |Convert the "question" to a set of support.
-getSetOfSupport :: (ImplicativeNormalFormula inf formula, Literal formula term v p f) =>
-                   S.Set inf -> S.Set (inf, Subst v term)
+getSetOfSupport :: (Literal formula term v p f) =>
+                   S.Set (ImplicativeNormalForm formula) -> S.Set (ImplicativeNormalForm formula, Subst v term)
 getSetOfSupport s = S.map (\ x -> (x, getSubsts x empty)) s
 
-getSubsts :: (ImplicativeNormalFormula inf formula, Literal formula term v p f) =>
-             inf -> Subst v term -> Subst v term
+getSubsts :: (Literal formula term v p f) =>
+             ImplicativeNormalForm formula -> Subst v term -> Subst v term
 getSubsts inf theta =
     getSubstSentences (pos inf) (getSubstSentences (neg inf) theta)
 
@@ -123,8 +123,8 @@ getSubstsTerm term theta =
           (\ _ ts -> getSubstsTerms ts theta)
           term
 
-isRenameOf :: (ImplicativeNormalFormula inf lit, FirstOrderFormula lit term v p f) =>
-              inf -> inf -> Bool
+isRenameOf :: FirstOrderFormula lit term v p f =>
+              ImplicativeNormalForm lit -> ImplicativeNormalForm lit -> Bool
 isRenameOf inf1 inf2 =
     (isRenameOfSentences lhs1 lhs2) && (isRenameOfSentences rhs1 rhs2)
     where
@@ -163,9 +163,9 @@ isRenameOfTerms ts1 ts2 =
     else
       False
 
-resolution :: forall formula inf lit p f term v.
-              (FirstOrderFormula lit term v p f, ImplicativeNormalFormula inf lit, formula ~ lit) =>
-             (inf, Subst v term) -> (inf, Subst v term) -> Maybe (inf, Map v term)
+resolution :: forall lit p f term v.
+              (FirstOrderFormula lit term v p f) =>
+             (ImplicativeNormalForm lit, Subst v term) -> (ImplicativeNormalForm lit, Subst v term) -> Maybe (ImplicativeNormalForm lit, Map v term)
 resolution (inf1, theta1) (inf2, theta2) =
     let
         lhs1 = neg inf1
@@ -209,8 +209,8 @@ resolution (inf1, theta1) (inf2, theta2) =
             Nothing -> tryUnify'' x rhss (S.insert rhs rhss')
             Just (theta1, theta2) -> Just (S.union rhss' rhss, theta1, theta2)
 
-demodulate :: (ImplicativeNormalFormula inf lit, Literal lit term v p f) =>
-              (Unification inf v term) -> (Unification inf v term) -> Maybe (Unification inf v term)
+demodulate :: (Literal lit term v p f) =>
+              (Unification lit v term) -> (Unification lit v term) -> Maybe (Unification lit v term)
 demodulate (inf1, theta1) (inf2, theta2) =
     case (S.null (neg inf1), S.toList (pos inf1)) of
       (True, [lit1]) ->

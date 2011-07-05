@@ -31,7 +31,7 @@ import qualified Logic.Instances.SatSolver as SS
 import Logic.KnowledgeBase (ProofResult, loadKB, theoremKB, getKB)
 import Logic.Logic (Boolean(..))
 import Logic.Monad (WithId, runNormal, runProver', runNormal', runNormalT')
-import Logic.Normal (ClauseNormalFormula(satisfiable), ImplicativeNormalFormula(..))
+import Logic.Normal (ClauseNormalFormula(satisfiable), ImplicativeNormalForm(..))
 import Logic.NormalForm (simplify, negationNormalForm, prenexNormalForm, skolemNormalForm, clauseNormalForm, trivial)
 import Logic.Resolution (SetOfSupport)
 
@@ -117,15 +117,15 @@ type TTerm = P.PTerm V AtomicFunction
 instance Eq Doc where
     a == b = show a == show b
 
-data TestFormula inf formula term v p f
+data TestFormula formula term v p f
     = TestFormula
       { formula :: formula
       , name :: String
-      , expected :: [Expected inf formula term v p f]
+      , expected :: [Expected formula term v p f]
       } deriving (Data, Typeable)
 
 -- |Some values that we might expect after transforming the formula.
-data (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f) => Expected inf formula term v p f
+data (FirstOrderFormula formula term v p f) => Expected formula term v p f
     = FirstOrderFormula formula
     | SimplifiedForm formula
     | NegationNormalForm formula
@@ -135,14 +135,14 @@ data (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f
     | ClauseNormalForm (S.Set (S.Set formula))
     | TrivialClauses [(Bool, (S.Set formula))]
     | ConvertToChiou formula
-    | ChiouKB1 (ProofResult, S.Set inf)
+    | ChiouKB1 (ProofResult, S.Set (ImplicativeNormalForm formula))
     | PropLogicSat Bool
     | SatSolverCNF CNF
     | SatSolverSat Bool
     deriving (Data, Typeable)
 
-doTest :: (ImplicativeNormalFormula inf formula, FirstOrderFormula formula term v p f, Data formula, Show term, Show inf, Show formula) =>
-          TestFormula inf formula term v p f -> Test
+doTest :: (FirstOrderFormula formula term v p f, Data formula, Show term, Show formula) =>
+          TestFormula formula term v p f -> Test
 doTest f =
     TestLabel (name f) $ TestList $ 
     map doExpected (expected f)
@@ -192,21 +192,21 @@ skolemSet =
 gFind :: (MonadPlus m, Data a, Typeable b) => a -> m b
 gFind = msum . map return . listify (const True)
 
-data TestProof inf formula term v
+data TestProof formula term v
     = TestProof
       { proofName :: String
       , proofKnowledge :: (String, [formula])
       , conjecture :: formula
-      , proofExpected :: [ProofExpected inf v term]
+      , proofExpected :: [ProofExpected formula v term]
       } deriving (Data, Typeable)
 
-data ProofExpected inf v term
-    = ChiouResult (Bool, SetOfSupport inf v term)
-    | ChiouKB (S.Set (WithId inf))
+data ProofExpected formula v term
+    = ChiouResult (Bool, SetOfSupport formula v term)
+    | ChiouKB (S.Set (WithId (ImplicativeNormalForm formula)))
     deriving (Data, Typeable)
 
-doProof :: forall inf formula term v p f. (FirstOrderFormula formula term v p f, ImplicativeNormalFormula inf formula, Eq term, Show inf, Show term, Show v) =>
-           TestProof inf formula term v -> Test
+doProof :: forall formula term v p f. (FirstOrderFormula formula term v p f, Eq term, Show term, Show v, Show formula) =>
+           TestProof formula term v -> Test
 doProof p =
     TestLabel (proofName p) $ TestList $
     concatMap doExpected (proofExpected p)

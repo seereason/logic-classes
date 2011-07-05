@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, UndecidableInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses,
+             RankNTypes, ScopedTypeVariables, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-orphans #-}
 -- |Classes and types representing the result of the normal form
 -- conversion functions.
@@ -7,12 +8,14 @@ module Logic.Normal
     , Literal(..)
     , fromFirstOrder
     , ClauseNormalFormula(..)
-    , ImplicativeNormalFormula(..)
+    , ImplicativeNormalForm(..)
+    , makeINF
+    , makeINF'
     ) where
 
 import Control.Monad.Writer (MonadPlus)
-import Data.Generics (Data)
-import Logic.FirstOrder (Term(..))
+import Data.Generics (Data, Typeable)
+import Logic.FirstOrder (FirstOrderFormula, Term(..))
 import qualified Logic.FirstOrder as Logic
 import Logic.Logic (Negatable(..), Boolean(..))
 import qualified Logic.Logic as Logic
@@ -45,24 +48,25 @@ class (Negatable lit, Eq lit, Ord lit) => ClauseNormalFormula cnf lit | cnf -> l
     makeCNF :: S.Set (S.Set lit) -> cnf
     satisfiable :: MonadPlus m => cnf -> m Bool
 
--- |A class to represent types that express a formula in Implicative
--- Normal Form.  Such a formula has the form @a & b & c .=>. d | e |
--- f@, where a thru f are literals.  One more restriction that is not
--- implied by the type is that no literal can appear in both the pos
--- set and the neg set.  Minimum implementation: pos, neg, toINF
-class (Negatable lit, Eq inf, Ord inf, Ord lit) => ImplicativeNormalFormula inf lit | inf -> lit where
-    neg :: inf -> S.Set lit
-                         -- ^ Return the literals that are negated
-                         -- and disjuncted on the left side of the
-                         -- implies.  @neg@ and @pos@ are sets in
-                         -- some sense, but we don't (yet) have
-                         -- suitable Eq and Ord instances that
-                         -- understand renaming.
-    pos :: inf -> S.Set lit
-                         -- ^ Return the literals that are
-                         -- conjuncted on the right side of the
-                         -- implies.
-    makeINF :: S.Set lit -> S.Set lit -> inf
+-- |A type to represent a formula in Implicative Normal Form.  Such a
+-- formula has the form @a & b & c .=>. d | e | f@, where a thru f are
+-- literals.  One more restriction that is not implied by the type is
+-- that no literal can appear in both the pos set and the neg set.
+data (Negatable lit, Ord lit) => ImplicativeNormalForm lit =
+    INF {neg :: S.Set lit, pos :: S.Set lit}
+    deriving (Eq, Ord, Data, Typeable)
+
+-- |Synonym for INF.
+makeINF :: (Negatable lit, Ord lit) => S.Set lit -> S.Set lit -> ImplicativeNormalForm lit
+makeINF = INF
+
+-- |A version of MakeINF that takes lists instead of sets, used for
+-- implementing a more attractive show method.
+makeINF' :: (Negatable lit, Ord lit) => [lit] -> [lit] -> ImplicativeNormalForm lit
+makeINF' n p = makeINF (S.fromList n) (S.fromList p)
+
+instance (Ord formula, FirstOrderFormula formula term v p f, Show formula) => Show (ImplicativeNormalForm formula) where
+    show x = "makeINF' (" ++ show (S.toList (neg x)) ++ ") (" ++ show (S.toList (pos x)) ++ ")"
 
 -- |We can implement a Literal instance using methods from
 -- FirstOrderFormula.

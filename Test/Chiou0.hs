@@ -10,11 +10,11 @@ import qualified Data.Set as S
 import Data.String (IsString(..))
 import Logic.FirstOrder
 import Logic.FirstOrder (FirstOrderFormula(..), Term(..), Skolem(..))
-import Logic.Instances.Native (Formula, PTerm, ImplicativeNormalForm, makeINF')
+import Logic.Instances.Native (Formula, PTerm)
 import Logic.KnowledgeBase (ProofResult(..), loadKB, theoremKB {-, askKB, showKB-})
 import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
 import Logic.Monad (NormalT, runNormal, ProverT, runProver')
-import Logic.Normal (ImplicativeNormalFormula(..))
+import Logic.Normal (ImplicativeNormalForm, makeINF, makeINF')
 import Logic.NormalForm (clauseNormalForm)
 import Logic.Resolution (SetOfSupport)
 import Test.HUnit
@@ -41,7 +41,7 @@ proofTest1 = TestCase (assertEqual "Chiuo0 - proof test 1" proof1 (runProver' (l
 
 inf' l1 l2 = makeINF (S.fromList l1) (S.fromList l2)
 
-proof1 :: (Bool, SetOfSupport (ImplicativeNormalForm TFormula) V TTerm)
+proof1 :: (Bool, SetOfSupport TFormula V TTerm)
 proof1 = (False,
           (S.fromList
            [(makeINF' ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]) ([]),fromList []),
@@ -62,7 +62,7 @@ proofTest2 = TestCase (assertEqual "Chiuo0 - proof test 2" proof2 (runProver' (l
       conjecture :: TFormula
       conjecture = (pApp "Kills" [fApp "Curiosity" [], fApp (Fn "Tuna") []])
 
-proof2 :: (Bool, SetOfSupport (ImplicativeNormalForm TFormula) V TTerm)
+proof2 :: (Bool, SetOfSupport TFormula V TTerm)
 proof2 = (True,
           S.fromList
           [(makeINF' ([]) ([]),fromList []),

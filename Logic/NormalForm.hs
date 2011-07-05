@@ -46,7 +46,7 @@ import Logic.FirstOrder
 import Logic.Harrison.Skolem (prenex, askolemize, simplify, specialize)
 import Logic.Harrison.Prop (nnf, trivial, simpcnf)
 import Logic.Monad (NormalT)
-import Logic.Normal (Literal(..), ImplicativeNormalFormula(makeINF))
+import Logic.Normal (Literal(..), ImplicativeNormalForm, makeINF)
 import qualified Logic.Set as S
 import Text.PrettyPrint (hcat, vcat, text, nest, ($$), brackets, render)
 
@@ -113,9 +113,9 @@ cnfTrace f =
 --    a | b | c => e
 --    a | b | c => f
 -- @
-implicativeNormalForm :: forall m formula term v p f lit inf. 
-                         (Monad m, FirstOrderFormula formula term v p f, Data formula, Literal lit term v p f, ImplicativeNormalFormula inf lit) =>
-                         formula -> NormalT v term m (S.Set inf)
+implicativeNormalForm :: forall m formula term v p f lit. 
+                         (Monad m, FirstOrderFormula formula term v p f, Data formula, Literal lit term v p f) =>
+                         formula -> NormalT v term m (S.Set (ImplicativeNormalForm lit))
 implicativeNormalForm formula =
     do cnf <- clauseNormalForm formula
        let pairs = S.map (S.fold collect (S.empty, S.empty)) cnf :: S.Set (S.Set lit, S.Set lit)
