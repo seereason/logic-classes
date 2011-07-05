@@ -25,7 +25,7 @@ tests = TestLabel "Chiou0" $ TestList [loadTest, proofTest1, proofTest2]
 
 loadTest :: Test
 loadTest =
-    TestCase (assertEqual "Chiuo0 - loadKB test" expected (runProver' (loadKB sentences)))
+    TestCase (assertEqual "Chiuo0 - loadKB test" expected (runProver' (loadKB id id id sentences)))
     where
       expected :: [(ProofResult, S.Set (ImplicativeNormalForm TFormula))]
       expected = [(Invalid,S.fromList [makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
@@ -37,7 +37,7 @@ loadTest =
                   (Invalid,S.fromList [makeINF' ([(pApp ("Cat") [var ("x")])]) ([(pApp ("Animal") [var ("x")])])])]
 
 proofTest1 :: Test
-proofTest1 = TestCase (assertEqual "Chiuo0 - proof test 1" proof1 (runProver' (loadKB sentences >> theoremKB (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []]))))
+proofTest1 = TestCase (assertEqual "Chiuo0 - proof test 1" proof1 (runProver' (loadKB id id id sentences >> theoremKB id id id (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []] :: TFormula))))
 
 inf' l1 l2 = makeINF (S.fromList l1) (S.fromList l2)
 
@@ -57,7 +57,7 @@ proof1 = (False,
             (makeINF' ([(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList [])]))
 
 proofTest2 :: Test
-proofTest2 = TestCase (assertEqual "Chiuo0 - proof test 2" proof2 (runProver' (loadKB sentences >> theoremKB conjecture)))
+proofTest2 = TestCase (assertEqual "Chiuo0 - proof test 2" proof2 (runProver' (loadKB id id id sentences >> theoremKB id id id conjecture)))
     where
       conjecture :: TFormula
       conjecture = (pApp "Kills" [fApp "Curiosity" [], fApp (Fn "Tuna") []])
@@ -83,7 +83,7 @@ proof2 = (True,
 
 testProof :: MonadIO m => String -> (TFormula, Bool, (S.Set (ImplicativeNormalForm TFormula))) -> ProverT (ImplicativeNormalForm TFormula) (NormalT V TTerm m) ()
 testProof label (question, expectedAnswer, expectedProof) =
-    theoremKB question >>= \ (actualFlag, actualProof) ->
+    theoremKB id id id question >>= \ (actualFlag, actualProof) ->
     let actual' = (actualFlag, S.map fst actualProof) in
     if actual' /= (expectedAnswer, expectedProof)
     then error ("\n Expected:\n  " ++ show (expectedAnswer, expectedProof) ++
@@ -91,7 +91,7 @@ testProof label (question, expectedAnswer, expectedProof) =
     else liftIO (putStrLn (label ++ " ok"))
 
 loadCmd :: Monad m => ProverT (ImplicativeNormalForm TFormula) (NormalT V TTerm m) [(ProofResult, S.Set (ImplicativeNormalForm TFormula))]
-loadCmd = loadKB sentences
+loadCmd = loadKB id id id sentences
 
 sentences :: [TFormula]
 sentences = [exists "x" ((pApp "Dog" [var "x"]) .&. (pApp "Owns" [fApp "Jack" [], var "x"])),
