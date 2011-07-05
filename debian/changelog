@@ -1,3 +1,13 @@
+haskell-logic (0.30) unstable; urgency=low
+
+  * Simplify the parameters of the ImplicativeNormalForm type in the
+    native instance, move it to Logic.Normal and eliminate the
+    ImplicativeNormalFormula class.
+  * Don't require all formula and term types to be instances of Ord,
+    we can just specify it in the functions that need it.
+
+ -- David Fox <dsf@seereason.com>  Sat, 02 Jul 2011 09:20:57 -0700
+
 haskell-logic (0.29) unstable; urgency=low
 
   * Ported to safe-copy
