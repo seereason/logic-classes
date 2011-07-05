@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, NoMonomorphismRestriction, OverloadedStrings, RankNTypes, ScopedTypeVariables  #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, MonoLocalBinds, NoMonomorphismRestriction, OverloadedStrings, RankNTypes, ScopedTypeVariables  #-}
 {-# OPTIONS -fno-warn-name-shadowing -fno-warn-missing-signatures #-}
 module Test.Data
     ( tests
