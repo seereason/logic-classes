@@ -62,11 +62,11 @@ instance (FirstOrderFormula (Formula v p f) (PTerm v f) v p f, Show v, Show p, S
 instance (FirstOrderFormula (Formula v p f) (PTerm v f) v p f, Show v, Show p, Show f) => Show (PTerm v f) where
     show = showTerm
 
-data (Ord v, Ord p, Ord f) => ImplicativeNormalForm v p f =
-    INF (S.Set (Formula v p f)) (S.Set (Formula v p f))
+data ImplicativeNormalForm formula =
+    INF (S.Set formula) (S.Set formula)
     deriving (Eq, Ord, Data, Typeable)
 
-instance (Ord v, Ord p, Ord f) => ImplicativeNormalFormula (ImplicativeNormalForm v p f) (Formula v p f) where
+instance (Negatable formula, Ord formula) => ImplicativeNormalFormula (ImplicativeNormalForm formula) formula where
     neg (INF lhs _) = lhs
     pos (INF _ rhs) = rhs
     makeINF = INF
@@ -76,7 +76,7 @@ instance (Ord v, Ord p, Ord f) => ImplicativeNormalFormula (ImplicativeNormalFor
 makeINF' :: ImplicativeNormalFormula inf lit => [lit] -> [lit] -> inf
 makeINF' n p = makeINF (S.fromList n) (S.fromList p)
 
-instance (FirstOrderFormula (Formula v p f) (PTerm v f) v p f, Show (Formula v p f)) => Show (ImplicativeNormalForm v p f) where
+instance (Ord formula, FirstOrderFormula formula term v p f, Show formula) => Show (ImplicativeNormalForm formula) where
     show x = "makeINF' (" ++ show (S.toList (neg x)) ++ ") (" ++ show (S.toList (pos x)) ++ ")"
 
 instance Negatable (Formula v p f) where

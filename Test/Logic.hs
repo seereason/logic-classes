@@ -5,7 +5,6 @@ module Test.Logic (tests) where
 
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
-import qualified Logic.Instances.Native as P
 import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
 import Logic.Monad (runNormal)
 import Logic.NormalForm (clauseNormalForm, clauseNormalForm)
@@ -13,7 +12,7 @@ import Logic.FirstOrder (Skolem(..), FirstOrderFormula(..), Term(..), Arity(arit
 import Logic.Satisfiable (theorem, inconsistant)
 import PropLogic (PropForm(..), TruthTable, truthTable)
 import qualified TextDisplay as TD
-import Test.Types (V(..), AtomicFunction(..), Pr)
+import Test.Types (V(..), AtomicFunction(..), Pr, TFormula, TTerm)
 import Test.HUnit
 
 -- |Don't use this at home!  It breaks type safety, fromString "True"
@@ -21,13 +20,11 @@ import Test.HUnit
 instance Boolean String where
     fromBool = show
 
-type TestFormula = P.Formula V Pr AtomicFunction
-
 tests :: Test
 tests = TestLabel "Logic" $ TestList (precTests ++ theoremTests)
 
-formCase :: FirstOrderFormula (P.Formula V Pr AtomicFunction) (P.PTerm V AtomicFunction) V Pr AtomicFunction =>
-            String -> TestFormula -> TestFormula -> Test
+formCase :: FirstOrderFormula TFormula TTerm V Pr AtomicFunction =>
+            String -> TFormula -> TFormula -> Test
 formCase s expected input = TestLabel s $ TestCase (assertEqual s expected input)
 
 precTests :: [Test]
@@ -49,14 +46,14 @@ precTests =
                ((a .&. b) .&. c) -- infixl, with infixr we get (a .&. (b .&. c))
                (a .&. b .&. c)
     , TestCase (assertEqual "Logic - Find a free variable"
-                (freeVars (for_all "x" (x .=. y) :: TestFormula))
+                (freeVars (for_all "x" (x .=. y) :: TFormula))
                 (Set.singleton "y"))
     , TestCase (assertEqual "Logic - Substitute a variable"
                 (map sub
                          [ for_all "x" (x .=. y) {- :: Formula String String -}
                          , for_all "y" (x .=. y) {- :: Formula String String -} ])
-                [ for_all "x" (x .=. z) :: TestFormula
-                , for_all "y" (z .=. y) :: TestFormula ])
+                [ for_all "x" (x .=. z) :: TFormula
+                , for_all "y" (z .=. y) :: TFormula ])
     ]
     where
       sub f = substitute (head . Set.toList . freeVars $ f) (var "z") f
@@ -64,11 +61,11 @@ precTests =
       b = pApp ("b") []
       c = pApp ("c") []
 
-x :: P.PTerm V AtomicFunction
+x :: TTerm
 x = var (fromString "x")
-y :: P.PTerm V AtomicFunction
+y :: TTerm
 y = var (fromString "y")
-z :: P.PTerm V AtomicFunction
+z :: TTerm
 z = var (fromString "z")
 
 -- |Here is an example of automatic conversion from a FirstOrderFormula
@@ -85,7 +82,7 @@ test9a = TestCase
     where
       f = pApp "f"
       q = pApp "q"
-      expected :: PropForm TestFormula
+      expected :: PropForm TFormula
       expected = CJ [DJ [N (A (pApp ("q") [var (V "x"),var (V "y")])),
                          N (A (pApp ("f") [var (V "z"),var (V "x")])),
                          A (pApp ("f") [var (V "z"),var (V "y")])],
@@ -115,27 +112,27 @@ skolemize1 :: Test
 skolemize1 =
     formCase "Logic - skolemize1" expected formula
     where
-      expected :: TestFormula
+      expected :: TFormula
       expected = for_all [V "y",V "z"] (for_all [V "v"] (pApp "P" [fApp (toSkolem 1) [], y, z, fApp ((toSkolem 2)) [y, z], v, fApp (toSkolem 3) [y, z, v]]))
-      formula :: TestFormula
+      formula :: TFormula
       formula = (snf' (exists ["x"] (for_all ["y", "z"] (exists ["u"] (for_all ["v"] (exists ["w"] (pApp "P" [x, y, z, u, v, w])))))))
 
 skolemize2 :: Test
 skolemize2 =
     formCase "Logic - skolemize2" expected formula
     where
-      expected :: TestFormula
+      expected :: TFormula
       expected = for_all [V "y"] (pApp ("loves") [fApp (toSkolem 1) [],y])
-      formula :: TestFormula
+      formula :: TFormula
       formula = snf' (exists ["x"] (for_all ["y"] (pApp "loves" [x, y])))
 
 skolemize3 :: Test
 skolemize3 =
     formCase "Logic - skolemize3" expected formula
     where
-      expected :: TestFormula
+      expected :: TFormula
       expected = for_all [V "y"] (pApp ("loves") [fApp (toSkolem 1) [y],y])
-      formula :: TestFormula
+      formula :: TFormula
       formula = snf' (for_all ["y"] (exists ["x"] (pApp "loves" [x, y])))
 -}
 {-
@@ -143,9 +140,9 @@ inf1 :: Test
 inf1 =
     formCase "Logic - inf1" expected formula
     where
-      expected :: TestFormula
+      expected :: TFormula
       expected = ((pApp ("p") [var ("x")]) .=>. (((pApp ("q") [var ("x")]) .|. ((pApp ("r") [var ("x")])))))
-      formula :: {- ImplicativeNormalFormula inf (C.Sentence V String AtomicFunction) (C.Term V AtomicFunction) V String AtomicFunction => -} TestFormula
+      formula :: {- ImplicativeNormalFormula inf (C.Sentence V String AtomicFunction) (C.Term V AtomicFunction) V String AtomicFunction => -} TFormula
       formula = convertFOF id id id (implicativeNormalForm (convertFOF id id id (for_all ["x"] (p [x] .=>. (q [x] .|. r [x]))) :: C.Sentence V String AtomicFunction) :: C.Sentence V String AtomicFunction)
 -}
 
@@ -315,13 +312,13 @@ theoremTests =
                 -- M(x) is false, the remaining lines would all be zero,
                 -- the argument would be inconsistant (an anti-theorem.)
                 -- How can we modify the formula to make these lines 0?
-                (let (formula :: TestFormula) =
+                (let (formula :: TFormula) =
                          for_all "x" ((s [x] .=>. h [x]) .&.
                                       (h [x] .=>. m [x]) .&.
                                       (m [x] .=>. ((.~.) (s [x])))) .&.
                          (s [fApp "socrates" []]) in
                  (runNormal (theorem formula), runNormal (inconsistant formula), table formula, runNormal (clauseNormalForm formula))))
-    , let (formula :: TestFormula) =
+    , let (formula :: TFormula) =
               (for_all "x" (pApp "L" [var "x"] .=>. pApp "F" [var "x"]) .&. -- All logicians are funny
                exists "x" (pApp "L" [var "x"])) .=>.                            -- Someone is a logician
               (.~.) (exists "x" (pApp "F" [var "x"]))                           -- Someone / Nobody is funny
@@ -349,12 +346,12 @@ theoremTests =
                        ([True,True,True,False],False),
                        ([True,True,True,True],False)])
       in TestCase (assertEqual "Logic - gensler189" expected input)
-    , let (formula :: TestFormula) =
+    , let (formula :: TFormula) =
               (for_all "x" (pApp "L" [var "x"] .=>. pApp "F" [var "x"]) .&. -- All logicians are funny
                exists "y" (pApp "L" [var (fromString "y")])) .=>.           -- Someone is a logician
               (.~.) (exists "z" (pApp "F" [var "z"]))                       -- Someone / Nobody is funny
           input = table formula
-          expected :: TruthTable TestFormula
+          expected :: TruthTable TFormula
           expected = ([(pApp1 ("F") (var ("z"))),(pApp1 ("F") (fApp (toSkolem 1) [])),(pApp1 ("L") (var ("y"))),(pApp1 ("L") (fApp (toSkolem 1) []))],Just (CJ [DJ [A (pApp1 ("L") (fApp (toSkolem 1) [])),N (A (pApp1 ("F") (var ("z")))),N (A (pApp1 ("L") (var ("y"))))],DJ [N (A (pApp1 ("F") (var ("z")))),N (A (pApp1 ("F") (fApp (toSkolem 1) []))),N (A (pApp1 ("L") (var ("y"))))]]),[([False,False,False,False],True),([False,False,False,True],True),([False,False,True,False],True),([False,False,True,True],True),([False,True,False,False],True),([False,True,False,True],True),([False,True,True,False],True),([False,True,True,True],True),([True,False,False,False],True),([True,False,False,True],True),([True,False,True,False],False),([True,False,True,True],True),([True,True,False,False],True),([True,True,False,True],True),([True,True,True,False],False),([True,True,True,True],False)])
       in TestCase (assertEqual "Logic - gensler189 renamed" expected input)
     ]
@@ -372,7 +369,7 @@ theorem5 =
                                              ((.~.) (m [x]))))))))
 -}
 
-instance TD.Display (TestFormula) where
+instance TD.Display TFormula where
     textFrame x = [showForm x]
 {-
     textFrame x = [quickShow x]

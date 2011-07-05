@@ -5,6 +5,8 @@ module Test.Types
       V(..)
     , Pr(..)
     , AtomicFunction(..)
+    , TFormula
+    , TTerm
       -- * Test case types
     , TestFormula(..)
     , Expected(..)
@@ -106,6 +108,9 @@ instance Show AtomicFunction where
 instance Pretty AtomicFunction where
     pretty (Fn s) = text s
     pretty (Skolem n) = text ("sK" ++ show n)
+
+type TFormula = P.Formula V Pr AtomicFunction
+type TTerm = P.PTerm V AtomicFunction
 
 -- |This allows you to use an expression that returns the Doc type in a
 -- unit test, such as prettyForm 0.

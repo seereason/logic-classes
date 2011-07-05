@@ -18,9 +18,7 @@ import Logic.Normal (ImplicativeNormalFormula(..))
 import Logic.NormalForm (clauseNormalForm)
 import Logic.Resolution (SetOfSupport)
 import Test.HUnit
-import Test.Types (V(..), Pr(..), AtomicFunction(..))
-
-type TTerm = PTerm V AtomicFunction
+import Test.Types (V(..), Pr(..), AtomicFunction(..), TFormula, TTerm)
 
 tests :: Test
 tests = TestLabel "Chiou0" $ TestList [loadTest, proofTest1, proofTest2]
@@ -29,7 +27,7 @@ loadTest :: Test
 loadTest =
     TestCase (assertEqual "Chiuo0 - loadKB test" expected (runProver' (loadKB sentences)))
     where
-      expected :: [(ProofResult, S.Set (ImplicativeNormalForm V Pr AtomicFunction))]
+      expected :: [(ProofResult, S.Set (ImplicativeNormalForm TFormula))]
       expected = [(Invalid,S.fromList [makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
                                        makeINF' ([]) ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem 1) []])])]),
                   (Invalid,S.fromList [makeINF' ([(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [var ("x"),var ("y")])]) ([(pApp ("AnimalLover") [var ("x")])])]),
@@ -43,7 +41,7 @@ proofTest1 = TestCase (assertEqual "Chiuo0 - proof test 1" proof1 (runProver' (l
 
 inf' l1 l2 = makeINF (S.fromList l1) (S.fromList l2)
 
-proof1 :: (Bool, SetOfSupport (ImplicativeNormalForm V Pr AtomicFunction) V (PTerm V AtomicFunction))
+proof1 :: (Bool, SetOfSupport (ImplicativeNormalForm TFormula) V TTerm)
 proof1 = (False,
           (S.fromList
            [(makeINF' ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]) ([]),fromList []),
@@ -61,10 +59,10 @@ proof1 = (False,
 proofTest2 :: Test
 proofTest2 = TestCase (assertEqual "Chiuo0 - proof test 2" proof2 (runProver' (loadKB sentences >> theoremKB conjecture)))
     where
-      conjecture :: Formula V Pr AtomicFunction
+      conjecture :: TFormula
       conjecture = (pApp "Kills" [fApp "Curiosity" [], fApp (Fn "Tuna") []])
 
-proof2 :: (Bool, SetOfSupport (ImplicativeNormalForm V Pr AtomicFunction) V (PTerm V AtomicFunction))
+proof2 :: (Bool, SetOfSupport (ImplicativeNormalForm TFormula) V TTerm)
 proof2 = (True,
           S.fromList
           [(makeINF' ([]) ([]),fromList []),
@@ -83,7 +81,7 @@ proof2 = (True,
            (makeINF' ([(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Jack") [],var ("y")])]) ([]),fromList []),
            (makeINF' ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []])]) ([]),fromList [])])
 
-testProof :: MonadIO m => String -> (Formula V Pr AtomicFunction, Bool, (S.Set (ImplicativeNormalForm V Pr AtomicFunction))) -> ProverT (ImplicativeNormalForm V Pr AtomicFunction) (NormalT V (PTerm V AtomicFunction) m) ()
+testProof :: MonadIO m => String -> (TFormula, Bool, (S.Set (ImplicativeNormalForm TFormula))) -> ProverT (ImplicativeNormalForm TFormula) (NormalT V TTerm m) ()
 testProof label (question, expectedAnswer, expectedProof) =
     theoremKB question >>= \ (actualFlag, actualProof) ->
     let actual' = (actualFlag, S.map fst actualProof) in
@@ -92,10 +90,10 @@ testProof label (question, expectedAnswer, expectedProof) =
                 "\n Actual:\n  " ++ show actual')
     else liftIO (putStrLn (label ++ " ok"))
 
-loadCmd :: Monad m => ProverT (ImplicativeNormalForm V Pr AtomicFunction) (NormalT V (PTerm V AtomicFunction) m) [(ProofResult, S.Set (ImplicativeNormalForm V Pr AtomicFunction))]
+loadCmd :: Monad m => ProverT (ImplicativeNormalForm TFormula) (NormalT V TTerm m) [(ProofResult, S.Set (ImplicativeNormalForm TFormula))]
 loadCmd = loadKB sentences
 
-sentences :: [Formula V Pr AtomicFunction]
+sentences :: [TFormula]
 sentences = [exists "x" ((pApp "Dog" [var "x"]) .&. (pApp "Owns" [fApp "Jack" [], var "x"])),
              for_all "x" (((exists "y" (pApp "Dog" [var "y"])) .&. (pApp "Owns" [var "x", var "y"])) .=>. (pApp "AnimalLover" [var "x"])),
              for_all "x" ((pApp "AnimalLover" [var "x"]) .=>. (for_all "y" ((pApp "Animal" [var "y"]) .=>. ((.~.) (pApp "Kills" [var "x", var "y"]))))),
