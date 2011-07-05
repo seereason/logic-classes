@@ -115,11 +115,11 @@ cnfTrace cv cp cf f =
 --    a | b | c => e
 --    a | b | c => f
 -- @
-implicativeNormalForm :: forall m formula term v p f lit. 
-                         (Monad m, FirstOrderFormula formula term v p f, Data formula, Literal lit term v p f) =>
-                         formula -> NormalT v term m (S.Set (ImplicativeNormalForm lit))
-implicativeNormalForm formula =
-    do cnf <- clauseNormalForm id id id formula
+implicativeNormalForm :: forall m formula term v p f lit term2 v2 p2 f2. 
+                         (Monad m, FirstOrderFormula formula term v p f, Data formula, Literal lit term2 v2 p2 f2) =>
+                         (v -> v2) -> (p -> p2) -> (f -> f2) -> formula -> NormalT v term m (S.Set (ImplicativeNormalForm lit))
+implicativeNormalForm cv cp cf formula =
+    do cnf <- clauseNormalForm cv cp cf formula
        let pairs = S.map (S.fold collect (S.empty, S.empty)) cnf :: S.Set (S.Set lit, S.Set lit)
            pairs' = S.flatten (S.map split pairs) :: S.Set (S.Set lit, S.Set lit)
        return (S.map (\ (n,p) -> makeINF n p) pairs')

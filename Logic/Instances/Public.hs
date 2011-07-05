@@ -86,8 +86,8 @@ instance (FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
           FirstOrderFormula (N.Formula v p f) (N.PTerm v f) v p f,
           Show v, Show p, Show f, Ord (N.Formula v p f)) => Ord (Formula v p f) where
     compare a b =
-        let (a' :: Set (ImplicativeNormalForm (N.Formula v p f))) = runNormal (implicativeNormalForm (intern a :: N.Formula v p f))
-            (b' :: Set (ImplicativeNormalForm (N.Formula v p f))) = runNormal (implicativeNormalForm (intern b :: N.Formula v p f)) in
+        let (a' :: Set (ImplicativeNormalForm (N.Formula v p f))) = runNormal (implicativeNormalForm id id id (intern a :: N.Formula v p f))
+            (b' :: Set (ImplicativeNormalForm (N.Formula v p f))) = runNormal (implicativeNormalForm id id id (intern b :: N.Formula v p f)) in
         case compare a' b' of
           EQ -> EQ
           x -> {- if isRenameOf a' b' then EQ else -} x

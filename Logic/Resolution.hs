@@ -16,7 +16,7 @@ import Data.Map (Map, empty)
 import qualified Data.Map as M
 import Data.Maybe (isJust)
 import qualified Data.Set as S
-import Logic.FirstOrder (Term(..), FirstOrderFormula)
+import Logic.FirstOrder (Term(..))
 import Logic.Normal (Predicate(..), Literal(..), ImplicativeNormalForm(..), makeINF)
 import qualified Logic.Set as S
 
@@ -26,8 +26,7 @@ type SetOfSupport lit v term = S.Set (Unification lit v term)
 
 type Unification lit v term = (ImplicativeNormalForm lit, Subst v term)
 
-prove :: forall lit p f v term.
-         (FirstOrderFormula lit term v p f, Literal lit term v p f) =>
+prove :: Literal lit term v p f =>
          SetOfSupport lit v term -> SetOfSupport lit v term -> S.Set (ImplicativeNormalForm lit) -> (Bool, SetOfSupport lit v term)
 prove ss1 ss2' kb =
     case S.minView ss2' of
@@ -45,9 +44,8 @@ prove ss1 ss2' kb =
 --         (True, (ss1 ++ [s] ++ss'))
 --       else
 --         prove (ss1 ++ [s]) ss' (fst s:kb)
-
 prove' :: forall lit p f v term.
-          (FirstOrderFormula lit term v p f, Literal lit term v p f) =>
+          Literal lit term v p f =>
           Unification lit v term -> S.Set (ImplicativeNormalForm lit) -> SetOfSupport lit v term -> SetOfSupport lit v term -> (SetOfSupport lit v term, Bool)
 prove' p kb ss1 ss2 =
     let
@@ -59,7 +57,7 @@ prove' p kb ss1 ss2 =
     in
       if S.null ss' then (ss1, False) else (S.union ss1 ss', tf)
 
-getResult :: (Literal lit term v p f, FirstOrderFormula lit term v p f) =>
+getResult :: Literal lit term v p f =>
              (SetOfSupport lit v term) -> S.Set (Maybe (Unification lit v term)) -> ((SetOfSupport lit v term), Bool)
 getResult ss us =
     case S.minView us of
@@ -123,7 +121,7 @@ getSubstsTerm term theta =
           (\ _ ts -> getSubstsTerms ts theta)
           term
 
-isRenameOf :: (FirstOrderFormula lit term v p f, Literal lit term v p f) =>
+isRenameOf :: Literal lit term v p f =>
               ImplicativeNormalForm lit -> ImplicativeNormalForm lit -> Bool
 isRenameOf inf1 inf2 =
     (isRenameOfSentences lhs1 lhs2) && (isRenameOfSentences rhs1 rhs2)
@@ -163,8 +161,7 @@ isRenameOfTerms ts1 ts2 =
     else
       False
 
-resolution :: forall lit p f term v.
-              (FirstOrderFormula lit term v p f, Literal lit term v p f) =>
+resolution :: forall lit p f term v. Literal lit term v p f =>
              (ImplicativeNormalForm lit, Subst v term) -> (ImplicativeNormalForm lit, Subst v term) -> Maybe (ImplicativeNormalForm lit, Map v term)
 resolution (inf1, theta1) (inf2, theta2) =
     let

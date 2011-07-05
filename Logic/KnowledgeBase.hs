@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, TypeSynonymInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes, TypeSynonymInstances #-}
 {-# OPTIONS -Wall -Wwarn #-}
 
 {- KnowledgeBase.hs -}
@@ -56,14 +56,16 @@ getKB = get >>= return . knowledgeBase
 
 -- |Return a flag indicating whether sentence was disproved, along
 -- with a disproof.
-inconsistantKB :: (Monad m, FirstOrderFormula formula term v p f, Literal formula term v p f) => formula -> ProverT' v term (ImplicativeNormalForm formula) m (Bool, SetOfSupport formula v term)
-inconsistantKB s = lift (implicativeNormalForm s) >>= return . getSetOfSupport >>= \ sos -> getKB >>= return . prove S.empty sos . S.map wiItem
+inconsistantKB :: forall m formula term v p f lit p1 f1 v1 term1.
+                  (FirstOrderFormula formula term v p f, Literal lit term1 v1 p1 f1, Monad m) =>
+                 (v -> v1) -> (p -> p1) -> (f -> f1) -> formula -> ProverT' v term (ImplicativeNormalForm lit) m (Bool, SetOfSupport lit v1 term1)
+inconsistantKB cv cp cf s = lift (implicativeNormalForm cv cp cf s) >>= return . getSetOfSupport >>= \ sos -> getKB >>= return . prove S.empty sos . S.map wiItem
 
 -- |Return a flag indicating whether sentence was proved, along with a
 -- proof.
 theoremKB :: (Monad m, FirstOrderFormula formula term v p f, Literal formula term v p f) =>
              formula -> ProverT' v term (ImplicativeNormalForm formula) m (Bool, SetOfSupport formula v term)
-theoremKB s = inconsistantKB ((.~.) s)
+theoremKB s = inconsistantKB id id id ((.~.) s)
 
 -- |Try to prove a sentence, return the result and the proof.
 -- askKB should be in KnowledgeBase module. However, since resolution
@@ -78,7 +80,7 @@ validKB :: (FirstOrderFormula formula term v p f, Literal formula term v p f, Mo
            formula -> ProverT' v term (ImplicativeNormalForm formula) m (ProofResult, SetOfSupport formula v term, SetOfSupport formula v term)
 validKB s =
     theoremKB s >>= \ (proved, proof1) ->
-    inconsistantKB s >>= \ (disproved, proof2) ->
+    inconsistantKB id id id s >>= \ (disproved, proof2) ->
     return (if proved then Proved else if disproved then Disproved else Invalid, proof1, proof2)
 
 -- |Validate a sentence and insert it into the knowledgebase.  Returns
@@ -88,7 +90,7 @@ tellKB :: (FirstOrderFormula formula term v p f, Literal formula term v p f, Mon
           formula -> ProverT' v term (ImplicativeNormalForm formula) m (ProofResult, S.Set (ImplicativeNormalForm formula))
 tellKB s =
     do st <- get
-       inf <- lift (implicativeNormalForm s)
+       inf <- lift (implicativeNormalForm id id id s)
        let inf' = S.map (withId (sentenceCount st)) inf
        (valid, _, _) <- validKB s
        case valid of
