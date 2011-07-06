@@ -9,6 +9,7 @@
 module Logic.Instances.Public
     ( Formula(..)
     , N.PTerm(..)
+    , Bijection(..)
     ) where
 
 import Data.Data (Data)

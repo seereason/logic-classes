@@ -110,7 +110,6 @@ instance (Ord v, Variable v, Data v, Pretty v, Show v,
     exists v x = Quant Exists v x
     foldF q c p f =
         case f of
-          -- Be careful not to create quants with empty variable lists
           Quant op v f' -> q op v f'
           Combine x -> c x
           Predicate x -> p x
