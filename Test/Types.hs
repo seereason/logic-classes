@@ -220,6 +220,6 @@ doProof p =
           [TestLabel (proofName p ++ " with " ++ fst (proofKnowledge p)) . TestList $
            [TestCase (assertEqual (proofName p ++ " with " ++ fst (proofKnowledge p) ++ " Chiou knowledge base")
                       result
-                      (runProver' (loadKB id id id kb >> getKB id id id)))]]
+                      (runProver' (loadKB id id id kb >> getKB)))]]
       kb = snd (proofKnowledge p) :: [formula]
       c = conjecture p :: formula
