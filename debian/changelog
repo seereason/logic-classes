@@ -1,3 +1,14 @@
+haskell-logic (0.31) unstable; urgency=low
+
+  * Create a second instance of FirstOrderFormula in the module
+    Logic.Instances.Public, with Eq and Ord instances that use
+    the normal form to detect formulas that are equivalent under
+    identity transforms.
+  * Export the Bijection class which converts between the public
+    and internal formula types.
+
+ -- David Fox <dsf@seereason.com>  Wed, 06 Jul 2011 12:46:45 -0700
+
 haskell-logic (0.30) unstable; urgency=low
 
   * Simplify the parameters of the ImplicativeNormalForm type in the
