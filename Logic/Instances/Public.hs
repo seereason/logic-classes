@@ -50,7 +50,10 @@ instance Negatable (Formula v p f) where
     (.~.) = Formula . (.~.) . unFormula
 
 instance Logic (Formula v p f) where
-    a .|. b = Formula $ unFormula a .|. unFormula b
+    x .<=>. y = Formula $ (unFormula x) .<=>. (unFormula y)
+    x .=>.  y = Formula $ (unFormula x) .=>. (unFormula y)
+    x .|.   y = Formula $ (unFormula x) .|. (unFormula y)
+    x .&.   y = Formula $ (unFormula x) .&. (unFormula y)
 
 instance (Pretty f, Pretty v, Pretty p,
           Arity p, Variable v, Skolem f, Boolean p,
@@ -66,8 +69,7 @@ instance (Pretty p, Arity p, Boolean p, Show p, Show v, Show f,
     exists v x = public $ exists v (intern x :: N.Formula v p f)
     foldF q c p f = foldF q' c' p (intern f :: N.Formula v p f)
         where q' quant var form = q quant var (public form)
-              c' (BinOp a op b) = c (BinOp (public a) op (public b))
-              c' ((:~:) form) = c ((:~:) (public form))
+              c' x = c (public x)
     zipF q c p f1 f2 = zipF q' c' p (intern f1 :: N.Formula v p f) (intern f2 :: N.Formula v p f)
         where q' q1 v1 f1 q2 v2 f2 = q q1 v1 (public f1) q2 v2 (public f2)
               c' combine1 combine2 = c (public combine1) (public combine2)
