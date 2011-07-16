@@ -42,11 +42,12 @@ import Control.Monad.State (MonadPlus, msum)
 import Data.Generics (Data, Typeable, listify)
 import Data.List (intersperse)
 import Data.Maybe (isJust)
-import Logic.FirstOrder (FirstOrderFormula, Pretty, fromSkolem, prettyForm)
+import Logic.FirstOrder (FirstOrderFormula, fromSkolem)
 import Logic.Harrison.Skolem (prenex, askolemize, simplify, specialize)
 import Logic.Harrison.Prop (nnf, trivial, simpcnf)
 import Logic.Monad (NormalT)
-import Logic.Normal (Literal(..), ImplicativeNormalForm, makeINF, prettyLit)
+import Logic.Normal (Literal(..), ImplicativeNormalForm, makeINF)
+import Logic.Pretty (Pretty, prettyForm, prettyLit)
 import qualified Logic.Set as S
 import Text.PrettyPrint (hcat, vcat, text, nest, ($$), brackets, render)
 
@@ -76,7 +77,8 @@ clauseNormalForm :: (Monad m, FirstOrderFormula formula term v p f, Literal lit 
 clauseNormalForm cv cp cf fm = skolemNormalForm fm >>= return . simpcnf cv cp cf
 
 cnfTrace :: forall m formula term v p f lit term2 v2 p2 f2.
-            (Monad m, FirstOrderFormula formula term v p f, Pretty v, Pretty p2, Pretty f, Literal lit term2 v2 p2 f2) =>
+            (Monad m, FirstOrderFormula formula term v p f, Literal lit term2 v2 p2 f2,
+             Pretty v, Pretty p, Pretty f, Pretty v2, Pretty p2, Pretty f2) =>
             (v -> v2) -> (p -> p2) -> (f -> f2) -> formula -> NormalT v term m (String, S.Set (S.Set lit))
 cnfTrace cv cp cf f =
     do let simplified = simplify f

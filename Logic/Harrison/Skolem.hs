@@ -190,7 +190,7 @@ pullQuants fm =
 -- |Helper function to rename variables when we want to enclose a
 -- formula containing a free occurrence of that variable a quantifier
 -- that quantifies it.
-pullq :: (FirstOrderFormula formula term v p f) =>
+pullq :: FirstOrderFormula formula term v p f =>
          Bool -> Bool -> formula -> (v -> formula -> formula) -> (formula -> formula -> formula) -> v -> v -> formula -> formula -> formula
 pullq l r fm mkq op x y p q =
     let z = variant (freeVars fm) x

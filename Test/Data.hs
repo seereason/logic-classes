@@ -20,7 +20,7 @@ import Data.Map (fromList)
 import qualified Data.Set as S
 import Data.String (IsString)
 import qualified Logic.Instances.Chiou as C
-import Logic.FirstOrder (FirstOrderFormula(..), for_all', exists', Term(..), Skolem(toSkolem), convertFOF, pApp)
+import Logic.FirstOrder (FirstOrderFormula(..), for_all', exists', Term(..), Skolem(toSkolem), convertFOF, pApp, Pred(..))
 import Logic.KnowledgeBase (ProofResult(..))
 import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
 import Logic.Monad (WithId(..))

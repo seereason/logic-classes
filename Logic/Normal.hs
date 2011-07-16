@@ -11,18 +11,15 @@ module Logic.Normal
     , ImplicativeNormalForm(..)
     , makeINF
     , makeINF'
-    , prettyLit
     ) where
 
 import Control.Monad.Writer (MonadPlus)
 import Data.Generics (Data, Typeable)
-import Data.List (intersperse)
-import Logic.FirstOrder (FirstOrderFormula, Term(..), convertTerm, Pretty(pretty), prettyTerm)
+import Logic.FirstOrder (FirstOrderFormula, Term(..), convertTerm)
 import qualified Logic.FirstOrder as Logic
 import Logic.Logic (Negatable(..), Boolean(..))
 import qualified Logic.Logic as Logic
 import qualified Logic.Set as S
-import Text.PrettyPrint (Doc, text, (<>), (<+>), empty, parens, hcat, nest)
 
 -- |Caution - There are similar declarations with similar names in the
 -- FirstOrder module, these are simplified versions suitable for
@@ -89,17 +86,3 @@ fromFirstOrder cv cp cf formula =
       p (Logic.Apply pr ts) = pApp (cp pr) (map ct ts)
       p (Logic.Constant b) = error $ "fromFirstOrder " ++ show b
       ct = convertTerm cv cf
-
-prettyLit :: forall lit term v p f. (Literal lit term v p f, Pretty p) =>
-              Int -> lit -> Doc
-prettyLit prec lit =
-    foldN c p lit
-    where
-      c x = if negated x then text {-"¬"-} "~" <> prettyLit 5 x else prettyLit 5 x
-      p (Equal t1 t2) = parensIf (prec > 6) (prettyTerm t1 <+> text "=" <+> prettyTerm t2)
-      p (Apply pr ts) =
-          pretty pr <> case ts of
-                        [] -> empty
-                        _ -> parens (hcat (intersperse (text ",") (map prettyTerm ts)))
-      parensIf False = id
-      parensIf _ = parens . nest 1

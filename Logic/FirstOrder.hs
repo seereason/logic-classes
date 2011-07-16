@@ -12,11 +12,8 @@
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
 module Logic.FirstOrder
     ( Skolem(..)
-    , Arity(..)
     , Variable(..)
-    , Predicate(..)
     , FirstOrderFormula(..)
-    , pApp
     , Term(..)
     , Quant(..)
     , quant
@@ -24,8 +21,6 @@ module Logic.FirstOrder
     , quant'
     , for_all'
     , exists'
-    , showForm
-    , showTerm
     , freeVars
     , withUnivQuants
     , quantVars
@@ -36,24 +31,21 @@ module Logic.FirstOrder
     , convertFOF
     , convertTerm
     , toPropositional
-    , Pretty(..)
-    , prettyForm
-    , prettyTerm
     , disj
     , conj
+    , module Logic.Predicate
     ) where
 
 import Data.Data (Data)
 import Data.Function (on)
-import Data.List (intercalate, intersperse)
 import Data.Monoid (mappend)
 import Data.SafeCopy (base, deriveSafeCopy)
 import qualified Data.Set as S
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Logic.Logic
+import Logic.Predicate (Arity, Pred(..), Predicate(..), pApp)
 import Logic.Propositional (PropositionalFormula(..))
-import Text.PrettyPrint
 
 -- |A class for finding unused variable names.  The next method
 -- returns the next in an endless sequence of variable names, if we
@@ -65,52 +57,18 @@ class Variable v where
     -- ^ Return a different variable name, @iterate next one@ should
     -- return a list which never repeats.
 
-class Pretty x where
-    pretty :: x -> Doc
-
 -- |This class shows how to convert between atomic Skolem functions
 -- and Ints.
 class Skolem f where
     toSkolem :: Int -> f
     fromSkolem  :: f -> Maybe Int
 
--- |A temporary type used in the fold method to represent the
--- combination of a predicate and its arguments.  This reduces the
--- number of arguments to foldF and makes it easier to manage the
--- mapping of the different instances to the class methods.
-data Predicate p term
-    = Equal term term
-    | NotEqual term term
-    | Constant Bool
-    | Apply p [term]
-    deriving (Eq, Ord, Show, Read, Data, Typeable)
-
-pApp :: FirstOrderFormula formula term v p f => p -> [term] -> formula
-pApp p ts =
-    case (ts, maybe (length ts) id (arity p)) of
-      ([], 0) -> pApp0 p 
-      ([a], 1) -> pApp1 p a
-      ([a,b], 2) -> pApp2 p a b
-      ([a,b,c], 3) -> pApp3 p a b c
-      ([a,b,c,d], 4) -> pApp4 p a b c d
-      ([a,b,c,d,e], 5) -> pApp5 p a b c d e
-      ([a,b,c,d,e,f], 6) -> pApp6 p a b c d e f
-      ([a,b,c,d,e,f,g], 7) -> pApp7 p a b c d e f g
-      _ -> error ("Arity error: " ++ show (pretty p) ++ " " ++ intercalate " " (map (show . prettyTerm) ts))
-
-class Arity p where
-    -- |How many arguments does the predicate take?  Nothing
-    -- means any number of arguments.
-    arity :: p -> Maybe Int
-
 class ( Ord v     -- Required so variables can be inserted into maps and sets
       , Variable v -- Used to rename variable during conversion to prenex
       , Data v    -- For serialization
-      , Pretty v
       , Eq f      -- We need to check functions for equality during unification
       , Skolem f  -- Used to create skolem functions and constants
       , Data f    -- For serialization
-      , Pretty f
       , Ord term  -- For implementing Ord in Literal
       ) => Term term v f | term -> v, term -> f where
     var :: v -> term
@@ -140,8 +98,9 @@ class ( Term term v f
       , Arity p        -- To decide how many arguments
       , Eq p           -- Required during resolution
       , Ord p
-      , Pretty p
+      -- , Pretty p
       , Ord f
+      , Pred p term formula
       ) => FirstOrderFormula formula term v p f
                                     | formula -> term
                                     , formula -> v
@@ -166,27 +125,6 @@ class ( Term term v f
          -> (Combine formula -> Combine formula -> Maybe r)
          -> (Predicate p term -> Predicate p term -> Maybe r)
          -> formula -> formula -> Maybe r
-    -- | Build a formula by applying zero or more terms to an atomic
-    -- predicate.
-    pApp0 :: p  -> formula
-    pApp1 :: p -> term  -> formula
-    pApp2 :: p -> term -> term  -> formula
-    pApp3 :: p -> term -> term -> term  -> formula
-    pApp4 :: p -> term -> term -> term -> term  -> formula
-    pApp5 :: p -> term -> term -> term -> term -> term  -> formula
-    pApp6 :: p -> term -> term -> term -> term -> term -> term -> formula
-    pApp7 :: p -> term -> term -> term -> term -> term -> term -> term -> formula
-    -- | Equality of Terms
-    (.=.) :: term -> term -> formula
-    -- | Inequality of Terms
-    (.!=.) :: term -> term -> formula
-    a .!=. b = (.~.) (a .=. b)
-    -- | The tautological formula
-    true :: formula
-    true = pApp0 (fromBool True)
-    -- | The inconsistant formula
-    false :: formula
-    false = pApp0 (fromBool False)
 
 -- |for_all with a list of variables, for backwards compatibility.
 for_all' :: FirstOrderFormula formula term v p f => [v] -> formula -> formula
@@ -220,76 +158,6 @@ quant' :: FirstOrderFormula formula term v p f =>
          Quant -> [v] -> formula -> formula
 quant' All = for_all'
 quant' Exists = exists'
-
--- | Display a formula in a format that can be read into the interpreter.
-showForm :: forall formula term v p f. (FirstOrderFormula formula term v p f, Show v, Show p, Show f) => 
-            formula -> String
-showForm formula =
-    foldF q c a formula
-    where
-      q All v f = "(for_all " ++ show v ++ " " ++ showForm f ++ ")"
-      q Exists v f = "(exists " ++  show v ++ " " ++ showForm f ++ ")"
-      c (BinOp f1 op f2) = "(" ++ parenForm f1 ++ " " ++ showCombine op ++ " " ++ parenForm f2 ++ ")"
-      c ((:~:) f) = "((.~.) " ++ showForm f ++ ")"
-      a :: Predicate p term -> String
-      a (Equal t1 t2) =
-          "(" ++ parenTerm t1 ++ " .=. " ++ parenTerm t2 ++ ")"
-      a (NotEqual t1 t2) =
-          "(" ++ parenTerm t1 ++ " .!=. " ++ parenTerm t2 ++ ")"
-      a (Constant x) = "pApp' (Constant " ++ show x ++ ")"
-      a (Apply p ts) = "(pApp" ++ show (length ts) ++ " (" ++ show p ++ ") (" ++ intercalate ") (" (map showTerm ts) ++ "))"
-      parenForm x = "(" ++ showForm x ++ ")"
-      parenTerm :: term -> String
-      parenTerm x = "(" ++ showTerm x ++ ")"
-      showCombine (:<=>:) = ".<=>."
-      showCombine (:=>:) = ".=>."
-      showCombine (:&:) = ".&."
-      showCombine (:|:) = ".|."
-
-showTerm :: forall term v f. (Term term v f, Show v, Show f) =>
-            term -> String
-showTerm term =
-    foldT v f term
-    where
-      v :: v -> String
-      v v' = "var (" ++ show v' ++ ")"
-      f :: f -> [term] -> String
-      f fn ts = "fApp (" ++ show fn ++ ") [" ++ intercalate "," (map showTerm ts) ++ "]"
-
-prettyTerm :: forall v f term. Term term v f => term -> Doc
-prettyTerm t = foldT pretty (\ fn ts -> pretty fn <> brackets (hcat (intersperse (text ",") (map prettyTerm ts)))) t
-
-prettyForm :: forall formula term v p f. FirstOrderFormula formula term v p f =>
-              Int -> formula -> Doc
-prettyForm prec formula =
-    foldF (\ qop v f -> parensIf (prec > 1) $ prettyQuant qop <> pretty v <+> prettyForm 1 f)
-          (\ cm ->
-               case cm of
-                 (BinOp f1 op f2) ->
-                     case op of
-                       (:=>:) -> parensIf (prec > 2) $ (prettyForm 2 f1 <+> formOp op <+> prettyForm 2 f2)
-                       (:<=>:) -> parensIf (prec > 2) $ (prettyForm 2 f1 <+> formOp op <+> prettyForm 2 f2)
-                       (:&:) -> parensIf (prec > 3) $ (prettyForm 3 f1 <+> formOp op <+> prettyForm 3 f2)
-                       (:|:) -> parensIf {-(prec > 4)-} True $ (prettyForm 4 f1 <+> formOp op <+> prettyForm 4 f2)
-                 ((:~:) f) -> text {-"¬"-} "~" <> prettyForm 5 f)
-          pr
-          formula
-    where
-      pr (Constant x) = text (show x)
-      pr (Equal t1 t2) = parensIf (prec > 6) (prettyTerm t1 <+> text "=" <+> prettyTerm t2)
-      pr (NotEqual t1 t2) = parensIf (prec > 6) (prettyTerm t1 <+> text "!=" <+> prettyTerm t2)
-      pr (Apply p ts) =
-          pretty p <> case ts of
-                        [] -> empty
-                        _ -> parens (hcat (intersperse (text ",") (map prettyTerm ts)))
-      parensIf False = id
-      parensIf _ = parens . nest 1
-      prettyQuant All = text {-"∀"-} "!"
-      prettyQuant Exists = text {-"∃"-} "?"
-      formOp (:<=>:) = text "<=>"
-      formOp (:=>:) = text "=>"
-      formOp (:&:) = text "&"
-      formOp (:|:) = text "|"
 
 -- |The 'Quant' and 'InfixPred' types, like the BinOp type in
 -- 'Logic.Propositional', could be additional parameters to the type
@@ -393,9 +261,8 @@ substitute old new formula =
       st t = foldT sv (\ func ts -> fApp func (map st ts)) t
       sv v = if v == old then new else var v
 
-substitutePairs :: FirstOrderFormula formula term v p f => [(v, term)] -> formula -> formula
-substitutePairs pairs formula = 
-    foldr (\ (old, new) f -> substitute old new f) formula pairs 
+substitutePairs :: (FirstOrderFormula formula term v p f) => [(v, term)] -> formula -> formula
+substitutePairs pairs formula = foldr (\ (old, new) f -> substitute old new f) formula pairs 
 
 -- |Convert any instance of a first order logic expression to any other.
 convertFOF :: forall formula1 term1 v1 p1 f1 formula2 term2 v2 p2 f2.
@@ -450,6 +317,5 @@ toPropositional convertAtom formula =
 (?) = exists
 
 $(deriveSafeCopy 1 'base ''Quant)
-$(deriveSafeCopy 1 'base ''Predicate)
 
-$(deriveNewData [''Quant, ''Predicate])
+$(deriveNewData [''Quant])

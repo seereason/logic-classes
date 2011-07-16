@@ -16,9 +16,10 @@ module Logic.Instances.Chiou
 
 import Data.Generics (Data, Typeable)
 import Data.String (IsString(..))
-import Logic.FirstOrder (FirstOrderFormula(..), Pretty, Arity)
+import Logic.FirstOrder (FirstOrderFormula(..), Arity)
 import qualified Logic.FirstOrder as Logic
 import qualified Logic.FirstOrder as L
+import Logic.FirstOrder (Pred(..))
 import Logic.Logic (Negatable(..), Logic(..), BinOp(..), Combine(..), Boolean(..))
 import Logic.Normal (ImplicativeNormalForm(..))
 import Logic.Propositional (PropositionalFormula(..))
@@ -62,9 +63,9 @@ instance Logic (Sentence v p f) where
     x .|.   y = Connective x Or y
     x .&.   y = Connective x And y
 
-instance (Ord v, IsString v, Data v, Pretty v, L.Variable v, 
-          Ord p, IsString p, Data p, Pretty p, Boolean p, Arity p,
-          Ord f, IsString f, Data f, Pretty f, Skolem f, 
+instance (Ord v, IsString v, Data v, L.Variable v, 
+          Ord p, IsString p, Data p, Boolean p, Arity p,
+          Ord f, IsString f, Data f, Skolem f, 
           Logic (Sentence v p f)) =>
          PropositionalFormula (Sentence v p f) (Sentence v p f) where
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
@@ -98,8 +99,20 @@ instance Skolem AtomicFunction where
     fromSkolem (AtomicSkolemFunction n) = Just n
     fromSkolem _ = Nothing
 
-instance (Pretty v, Pretty p, Pretty f, -- debugging
-          Ord v, IsString v, L.Variable v, Data v,
+instance Boolean p => Pred p (CTerm v f) (Sentence v p f) where
+    pApp0 x = Predicate x []
+    pApp1 x a = Predicate x [a]
+    pApp2 x a b = Predicate x [a,b]
+    pApp3 x a b c = Predicate x [a,b,c]
+    pApp4 x a b c d = Predicate x [a,b,c,d]
+    pApp5 x a b c d e = Predicate x [a,b,c,d,e]
+    pApp6 x a b c d e f = Predicate x [a,b,c,d,e,f]
+    pApp7 x a b c d e f g = Predicate x [a,b,c,d,e,f,g]
+    -- fApp (AtomicSkolemFunction n) [] = SkolemConstant n
+    -- fApp (AtomicSkolemFunction n) ts = SkolemFunction n ts
+    x .=. y = Equal x y
+
+instance (Ord v, IsString v, L.Variable v, Data v,
           Ord p, IsString p, Boolean p, Arity p, Data p,
           Ord f, IsString f, Skolem f, Data f, 
           PropositionalFormula (Sentence v p f) (Sentence v p f)) =>
@@ -146,17 +159,6 @@ instance (Pretty v, Pretty p, Pretty f, -- debugging
           (Equal l1 r1, Equal l2 r2) -> p (L.Equal l1 r1) (L.Equal l2 r2)
           (Predicate p1 ts1, Predicate p2 ts2) -> p (L.Apply p1 ts1) (L.Apply p2 ts2)
           _ -> Nothing
-    pApp0 x = Predicate x []
-    pApp1 x a = Predicate x [a]
-    pApp2 x a b = Predicate x [a,b]
-    pApp3 x a b c = Predicate x [a,b,c]
-    pApp4 x a b c d = Predicate x [a,b,c,d]
-    pApp5 x a b c d e = Predicate x [a,b,c,d,e]
-    pApp6 x a b c d e f = Predicate x [a,b,c,d,e,f]
-    pApp7 x a b c d e f g = Predicate x [a,b,c,d,e,f,g]
-    -- fApp (AtomicSkolemFunction n) [] = SkolemConstant n
-    -- fApp (AtomicSkolemFunction n) ts = SkolemFunction n ts
-    x .=. y = Equal x y
 
 {-
 instance (FirstOrderFormula (Sentence v p f) (CTerm v f) v p f, Show v, Show p, Show f) => Show (Sentence v p f) where
@@ -166,7 +168,7 @@ instance (FirstOrderFormula (Sentence v p f) (CTerm v f) v p f, Show v, Show p, 
     show = showTerm
 -}
 
-instance (Ord v, L.Variable v, Data v, Pretty v, Eq f, Ord f, Skolem f, Data f, Pretty f) => Logic.Term (CTerm v f) v f where
+instance (Ord v, L.Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Logic.Term (CTerm v f) v f where
     foldT v fn t =
         case t of
           Variable x -> v x
@@ -203,9 +205,21 @@ instance Negatable (NormalSentence v p f) where
     negated (NFNot x) = not (negated x)
     negated _ = False
 
-instance (IsString v, Pretty v,
-          Ord p, IsString p, Boolean p, Arity p, Data p, Pretty p,
-          Ord f, IsString f, Pretty f,
+instance (Boolean p, Logic (NormalSentence v p f)) => Pred p (NormalTerm v f) (NormalSentence v p f) where
+    pApp0 x = NFPredicate x []
+    pApp1 x a = NFPredicate x [a]
+    pApp2 x a b = NFPredicate x [a,b]
+    pApp3 x a b c = NFPredicate x [a,b,c]
+    pApp4 x a b c d = NFPredicate x [a,b,c,d]
+    pApp5 x a b c d e = NFPredicate x [a,b,c,d,e]
+    pApp6 x a b c d e f = NFPredicate x [a,b,c,d,e,f]
+    pApp7 x a b c d e f g = NFPredicate x [a,b,c,d,e,f,g]
+    x .=. y = NFEqual x y
+    x .!=. y = NFNot (NFEqual x y)
+
+instance (IsString v,
+          Ord p, IsString p, Boolean p, Arity p, Data p,
+          Ord f, IsString f,
           Logic (NormalSentence v p f), Logic.Term (NormalTerm v f) v f) => FirstOrderFormula (NormalSentence v p f) (NormalTerm v f) v p f where
     for_all _ _ = error "FirstOrderFormula NormalSentence"
     exists _ _ = error "FirstOrderFormula NormalSentence"
@@ -220,18 +234,8 @@ instance (IsString v, Pretty v,
           (NFEqual f1l f1r, NFEqual f2l f2r) -> p (L.Equal f1l f1r) (L.Equal f2l f2r)
           (NFPredicate p1 ts1, NFPredicate p2 ts2) -> p (L.Apply p1 ts1) (L.Apply p2 ts2)
           _ -> Nothing
-    pApp0 x = NFPredicate x []
-    pApp1 x a = NFPredicate x [a]
-    pApp2 x a b = NFPredicate x [a,b]
-    pApp3 x a b c = NFPredicate x [a,b,c]
-    pApp4 x a b c d = NFPredicate x [a,b,c,d]
-    pApp5 x a b c d e = NFPredicate x [a,b,c,d,e]
-    pApp6 x a b c d e f = NFPredicate x [a,b,c,d,e,f]
-    pApp7 x a b c d e f g = NFPredicate x [a,b,c,d,e,f,g]
-    x .=. y = NFEqual x y
-    x .!=. y = NFNot (NFEqual x y)
 
-instance (Ord v, L.Variable v, Data v, Pretty v, Eq f, Ord f, Logic.Skolem f, Data f, Pretty f) => Logic.Term (NormalTerm v f) v f where
+instance (Ord v, L.Variable v, Data v, Eq f, Ord f, Logic.Skolem f, Data f) => Logic.Term (NormalTerm v f) v f where
     var = NormalVariable
     fApp = NormalFunction
     foldT v f t =
@@ -249,7 +253,7 @@ toSentence (NFNot s) = (.~.) (toSentence s)
 toSentence (NFEqual t1 t2) = toTerm t1 .=. toTerm t2
 toSentence (NFPredicate p ts) = pApp p (map toTerm ts)
 
-toTerm :: (Ord v, L.Variable v, Data v, Pretty v, Eq f, Ord f, Logic.Skolem f, Data f, Pretty f) => NormalTerm v f -> CTerm v f
+toTerm :: (Ord v, L.Variable v, Data v, Eq f, Ord f, Logic.Skolem f, Data f) => NormalTerm v f -> CTerm v f
 toTerm (NormalFunction f ts) = Logic.fApp f (map toTerm ts)
 toTerm (NormalVariable v) = Logic.var v
 

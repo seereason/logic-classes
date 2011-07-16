@@ -14,10 +14,11 @@ import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 import Logic.FirstOrder (Term(..), FirstOrderFormula(..), Quant(..), Skolem(..), Variable,
-                         Pretty, Predicate(..), showForm, showTerm, Arity, pApp)
+                         Pred(..), Predicate(..), Arity, pApp)
 import Logic.Logic (Negatable(..), Logic(..), BinOp(..), Boolean(..), Combine(..))
 import qualified Logic.Logic as Logic
 import qualified Logic.Normal as N
+import Logic.Pretty (showForm, showTerm)
 import Logic.Propositional (PropositionalFormula(..))
     
 -- | The range of a formula is {True, False} when it has no free variables.
@@ -72,10 +73,10 @@ instance Logic (Formula v p f) where
     x .|.   y = Combine (BinOp  x (:|:)   y)
     x .&.   y = Combine (BinOp  x (:&:)   y)
 
-instance (Ord v, Variable v, Data v, Pretty v, Show v,
-          Ord p, Boolean p, Arity p, Data p, Pretty p, Show p,
-          Ord f, Skolem f, Data f, Pretty f, Show f,
-          Logic (Formula v p f), Show (Formula v p f)) =>
+instance (Ord v, Variable v, Data v,
+          Ord p, Boolean p, Arity p, Data p,
+          Ord f, Skolem f, Data f,
+          Logic (Formula v p f)) =>
          PropositionalFormula (Formula v p f) (Formula v p f) where
     atomic (Predicate (Equal t1 t2)) = t1 .=. t2
     atomic (Predicate (NotEqual t1 t2)) = t1 .!=. t2
@@ -87,7 +88,7 @@ instance (Ord v, Variable v, Data v, Pretty v, Show v,
           Combine x -> c x
           Predicate x -> a (Predicate x)
 
-instance (Ord v, Variable v, Data v, Pretty v, Eq f, Ord f, Skolem f, Data f, Pretty f) => Term (PTerm v f) v f where
+instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (PTerm v f) v f where
     foldT vf fn t =
         case t of
           Var v -> vf v
@@ -100,12 +101,20 @@ instance (Ord v, Variable v, Data v, Pretty v, Eq f, Ord f, Skolem f, Data f, Pr
     var = Var
     fApp x args = FunApp x args
 
-instance (Ord v, Variable v, Data v, Pretty v, Show v,
-          Ord p, Boolean p, Arity p, Data p, Pretty p, Show p,
-          Ord f, Skolem f, Data f, Pretty f, Show f,
-          Show (Formula v p f),
-          PropositionalFormula (Formula v p f) (Formula v p f), Term (PTerm v f) v f) =>
-          FirstOrderFormula (Formula v p f) (PTerm v f) v p f where
+instance (Boolean p, Arity p) => Pred p (PTerm v f) (Formula v p f) where
+    pApp0 x = Predicate (Apply x [])
+    pApp1 x a = Predicate (Apply x [a])
+    pApp2 x a b = Predicate (Apply x [a,b])
+    pApp3 x a b c = Predicate (Apply x [a,b,c])
+    pApp4 x a b c d = Predicate (Apply x [a,b,c,d])
+    pApp5 x a b c d e = Predicate (Apply x [a,b,c,d,e])
+    pApp6 x a b c d e f = Predicate (Apply x [a,b,c,d,e,f])
+    pApp7 x a b c d e f g = Predicate (Apply x [a,b,c,d,e,f,g])
+    x .=. y = Predicate (Equal x y)
+    x .!=. y = Predicate (NotEqual x y)
+
+instance (Variable v, Skolem f, Ord f, Ord v, Ord p, Data p, Data v, Data f, Pred p (PTerm v f) (Formula v p f)) =>
+         FirstOrderFormula (Formula v p f) (PTerm v f) v p f where
     for_all v x = Quant All v x
     exists v x = Quant Exists v x
     foldF q c p f =
@@ -119,19 +128,8 @@ instance (Ord v, Variable v, Data v, Pretty v, Show v,
           (Combine x, Combine y) -> c x y
           (Predicate x, Predicate y) -> p x y
           _ -> Nothing
-    pApp0 x = Predicate (Apply x [])
-    pApp1 x a = Predicate (Apply x [a])
-    pApp2 x a b = Predicate (Apply x [a,b])
-    pApp3 x a b c = Predicate (Apply x [a,b,c])
-    pApp4 x a b c d = Predicate (Apply x [a,b,c,d])
-    pApp5 x a b c d e = Predicate (Apply x [a,b,c,d,e])
-    pApp6 x a b c d e f = Predicate (Apply x [a,b,c,d,e,f])
-    pApp7 x a b c d e f g = Predicate (Apply x [a,b,c,d,e,f,g])
-    x .=. y = Predicate (Equal x y)
-    x .!=. y = Predicate (NotEqual x y)
 
-instance (Pretty v, Pretty f, Variable v, Skolem f, Boolean p,
-          Ord f, Ord v, Ord p, Data p, Data v, Data f) => N.Literal (Formula v p f) (PTerm v f) v p f where
+instance (Variable v, Skolem f, Boolean p, Ord f, Ord v, Ord p, Data p, Data v, Data f) => N.Literal (Formula v p f) (PTerm v f) v p f where
     x .=. y = Predicate (Equal x y)
     pApp p ts = Predicate (Apply p ts)
     foldN c pr l =

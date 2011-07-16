@@ -1,3 +1,10 @@
+haskell-logic (0.32) unstable; urgency=low
+
+  * Add a Pred class to describe predicate application
+  * Split pretty printing and show into a module.
+
+ -- David Fox <dsf@seereason.com>  Sat, 16 Jul 2011 15:24:43 -0700
+
 haskell-logic (0.31) unstable; urgency=low
 
   * Create a second instance of FirstOrderFormula in the module

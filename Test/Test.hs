@@ -1,8 +1,8 @@
 import System.Exit
 import Test.HUnit
-import Logic.FirstOrder (showForm)
 import Logic.Instances.Native
 import Logic.Normal (ImplicativeNormalForm)
+import Logic.Pretty (showForm)
 import qualified Test.Logic as Logic
 import qualified Test.Chiou0 as Chiou0
 --import qualified Test.TPTP as TPTP

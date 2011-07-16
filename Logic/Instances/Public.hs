@@ -17,14 +17,14 @@ import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
-import Logic.FirstOrder (Term(..), FirstOrderFormula(..), Skolem(..), Variable,
-                         Pretty, Predicate(..), Arity)
+import Logic.FirstOrder (Term(..), FirstOrderFormula(..), Skolem(..), Variable, Pred(..), Predicate(..), Arity)
 import qualified Logic.Instances.Native as N
 import Logic.Logic (Negatable(..), Logic(..), Boolean(..), Combine(..))
 import qualified Logic.Logic as Logic
 import Logic.Monad (runNormal)
 import Logic.Normal (Literal, ImplicativeNormalForm)
 import Logic.NormalForm (implicativeNormalForm)
+import Logic.Pretty (Pretty)
 
 class Bijection p i where
     public :: i -> p
@@ -62,17 +62,7 @@ instance (Pretty f, Pretty v, Pretty p,
           Data p, Data v, Data f) => Show (Formula v p f) where
     showsPrec n x = showsPrec n (unFormula x)
 
-instance (Pretty p, Arity p, Boolean p, Show p, Show v, Show f,
-          Logic (Formula v p f), Data (Formula v p f), Term (N.PTerm v f) v f,
-          Ord p, Ord f, Data p) => FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f where
-    for_all v x = public $ for_all v (intern x :: N.Formula v p f)
-    exists v x = public $ exists v (intern x :: N.Formula v p f)
-    foldF q c p f = foldF q' c' p (intern f :: N.Formula v p f)
-        where q' quant var form = q quant var (public form)
-              c' x = c (public x)
-    zipF q c p f1 f2 = zipF q' c' p (intern f1 :: N.Formula v p f) (intern f2 :: N.Formula v p f)
-        where q' q1 v1 f1 q2 v2 f2 = q q1 v1 (public f1) q2 v2 (public f2)
-              c' combine1 combine2 = c (public combine1) (public combine2)
+instance (Boolean p, Arity p) => Pred p (N.PTerm v f) (Formula v p f) where
     pApp0 p = (public :: N.Formula v p f -> Formula v p f) $ pApp0 p
     pApp1 p t1 = (public :: N.Formula v p f -> Formula v p f) $ pApp1 p (t1)
     pApp2 p t1 t2 = (public :: N.Formula v p f -> Formula v p f) $ pApp2 p (t1) (t2)
@@ -83,11 +73,21 @@ instance (Pretty p, Arity p, Boolean p, Show p, Show v, Show f,
     pApp7 p t1 t2 t3 t4 t5 t6 t7 = (public :: N.Formula v p f -> Formula v p f) $ pApp7 (p) (t1) (t2) (t3) (t4) (t5) (t6) (t7)
     t1 .=. t2 = (public :: N.Formula v p f -> Formula v p f) $ (t1) .=. (t2)
 
+instance (Arity p, Boolean p, Ord p, Data p, {- Data (Formula v p f),-} Ord f, Logic (Formula v p f), Term (N.PTerm v f) v f) => FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f where
+    for_all v x = public $ for_all v (intern x :: N.Formula v p f)
+    exists v x = public $ exists v (intern x :: N.Formula v p f)
+    foldF q c p f = foldF q' c' p (intern f :: N.Formula v p f)
+        where q' quant var form = q quant var (public form)
+              c' x = c (public x)
+    zipF q c p f1 f2 = zipF q' c' p (intern f1 :: N.Formula v p f) (intern f2 :: N.Formula v p f)
+        where q' q1 v1 f1 q2 v2 f2 = q q1 v1 (public f1) q2 v2 (public f2)
+              c' combine1 combine2 = c (public combine1) (public combine2)
+
 -- |Here are the magic Ord and Eq instances
 instance (FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
           Literal (N.Formula v p f) (N.PTerm v f) v p f,
           FirstOrderFormula (N.Formula v p f) (N.PTerm v f) v p f,
-          Show v, Show p, Show f, Ord (N.Formula v p f)) => Ord (Formula v p f) where
+          Ord (N.Formula v p f)) => Ord (Formula v p f) where
     compare a b =
         let (a' :: Set (ImplicativeNormalForm (N.Formula v p f))) = runNormal (implicativeNormalForm id id id (intern a :: N.Formula v p f))
             (b' :: Set (ImplicativeNormalForm (N.Formula v p f))) = runNormal (implicativeNormalForm id id id (intern b :: N.Formula v p f)) in
@@ -95,7 +95,7 @@ instance (FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
           EQ -> EQ
           x -> {- if isRenameOf a' b' then EQ else -} x
 
-instance (FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f, Show v, Show p, Show f) => Eq (Formula v p f) where
+instance (FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f) => Eq (Formula v p f) where
     a == b = compare a b == EQ
 
 $(deriveSafeCopy 1 'base ''Formula)

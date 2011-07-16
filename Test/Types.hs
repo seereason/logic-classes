@@ -23,7 +23,7 @@ import Data.Generics (Data, Typeable, listify, Fixity(..))
 import qualified Data.Set as S
 import Data.String (IsString(fromString))
 --import Logic.Clause (ClauseNormalFormula(satisfiable))
-import Logic.FirstOrder (showForm, FirstOrderFormula, convertFOF, Predicate(..), Pretty(..), Skolem(..), Arity(arity), Variable(one, next))
+import Logic.FirstOrder (FirstOrderFormula, convertFOF, Predicate(..), Skolem(..), Variable(one, next))
 import qualified Logic.Instances.Chiou as C
 import qualified Logic.Instances.Native as P
 import Logic.Instances.PropLogic (plSat)
@@ -33,6 +33,8 @@ import Logic.Logic (Boolean(..))
 import Logic.Monad (WithId, runNormal, runProver', runNormal', runNormalT')
 import Logic.Normal (ClauseNormalFormula(satisfiable), ImplicativeNormalForm(..), Literal)
 import Logic.NormalForm (simplify, negationNormalForm, prenexNormalForm, skolemNormalForm, clauseNormalForm, trivial)
+import Logic.Predicate (Arity(arity))
+import Logic.Pretty (showForm, Pretty(..))
 import Logic.Resolution (SetOfSupport)
 
 import Test.HUnit
