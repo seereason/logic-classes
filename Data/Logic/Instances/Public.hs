@@ -6,25 +6,25 @@
 -- only differ in ways that preserve identity, e.g. swapped arguments to a
 -- commutative operator.
 
-module Logic.Instances.Public
+module Data.Logic.Instances.Public
     ( Formula(..)
     , N.PTerm(..)
     , Bijection(..)
     ) where
 
 import Data.Data (Data)
+import Data.Logic.FirstOrder (Term(..), FirstOrderFormula(..), Skolem(..), Variable, Pred(..), Arity)
+import qualified Data.Logic.Instances.Native as N
+import Data.Logic.Logic (Negatable(..), Logic(..), Boolean(..), Combine(..))
+import qualified Data.Logic.Logic as Logic
+import Data.Logic.Monad (runNormal)
+import Data.Logic.Normal (Literal, ImplicativeNormalForm)
+import Data.Logic.NormalForm (implicativeNormalForm)
+import Data.Logic.Pretty (Pretty)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
-import Logic.FirstOrder (Term(..), FirstOrderFormula(..), Skolem(..), Variable, Pred(..), Predicate(..), Arity)
-import qualified Logic.Instances.Native as N
-import Logic.Logic (Negatable(..), Logic(..), Boolean(..), Combine(..))
-import qualified Logic.Logic as Logic
-import Logic.Monad (runNormal)
-import Logic.Normal (Literal, ImplicativeNormalForm)
-import Logic.NormalForm (implicativeNormalForm)
-import Logic.Pretty (Pretty)
 
 class Bijection p i where
     public :: i -> p
@@ -77,10 +77,10 @@ instance (Arity p, Boolean p, Ord p, Data p, {- Data (Formula v p f),-} Ord f, L
     for_all v x = public $ for_all v (intern x :: N.Formula v p f)
     exists v x = public $ exists v (intern x :: N.Formula v p f)
     foldF q c p f = foldF q' c' p (intern f :: N.Formula v p f)
-        where q' quant var form = q quant var (public form)
+        where q' quant v form = q quant v (public form)
               c' x = c (public x)
     zipF q c p f1 f2 = zipF q' c' p (intern f1 :: N.Formula v p f) (intern f2 :: N.Formula v p f)
-        where q' q1 v1 f1 q2 v2 f2 = q q1 v1 (public f1) q2 v2 (public f2)
+        where q' q1 v1 f1' q2 v2 f2' = q q1 v1 (public f1') q2 v2 (public f2')
               c' combine1 combine2 = c (public combine1) (public combine2)
 
 -- |Here are the magic Ord and Eq instances

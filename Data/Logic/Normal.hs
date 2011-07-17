@@ -3,7 +3,7 @@
 {-# OPTIONS -fno-warn-orphans #-}
 -- |Classes and types representing the result of the normal form
 -- conversion functions.
-module Logic.Normal
+module Data.Logic.Normal
     ( Predicate(..)
     , Literal(..)
     , fromFirstOrder
@@ -15,11 +15,11 @@ module Logic.Normal
 
 import Control.Monad.Writer (MonadPlus)
 import Data.Generics (Data, Typeable)
-import Logic.FirstOrder (FirstOrderFormula, Term(..), convertTerm)
-import qualified Logic.FirstOrder as Logic
-import Logic.Logic (Negatable(..), Boolean(..))
-import qualified Logic.Logic as Logic
-import qualified Logic.Set as S
+import Data.Logic.FirstOrder (FirstOrderFormula, Term(..), convertTerm)
+import qualified Data.Logic.FirstOrder as Logic
+import Data.Logic.Logic (Negatable(..), Boolean(..))
+import qualified Data.Logic.Logic as Logic
+import qualified Data.Logic.Set as S
 
 -- |Caution - There are similar declarations with similar names in the
 -- FirstOrder module, these are simplified versions suitable for

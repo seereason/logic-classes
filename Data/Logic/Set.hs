@@ -1,4 +1,4 @@
-module Logic.Set
+module Data.Logic.Set
     ( ss
     , any
     , all

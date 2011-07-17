@@ -5,18 +5,18 @@ module Test.Chiou0 where
 
 import Control.Monad.Identity (runIdentity)
 import Control.Monad.Trans (MonadIO, liftIO)
+import Data.Logic.FirstOrder
+import Data.Logic.FirstOrder (FirstOrderFormula(..), Term(..), Skolem(..))
+import Data.Logic.Instances.Native (Formula, PTerm)
+import Data.Logic.KnowledgeBase (ProofResult(..), loadKB, theoremKB {-, askKB, showKB-})
+import Data.Logic.Logic (Negatable(..), Logic(..), Boolean(..))
+import Data.Logic.Monad (NormalT, runNormal, ProverT, runProver')
+import Data.Logic.Normal (ImplicativeNormalForm, makeINF, makeINF')
+import Data.Logic.NormalForm (clauseNormalForm)
+import Data.Logic.Resolution (SetOfSupport)
 import Data.Map (fromList)
 import qualified Data.Set as S
 import Data.String (IsString(..))
-import Logic.FirstOrder
-import Logic.FirstOrder (FirstOrderFormula(..), Term(..), Skolem(..))
-import Logic.Instances.Native (Formula, PTerm)
-import Logic.KnowledgeBase (ProofResult(..), loadKB, theoremKB {-, askKB, showKB-})
-import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
-import Logic.Monad (NormalT, runNormal, ProverT, runProver')
-import Logic.Normal (ImplicativeNormalForm, makeINF, makeINF')
-import Logic.NormalForm (clauseNormalForm)
-import Logic.Resolution (SetOfSupport)
 import Test.HUnit
 import Test.Types (V(..), Pr(..), AtomicFunction(..), TFormula, TTerm)
 

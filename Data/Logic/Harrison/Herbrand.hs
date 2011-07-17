@@ -1,4 +1,4 @@
-module Logic.Harrison.Herbrand where
+module Data.Logic.Harrison.Herbrand where
 
 {-
 (* ========================================================================= *)

@@ -1,5 +1,5 @@
 {-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
-module Logic.Pretty
+module Data.Logic.Pretty
     ( Pretty(pretty)
     , showForm
     , showTerm
@@ -9,10 +9,10 @@ module Logic.Pretty
     ) where
 
 import Data.List (intercalate, intersperse)
-import Logic.FirstOrder (FirstOrderFormula(foldF), Term(foldT), Quant(..))
-import Logic.Logic
-import qualified Logic.Normal as N -- (Literal(..))
-import Logic.Predicate (Predicate(Apply, Constant, Equal, NotEqual))
+import Data.Logic.FirstOrder (FirstOrderFormula(foldF), Term(foldT), Quant(..))
+import Data.Logic.Logic
+import qualified Data.Logic.Normal as N -- (Literal(..))
+import Data.Logic.Predicate (Predicate(Apply, Constant, Equal, NotEqual))
 import Text.PrettyPrint (Doc, text, (<>), (<+>), empty, parens, hcat, nest, brackets)
 
 class Pretty x where

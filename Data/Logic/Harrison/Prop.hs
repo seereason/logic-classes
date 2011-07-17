@@ -1,15 +1,15 @@
 {-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
-module Logic.Harrison.Prop
+module Data.Logic.Harrison.Prop
     ( psimplify1
     , nnf
     , simpcnf
     , trivial
     ) where
 
-import Logic.FirstOrder (FirstOrderFormula(..), Pred(..), Predicate(..), Quant(..), quant, pApp)
-import Logic.Logic (Negatable(..), Logic(..), Combine(..), Boolean(..), BinOp(..))
-import Logic.Normal (Literal, fromFirstOrder)
-import qualified Logic.Set as S
+import Data.Logic.FirstOrder (FirstOrderFormula(..), Pred(..), Predicate(..), Quant(..), quant, pApp)
+import Data.Logic.Logic (Negatable(..), Logic(..), Combine(..), Boolean(..), BinOp(..))
+import Data.Logic.Normal (Literal, fromFirstOrder)
+import qualified Data.Logic.Set as S
 
 {-
 (* ========================================================================= *)

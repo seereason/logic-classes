@@ -1,5 +1,5 @@
 Name:             Logic
-Version:          0.32
+Version:          0.33
 License:          BSD3
 Author:           SeeReason Partners <partners@seereason.com>
 Maintainer:       SeeReason Partners <partners@seereason.com>
@@ -14,29 +14,32 @@ Cabal-version:    >= 1.2
 
 Library
  GHC-options: -threaded -Wall -Werror -O2
- Exposed-Modules:  Logic.FirstOrder
-                   Logic.Harrison.FOL
-                   Logic.Harrison.Herbrand
-                   Logic.Harrison.Lib
-                   Logic.Harrison.Prop
-                   Logic.Harrison.Skolem
-                   Logic.Instances.Chiou
-                   Logic.Instances.Native
-                   Logic.Instances.PropLogic
-                   Logic.Instances.Public
-                   Logic.Instances.SatSolver
-                   Logic.KnowledgeBase
-                   Logic.Logic
-                   Logic.Monad
-                   Logic.Normal
-                   Logic.NormalForm
-                   Logic.Propositional
-                   Logic.Resolution
-                   Logic.Satisfiable
-                   Logic.Set
+ Exposed-Modules:  Data.Logic
+                   Data.Logic.FirstOrder
+                   Data.Logic.Harrison.FOL
+                   Data.Logic.Harrison.Herbrand
+                   Data.Logic.Harrison.Lib
+                   Data.Logic.Harrison.Prop
+                   Data.Logic.Harrison.Skolem
+                   Data.Logic.Instances.Chiou
+                   Data.Logic.Instances.Native
+                   Data.Logic.Instances.PropLogic
+                   Data.Logic.Instances.Public
+                   Data.Logic.Instances.SatSolver
+                   Data.Logic.KnowledgeBase
+                   Data.Logic.Logic
+                   Data.Logic.Monad
+                   Data.Logic.Normal
+                   Data.Logic.NormalForm
+                   Data.Logic.Predicate
+                   Data.Logic.Pretty
+                   Data.Logic.Propositional
+                   Data.Logic.Resolution
+                   Data.Logic.Satisfiable
+                   Data.Logic.Set
  Build-Depends:    base, containers, fgl, happstack-data, incremental-sat-solver,
                    mtl, syb-with-class, text, PropLogic, pretty, safecopy, syb
 
 Executable tests
-  Main-Is: Test/Test.hs
-  Build-Depends: HUnit
+ Main-Is: Test/Test.hs
+ Build-Depends: HUnit

@@ -1,13 +1,13 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings #-}
-module Logic.Harrison.Tests where
+module Data.Logic.Harrison.Tests where
 
 import Control.Applicative.Error (Failing(..))
 import Data.Char (isDigit)
 import Data.Generics (Data, Typeable)
 import Data.String (IsString(..))
-import Logic.FirstOrder (Term(..), Pretty(..), Skolem(..), Variable)
-import Logic.Harrison.Unif
---import Logic.Instances.Native(PTerm(..))
+import Data.Logic.FirstOrder (Term(..), Pretty(..), Skolem(..), Variable)
+import Data.Logic.Harrison.Unif
+--import Data.Logic.Instances.Native(PTerm(..))
 --import Test.Types
 import Test.HUnit
 import Text.PrettyPrint (text)

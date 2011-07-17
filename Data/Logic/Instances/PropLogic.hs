@@ -1,17 +1,17 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS -fno-warn-orphans #-}
-module Logic.Instances.PropLogic
+module Data.Logic.Instances.PropLogic
     ( flatten
     , plSat
     ) where
 
-import Logic.FirstOrder (FirstOrderFormula, toPropositional)
-import Logic.Logic
-import Logic.Monad (NormalT)
-import Logic.Normal (Literal)
-import Logic.NormalForm (clauseNormalForm)
-import Logic.Propositional
-import qualified Logic.Set as S
+import Data.Logic.FirstOrder (FirstOrderFormula, toPropositional)
+import Data.Logic.Logic
+import Data.Logic.Monad (NormalT)
+import Data.Logic.Normal (Literal)
+import Data.Logic.NormalForm (clauseNormalForm)
+import Data.Logic.Propositional
+import qualified Data.Logic.Set as S
 import PropLogic
 
 instance Negatable (PropForm a) where

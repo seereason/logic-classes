@@ -1,18 +1,18 @@
 {-# LANGUAGE DeriveDataTypeable, MultiParamTypeClasses, ScopedTypeVariables, StandaloneDeriving, TypeSynonymInstances #-}
 {-# OPTIONS -fno-warn-orphans #-}
-module Logic.Instances.SatSolver where
+module Data.Logic.Instances.SatSolver where
 
 import Control.Monad.State (get, put)
 import Control.Monad.Trans (lift)
 import Data.Boolean.SatSolver
 import Data.Generics (Data, Typeable)
+import qualified Data.Logic.Set as S
+import Data.Logic.FirstOrder (FirstOrderFormula(..))
+import Data.Logic.Logic (Negatable(..))
+import Data.Logic.Monad (NormalT', LiteralMapT)
+import qualified Data.Logic.Normal as N
+import Data.Logic.NormalForm (clauseNormalForm)
 import qualified Data.Map as M
-import qualified Logic.Set as S
-import Logic.FirstOrder (FirstOrderFormula(..))
-import Logic.Logic (Negatable(..))
-import Logic.Monad (NormalT', LiteralMapT)
-import qualified Logic.Normal as N
-import Logic.NormalForm (clauseNormalForm)
 
 instance Ord Literal where
     compare (Neg _) (Pos _) = LT

@@ -1,10 +1,10 @@
-module Logic.Harrison.Tableaux where
+module Data.Logic.Harrison.Tableaux where
 
 import Control.Applicative.Error (Failing(..))
+import Data.Logic.Harrison.Unif (unify)
+import Data.Logic.Logic (Combine(..))
+import Data.Logic.Normal (Literal(..), Predicate(..))
 import qualified Data.Map as M
-import Logic.Harrison.Unif (unify)
-import Logic.Logic (Combine(..))
-import Logic.Normal (Literal(..), Predicate(..))
 
 {-
 (* ========================================================================= *)

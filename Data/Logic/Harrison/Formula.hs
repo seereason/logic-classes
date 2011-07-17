@@ -1,4 +1,4 @@
-module Logic.Harrison.Formula
+module Data.Logic.Harrison.Formula
     ( mk_and
     , mk_or
     , mk_imp
@@ -7,8 +7,8 @@ module Logic.Harrison.Formula
     , mk_exists
     ) where
 
-import Logic.FirstOrder (FirstOrderFormula(..))
-import Logic.Logic (Logic(..))
+import Data.Logic.FirstOrder (FirstOrderFormula(..))
+import Data.Logic.Logic (Logic(..))
 
 {-
 (* ========================================================================= *)

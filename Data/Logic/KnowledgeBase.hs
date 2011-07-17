@@ -4,7 +4,7 @@
 {- KnowledgeBase.hs -}
 {- Charles Chiou, David Fox -}
 
-module Logic.KnowledgeBase
+module Data.Logic.KnowledgeBase
     ( getKB
     , emptyKB
     , unloadKB
@@ -22,13 +22,13 @@ module Logic.KnowledgeBase
 import Control.Monad.State (MonadState(get, put))
 import Control.Monad.Trans (lift)
 import Data.Generics (Data, Typeable)
-import Logic.FirstOrder (FirstOrderFormula)
-import Logic.Logic (Negatable(..))
-import Logic.Monad (ProverT, ProverT', ProverState(..), KnowledgeBase, WithId(..), SentenceCount, withId, zeroKB)
-import Logic.Normal (ImplicativeNormalForm, Literal)
-import Logic.NormalForm (implicativeNormalForm)
-import Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
-import qualified Logic.Set as S
+import Data.Logic.FirstOrder (FirstOrderFormula)
+import Data.Logic.Logic (Negatable(..))
+import Data.Logic.Monad (ProverT, ProverT', ProverState(..), KnowledgeBase, WithId(..), SentenceCount, withId, zeroKB)
+import Data.Logic.Normal (ImplicativeNormalForm, Literal)
+import Data.Logic.NormalForm (implicativeNormalForm)
+import Data.Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
+import qualified Data.Logic.Set as S
 import Prelude hiding (negate)
 
 data ProofResult

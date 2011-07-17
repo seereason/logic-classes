@@ -1,5 +1,5 @@
 {-# OPTIONS -Wall #-}
-module Logic.Harrison.Lib
+module Data.Logic.Harrison.Lib
     ( exists
     , allpairs
     , image
@@ -10,8 +10,8 @@ module Logic.Harrison.Lib
     , itlist
     ) where
 
+import qualified Data.Logic.Set as S
 import qualified Data.Map as M
-import qualified Logic.Set as S
 
 {-
 (* ========================================================================= *)

@@ -1,16 +1,16 @@
 {-# LANGUAGE RankNTypes #-}
-module Logic.Harrison.FOL
+module Data.Logic.Harrison.FOL
     ( fvt
     , fv
     , generalize
     , tsubst
     ) where
 
+import Data.Logic.FirstOrder (Term(..), FirstOrderFormula(..), Predicate(..))
+import Data.Logic.Harrison.Lib
+import Data.Logic.Logic (Combine(..))
 import qualified Data.Map as M
 import qualified Data.Set as S
-import Logic.FirstOrder (Term(..), FirstOrderFormula(..), Predicate(..))
-import Logic.Harrison.Lib
-import Logic.Logic (Combine(..))
 
 {-
 

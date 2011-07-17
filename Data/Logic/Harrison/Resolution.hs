@@ -1,10 +1,10 @@
-module Logic.Harrison.Resolution where
+module Data.Logic.Harrison.Resolution where
 
 import Control.Applicative.Error (Failing(..), failing)
 import qualified Data.Map as M
-import Logic.Harrison.Tableaux (unifyLiterals)
-import Logic.Harrison.Unif (solve)
-import Logic.Normal (Literal)
+import Data.Logic.Harrison.Tableaux (unifyLiterals)
+import Data.Logic.Harrison.Unif (solve)
+import Data.Logic.Normal (Literal)
 
 {-
 (* ========================================================================= *)

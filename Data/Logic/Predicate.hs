@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses,
              ScopedTypeVariables, TemplateHaskell, UndecidableInstances #-}
-module Logic.Predicate
+module Data.Logic.Predicate
     ( Arity(..)
     , Pred(..)
     , pApp
@@ -11,7 +11,7 @@ import Data.Data (Data)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
-import Logic.Logic (Boolean(fromBool), Negatable((.~.)), Logic)
+import Data.Logic.Logic (Boolean(fromBool), Negatable((.~.)), Logic)
 
 class Arity p where
     -- |How many arguments does the predicate take?  Nothing

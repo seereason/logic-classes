@@ -4,7 +4,7 @@
 {- Resolution.hs -}
 {- Charles Chiou -}
 
-module Logic.Resolution
+module Data.Logic.Resolution
     ( prove
     , getSetOfSupport
     , SetOfSupport
@@ -12,13 +12,12 @@ module Logic.Resolution
     , Subst )
     where
 
+import Data.Logic.FirstOrder (Term(..))
+import Data.Logic.Normal (Predicate(..), Literal(..), ImplicativeNormalForm(..), makeINF)
+import qualified Data.Logic.Set as S
 import Data.Map (Map, empty)
 import qualified Data.Map as M
 import Data.Maybe (isJust)
-import qualified Data.Set as S
-import Logic.FirstOrder (Term(..))
-import Logic.Normal (Predicate(..), Literal(..), ImplicativeNormalForm(..), makeINF)
-import qualified Logic.Set as S
 
 type Subst v term = Map v term
 
@@ -194,8 +193,8 @@ resolution (inf1, theta1) (inf2, theta2) =
           let (lhs, lhss) = S.deleteFindMin lhss'' in
           case tryUnify'' lhs rhss S.empty of
             Nothing -> tryUnify' lhss rhss (S.insert lhs lhss')
-            Just (rhss', theta1, theta2) ->
-                Just ((S.union lhss' lhss, theta1), (rhss', theta2))
+            Just (rhss', theta1', theta2') ->
+                Just ((S.union lhss' lhss, theta1'), (rhss', theta2'))
 
       tryUnify'' :: (Literal formula term v p f, Ord formula) =>
                     formula -> S.Set formula -> S.Set formula -> Maybe (S.Set formula, Subst v term, Subst v term)
@@ -204,7 +203,7 @@ resolution (inf1, theta1) (inf2, theta2) =
           let (rhs, rhss) = S.deleteFindMin rhss'' in
           case unify x rhs of
             Nothing -> tryUnify'' x rhss (S.insert rhs rhss')
-            Just (theta1, theta2) -> Just (S.union rhss' rhss, theta1, theta2)
+            Just (theta1', theta2') -> Just (S.union rhss' rhss, theta1', theta2')
 
 demodulate :: (Literal lit term v p f) =>
               (Unification lit v term) -> (Unification lit v term) -> Maybe (Unification lit v term)

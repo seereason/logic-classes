@@ -20,22 +20,22 @@ import Control.Monad.Reader (MonadPlus(..), msum)
 import Data.Boolean.SatSolver (CNF)
 import Data.Char (isDigit)
 import Data.Generics (Data, Typeable, listify, Fixity(..))
+--import Data.Logic.Clause (ClauseNormalFormula(satisfiable))
+import Data.Logic.FirstOrder (FirstOrderFormula, convertFOF, Predicate(..), Skolem(..), Variable(one, next))
+import qualified Data.Logic.Instances.Chiou as C
+import qualified Data.Logic.Instances.Native as P
+import Data.Logic.Instances.PropLogic (plSat)
+import qualified Data.Logic.Instances.SatSolver as SS
+import Data.Logic.KnowledgeBase (ProofResult, loadKB, theoremKB, getKB)
+import Data.Logic.Logic (Boolean(..))
+import Data.Logic.Monad (WithId, runNormal, runProver', runNormal', runNormalT')
+import Data.Logic.Normal (ClauseNormalFormula(satisfiable), ImplicativeNormalForm(..), Literal)
+import Data.Logic.NormalForm (simplify, negationNormalForm, prenexNormalForm, skolemNormalForm, clauseNormalForm, trivial)
+import Data.Logic.Predicate (Arity(arity))
+import Data.Logic.Pretty (showForm, Pretty(..))
+import Data.Logic.Resolution (SetOfSupport)
 import qualified Data.Set as S
 import Data.String (IsString(fromString))
---import Logic.Clause (ClauseNormalFormula(satisfiable))
-import Logic.FirstOrder (FirstOrderFormula, convertFOF, Predicate(..), Skolem(..), Variable(one, next))
-import qualified Logic.Instances.Chiou as C
-import qualified Logic.Instances.Native as P
-import Logic.Instances.PropLogic (plSat)
-import qualified Logic.Instances.SatSolver as SS
-import Logic.KnowledgeBase (ProofResult, loadKB, theoremKB, getKB)
-import Logic.Logic (Boolean(..))
-import Logic.Monad (WithId, runNormal, runProver', runNormal', runNormalT')
-import Logic.Normal (ClauseNormalFormula(satisfiable), ImplicativeNormalForm(..), Literal)
-import Logic.NormalForm (simplify, negationNormalForm, prenexNormalForm, skolemNormalForm, clauseNormalForm, trivial)
-import Logic.Predicate (Arity(arity))
-import Logic.Pretty (showForm, Pretty(..))
-import Logic.Resolution (SetOfSupport)
 
 import Test.HUnit
 import Text.PrettyPrint (Doc, (<>), text)

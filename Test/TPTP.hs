@@ -1,11 +1,11 @@
 module Test.TPTP where
     
 import Codec.TPTP (Formula)
-import Logic.FirstOrder (conj)
-import Logic.Instances.TPTP
-import Logic.Monad (runNormal)
-import Logic.Logic (Logic ((.~.), (.=>.)))
-import Logic.NormalForm (cnfTrace)
+import Data.Logic.FirstOrder (conj)
+import Data.Logic.Instances.TPTP
+import Data.Logic.Monad (runNormal)
+import Data.Logic.Logic (Logic ((.~.), (.=>.)))
+import Data.Logic.NormalForm (cnfTrace)
 import Test.Data (chang43KB, chang43Conjecture)
 import Test.HUnit
 import Test.Types (TestFormula(formula))

@@ -4,28 +4,28 @@
 -- |Data types which are instances of the Logic type class for use
 -- when you just want to use the classes and you don't have a
 -- particular representation you need to use.
-module Logic.Instances.Native
+module Data.Logic.Instances.Native
     ( Formula(..)
     , PTerm(..)
     ) where
 
 import Data.Data (Data)
+import Data.Logic.FirstOrder (Term(..), FirstOrderFormula(..), Quant(..), Skolem(..), Variable,
+                         Pred(..), Predicate(..), Arity, pApp)
+import Data.Logic.Logic (Negatable(..), Logic(..), BinOp(..), Boolean(..), Combine(..))
+import qualified Data.Logic.Logic as Logic
+import qualified Data.Logic.Normal as N
+import Data.Logic.Pretty (showForm, showTerm)
+import Data.Logic.Propositional (PropositionalFormula(..))
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
-import Logic.FirstOrder (Term(..), FirstOrderFormula(..), Quant(..), Skolem(..), Variable,
-                         Pred(..), Predicate(..), Arity, pApp)
-import Logic.Logic (Negatable(..), Logic(..), BinOp(..), Boolean(..), Combine(..))
-import qualified Logic.Logic as Logic
-import qualified Logic.Normal as N
-import Logic.Pretty (showForm, showTerm)
-import Logic.Propositional (PropositionalFormula(..))
-    
+
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula v p f
     = Predicate (Predicate p (PTerm v f))
     | Combine (Combine (Formula v p f))
-    | Quant Quant v (Formula v p f) 
+    | Quant Quant v (Formula v p f)
     -- Note that a derived Eq instance is not going to tell us that
     -- a&b is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).
     deriving (Eq,Ord,Read,Data,Typeable)
@@ -46,7 +46,7 @@ data PTerm v f
 -- <http://hackage.haskell.org/trac/ghc/ticket/4136>
 {-
 instance Read InfixPred where
-    readsPrec _ s = 
+    readsPrec _ s =
         map (\ (x, t) -> (x, drop (length t) s))
             (take 1 (dropWhile (\ (_, t) -> not (isPrefixOf t s)) prs))
         where
@@ -66,7 +66,7 @@ instance Negatable (Formula v p f) where
     (.~.) x = Combine ((:~:) x)
     negated (Combine ((:~:) x)) = not (negated x)
     negated _ = False
-    
+
 instance Logic (Formula v p f) where
     x .<=>. y = Combine (BinOp  x (:<=>:) y)
     x .=>.  y = Combine (BinOp  x (:=>:)  y)

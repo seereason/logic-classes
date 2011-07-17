@@ -10,7 +10,7 @@
              GeneralizedNewtypeDeriving, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables,
              TemplateHaskell, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
-module Logic.FirstOrder
+module Data.Logic.FirstOrder
     ( Skolem(..)
     , Variable(..)
     , FirstOrderFormula(..)
@@ -33,19 +33,19 @@ module Logic.FirstOrder
     , toPropositional
     , disj
     , conj
-    , module Logic.Predicate
+    , module Data.Logic.Predicate
     ) where
 
 import Data.Data (Data)
 import Data.Function (on)
+import Data.Logic.Logic
+import Data.Logic.Predicate (Arity, Pred(..), Predicate(..), pApp)
+import Data.Logic.Propositional (PropositionalFormula(..))
 import Data.Monoid (mappend)
 import Data.SafeCopy (base, deriveSafeCopy)
 import qualified Data.Set as S
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
-import Logic.Logic
-import Logic.Predicate (Arity, Pred(..), Predicate(..), pApp)
-import Logic.Propositional (PropositionalFormula(..))
 
 -- |A class for finding unused variable names.  The next method
 -- returns the next in an endless sequence of variable names, if we
@@ -160,7 +160,7 @@ quant' All = for_all'
 quant' Exists = exists'
 
 -- |The 'Quant' and 'InfixPred' types, like the BinOp type in
--- 'Logic.Propositional', could be additional parameters to the type
+-- 'Data.Logic.Propositional', could be additional parameters to the type
 -- class, but it would add additional complexity with unclear
 -- benefits.
 data Quant = All | Exists deriving (Eq,Ord,Show,Read,Data,Typeable,Enum,Bounded)

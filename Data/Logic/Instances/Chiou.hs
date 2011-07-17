@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
              RankNTypes, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wall -Werror -fno-warn-orphans -fno-warn-missing-signatures #-}
-module Logic.Instances.Chiou
+module Data.Logic.Instances.Chiou
     ( Sentence(..)
     , CTerm(..)
     , Connective(..)
@@ -15,15 +15,15 @@ module Logic.Instances.Chiou
     ) where
 
 import Data.Generics (Data, Typeable)
+import Data.Logic.FirstOrder (FirstOrderFormula(..), Arity)
+import qualified Data.Logic.FirstOrder as Logic
+import qualified Data.Logic.FirstOrder as L
+import Data.Logic.FirstOrder (Pred(..))
+import Data.Logic.Logic (Negatable(..), Logic(..), BinOp(..), Combine(..), Boolean(..))
+import Data.Logic.Normal (ImplicativeNormalForm(..))
+import Data.Logic.Propositional (PropositionalFormula(..))
+import Data.Logic.FirstOrder (Skolem(..), Quant(..), pApp)
 import Data.String (IsString(..))
-import Logic.FirstOrder (FirstOrderFormula(..), Arity)
-import qualified Logic.FirstOrder as Logic
-import qualified Logic.FirstOrder as L
-import Logic.FirstOrder (Pred(..))
-import Logic.Logic (Negatable(..), Logic(..), BinOp(..), Combine(..), Boolean(..))
-import Logic.Normal (ImplicativeNormalForm(..))
-import Logic.Propositional (PropositionalFormula(..))
-import Logic.FirstOrder (Skolem(..), Quant(..), pApp)
 
 data Sentence v p f
     = Connective (Sentence v p f) Connective (Sentence v p f)
@@ -99,7 +99,7 @@ instance Skolem AtomicFunction where
     fromSkolem (AtomicSkolemFunction n) = Just n
     fromSkolem _ = Nothing
 
-instance Boolean p => Pred p (CTerm v f) (Sentence v p f) where
+instance (Arity p, Boolean p) => Pred p (CTerm v f) (Sentence v p f) where
     pApp0 x = Predicate x []
     pApp1 x a = Predicate x [a]
     pApp2 x a b = Predicate x [a,b]
@@ -205,7 +205,7 @@ instance Negatable (NormalSentence v p f) where
     negated (NFNot x) = not (negated x)
     negated _ = False
 
-instance (Boolean p, Logic (NormalSentence v p f)) => Pred p (NormalTerm v f) (NormalSentence v p f) where
+instance (Arity p, Boolean p, Logic (NormalSentence v p f)) => Pred p (NormalTerm v f) (NormalSentence v p f) where
     pApp0 x = NFPredicate x []
     pApp1 x a = NFPredicate x [a]
     pApp2 x a b = NFPredicate x [a,b]

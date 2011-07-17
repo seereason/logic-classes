@@ -3,16 +3,16 @@
 {-# OPTIONS -Wall -Wwarn -fno-warn-name-shadowing -fno-warn-orphans #-}
 module Test.Logic (tests) where
 
+import Data.Logic.Logic (Negatable(..), Logic(..), Boolean(..))
+import Data.Logic.Monad (runNormal)
+import Data.Logic.Normal (Literal)
+import Data.Logic.NormalForm (clauseNormalForm, clauseNormalForm)
+import Data.Logic.FirstOrder (Skolem(..), FirstOrderFormula(..), Term(..), Variable, freeVars, substitute, pApp)
+import Data.Logic.Predicate (Pred(..), Arity(arity))
+import Data.Logic.Pretty (showForm)
+import Data.Logic.Satisfiable (theorem, inconsistant)
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
-import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
-import Logic.Monad (runNormal)
-import Logic.Normal (Literal)
-import Logic.NormalForm (clauseNormalForm, clauseNormalForm)
-import Logic.FirstOrder (Skolem(..), FirstOrderFormula(..), Term(..), Variable, freeVars, substitute, pApp)
-import Logic.Predicate (Pred(..), Arity(arity))
-import Logic.Pretty (showForm)
-import Logic.Satisfiable (theorem, inconsistant)
 import PropLogic (PropForm(..), TruthTable, truthTable)
 import qualified TextDisplay as TD
 import Test.Types (V(..), AtomicFunction(..), Pr, TFormula, TTerm)

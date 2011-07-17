@@ -16,16 +16,16 @@ module Test.Data
 
 import Data.Boolean.SatSolver (Literal(..))
 import Data.Generics (Typeable)
+import qualified Data.Logic.Instances.Chiou as C
+import Data.Logic.FirstOrder (FirstOrderFormula(..), for_all', exists', Term(..), Skolem(toSkolem), convertFOF, pApp, Pred(..))
+import Data.Logic.KnowledgeBase (ProofResult(..))
+import Data.Logic.Logic (Negatable(..), Logic(..), Boolean(..))
+import Data.Logic.Monad (WithId(..))
+import Data.Logic.Normal (ImplicativeNormalForm, makeINF, makeINF')
+import qualified Data.Logic.Normal as N
 import Data.Map (fromList)
 import qualified Data.Set as S
 import Data.String (IsString)
-import qualified Logic.Instances.Chiou as C
-import Logic.FirstOrder (FirstOrderFormula(..), for_all', exists', Term(..), Skolem(toSkolem), convertFOF, pApp, Pred(..))
-import Logic.KnowledgeBase (ProofResult(..))
-import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
-import Logic.Monad (WithId(..))
-import Logic.Normal (ImplicativeNormalForm, makeINF, makeINF')
-import qualified Logic.Normal as N
 import Test.HUnit
 import Test.Types (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof)
 

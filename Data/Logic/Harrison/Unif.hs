@@ -1,5 +1,5 @@
 {-# OPTIONS -Wall #-}
-module Logic.Harrison.Unif
+module Data.Logic.Harrison.Unif
     ( unify
     , solve
     , fullUnify
@@ -7,10 +7,10 @@ module Logic.Harrison.Unif
     ) where
 
 import Control.Applicative.Error (Failing(..), failing)
+import Data.Logic.FirstOrder (Term(..))
+import Data.Logic.Harrison.FOL (tsubst)
+import Data.Logic.Harrison.Lib (apply, defined)
 import qualified Data.Map as M
-import Logic.FirstOrder (Term(..))
-import Logic.Harrison.FOL (tsubst)
-import Logic.Harrison.Lib (apply, defined)
 {-
 (* ========================================================================= *)
 (* Unification for first order terms.                                        *)

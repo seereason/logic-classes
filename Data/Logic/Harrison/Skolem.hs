@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses,
              RankNTypes, ScopedTypeVariables, UndecidableInstances #-}
-module Logic.Harrison.Skolem
+module Data.Logic.Harrison.Skolem
     ( simplify
     , prenex
     , askolemize
@@ -8,11 +8,11 @@ module Logic.Harrison.Skolem
     ) where
 
 import Control.Monad.State (get, put)
-import Logic.FirstOrder
-import Logic.Harrison.Prop (nnf, psimplify1)
-import Logic.Logic
-import Logic.Monad (NormalT, LogicState(..))
-import qualified Logic.Set as S
+import Data.Logic.FirstOrder
+import Data.Logic.Harrison.Prop (nnf, psimplify1)
+import Data.Logic.Logic
+import Data.Logic.Monad (NormalT, LogicState(..))
+import qualified Data.Logic.Set as S
 
 {-
 (* ========================================================================= *)

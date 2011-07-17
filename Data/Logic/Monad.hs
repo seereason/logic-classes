@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
-module Logic.Monad
+module Data.Logic.Monad
     ( LogicState(..)
     , newLogicState
     , NormalT

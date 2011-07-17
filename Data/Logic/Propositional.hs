@@ -9,13 +9,13 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
              GeneralizedNewtypeDeriving, MultiParamTypeClasses, RankNTypes, TemplateHaskell, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
-module Logic.Propositional
+module Data.Logic.Propositional
     ( PropositionalFormula(..)
     , showForm0
     , convertProp
     ) where
 
-import Logic.Logic
+import Data.Logic.Logic
 
 -- |A type class for propositional logic.  If the type we are writing
 -- an instance for is a zero-order (aka propositional) logic type

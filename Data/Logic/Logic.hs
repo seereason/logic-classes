@@ -4,7 +4,7 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
              GeneralizedNewtypeDeriving, MultiParamTypeClasses, RankNTypes, TemplateHaskell, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
-module Logic.Logic
+module Data.Logic.Logic
     ( Negatable(..)
     , Logic(..)
     , BinOp(..)
@@ -64,7 +64,7 @@ infixl 2  .<=>. ,  .=>. ,  .<~>.
 infixl 3  .&.
 infixl 4  .|.  -- a & b | c means a & (b | c), which in cnf would be [[a], [b, c]]
 
--- | The 'BinOp' type (and in 'Logic.FirstOrder' the 'InfixPred' and
+-- | The 'BinOp' type (and in 'Data.Logic.FirstOrder' the 'InfixPred' and
 -- 'Quant' types) could be parameters of the type class instead of
 -- being implemented here concretely, but I'm not sure whether the
 -- added complexity is worthwhile.

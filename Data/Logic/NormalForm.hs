@@ -27,7 +27,7 @@
 --     ~wise(x(Y)) | wise(Y) } 
 -- @
 -- 
-module Logic.NormalForm
+module Data.Logic.NormalForm
     ( simplify
     , negationNormalForm
     , prenexNormalForm
@@ -41,14 +41,14 @@ module Logic.NormalForm
 import Control.Monad.State (MonadPlus, msum)
 import Data.Generics (Data, Typeable, listify)
 import Data.List (intersperse)
+import Data.Logic.FirstOrder (FirstOrderFormula, fromSkolem)
+import Data.Logic.Harrison.Skolem (prenex, askolemize, simplify, specialize)
+import Data.Logic.Harrison.Prop (nnf, trivial, simpcnf)
+import Data.Logic.Monad (NormalT)
+import Data.Logic.Normal (Literal(..), ImplicativeNormalForm, makeINF)
+import Data.Logic.Pretty (Pretty, prettyForm, prettyLit)
+import qualified Data.Logic.Set as S
 import Data.Maybe (isJust)
-import Logic.FirstOrder (FirstOrderFormula, fromSkolem)
-import Logic.Harrison.Skolem (prenex, askolemize, simplify, specialize)
-import Logic.Harrison.Prop (nnf, trivial, simpcnf)
-import Logic.Monad (NormalT)
-import Logic.Normal (Literal(..), ImplicativeNormalForm, makeINF)
-import Logic.Pretty (Pretty, prettyForm, prettyLit)
-import qualified Logic.Set as S
 import Text.PrettyPrint (hcat, vcat, text, nest, ($$), brackets, render)
 
 -- | Simplify and recursively apply nnf.
