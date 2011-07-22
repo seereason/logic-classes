@@ -20,7 +20,6 @@ import qualified Data.Logic.Logic as Logic
 import Data.Logic.Monad (runNormal)
 import Data.Logic.Normal (Literal, ImplicativeNormalForm)
 import Data.Logic.NormalForm (implicativeNormalForm)
-import Data.Logic.Pretty (Pretty)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set)
 import Data.Typeable (Typeable)
@@ -55,8 +54,7 @@ instance Logic (Formula v p f) where
     x .|.   y = Formula $ (unFormula x) .|. (unFormula y)
     x .&.   y = Formula $ (unFormula x) .&. (unFormula y)
 
-instance (Pretty f, Pretty v, Pretty p,
-          Arity p, Variable v, Skolem f, Boolean p,
+instance (Arity p, Variable v, Skolem f, Boolean p,
           Show p, Show v, Show f,
           Ord f, Ord v, Ord p,
           Data p, Data v, Data f) => Show (Formula v p f) where

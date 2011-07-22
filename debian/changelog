@@ -1,3 +1,12 @@
+haskell-logic (0.35) unstable; urgency=low
+
+  * Remove the Pretty class.  Pretty printing of a type is application
+    specific, so the type class doesn't make sense.  Instead add function
+    parameters to prettyForm et. al. to convert the primitive types to
+    Doc.
+
+ -- David Fox <dsf@seereason.com>  Fri, 22 Jul 2011 09:01:45 -0700
+
 haskell-logic (0.34) unstable; urgency=low
 
   * Allow .=. literals in the Native instance.  This required a fix to the

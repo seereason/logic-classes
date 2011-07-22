@@ -1,7 +1,6 @@
 {-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
 module Data.Logic.Pretty
-    ( Pretty(pretty)
-    , showForm
+    ( showForm
     , showTerm
     , prettyForm
     , prettyTerm
@@ -14,9 +13,6 @@ import Data.Logic.Logic
 import qualified Data.Logic.Normal as N -- (Literal(..))
 import Data.Logic.Predicate (Predicate(Apply, Constant, Equal, NotEqual))
 import Text.PrettyPrint (Doc, text, (<>), (<+>), empty, parens, hcat, nest, brackets)
-
-class Pretty x where
-    pretty :: x -> Doc
 
 -- | Display a formula in a format that can be read into the interpreter.
 showForm :: forall formula term v p f. (FirstOrderFormula formula term v p f, Show v, Show p, Show f) => 
@@ -53,32 +49,42 @@ showTerm term =
       f :: f -> [term] -> String
       f fn ts = "fApp (" ++ show fn ++ ") [" ++ intercalate "," (map showTerm ts) ++ "]"
 
-prettyTerm :: forall v f term. (Term term v f, Pretty v, Pretty f) => term -> Doc
-prettyTerm t = foldT pretty (\ fn ts -> pretty fn <> brackets (hcat (intersperse (text ",") (map prettyTerm ts)))) t
+prettyTerm :: forall v f term. (Term term v f) =>
+              (v -> Doc)
+           -> (f -> Doc)
+           -> term
+           -> Doc
+prettyTerm pv pf t = foldT pv (\ fn ts -> pf fn <> brackets (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts)))) t
 
-prettyForm :: forall formula term v p f. (FirstOrderFormula formula term v p f, Pretty v, Pretty p, Pretty f) =>
-              Int -> formula -> Doc
-prettyForm prec formula =
-    foldF (\ qop v f -> parensIf (prec > 1) $ prettyQuant qop <> pretty v <+> prettyForm 1 f)
+prettyForm :: forall formula term v p f. (FirstOrderFormula formula term v p f) =>
+              (v -> Doc)
+           -> (p -> Doc)
+           -> (f -> Doc)
+           -> Int
+           -> formula
+           -> Doc
+prettyForm pv pp pf prec formula =
+    foldF (\ qop v f -> parensIf (prec > 1) $ prettyQuant qop <> pv v <+> prettyForm pv pp pf 1 f)
           (\ cm ->
                case cm of
                  (BinOp f1 op f2) ->
                      case op of
-                       (:=>:) -> parensIf (prec > 2) $ (prettyForm 2 f1 <+> formOp op <+> prettyForm 2 f2)
-                       (:<=>:) -> parensIf (prec > 2) $ (prettyForm 2 f1 <+> formOp op <+> prettyForm 2 f2)
-                       (:&:) -> parensIf (prec > 3) $ (prettyForm 3 f1 <+> formOp op <+> prettyForm 3 f2)
-                       (:|:) -> parensIf {-(prec > 4)-} True $ (prettyForm 4 f1 <+> formOp op <+> prettyForm 4 f2)
-                 ((:~:) f) -> text {-"¬"-} "~" <> prettyForm 5 f)
+                       (:=>:) -> parensIf (prec > 2) $ (prettyForm pv pp pf 2 f1 <+> formOp op <+> prettyForm pv pp pf 2 f2)
+                       (:<=>:) -> parensIf (prec > 2) $ (prettyForm pv pp pf 2 f1 <+> formOp op <+> prettyForm pv pp pf 2 f2)
+                       (:&:) -> parensIf (prec > 3) $ (prettyForm pv pp pf 3 f1 <+> formOp op <+> prettyForm pv pp pf 3 f2)
+                       (:|:) -> parensIf {-(prec > 4)-} True $ (prettyForm pv pp pf 4 f1 <+> formOp op <+> prettyForm pv pp pf 4 f2)
+                 ((:~:) f) -> text {-"¬"-} "~" <> prettyForm pv pp pf 5 f)
           pr
           formula
     where
+      pr :: Predicate p term -> Doc
       pr (Constant x) = text (show x)
-      pr (Equal t1 t2) = parensIf (prec > 6) (prettyTerm t1 <+> text "=" <+> prettyTerm t2)
-      pr (NotEqual t1 t2) = parensIf (prec > 6) (prettyTerm t1 <+> text "!=" <+> prettyTerm t2)
+      pr (Equal t1 t2) = parensIf (prec > 6) (prettyTerm pv pf t1 <+> text "=" <+> prettyTerm pv pf t2)
+      pr (NotEqual t1 t2) = parensIf (prec > 6) (prettyTerm pv pf t1 <+> text "!=" <+> prettyTerm pv pf t2)
       pr (Apply p ts) =
-          pretty p <> case ts of
-                        [] -> empty
-                        _ -> parens (hcat (intersperse (text ",") (map prettyTerm ts)))
+          pp p <> case ts of
+                    [] -> empty
+                    _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts)))
       parensIf False = id
       parensIf _ = parens . nest 1
       prettyQuant All = text {-"∀"-} "!"
@@ -88,16 +94,21 @@ prettyForm prec formula =
       formOp (:&:) = text "&"
       formOp (:|:) = text "|"
 
-prettyLit :: forall lit term v p f. (N.Literal lit term v p f, Pretty v, Pretty p, Pretty f) =>
-              Int -> lit -> Doc
-prettyLit prec lit =
+prettyLit :: forall lit term v p f. (N.Literal lit term v p f) =>
+              (v -> Doc)
+           -> (p -> Doc)
+           -> (f -> Doc)
+           -> Int
+           -> lit
+           -> Doc
+prettyLit pv pp pf prec lit =
     N.foldN c p lit
     where
-      c x = if negated x then text {-"¬"-} "~" <> prettyLit 5 x else prettyLit 5 x
+      c x = if negated x then text {-"¬"-} "~" <> prettyLit pv pp pf 5 x else prettyLit pv pp pf 5 x
       p (N.Apply pr ts) =
-          pretty pr <> case ts of
+          pp pr <> case ts of
                         [] -> empty
-                        _ -> parens (hcat (intersperse (text ",") (map prettyTerm ts)))
-      p (N.Equal t1 t2) = parensIf (prec > 6) (prettyTerm t1 <+> text "=" <+> prettyTerm t2)
+                        _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts)))
+      p (N.Equal t1 t2) = parensIf (prec > 6) (prettyTerm pv pf t1 <+> text "=" <+> prettyTerm pv pf t2)
       parensIf False = id
       parensIf _ = parens . nest 1

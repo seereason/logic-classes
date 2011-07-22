@@ -46,10 +46,10 @@ import Data.Logic.Harrison.Skolem (prenex, askolemize, simplify, specialize)
 import Data.Logic.Harrison.Prop (nnf, trivial, simpcnf)
 import Data.Logic.Monad (NormalT)
 import Data.Logic.Normal (Literal(..), ImplicativeNormalForm, makeINF)
-import Data.Logic.Pretty (Pretty, prettyForm, prettyLit)
+import Data.Logic.Pretty (prettyForm, prettyLit)
 import qualified Data.Logic.Set as S
 import Data.Maybe (isJust)
-import Text.PrettyPrint (hcat, vcat, text, nest, ($$), brackets, render)
+import Text.PrettyPrint (Doc, hcat, vcat, text, nest, ($$), brackets, render)
 
 -- | Simplify and recursively apply nnf.
 negationNormalForm :: FirstOrderFormula formula term v p f => formula -> formula
@@ -77,25 +77,37 @@ clauseNormalForm :: (Monad m, FirstOrderFormula formula term v p f, Literal lit 
 clauseNormalForm cv cp cf fm = skolemNormalForm fm >>= return . simpcnf cv cp cf
 
 cnfTrace :: forall m formula term v p f lit term2 v2 p2 f2.
-            (Monad m, FirstOrderFormula formula term v p f, Literal lit term2 v2 p2 f2,
-             Pretty v, Pretty p, Pretty f, Pretty v2, Pretty p2, Pretty f2) =>
-            (v -> v2) -> (p -> p2) -> (f -> f2) -> formula -> NormalT v term m (String, S.Set (S.Set lit))
-cnfTrace cv cp cf f =
+            (Monad m, FirstOrderFormula formula term v p f, Literal lit term2 v2 p2 f2) =>
+            (v2 -> Doc)
+         -> (p2 -> Doc)
+         -> (f2 -> Doc)
+         -> (v -> v2)
+         -> (p -> p2)
+         -> (f -> f2)
+         -> formula
+         -> NormalT v term m (String, S.Set (S.Set lit))
+cnfTrace pv pp pf cv cp cf f =
     do let simplified = simplify f
            pnf = prenexNormalForm f
        snf <- skolemNormalForm f
        cnf <- clauseNormalForm cv cp cf f
        return (render (vcat
-                       [text "Original:" $$ nest 2 (prettyForm 0 f),
-                        text "Simplified:" $$ nest 2 (prettyForm 0 simplified),
-                        text "Negation Normal Form:" $$ nest 2 (prettyForm 0 (negationNormalForm f)),
-                        text "Prenex Normal Form:" $$ nest 2 (prettyForm 0 pnf),
-                        text "Skolem Normal Form:" $$ nest 2 (prettyForm 0 snf),
+                       [text "Original:" $$ nest 2 (prettyForm pv' pp' pf' 0 f),
+                        text "Simplified:" $$ nest 2 (prettyForm pv' pp' pf' 0 simplified),
+                        text "Negation Normal Form:" $$ nest 2 (prettyForm pv' pp' pf' 0 (negationNormalForm f)),
+                        text "Prenex Normal Form:" $$ nest 2 (prettyForm pv' pp' pf' 0 pnf),
+                        text "Skolem Normal Form:" $$ nest 2 (prettyForm pv' pp' pf' 0 snf),
                         text "Clause Normal Form:" $$ vcat (map prettyClause (fromSS cnf))]), cnf)
     where
       prettyClause (clause :: [lit]) =
-          nest 2 . brackets . hcat . intersperse (text ", ") . map (nest 2 . brackets . prettyLit 0) $ clause
+          nest 2 . brackets . hcat . intersperse (text ", ") . map (nest 2 . brackets . prettyLit pv pp pf 0) $ clause
       fromSS = (map S.toList) . S.toList 
+      pv' :: v -> Doc
+      pv' = pv . cv
+      pp' :: p -> Doc
+      pp' = pp . cp
+      pf' :: f -> Doc
+      pf' = pf . cf
 
 -- |Take the clause normal form, and turn it into implicative form,
 -- where each clauses becomes an (LHS, RHS) pair with the negated

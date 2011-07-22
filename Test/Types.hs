@@ -7,6 +7,9 @@ module Test.Types
     , AtomicFunction(..)
     , TFormula
     , TTerm
+    , prettyV
+    , prettyP
+    , prettyF
       -- * Test case types
     , TestFormula(..)
     , Expected(..)
@@ -32,7 +35,7 @@ import Data.Logic.Monad (WithId, runNormal, runProver', runNormal', runNormalT')
 import Data.Logic.Normal (ClauseNormalFormula(satisfiable), ImplicativeNormalForm(..), Literal)
 import Data.Logic.NormalForm (simplify, negationNormalForm, prenexNormalForm, skolemNormalForm, clauseNormalForm, trivial)
 import Data.Logic.Predicate (Arity(arity))
-import Data.Logic.Pretty (showForm, Pretty(..))
+import Data.Logic.Pretty (showForm)
 import Data.Logic.Resolution (SetOfSupport)
 import qualified Data.Set as S
 import Data.String (IsString(fromString))
@@ -48,8 +51,7 @@ instance IsString V where
 instance Show V where
     show (V s) = show s
 
-instance Pretty V where
-    pretty (V s) = text s
+prettyV (V s) = text s
 
 instance Variable V where
     one = V "x"
@@ -85,10 +87,9 @@ instance Show Pr where
     show F = "fromBool False"
     show (Pr s) = show s            -- Because Pr is an instance of IsString
 
-instance Pretty Pr where
-    pretty T = text "True"
-    pretty F = text "False"
-    pretty (Pr s) = text s
+prettyP T = text "True"
+prettyP F = text "False"
+prettyP (Pr s) = text s
 
 data AtomicFunction
     = Fn String
@@ -107,9 +108,8 @@ instance Show AtomicFunction where
     show (Fn s) = show s
     show (Skolem n) = "toSkolem " ++ show n
 
-instance Pretty AtomicFunction where
-    pretty (Fn s) = text s
-    pretty (Skolem n) = text ("sK" ++ show n)
+prettyF (Fn s) = text s
+prettyF (Skolem n) = text ("sK" ++ show n)
 
 type TFormula = P.Formula V Pr AtomicFunction
 type TTerm = P.PTerm V AtomicFunction
