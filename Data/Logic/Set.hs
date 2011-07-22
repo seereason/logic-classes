@@ -11,6 +11,7 @@ module Data.Logic.Set
     , mapM
     , ssMapM
     , cartesianProduct
+    , catMaybes
     , module Data.Set
     ) where
 
@@ -54,3 +55,6 @@ fromSS = L.map toList . toList
 
 cartesianProduct :: (Ord a, Ord b) => Set a -> Set b -> Set (a, b)
 cartesianProduct xs ys = flatten $ Data.Set.map (\ x -> Data.Set.map (\ y -> (x, y)) ys) xs
+
+catMaybes :: Ord a => Set (Maybe a) -> Set a
+catMaybes sm = fold (\ mx s -> maybe s (`insert` s) mx ) empty sm

@@ -136,7 +136,7 @@ instance (Variable v, Skolem f, Boolean p, Ord f, Ord v, Ord p, Data p, Data v, 
         case l of
           (Combine ((:~:) x)) -> c x
           (Predicate (Apply p ts)) -> pr (N.Apply p ts)
-          -- (Predicate (Equal x y)) -> pr (N.Equal x y)
+          (Predicate (Equal x y)) -> pr (N.Equal x y)
           _ -> error "Invalid formula used as Literal instance"
     zipN c pr l1 l2 =
         case (l1, l2) of

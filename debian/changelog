@@ -1,6 +1,9 @@
 haskell-logic (0.33) unstable; urgency=low
 
   * Move the modules into the Data heirarchy.
+  * Allow .=. literals in the Native instance.  This required a fix to the
+    resolution prover so that it never did substitutions based on an
+    equality predicate which had the same lhs and rhs.
 
  -- David Fox <dsf@seereason.com>  Sun, 17 Jul 2011 07:29:49 -0700
 

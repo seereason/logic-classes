@@ -173,10 +173,10 @@ resolution (inf1, theta1) (inf2, theta2) =
       case unifyResult of
         Just ((rhs1', theta1'), (lhs2', theta2')) ->
             let
-              lhs'' = S.union (S.map (\s -> subst s theta1') lhs1)
-                              (S.map (\s -> subst s theta2') lhs2')
-              rhs'' = S.union (S.map (\s -> subst s theta1') rhs1')
-                              (S.map (\s -> subst s theta2') rhs2)
+              lhs'' = S.union (S.catMaybes $ S.map (\s -> subst s theta1') lhs1)
+                              (S.catMaybes $ S.map (\s -> subst s theta2') lhs2')
+              rhs'' = S.union (S.catMaybes $ S.map (\s -> subst s theta1') rhs1')
+                              (S.catMaybes $ S.map (\s -> subst s theta2') rhs2)
               theta = M.unionWith (\ l _r -> l) (updateSubst theta1 theta1') (updateSubst theta2 theta2')
             in
               Just (makeINF lhs'' rhs'', theta)
@@ -205,6 +205,7 @@ resolution (inf1, theta1) (inf2, theta2) =
             Nothing -> tryUnify'' x rhss (S.insert rhs rhss')
             Just (theta1', theta2') -> Just (S.union rhss' rhss, theta1', theta2')
 
+-- |Try to unify the second argument using the equality in the first.
 demodulate :: (Literal lit term v p f) =>
               (Unification lit v term) -> (Unification lit v term) -> Maybe (Unification lit v term)
 demodulate (inf1, theta1) (inf2, theta2) =
@@ -216,10 +217,10 @@ demodulate (inf1, theta1) (inf2, theta2) =
       p (Equal t1 t2) =
           case findUnify t1 t2 (S.union lhs2 rhs2) of
             Just ((t1', t2'), theta1', theta2') ->
-                let substLhs2 = S.map (\x -> subst x theta2') lhs2
-                    substRhs2 = S.map (\x -> subst x theta2') rhs2
-                    lhs = S.map (\x -> replaceTerm x (t1', t2')) substLhs2
-                    rhs = S.map (\x -> replaceTerm x (t1', t2')) substRhs2
+                let substNeg2 = S.catMaybes $ S.map (\x -> subst x theta2') lhs2
+                    substPos2 = S.catMaybes $ S.map (\x -> subst x theta2') rhs2
+                    lhs = S.catMaybes $ S.map (\x -> replaceTerm x (t1', t2')) substNeg2
+                    rhs = S.catMaybes $ S.map (\x -> replaceTerm x (t1', t2')) substPos2
                     theta = M.unionWith (\ l _r -> l) (updateSubst theta1 theta1') (updateSubst theta2 theta2') in
                 Just (makeINF lhs rhs, theta)
             Nothing -> Nothing
@@ -298,12 +299,15 @@ getTerms formula =
       p (Apply _ ts) = concatMap getTerms' ts
 -}
 
-replaceTerm :: (Literal lit term v p f) => lit -> (term, term) -> lit
+replaceTerm :: (Literal lit term v p f) => lit -> (term, term) -> Maybe lit
 replaceTerm formula (tl', tr') =
     foldN (\ _ -> error "error in replaceTerm")
           (\ pa -> case pa of
-                     Equal t1 t2 -> (replaceTerm' t1) .=. (replaceTerm' t2)
-                     Apply p ts -> pApp p (map (\ t -> replaceTerm' t) ts))
+                     Equal t1 t2 ->
+                         let t1' = replaceTerm' t1
+                             t2' = replaceTerm' t2 in
+                         if t1' == t2' then Nothing else Just (t1' .=. t2')
+                     Apply p ts -> Just (pApp p (map (\ t -> replaceTerm' t) ts)))
           formula
     where
       replaceTerm' t =
@@ -313,12 +317,15 @@ replaceTerm formula (tl', tr') =
       termEq t1 t2 =
           maybe False id (zipT (\ v1 v2 -> Just (v1 == v2)) (\ f1 ts1 f2 ts2 -> Just (f1 == f2 && length ts1 == length ts2 && all (uncurry termEq) (zip ts1 ts2))) t1 t2)
 
-subst :: Literal formula term v p f => formula -> Subst v term -> formula
+subst :: Literal formula term v p f => formula -> Subst v term -> Maybe formula
 subst formula theta =
-    foldN (\ _ -> formula)
+    foldN (\ _ -> Just formula)
           (\ pa -> case pa of
-                     Equal t1 t2 -> (substTerm t1 theta) .=. (substTerm t2 theta)
-                     Apply p ts -> pApp p (substTerms ts theta))
+                     Equal t1 t2 ->
+                         let t1' = substTerm t1 theta
+                             t2' = substTerm t2 theta in
+                         if t1' == t2' then Nothing else Just (t1' .=. t2')
+                     Apply p ts -> Just (pApp p (substTerms ts theta)))
           formula
 
 substTerm :: Term term v f => term -> Subst v term -> term
