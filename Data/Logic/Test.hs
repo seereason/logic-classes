@@ -1,6 +1,8 @@
+-- |Types to use for creating test cases.  These are used in the Logic
+-- package test cases, and are exported for use in its clients.
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, RankNTypes, ScopedTypeVariables, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wwarn #-}
-module Test.Types
+module Data.Logic.Test
     ( -- * Formula parameter types
       V(..)
     , Pr(..)

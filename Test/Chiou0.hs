@@ -14,11 +14,11 @@ import Data.Logic.Monad (NormalT, runNormal, ProverT, runProver')
 import Data.Logic.Normal (ImplicativeNormalForm, makeINF, makeINF')
 import Data.Logic.NormalForm (clauseNormalForm)
 import Data.Logic.Resolution (SetOfSupport)
+import Data.Logic.Test (V(..), Pr(..), AtomicFunction(..), TFormula, TTerm)
 import Data.Map (fromList)
 import qualified Data.Set as S
 import Data.String (IsString(..))
 import Test.HUnit
-import Test.Types (V(..), Pr(..), AtomicFunction(..), TFormula, TTerm)
 
 tests :: Test
 tests = TestLabel "Chiou0" $ TestList [loadTest, proofTest1, proofTest2]

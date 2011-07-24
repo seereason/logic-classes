@@ -23,11 +23,11 @@ import Data.Logic.Logic (Negatable(..), Logic(..), Boolean(..))
 import Data.Logic.Monad (WithId(..))
 import Data.Logic.Normal (ImplicativeNormalForm, makeINF, makeINF')
 import qualified Data.Logic.Normal as N
+import Data.Logic.Test (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof)
 import Data.Map (fromList)
 import qualified Data.Set as S
 import Data.String (IsString)
 import Test.HUnit
-import Test.Types (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof)
 
 tests :: (FirstOrderFormula formula term v p f, N.Literal formula term v p f, Eq term, Show term, Show formula, Show v) =>
          [TestFormula formula term v p f] -> [TestProof formula term v] -> Test

@@ -11,11 +11,11 @@ import Data.Logic.FirstOrder (Skolem(..), FirstOrderFormula(..), Term(..), Varia
 import Data.Logic.Predicate (Pred(..), Arity(arity))
 import Data.Logic.Pretty (showForm)
 import Data.Logic.Satisfiable (theorem, inconsistant)
+import Data.Logic.Test (V(..), AtomicFunction(..), Pr, TFormula, TTerm)
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 import PropLogic (PropForm(..), TruthTable, truthTable)
 import qualified TextDisplay as TD
-import Test.Types (V(..), AtomicFunction(..), Pr, TFormula, TTerm)
 import Test.HUnit
 
 -- |Don't use this at home!  It breaks type safety, fromString "True"

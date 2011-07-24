@@ -1,3 +1,10 @@
+haskell-logic (0.36) unstable; urgency=low
+
+  * Move module Test.Types to Data.Logic.Test and export so that clients
+    of this package can use the definitions to create test cases.
+
+ -- David Fox <dsf@seereason.com>  Sun, 24 Jul 2011 10:45:50 -0700
+
 haskell-logic (0.35) unstable; urgency=low
 
   * Remove the Pretty class.  Pretty printing of a type is application

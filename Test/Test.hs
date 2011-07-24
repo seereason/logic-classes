@@ -1,12 +1,12 @@
 import Data.Logic.Instances.Native
 import Data.Logic.Normal (ImplicativeNormalForm)
 import Data.Logic.Pretty (showForm)
+import Data.Logic.Test (TestFormula, TestProof, V, Pr, AtomicFunction, TFormula, TTerm)
 import System.Exit
 import Test.HUnit
 import qualified Test.Logic as Logic
 import qualified Test.Chiou0 as Chiou0
 --import qualified Test.TPTP as TPTP
-import Test.Types (TestFormula, TestProof, V, Pr, AtomicFunction, TFormula, TTerm)
 import qualified Test.Data as Data
 
 main :: IO ()
