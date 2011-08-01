@@ -38,7 +38,7 @@ data ProofResult
     -- ^ The negated conjecture is unsatisfiable
     | Invalid
     -- ^ Both are satisfiable
-    deriving (Data, Typeable, Eq, Show)
+    deriving (Data, Typeable, Eq, Ord, Show)
 -- |Reset the knowledgebase to empty.
 emptyKB :: Monad m => ProverT inf m ()
 emptyKB = put zeroKB
