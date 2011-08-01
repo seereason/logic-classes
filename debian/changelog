@@ -1,3 +1,9 @@
+haskell-logic (0.37) unstable; urgency=low
+
+  * Add an Ord instance to ProofResult so we can insert proofs into sets.
+
+ -- David Fox <dsf@seereason.com>  Mon, 01 Aug 2011 09:51:59 -0700
+
 haskell-logic (0.36) unstable; urgency=low
 
   * Move module Test.Types to Data.Logic.Test and export so that clients
