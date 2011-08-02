@@ -72,42 +72,33 @@ skolemNormalForm f = askolemize f >>= return . specialize . prenexNormalForm
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-clauseNormalForm :: (Monad m, FirstOrderFormula formula term v p f, Literal lit term2 v2 p2 f2) =>
-       (v -> v2) -> (p -> p2) -> (f -> f2) -> formula -> NormalT v term m (S.Set (S.Set lit))
-clauseNormalForm cv cp cf fm = skolemNormalForm fm >>= return . simpcnf cv cp cf
+clauseNormalForm :: (Monad m, FirstOrderFormula formula term v p f, Literal lit term v p f) =>
+       formula -> NormalT v term m (S.Set (S.Set lit))
+clauseNormalForm fm = skolemNormalForm fm >>= return . simpcnf
 
-cnfTrace :: forall m formula term v p f lit term2 v2 p2 f2.
-            (Monad m, FirstOrderFormula formula term v p f, Literal lit term2 v2 p2 f2) =>
-            (v2 -> Doc)
-         -> (p2 -> Doc)
-         -> (f2 -> Doc)
-         -> (v -> v2)
-         -> (p -> p2)
-         -> (f -> f2)
+cnfTrace :: forall m formula term v p f lit.
+            (Monad m, FirstOrderFormula formula term v p f, Literal lit term v p f) =>
+            (v -> Doc)
+         -> (p -> Doc)
+         -> (f -> Doc)
          -> formula
          -> NormalT v term m (String, S.Set (S.Set lit))
-cnfTrace pv pp pf cv cp cf f =
+cnfTrace pv pp pf f =
     do let simplified = simplify f
            pnf = prenexNormalForm f
        snf <- skolemNormalForm f
-       cnf <- clauseNormalForm cv cp cf f
+       cnf <- clauseNormalForm f
        return (render (vcat
-                       [text "Original:" $$ nest 2 (prettyForm pv' pp' pf' 0 f),
-                        text "Simplified:" $$ nest 2 (prettyForm pv' pp' pf' 0 simplified),
-                        text "Negation Normal Form:" $$ nest 2 (prettyForm pv' pp' pf' 0 (negationNormalForm f)),
-                        text "Prenex Normal Form:" $$ nest 2 (prettyForm pv' pp' pf' 0 pnf),
-                        text "Skolem Normal Form:" $$ nest 2 (prettyForm pv' pp' pf' 0 snf),
+                       [text "Original:" $$ nest 2 (prettyForm pv pp pf 0 f),
+                        text "Simplified:" $$ nest 2 (prettyForm pv pp pf 0 simplified),
+                        text "Negation Normal Form:" $$ nest 2 (prettyForm pv pp pf 0 (negationNormalForm f)),
+                        text "Prenex Normal Form:" $$ nest 2 (prettyForm pv pp pf 0 pnf),
+                        text "Skolem Normal Form:" $$ nest 2 (prettyForm pv pp pf 0 snf),
                         text "Clause Normal Form:" $$ vcat (map prettyClause (fromSS cnf))]), cnf)
     where
       prettyClause (clause :: [lit]) =
           nest 2 . brackets . hcat . intersperse (text ", ") . map (nest 2 . brackets . prettyLit pv pp pf 0) $ clause
       fromSS = (map S.toList) . S.toList 
-      pv' :: v -> Doc
-      pv' = pv . cv
-      pp' :: p -> Doc
-      pp' = pp . cp
-      pf' :: f -> Doc
-      pf' = pf . cf
 
 -- |Take the clause normal form, and turn it into implicative form,
 -- where each clauses becomes an (LHS, RHS) pair with the negated
@@ -129,11 +120,11 @@ cnfTrace pv pp pf cv cp cf f =
 --    a | b | c => e
 --    a | b | c => f
 -- @
-implicativeNormalForm :: forall m formula term v p f lit term2 v2 p2 f2. 
-                         (Monad m, FirstOrderFormula formula term v p f, Data formula, Literal lit term2 v2 p2 f2) =>
-                         (v -> v2) -> (p -> p2) -> (f -> f2) -> formula -> NormalT v term m (S.Set (ImplicativeNormalForm lit))
-implicativeNormalForm cv cp cf formula =
-    do cnf <- clauseNormalForm cv cp cf formula
+implicativeNormalForm :: forall m formula term v p f lit. 
+                         (Monad m, FirstOrderFormula formula term v p f, Data formula, Literal lit term v p f) =>
+                         formula -> NormalT v term m (S.Set (ImplicativeNormalForm lit))
+implicativeNormalForm formula =
+    do cnf <- clauseNormalForm formula
        let pairs = S.map (S.fold collect (S.empty, S.empty)) cnf :: S.Set (S.Set lit, S.Set lit)
            pairs' = S.flatten (S.map split pairs) :: S.Set (S.Set lit, S.Set lit)
        return (S.map (\ (n,p) -> makeINF n p) pairs')

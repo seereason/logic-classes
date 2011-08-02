@@ -1,3 +1,10 @@
+haskell-logic (0.38) unstable; urgency=low
+
+  * Remove the triple of function parameters for converting formulas to
+    literals, these were all invariably id.
+
+ -- David Fox <dsf@seereason.com>  Tue, 02 Aug 2011 07:34:54 -0700
+
 haskell-logic (0.37) unstable; urgency=low
 
   * Add an Ord instance to ProofResult so we can insert proofs into sets.

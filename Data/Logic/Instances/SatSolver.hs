@@ -36,7 +36,7 @@ instance N.ClauseNormalFormula CNF Literal where
 
 toCNF :: (Monad m, FirstOrderFormula formula term v p f, N.Literal formula term v p f) =>
          formula -> NormalT' formula v term m CNF
-toCNF f = clauseNormalForm id id id f >>= S.ssMapM (lift . toLiteral) >>= return . N.makeCNF
+toCNF f = clauseNormalForm f >>= S.ssMapM (lift . toLiteral) >>= return . N.makeCNF
 
 -- |Convert a [[formula]] to CNF, which means building a map from
 -- formula to Literal.

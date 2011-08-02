@@ -26,7 +26,7 @@ satisfiable f = clauses f >>= return . PL.satisfiable
 
 clauses :: forall m formula term v p f. (Monad m, FirstOrderFormula formula term v p f, Literal formula term v p f) =>
            formula -> NormalT v term m (PL.PropForm formula)
-clauses f = clauseNormalForm id id id f >>= return . PL.CJ . map (PL.DJ . map (toPropositional PL.A)) . map S.toList . S.toList
+clauses f = clauseNormalForm f >>= return . PL.CJ . map (PL.DJ . map (toPropositional PL.A)) . map S.toList . S.toList
 
 inconsistant :: (Monad m, FirstOrderFormula formula term v p f, Ord formula, Literal formula term v p f) =>
                 formula -> NormalT v term m Bool

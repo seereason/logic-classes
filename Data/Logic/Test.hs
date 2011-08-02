@@ -164,13 +164,13 @@ doTest f =
       doExpected (SkolemNumbers f') =
           TestCase (assertEqual (name f ++ " skolem numbers") f' (skolemSet (runNormal (skolemNormalForm (formula f)))))
       doExpected (ClauseNormalForm fss) =
-          TestCase (assertEqual (name f ++ " clause normal form") fss (S.map (S.map p) (runNormal (clauseNormalForm id id id (formula f)))))
+          TestCase (assertEqual (name f ++ " clause normal form") fss (S.map (S.map p) (runNormal (clauseNormalForm (formula f)))))
       doExpected (TrivialClauses flags) =
-          TestCase (assertEqual (name f ++ " trivial clauses") flags (map (\ x -> (trivial x, x)) (S.toList (runNormal (clauseNormalForm id id id (formula f))))))
+          TestCase (assertEqual (name f ++ " trivial clauses") flags (map (\ x -> (trivial x, x)) (S.toList (runNormal (clauseNormalForm (formula f))))))
       doExpected (ConvertToChiou result) =
           TestCase (assertEqual (name f ++ " converted to Chiou") result (convertFOF id id id (formula f)))
       doExpected (ChiouKB1 result) =
-          TestCase (assertEqual (name f ++ " Chiou KB") result (runProver' (loadKB id id id [formula f] >>= return . head)))
+          TestCase (assertEqual (name f ++ " Chiou KB") result (runProver' (loadKB [formula f] >>= return . head)))
       doExpected (PropLogicSat result) =
           TestCase (assertEqual (name f ++ " PropLogic.satisfiable") result (runNormal (plSat (formula f))))
       doExpected (SatSolverCNF result) =
@@ -219,11 +219,11 @@ doProof p =
           [TestLabel (proofName p ++ " with " ++ fst (proofKnowledge p)) . TestList $
            [TestCase (assertEqual (proofName p ++ " with " ++ fst (proofKnowledge p) ++ " using Chiou prover")
                       result
-                      (runProver' (loadKB id id id kb >> theoremKB id id id c)))]]
+                      (runProver' (loadKB kb >> theoremKB c)))]]
       doExpected (ChiouKB result) =
           [TestLabel (proofName p ++ " with " ++ fst (proofKnowledge p)) . TestList $
            [TestCase (assertEqual (proofName p ++ " with " ++ fst (proofKnowledge p) ++ " Chiou knowledge base")
                       result
-                      (runProver' (loadKB id id id kb >> getKB)))]]
+                      (runProver' (loadKB kb >> getKB)))]]
       kb = snd (proofKnowledge p) :: [formula]
       c = conjecture p :: formula

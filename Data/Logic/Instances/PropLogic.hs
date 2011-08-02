@@ -77,7 +77,7 @@ plSat :: forall m formula term v p f. (Monad m, FirstOrderFormula formula term v
 plSat f = clauses f >>= (\ (x :: PropForm formula) -> return x) >>= return . satisfiable
 
 clauses :: forall m formula term v p f. (Monad m, FirstOrderFormula formula term v p f, Literal formula term v p f) => formula -> NormalT v term m (PropForm formula)
-clauses f = clauseNormalForm id id id f >>= return . CJ . map (DJ . map (toPropositional (A :: formula -> PropForm formula))) . map S.toList . S.toList
+clauses f = clauseNormalForm f >>= return . CJ . map (DJ . map (toPropositional (A :: formula -> PropForm formula))) . map S.toList . S.toList
 
 {-
 inconsistant :: (Monad m, FirstOrderFormula formula term v p f, Ord formula) =>

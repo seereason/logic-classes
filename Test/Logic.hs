@@ -320,7 +320,7 @@ theoremTests =
                                       (h [x] .=>. m [x]) .&.
                                       (m [x] .=>. ((.~.) (s [x])))) .&.
                          (s [fApp "socrates" []]) in
-                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula, runNormal (clauseNormalForm id id id formula) :: Set.Set (Set.Set TFormula))))
+                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula, runNormal (clauseNormalForm formula) :: Set.Set (Set.Set TFormula))))
     , let (formula :: TFormula) =
               (for_all "x" (pApp "L" [var "x"] .=>. pApp "F" [var "x"]) .&. -- All logicians are funny
                exists "x" (pApp "L" [var "x"])) .=>.                            -- Someone is a logician
@@ -426,6 +426,6 @@ table f =
       cnf' :: PropForm formula
       cnf' = CJ (map (DJ . map n) cnf)
       cnf :: [[formula]]
-      cnf = fromSS (runNormal (clauseNormalForm id id id f))
+      cnf = fromSS (runNormal (clauseNormalForm f))
       fromSS = map Set.toList . Set.toList
       n f = (if negated f then N . A . (.~.) else A) $ f
