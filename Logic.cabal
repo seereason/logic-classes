@@ -1,13 +1,15 @@
 Name:             Logic
 Version:          0.38
 License:          BSD3
-Author:           SeeReason Partners <partners@seereason.com>
+Author:           David Fox <dsf@seereason.com>
 Maintainer:       SeeReason Partners <partners@seereason.com>
-Synopsis:         Library for unifying various treatments of first order logic
-Description:      Library for unifying various treatments of propositional (zeroth order)
-                  and predicate (first order) logic.  Includes polymorphic functions to
-                  convert between different instances, for doing variable substitution and
-                  free variable gathering, and for conversion to various normal forms.
+Synopsis:         Symbolic logic support - a class framework, example instances, polymorphic implementations
+Description:      Package to support Propositional and First Order Logic.  It includes classes
+                  representing the different types of formulas and terms, some instances of
+                  those classes for types used in other logic libraries, and implementations of
+                  several logic algorithms, including conversion to normal form and a simple
+                  resolution-based theorem prover for any type for which an instance of
+                  FirstOrderFormula is provided.
 Build-Type:       Custom
 Category:         Math
 Cabal-version:    >= 1.2

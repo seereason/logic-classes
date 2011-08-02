@@ -35,10 +35,10 @@ Architecture: any
 Section: haskell
 Depends: ${haskell:Depends},
          ${misc:Depends}
-Description: Library for unifying various treatments of first order logic
- Library for unifying various treatments of first order logic
+Description: Library for unifying various treatments of propositional and first order logic
+ Library for unifying various treatments of propositional and first order logic
  .
-  Author: SeeReason Partners <partners@seereason.com>
+  Author: David Fox <dsf@seereason.com>
   Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
  .
  This package contains the normal library files.
@@ -49,10 +49,10 @@ Section: haskell
 Depends: ${haskell:Depends},
          ${misc:Depends},
          libghc-logic-dev
-Description: Library for unifying various treatments of first order logic
- Library for unifying various treatments of first order logic
+Description: Library for unifying various treatments of propositional and first order logic
+ Library for unifying various treatments of propositional and first order logic
  .
-  Author: SeeReason Partners <partners@seereason.com>
+  Author: David Fox <dsf@seereason.com>
   Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
  .
  This package contains the libraries compiled with profiling enabled.
@@ -63,10 +63,10 @@ Section: doc
 Depends: ${haskell:Depends},
          ${misc:Depends},
          ghc-doc
-Description: Library for unifying various treatments of first order logic
+Description: Library for unifying various treatments of propositional and first order logic
  Library for unifying various treatments of first order logic
  .
-  Author: SeeReason Partners <partners@seereason.com>
+  Author: David Fox <dsf@seereason.com>
   Upstream-Maintainer: SeeReason Partners <partners@seereason.com>
  .
  This package contains the documentation files.
