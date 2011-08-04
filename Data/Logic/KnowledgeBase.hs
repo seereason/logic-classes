@@ -13,7 +13,7 @@ module Data.Logic.KnowledgeBase
     , theoremKB
     , inconsistantKB
     , ProofResult(..)
-    , Proof
+    , Proof(..)
     , validKB
     , tellKB
     , loadKB
@@ -41,7 +41,7 @@ data ProofResult
     -- ^ Both are satisfiable
     deriving (Data, Typeable, Eq, Ord, Show)
 
-type Proof lit = Maybe (ProofResult, S.Set (ImplicativeNormalForm lit))
+data Proof lit = Proof (ProofResult, S.Set (ImplicativeNormalForm lit)) | NoProof
 
 -- |Reset the knowledgebase to empty.
 emptyKB :: Monad m => ProverT inf m ()
@@ -90,7 +90,7 @@ validKB s =
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
 tellKB :: (FirstOrderFormula formula term v p f, Literal lit term v p f, Monad m) =>
-          formula -> ProverT' v term (ImplicativeNormalForm lit) m (ProofResult, S.Set (ImplicativeNormalForm lit))
+          formula -> ProverT' v term (ImplicativeNormalForm lit) m (Proof lit)
 tellKB s =
     do st <- get
        inf <- lift (implicativeNormalForm s)
@@ -100,10 +100,10 @@ tellKB s =
          Disproved -> return ()
          _ -> put st { knowledgeBase = S.union (knowledgeBase st) inf'
                      , sentenceCount = sentenceCount st + 1 }
-       return (valid, S.map wiItem inf')
+       return $ Proof (valid, S.map wiItem inf')
 
 loadKB :: (FirstOrderFormula formula term v p f, Literal lit term v p f, Monad m) =>
-          [formula] -> ProverT' v term (ImplicativeNormalForm lit) m [(ProofResult, S.Set (ImplicativeNormalForm lit))]
+          [formula] -> ProverT' v term (ImplicativeNormalForm lit) m [Proof lit]
 loadKB sentences = mapM tellKB sentences
 
 -- |Delete an entry from the KB.
