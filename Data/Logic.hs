@@ -14,6 +14,7 @@ module Data.Logic
     , tellKB
     , runProverT'
     , ProofResult(Proved, Invalid, Disproved)
+    , Proof
     ) where
 
 import Data.Logic.FirstOrder

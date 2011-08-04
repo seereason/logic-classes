@@ -1,3 +1,9 @@
+haskell-logic (0.39) unstable; urgency=low
+
+  * Move Proof type from ontology to logic.
+
+ -- David Fox <dsf@seereason.com>  Thu, 04 Aug 2011 07:13:00 -0700
+
 haskell-logic (0.38) unstable; urgency=low
 
   * Remove the triple of function parameters for converting formulas to

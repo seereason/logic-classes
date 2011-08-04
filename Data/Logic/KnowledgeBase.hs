@@ -13,6 +13,7 @@ module Data.Logic.KnowledgeBase
     , theoremKB
     , inconsistantKB
     , ProofResult(..)
+    , Proof
     , validKB
     , tellKB
     , loadKB
@@ -39,6 +40,9 @@ data ProofResult
     | Invalid
     -- ^ Both are satisfiable
     deriving (Data, Typeable, Eq, Ord, Show)
+
+type Proof lit = Maybe (ProofResult, S.Set (ImplicativeNormalForm lit))
+
 -- |Reset the knowledgebase to empty.
 emptyKB :: Monad m => ProverT inf m ()
 emptyKB = put zeroKB
