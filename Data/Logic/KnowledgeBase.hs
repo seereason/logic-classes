@@ -41,7 +41,11 @@ data ProofResult
     -- ^ Both are satisfiable
     deriving (Data, Typeable, Eq, Ord, Show)
 
-data Proof lit = Proof (ProofResult, S.Set (ImplicativeNormalForm lit)) | NoProof
+data Proof lit = Proof (ProofResult, S.Set (ImplicativeNormalForm lit)) | NoProof deriving (Data, Typeable, Eq)
+
+instance (Ord lit, Show lit) => Show (Proof lit) where
+    show NoProof = "NoProof"
+    show (Proof (r, _p)) = "Proof (" ++ show r ++ {- ", " ++ show p ++ -} ")"
 
 -- |Reset the knowledgebase to empty.
 emptyKB :: Monad m => ProverT inf m ()

@@ -31,7 +31,7 @@ import qualified Data.Logic.Instances.Chiou as C
 import qualified Data.Logic.Instances.Native as P
 import Data.Logic.Instances.PropLogic (plSat)
 import qualified Data.Logic.Instances.SatSolver as SS
-import Data.Logic.KnowledgeBase (ProofResult, loadKB, theoremKB, getKB)
+import Data.Logic.KnowledgeBase (Proof, ProofResult, loadKB, theoremKB, getKB)
 import Data.Logic.Logic (Boolean(..))
 import Data.Logic.Monad (WithId, runNormal, runProver', runNormal', runNormalT')
 import Data.Logic.Normal (ClauseNormalFormula(satisfiable), ImplicativeNormalForm(..), Literal)
@@ -139,7 +139,7 @@ data (FirstOrderFormula formula term v p f) => Expected formula term v p f
     | ClauseNormalForm (S.Set (S.Set formula))
     | TrivialClauses [(Bool, (S.Set formula))]
     | ConvertToChiou formula
-    | ChiouKB1 (ProofResult, S.Set (ImplicativeNormalForm formula))
+    | ChiouKB1 (Proof formula)
     | PropLogicSat Bool
     | SatSolverCNF CNF
     | SatSolverSat Bool

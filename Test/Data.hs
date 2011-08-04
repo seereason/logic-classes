@@ -18,7 +18,7 @@ import Data.Boolean.SatSolver (Literal(..))
 import Data.Generics (Typeable)
 import qualified Data.Logic.Instances.Chiou as C
 import Data.Logic.FirstOrder (FirstOrderFormula(..), for_all', exists', Term(..), Skolem(toSkolem), convertFOF, pApp, Pred(..))
-import Data.Logic.KnowledgeBase (ProofResult(..))
+import Data.Logic.KnowledgeBase (Proof(..), ProofResult(..))
 import Data.Logic.Logic (Negatable(..), Logic(..), Boolean(..))
 import Data.Logic.Monad (WithId(..))
 import Data.Logic.Normal (ImplicativeNormalForm, makeINF, makeINF')
@@ -566,16 +566,17 @@ animalConjectures =
                 ((.~.) (pApp ("Kills") [var ("x"),var ("y")]))],
                [((.~.) (pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []]))]])
            , ChiouKB1
-             (Invalid,
-              S.fromList 
-              [makeINF' ([]) ([(pApp ("Cat") [fApp ("Tuna") []])]),
-               makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
-               makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]),
-               makeINF' ([]) ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem 1) []])]),
-               makeINF' ([(pApp ("Animal") [var ("y")]),(pApp ("AnimalLover") [var ("x")]),(pApp ("Kills") [var ("x"),var ("y")])]) ([]),
-               makeINF' ([(pApp ("Cat") [var ("x")])]) ([(pApp ("Animal") [var ("x")])]),
-               makeINF' ([(pApp ("Dog") [var ("y")]),(pApp ("Owns") [var ("x"),var ("y")])]) ([(pApp ("AnimalLover") [var ("x")])]),
-               makeINF' ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]) ([])])
+             (Proof
+              (Invalid,
+               S.fromList 
+               [makeINF' ([]) ([(pApp ("Cat") [fApp ("Tuna") []])]),
+                makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
+                makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]),
+                makeINF' ([]) ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem 1) []])]),
+                makeINF' ([(pApp ("Animal") [var ("y")]),(pApp ("AnimalLover") [var ("x")]),(pApp ("Kills") [var ("x"),var ("y")])]) ([]),
+                makeINF' ([(pApp ("Cat") [var ("x")])]) ([(pApp ("Animal") [var ("x")])]),
+                makeINF' ([(pApp ("Dog") [var ("y")]),(pApp ("Owns") [var ("x"),var ("y")])]) ([(pApp ("AnimalLover") [var ("x")])]),
+                makeINF' ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]) ([])]))
            ]
        }
      , TestFormula
