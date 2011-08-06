@@ -5,6 +5,8 @@ module Data.Logic.Pretty
     , prettyForm
     , prettyTerm
     , prettyLit
+    , prettyProof
+    , prettyINF
     ) where
 
 import Data.List (intercalate, intersperse)
@@ -12,7 +14,8 @@ import Data.Logic.FirstOrder (FirstOrderFormula(foldF), Term(foldT), Quant(..))
 import Data.Logic.Logic
 import qualified Data.Logic.Normal as N -- (Literal(..))
 import Data.Logic.Predicate (Predicate(Apply, Constant, Equal, NotEqual))
-import Text.PrettyPrint (Doc, text, (<>), (<+>), empty, parens, hcat, nest, brackets)
+import qualified Data.Set as Set
+import Text.PrettyPrint (Doc, text, (<>), (<+>), empty, parens, hcat, nest, brackets, cat, hsep)
 
 -- | Display a formula in a format that can be read into the interpreter.
 showForm :: forall formula term v p f. (FirstOrderFormula formula term v p f, Show v, Show p, Show f) => 
@@ -112,3 +115,10 @@ prettyLit pv pp pf prec lit =
       p (N.Equal t1 t2) = parensIf (prec > 6) (prettyTerm pv pf t1 <+> text "=" <+> prettyTerm pv pf t2)
       parensIf False = id
       parensIf _ = parens . nest 1
+
+prettyProof :: (Negatable lit, Ord lit) => (lit -> Doc) -> Set.Set (N.ImplicativeNormalForm lit) -> Doc
+prettyProof prettyLit p = cat $ [text "["] ++ intersperse (text ", ") (map (prettyINF prettyLit) (Set.toList p)) ++ [text "]"]
+
+prettyINF :: (Negatable lit, Ord lit) => (lit -> Doc) -> N.ImplicativeNormalForm lit -> Doc
+prettyINF prettyLit x = cat $ [text "(", hsep (map prettyLit (Set.toList (N.neg x))),
+                               text ") => (", hsep (map prettyLit (Set.toList (N.pos x))), text ")"]

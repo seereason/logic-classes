@@ -2,6 +2,7 @@ haskell-logic (0.40) unstable; urgency=low
 
   * Remove NoProof constructor from Proof type - we only need this in
     the augumented Proof' type in the ontology package.
+  * Add prettyProof and prettyINF to Data.Logic.Pretty.
 
  -- David Fox <dsf@seereason.com>  Sat, 06 Aug 2011 06:28:20 -0700
 
