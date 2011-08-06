@@ -1,3 +1,10 @@
+haskell-logic (0.40) unstable; urgency=low
+
+  * Remove NoProof constructor from Proof type - we only need this in
+    the augumented Proof' type in the ontology package.
+
+ -- David Fox <dsf@seereason.com>  Sat, 06 Aug 2011 06:28:20 -0700
+
 haskell-logic (0.39) unstable; urgency=low
 
   * Move Proof type from ontology to logic.
