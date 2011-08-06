@@ -117,8 +117,8 @@ prettyLit pv pp pf prec lit =
       parensIf _ = parens . nest 1
 
 prettyProof :: (Negatable lit, Ord lit) => (lit -> Doc) -> Set.Set (N.ImplicativeNormalForm lit) -> Doc
-prettyProof prettyLit p = cat $ [text "["] ++ intersperse (text ", ") (map (prettyINF prettyLit) (Set.toList p)) ++ [text "]"]
+prettyProof lit p = cat $ [text "["] ++ intersperse (text ", ") (map (prettyINF lit) (Set.toList p)) ++ [text "]"]
 
 prettyINF :: (Negatable lit, Ord lit) => (lit -> Doc) -> N.ImplicativeNormalForm lit -> Doc
-prettyINF prettyLit x = cat $ [text "(", hsep (map prettyLit (Set.toList (N.neg x))),
-                               text ") => (", hsep (map prettyLit (Set.toList (N.pos x))), text ")"]
+prettyINF lit x = cat $ [text "(", hsep (map lit (Set.toList (N.neg x))),
+                         text ") => (", hsep (map lit (Set.toList (N.pos x))), text ")"]
