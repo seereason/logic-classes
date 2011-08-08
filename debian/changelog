@@ -1,3 +1,10 @@
+haskell-logic (0.41) unstable; urgency=low
+
+  * Add field accessors to Proof type.
+  * Finish show implementation for Proof
+
+ -- David Fox <dsf@seereason.com>  Mon, 08 Aug 2011 08:32:56 -0700
+
 haskell-logic (0.40) unstable; urgency=low
 
   * Remove NoProof constructor from Proof type - we only need this in

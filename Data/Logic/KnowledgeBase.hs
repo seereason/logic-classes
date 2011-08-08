@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes, TypeSynonymInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes,
+             TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wall -Wwarn #-}
 
 {- KnowledgeBase.hs -}
@@ -41,10 +42,10 @@ data ProofResult
     -- ^ Both are satisfiable
     deriving (Data, Typeable, Eq, Ord, Show)
 
-data Proof lit = Proof (ProofResult, S.Set (ImplicativeNormalForm lit)) deriving (Data, Typeable, Eq)
+data Proof lit = Proof {proofResult :: ProofResult, proof :: S.Set (ImplicativeNormalForm lit)} deriving (Data, Typeable, Eq, Ord)
 
-instance (Ord lit, Show lit) => Show (Proof lit) where
-    show (Proof (r, _p)) = "Proof (" ++ show r ++ {- ", " ++ show p ++ -} ")"
+instance (Ord lit, Show lit, Literal lit term v p f, FirstOrderFormula lit term v p f) => Show (Proof lit) where
+    show p = "Proof {proofResult = " ++ show (proofResult p) ++ ", proof = " ++ show (proof p) ++ "}"
 
 -- |Reset the knowledgebase to empty.
 emptyKB :: Monad m => ProverT inf m ()
@@ -103,7 +104,7 @@ tellKB s =
          Disproved -> return ()
          _ -> put st { knowledgeBase = S.union (knowledgeBase st) inf'
                      , sentenceCount = sentenceCount st + 1 }
-       return $ Proof (valid, S.map wiItem inf')
+       return $ Proof {proofResult = valid, proof = S.map wiItem inf'}
 
 loadKB :: (FirstOrderFormula formula term v p f, Literal lit term v p f, Monad m) =>
           [formula] -> ProverT' v term (ImplicativeNormalForm lit) m [Proof lit]

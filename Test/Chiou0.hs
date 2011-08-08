@@ -28,13 +28,13 @@ loadTest =
     TestCase (assertEqual "Chiuo0 - loadKB test" expected (runProver' (loadKB sentences)))
     where
       expected :: [Proof TFormula]
-      expected = [Proof (Invalid,S.fromList [makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
+      expected = [Proof Invalid (S.fromList [makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
                                              makeINF' ([]) ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem 1) []])])]),
-                  Proof (Invalid,S.fromList [makeINF' ([(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [var ("x"),var ("y")])]) ([(pApp ("AnimalLover") [var ("x")])])]),
-                  Proof (Invalid,S.fromList [makeINF' ([(pApp ("Animal") [var ("y")]),(pApp ("AnimalLover") [var ("x")]),(pApp ("Kills") [var ("x"),var ("y")])]) ([])]),
-                  Proof (Invalid,S.fromList [makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])])]),
-                  Proof (Invalid,S.fromList [makeINF' ([]) ([(pApp ("Cat") [fApp ("Tuna") []])])]),
-                  Proof (Invalid,S.fromList [makeINF' ([(pApp ("Cat") [var ("x")])]) ([(pApp ("Animal") [var ("x")])])])]
+                  Proof Invalid (S.fromList [makeINF' ([(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [var ("x"),var ("y")])]) ([(pApp ("AnimalLover") [var ("x")])])]),
+                  Proof Invalid (S.fromList [makeINF' ([(pApp ("Animal") [var ("y")]),(pApp ("AnimalLover") [var ("x")]),(pApp ("Kills") [var ("x"),var ("y")])]) ([])]),
+                  Proof Invalid (S.fromList [makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])])]),
+                  Proof Invalid (S.fromList [makeINF' ([]) ([(pApp ("Cat") [fApp ("Tuna") []])])]),
+                  Proof Invalid (S.fromList [makeINF' ([(pApp ("Cat") [var ("x")])]) ([(pApp ("Animal") [var ("x")])])])]
 
 proofTest1 :: Test
 proofTest1 = TestCase (assertEqual "Chiuo0 - proof test 1" proof1 (runProver' (loadKB sentences >> theoremKB (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []] :: TFormula))))

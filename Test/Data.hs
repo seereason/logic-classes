@@ -567,8 +567,8 @@ animalConjectures =
                [((.~.) (pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []]))]])
            , ChiouKB1
              (Proof
-              (Invalid,
-               S.fromList 
+              Invalid
+              (S.fromList 
                [makeINF' ([]) ([(pApp ("Cat") [fApp ("Tuna") []])]),
                 makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
                 makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]),
