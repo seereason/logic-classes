@@ -47,7 +47,7 @@ import Data.Logic.Harrison.Prop (nnf, trivial, simpcnf)
 import Data.Logic.Monad (NormalT)
 import Data.Logic.Normal (Literal(..), ImplicativeNormalForm, makeINF)
 import Data.Logic.Pretty (prettyForm, prettyLit)
-import qualified Data.Logic.Set as S
+import qualified Data.Set.Extra as S
 import Data.Maybe (isJust)
 import Text.PrettyPrint (Doc, hcat, vcat, text, nest, ($$), brackets, render)
 

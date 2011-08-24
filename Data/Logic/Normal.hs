@@ -19,7 +19,7 @@ import Data.Logic.FirstOrder (FirstOrderFormula, Term(..), convertTerm)
 import qualified Data.Logic.FirstOrder as Logic
 import Data.Logic.Logic (Negatable(..), Boolean(..))
 import qualified Data.Logic.Logic as Logic
-import qualified Data.Logic.Set as S
+import qualified Data.Set.Extra as S
 
 -- |Caution - There are similar declarations with similar names in the
 -- FirstOrder module, these are simplified versions suitable for

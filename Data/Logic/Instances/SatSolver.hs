@@ -6,7 +6,7 @@ import Control.Monad.State (get, put)
 import Control.Monad.Trans (lift)
 import Data.Boolean.SatSolver
 import Data.Generics (Data, Typeable)
-import qualified Data.Logic.Set as S
+import qualified Data.Set.Extra as S
 import Data.Logic.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Logic (Negatable(..))
 import Data.Logic.Monad (NormalT', LiteralMapT)

@@ -9,7 +9,7 @@ module Data.Logic.Harrison.Prop
 import Data.Logic.FirstOrder (FirstOrderFormula(..), Pred(..), Predicate(..), Quant(..), quant, pApp)
 import Data.Logic.Logic (Negatable(..), Logic(..), Combine(..), Boolean(..), BinOp(..))
 import Data.Logic.Normal (Literal, fromFirstOrder)
-import qualified Data.Logic.Set as S
+import qualified Data.Set.Extra as S
 
 {-
 (* ========================================================================= *)

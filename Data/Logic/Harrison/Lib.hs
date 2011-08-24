@@ -10,7 +10,7 @@ module Data.Logic.Harrison.Lib
     , itlist
     ) where
 
-import qualified Data.Logic.Set as S
+import qualified Data.Set.Extra as S
 import qualified Data.Map as M
 
 {-

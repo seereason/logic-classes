@@ -38,10 +38,9 @@ Library
                    Data.Logic.Propositional
                    Data.Logic.Resolution
                    Data.Logic.Satisfiable
-                   Data.Logic.Set
                    Data.Logic.Test
  Build-Depends:    base, containers, fgl, happstack-data, incremental-sat-solver,
-                   mtl, syb-with-class, text, PropLogic, pretty, safecopy, syb
+                   mtl, syb-with-class, text, PropLogic, pretty, safecopy, set-extra, syb
 
 Executable tests
  Main-Is: Test/Test.hs

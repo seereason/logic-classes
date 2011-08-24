@@ -11,7 +11,7 @@ import Data.Logic.Monad (NormalT)
 import Data.Logic.Normal (Literal)
 import Data.Logic.NormalForm (clauseNormalForm)
 import Data.Logic.Propositional
-import qualified Data.Logic.Set as S
+import qualified Data.Set.Extra as S
 import PropLogic
 
 instance Negatable (PropForm a) where

@@ -14,7 +14,7 @@ module Data.Logic.Resolution
 
 import Data.Logic.FirstOrder (Term(..))
 import Data.Logic.Normal (Predicate(..), Literal(..), ImplicativeNormalForm(..), makeINF)
-import qualified Data.Logic.Set as S
+import qualified Data.Set.Extra as S
 import Data.Map (Map, empty)
 import qualified Data.Map as M
 import Data.Maybe (isJust)

@@ -29,4 +29,3 @@ import Data.Logic.Predicate
 import Data.Logic.Pretty
 import Data.Logic.Propositional
 import Data.Logic.Resolution
-import Data.Logic.Set

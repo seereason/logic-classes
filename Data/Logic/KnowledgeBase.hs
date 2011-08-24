@@ -30,7 +30,7 @@ import Data.Logic.Monad (ProverT, ProverT', ProverState(..), KnowledgeBase, With
 import Data.Logic.Normal (ImplicativeNormalForm, Literal)
 import Data.Logic.NormalForm (implicativeNormalForm)
 import Data.Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
-import qualified Data.Logic.Set as S
+import qualified Data.Set.Extra as S
 import Prelude hiding (negate)
 
 data ProofResult

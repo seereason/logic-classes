@@ -12,7 +12,7 @@ import Data.Logic.FirstOrder
 import Data.Logic.Harrison.Prop (nnf, psimplify1)
 import Data.Logic.Logic
 import Data.Logic.Monad (NormalT, LogicState(..))
-import qualified Data.Logic.Set as S
+import qualified Data.Set.Extra as S
 
 {-
 (* ========================================================================= *)
