@@ -13,7 +13,6 @@ import Data.Data (Data)
 import Data.Logic.FirstOrder (Term(..), FirstOrderFormula(..), Quant(..), Skolem(..), Variable,
                          Pred(..), Predicate(..), Arity, pApp)
 import Data.Logic.Logic (Negatable(..), Logic(..), BinOp(..), Boolean(..), Combine(..))
-import qualified Data.Logic.Logic as Logic
 import qualified Data.Logic.Normal as N
 import Data.Logic.Pretty (showForm, showTerm)
 import Data.Logic.Propositional (PropositionalFormula(..))
