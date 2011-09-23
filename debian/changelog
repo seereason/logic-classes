@@ -1,3 +1,10 @@
+haskell-logic (0.42) unstable; urgency=low
+
+  * Derive the show instance for ImplicativeNormalForm rather than
+    making a custom one.
+
+ -- David Fox <dsf@seereason.com>  Fri, 23 Sep 2011 16:43:09 -0700
+
 haskell-logic (0.41) unstable; urgency=low
 
   * Add field accessors to Proof type.

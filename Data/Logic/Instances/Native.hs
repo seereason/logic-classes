@@ -112,7 +112,10 @@ instance (Boolean p, Arity p) => Pred p (PTerm v f) (Formula v p f) where
     x .=. y = Predicate (Equal x y)
     x .!=. y = Predicate (NotEqual x y)
 
-instance (Variable v, Skolem f, Ord f, Ord v, Ord p, Data p, Data v, Data f, Pred p (PTerm v f) (Formula v p f)) =>
+instance (Pred p (PTerm v f) (Formula v p f),
+          Variable v, Ord v, Data v, Show v,
+          Ord p, Data p, Show p,
+          Skolem f, Ord f, Data f, Show f) =>
          FirstOrderFormula (Formula v p f) (PTerm v f) v p f where
     for_all v x = Quant All v x
     exists v x = Quant Exists v x
@@ -128,7 +131,9 @@ instance (Variable v, Skolem f, Ord f, Ord v, Ord p, Data p, Data v, Data f, Pre
           (Predicate x, Predicate y) -> p x y
           _ -> Nothing
 
-instance (Variable v, Skolem f, Boolean p, Ord f, Ord v, Ord p, Data p, Data v, Data f) => N.Literal (Formula v p f) (PTerm v f) v p f where
+instance (Variable v, Ord v, Data v, Show v,
+          Arity p, Boolean p, Ord p, Data p, Show p,
+          Skolem f, Ord f, Data f, Show f) => N.Literal (Formula v p f) (PTerm v f) v p f where
     x .=. y = Predicate (Equal x y)
     pApp p ts = Predicate (Apply p ts)
     foldN c pr l =

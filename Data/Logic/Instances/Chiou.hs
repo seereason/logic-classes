@@ -112,9 +112,9 @@ instance (Arity p, Boolean p) => Pred p (CTerm v f) (Sentence v p f) where
     -- fApp (AtomicSkolemFunction n) ts = SkolemFunction n ts
     x .=. y = Equal x y
 
-instance (Ord v, IsString v, L.Variable v, Data v,
-          Ord p, IsString p, Boolean p, Arity p, Data p,
-          Ord f, IsString f, Skolem f, Data f, 
+instance (Ord v, IsString v, L.Variable v, Data v, Show v,
+          Ord p, IsString p, Boolean p, Arity p, Data p, Show p,
+          Ord f, IsString f, Skolem f, Data f, Show f,
           PropositionalFormula (Sentence v p f) (Sentence v p f)) =>
           FirstOrderFormula (Sentence v p f) (CTerm v f) v p f where
     for_all v x = Quantifier ForAll [v] x
@@ -217,10 +217,10 @@ instance (Arity p, Boolean p, Logic (NormalSentence v p f)) => Pred p (NormalTer
     x .=. y = NFEqual x y
     x .!=. y = NFNot (NFEqual x y)
 
-instance (IsString v,
-          Ord p, IsString p, Boolean p, Arity p, Data p,
-          Ord f, IsString f,
-          Logic (NormalSentence v p f), Logic.Term (NormalTerm v f) v f) => FirstOrderFormula (NormalSentence v p f) (NormalTerm v f) v p f where
+instance (Logic (NormalSentence v p f), Logic.Term (NormalTerm v f) v f,
+          IsString v, Show v,
+          Ord p, IsString p, Boolean p, Arity p, Data p, Show p,
+          Ord f, IsString f, Show f) => FirstOrderFormula (NormalSentence v p f) (NormalTerm v f) v p f where
     for_all _ _ = error "FirstOrderFormula NormalSentence"
     exists _ _ = error "FirstOrderFormula NormalSentence"
     foldF _ c p f =

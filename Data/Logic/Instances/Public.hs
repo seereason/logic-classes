@@ -71,7 +71,10 @@ instance (Boolean p, Arity p) => Pred p (N.PTerm v f) (Formula v p f) where
     pApp7 p t1 t2 t3 t4 t5 t6 t7 = (public :: N.Formula v p f -> Formula v p f) $ pApp7 (p) (t1) (t2) (t3) (t4) (t5) (t6) (t7)
     t1 .=. t2 = (public :: N.Formula v p f -> Formula v p f) $ (t1) .=. (t2)
 
-instance (Arity p, Boolean p, Ord p, Data p, Ord f, Logic (Formula v p f), Term (N.PTerm v f) v f) => FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f where
+instance (Logic (Formula v p f), Term (N.PTerm v f) v f,
+          Show v,
+          Arity p, Boolean p, Ord p, Data p, Show p,
+          Ord f, Show f) => FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f where
     for_all v x = public $ for_all v (intern x :: N.Formula v p f)
     exists v x = public $ exists v (intern x :: N.Formula v p f)
     foldF q c p f = foldF q' c' p (intern f :: N.Formula v p f)

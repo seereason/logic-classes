@@ -15,7 +15,7 @@ module Data.Logic.Normal
 
 import Control.Monad.Writer (MonadPlus)
 import Data.Generics (Data, Typeable)
-import Data.Logic.FirstOrder (FirstOrderFormula, Term(..), convertTerm)
+import Data.Logic.FirstOrder (Term(..), convertTerm)
 import qualified Data.Logic.FirstOrder as Logic
 import Data.Logic.Logic (Negatable(..), Boolean(..))
 import qualified Data.Logic.Logic as Logic
@@ -35,6 +35,7 @@ class ( Ord lit
       , Term term v f
       , Negatable lit
       , Data lit
+      , Show lit
       ) => Literal lit term v p f | lit -> term, lit -> v, lit -> p, lit -> f where
     (.=.) :: term -> term -> lit
     pApp :: p -> [term] -> lit
@@ -54,7 +55,7 @@ class (Negatable lit, Eq lit, Ord lit) => ClauseNormalFormula cnf lit | cnf -> l
 -- that no literal can appear in both the pos set and the neg set.
 data (Negatable lit, Ord lit) => ImplicativeNormalForm lit =
     INF {neg :: S.Set lit, pos :: S.Set lit}
-    deriving (Eq, Ord, Data, Typeable)
+    deriving (Eq, Ord, Data, Typeable, Show)
 
 -- |Synonym for INF.
 makeINF :: (Negatable lit, Ord lit) => S.Set lit -> S.Set lit -> ImplicativeNormalForm lit
@@ -64,9 +65,6 @@ makeINF = INF
 -- implementing a more attractive show method.
 makeINF' :: (Negatable lit, Ord lit) => [lit] -> [lit] -> ImplicativeNormalForm lit
 makeINF' n p = makeINF (S.fromList n) (S.fromList p)
-
-instance (Ord formula, FirstOrderFormula formula term v p f, Show formula) => Show (ImplicativeNormalForm formula) where
-    show x = "makeINF' (" ++ show (S.toList (neg x)) ++ ") (" ++ show (S.toList (pos x)) ++ ")"
 
 -- |Just like Logic.FirstOrder.convertFOF except it rejects anything
 -- with a construct unsupported in a normal logic formula,

@@ -91,16 +91,19 @@ class ( Ord v     -- Required so variables can be inserted into maps and sets
 -- instance for (FirstOrderFormula Formula term V p f)@ because the
 -- function doesn't mention the Term type.
 class ( Term term v f
+      , Pred p term formula
       , Logic formula  -- Basic logic operations
       , Data formula   -- Allows us to use Data.Generics functions on formulas
+      , Show v
       , Data p
       , Boolean p      -- To implement true and false below
       , Arity p        -- To decide how many arguments
       , Eq p           -- Required during resolution
       , Ord p
+      , Show p
       -- , Pretty p
       , Ord f
-      , Pred p term formula
+      , Show f
       ) => FirstOrderFormula formula term v p f
                                     | formula -> term
                                     , formula -> v
