@@ -6,7 +6,7 @@ module Data.Logic.Propositional.Instances.PropLogic
     ) where
 
 import Data.Logic.Logic
-import Data.Logic.Propositional.Normal (clauseNormalForm)
+import Data.Logic.Propositional.Normal (clauseNormalForm')
 import Data.Logic.Propositional.Formula
 import qualified Data.Set.Extra as S
 import PropLogic
@@ -78,7 +78,7 @@ plSat :: (PropAlg a (PropForm formula), PropositionalFormula formula atom) => Pr
 plSat f = satisfiable . (\ (x :: PropForm formula) -> x) . clauses $ f
 
 clauses :: PropositionalFormula formula atom => PropForm formula -> PropForm formula
-clauses f = CJ . map DJ . map S.toList . S.toList $ clauseNormalForm f
+clauses f = CJ . map DJ . map S.toList . S.toList $ clauseNormalForm' f
 
 {-
 inconsistant :: (Monad m, FirstOrderFormula formula term v p f, Ord formula) =>

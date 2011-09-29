@@ -3,12 +3,14 @@
 module Data.Logic.Propositional.Normal
     ( negationNormalForm
     , clauseNormalForm
+    , clauseNormalForm'
     , disjunctiveNormalForm
+    , disjunctiveNormalForm'
     ) where
 
 import Data.Logic.Logic
 import Data.Logic.Propositional.Formula
-import qualified Data.Set.Extra as S
+import qualified Data.Set.Extra as Set
 
 -- | Simplify and recursively apply nnf.
 negationNormalForm :: PropositionalFormula formula atom => formula -> formula
@@ -113,43 +115,63 @@ psimplify1 fm =
                    EQ -> Just False
                    _ -> Nothing
 
-clauseNormalForm :: (PropositionalFormula formula atom) => formula -> S.Set (S.Set formula)
-clauseNormalForm = simp purecnf . negationNormalForm
+clauseNormalForm' :: (PropositionalFormula formula atom) => formula -> Set.Set (Set.Set formula)
+clauseNormalForm' = simp purecnf . negationNormalForm
 
-disjunctiveNormalForm :: (PropositionalFormula formula atom) => formula -> S.Set (S.Set formula)
-disjunctiveNormalForm = simp purednf . negationNormalForm
+clauseNormalForm :: forall formula atom. (PropositionalFormula formula atom) => formula -> formula
+clauseNormalForm formula =
+    case clean (lists cnf) of
+      [] -> fromBool True
+      xss -> foldr1 (.&.) . map (foldr1 (.|.)) $ xss
+    where
+      clean = filter (not . null)
+      lists = Set.toList . Set.map Set.toList
+      cnf = clauseNormalForm' formula
+
+disjunctiveNormalForm :: (PropositionalFormula formula atom) => formula -> formula
+disjunctiveNormalForm formula =
+    case clean (lists dnf) of
+      [] -> fromBool False
+      xss -> foldr1 (.|.) . map (foldr1 (.&.)) $ xss
+    where
+      clean = filter (not . null)
+      lists = Set.toList . Set.map Set.toList
+      dnf = disjunctiveNormalForm' formula
+
+disjunctiveNormalForm' :: (PropositionalFormula formula atom) => formula -> Set.Set (Set.Set formula)
+disjunctiveNormalForm' = simp purednf . negationNormalForm
 
 simp :: forall formula atom. (PropositionalFormula formula atom) =>
-        (formula -> S.Set (S.Set formula)) -> formula -> S.Set (S.Set formula)
+        (formula -> Set.Set (Set.Set formula)) -> formula -> Set.Set (Set.Set formula)
 simp purenf fm =
     case (compare fm (fromBool False), compare fm (fromBool True)) of
-      (EQ, _) -> S.empty
-      (_, EQ) -> S.singleton S.empty
+      (EQ, _) -> Set.empty
+      (_, EQ) -> Set.singleton Set.empty
       _ ->cjs'
     where
       -- Discard any clause that is the proper subset of another clause
-      cjs' = S.filter keep cjs
-      keep x = not (S.or (S.map (S.isProperSubsetOf x) cjs))
-      cjs = S.filter (not . trivial) (purenf (nnf fm)) :: S.Set (S.Set formula)
+      cjs' = Set.filter keep cjs
+      keep x = not (Set.or (Set.map (Set.isProperSubsetOf x) cjs))
+      cjs = Set.filter (not . trivial) (purenf (nnf fm)) :: Set.Set (Set.Set formula)
 
 -- |Harrison page 59.  Look for complementary pairs in a clause.
-trivial :: (Negatable lit, Ord lit) => S.Set lit -> Bool
+trivial :: (Negatable lit, Ord lit) => Set.Set lit -> Bool
 trivial lits =
-    not . S.null $ S.intersection (S.map (.~.) n) p
-    where (n, p) = S.partition negated lits
+    not . Set.null $ Set.intersection (Set.map (.~.) n) p
+    where (n, p) = Set.partition negated lits
 
 -- | CNF: (a | b | c) & (d | e | f)
---purecnf :: forall formula term v p f lit. (FirstOrderFormula formula term v p f, Literal lit term v p f) => formula -> S.Set (S.Set lit)
-purecnf :: forall formula atom. PropositionalFormula formula atom => formula -> S.Set (S.Set formula)
-purecnf fm = S.map (S.map (.~.)) (purednf (nnf ((.~.) fm)))
+--purecnf :: forall formula term v p f lit. (FirstOrderFormula formula term v p f, Literal lit term v p f) => formula -> Set.Set (Set.Set lit)
+purecnf :: forall formula atom. PropositionalFormula formula atom => formula -> Set.Set (Set.Set formula)
+purecnf fm = Set.map (Set.map (.~.)) (purednf (nnf ((.~.) fm)))
 
-purednf :: forall formula atom. (PropositionalFormula formula atom) => formula -> S.Set (S.Set formula)
+purednf :: forall formula atom. (PropositionalFormula formula atom) => formula -> Set.Set (Set.Set formula)
 purednf fm =
     foldF0 c (\ _ -> x)  fm
     where
-      c :: Combine formula -> S.Set (S.Set formula)
-      c (BinOp p (:&:) q) = S.distrib (purednf p) (purednf q)
-      c (BinOp p (:|:) q) = S.union (purednf p) (purednf q)
+      c :: Combine formula -> Set.Set (Set.Set formula)
+      c (BinOp p (:&:) q) = Set.distrib (purednf p) (purednf q)
+      c (BinOp p (:|:) q) = Set.union (purednf p) (purednf q)
       c _ = x
-      x :: S.Set (S.Set formula)
-      x = S.singleton (S.singleton (convertProp id fm)) :: S.Set (S.Set formula)
+      x :: Set.Set (Set.Set formula)
+      x = Set.singleton (Set.singleton (convertProp id fm)) :: Set.Set (Set.Set formula)
