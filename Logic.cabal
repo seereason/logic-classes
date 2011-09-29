@@ -1,5 +1,5 @@
 Name:             Logic
-Version:          0.42
+Version:          0.43
 License:          BSD3
 Author:           David Fox <dsf@seereason.com>
 Maintainer:       SeeReason Partners <partners@seereason.com>
@@ -25,7 +25,6 @@ Library
                    Data.Logic.Harrison.Skolem
                    Data.Logic.Instances.Chiou
                    Data.Logic.Instances.Native
-                   Data.Logic.Instances.PropLogic
                    Data.Logic.Instances.Public
                    Data.Logic.Instances.SatSolver
                    Data.Logic.KnowledgeBase
@@ -35,7 +34,10 @@ Library
                    Data.Logic.NormalForm
                    Data.Logic.Predicate
                    Data.Logic.Pretty
-                   Data.Logic.Propositional
+                   Data.Logic.Propositional.Formula
+                   Data.Logic.Propositional.Instances.Native
+                   Data.Logic.Propositional.Instances.PropLogic
+                   Data.Logic.Propositional.Normal
                    Data.Logic.Resolution
                    Data.Logic.Satisfiable
                    Data.Logic.Test

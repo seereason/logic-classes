@@ -9,7 +9,7 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
              GeneralizedNewtypeDeriving, MultiParamTypeClasses, RankNTypes, TemplateHaskell, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-orphans -Wall -Wwarn #-}
-module Data.Logic.Propositional
+module Data.Logic.Propositional.Formula
     ( PropositionalFormula(..)
     , showForm0
     , convertProp

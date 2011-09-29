@@ -17,7 +17,7 @@ import Data.Logic.Logic ((.~.))
 import Data.Logic.Monad (NormalT)
 import Data.Logic.Normal (Literal)
 import Data.Logic.NormalForm (clauseNormalForm)
-import Data.Logic.Instances.PropLogic ()
+import Data.Logic.Propositional.Instances.PropLogic ()
 import qualified PropLogic as PL
 
 satisfiable :: (Monad m, FirstOrderFormula formula term v p f, Ord formula, Literal formula term v p f) =>

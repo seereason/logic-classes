@@ -1,3 +1,11 @@
+haskell-logic (0.43) unstable; urgency=low
+
+  * Move Propositional modules into Data.Logic.Propositional.
+  * Add a Native instance for PropositionalFormula.
+  * Add a Normal in the Propositional directory
+
+ -- David Fox <dsf@seereason.com>  Thu, 29 Sep 2011 05:56:41 -0700
+
 haskell-logic (0.42) unstable; urgency=low
 
   * Derive the show instance for ImplicativeNormalForm rather than

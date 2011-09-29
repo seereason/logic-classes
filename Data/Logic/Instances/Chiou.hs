@@ -21,7 +21,7 @@ import qualified Data.Logic.FirstOrder as L
 import Data.Logic.FirstOrder (Pred(..))
 import Data.Logic.Logic (Negatable(..), Logic(..), BinOp(..), Combine(..), Boolean(..))
 import Data.Logic.Normal (ImplicativeNormalForm(..))
-import Data.Logic.Propositional (PropositionalFormula(..))
+import Data.Logic.Propositional.Formula (PropositionalFormula(..))
 import Data.Logic.FirstOrder (Skolem(..), Quant(..), pApp)
 import Data.String (IsString(..))
 

@@ -15,7 +15,7 @@ import Data.Logic.FirstOrder (Term(..), FirstOrderFormula(..), Quant(..), Skolem
 import Data.Logic.Logic (Negatable(..), Logic(..), BinOp(..), Boolean(..), Combine(..))
 import qualified Data.Logic.Normal as N
 import Data.Logic.Pretty (showForm, showTerm)
-import Data.Logic.Propositional (PropositionalFormula(..))
+import Data.Logic.Propositional.Formula (PropositionalFormula(..))
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)

@@ -27,5 +27,5 @@ import Data.Logic.Normal as N
 import Data.Logic.Logic
 import Data.Logic.Predicate
 import Data.Logic.Pretty
-import Data.Logic.Propositional
+import Data.Logic.Propositional.Formula
 import Data.Logic.Resolution

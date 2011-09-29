@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS -fno-warn-orphans #-}
-module Data.Logic.Instances.PropLogic
+module Data.Logic.Propositional.Instances.PropLogic
     ( flatten
     , plSat
     ) where
@@ -10,7 +10,7 @@ import Data.Logic.Logic
 import Data.Logic.Monad (NormalT)
 import Data.Logic.Normal (Literal)
 import Data.Logic.NormalForm (clauseNormalForm)
-import Data.Logic.Propositional
+import Data.Logic.Propositional.Formula
 import qualified Data.Set.Extra as S
 import PropLogic
 

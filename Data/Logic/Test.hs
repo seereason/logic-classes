@@ -29,7 +29,7 @@ import Data.Generics (Data, Typeable, listify, Fixity(..))
 import Data.Logic.FirstOrder (FirstOrderFormula, convertFOF, Predicate(..), Skolem(..), Variable(one, next))
 import qualified Data.Logic.Instances.Chiou as C
 import qualified Data.Logic.Instances.Native as P
-import Data.Logic.Instances.PropLogic (plSat)
+import Data.Logic.Propositional.Instances.PropLogic (plSat)
 import qualified Data.Logic.Instances.SatSolver as SS
 import Data.Logic.KnowledgeBase (Proof, ProofResult, loadKB, theoremKB, getKB)
 import Data.Logic.Logic (Boolean(..))

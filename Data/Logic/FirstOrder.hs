@@ -40,7 +40,7 @@ import Data.Data (Data)
 import Data.Function (on)
 import Data.Logic.Logic
 import Data.Logic.Predicate (Arity, Pred(..), Predicate(..), pApp)
-import Data.Logic.Propositional (PropositionalFormula(..))
+import Data.Logic.Propositional.Formula (PropositionalFormula(..))
 import Data.Monoid (mappend)
 import Data.SafeCopy (base, deriveSafeCopy)
 import qualified Data.Set as S
@@ -83,7 +83,7 @@ class ( Ord v     -- Required so variables can be inserted into maps and sets
     -- primitive function to other terms.
     zipT :: (v -> v -> Maybe r) -> (f -> [term] -> f -> [term] -> Maybe r) -> term -> term -> Maybe r
 
--- |The 'PropositionalFormula' type class.  Minimal implementation:
+-- |The 'FirstOrderFormula' type class.  Minimal implementation:
 -- @for_all, exists, foldF, foldT, (.=.), pApp0-pApp7, fApp, var@.  The
 -- functional dependencies are necessary here so we can write
 -- functions that don't fix all of the type parameters.  For example,
