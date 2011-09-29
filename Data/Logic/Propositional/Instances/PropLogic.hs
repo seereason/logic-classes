@@ -5,11 +5,8 @@ module Data.Logic.Propositional.Instances.PropLogic
     , plSat
     ) where
 
-import Data.Logic.FirstOrder (FirstOrderFormula, toPropositional)
 import Data.Logic.Logic
-import Data.Logic.Monad (NormalT)
-import Data.Logic.Normal (Literal)
-import Data.Logic.NormalForm (clauseNormalForm)
+import Data.Logic.Propositional.Normal (clauseNormalForm)
 import Data.Logic.Propositional.Formula
 import qualified Data.Set.Extra as S
 import PropLogic
@@ -76,13 +73,12 @@ flatten (SJ xs) = SJ (map flatten xs)
 flatten (N x) = N (flatten x)
 flatten x = x
 
-plSat :: forall m formula term v p f. (Monad m, FirstOrderFormula formula term v p f, Ord formula, Literal formula term v p f) =>
-                formula -> NormalT v term m Bool
-plSat f = clauses f >>= (\ (x :: PropForm formula) -> return x) >>= return . satisfiable
+--plSat :: forall m formula term v p f. (Monad m, FirstOrderFormula formula term v p f, Ord formula, Literal formula term v p f) => formula -> NormalT v term m Bool
+plSat :: (PropAlg a (PropForm formula), PropositionalFormula formula atom) => PropForm formula -> Bool
+plSat f = satisfiable . (\ (x :: PropForm formula) -> x) . clauses $ f
 
-clauses :: forall m formula term v p f. (Monad m, FirstOrderFormula formula term v p f, Literal formula term v p f) =>
-           formula -> NormalT v term m (PropForm formula)
-clauses f = clauseNormalForm f >>= return . CJ . map (DJ . map (toPropositional (A :: formula -> PropForm formula))) . map S.toList . S.toList
+clauses :: PropositionalFormula formula atom => PropForm formula -> PropForm formula
+clauses f = CJ . map DJ . map S.toList . S.toList $ clauseNormalForm f
 
 {-
 inconsistant :: (Monad m, FirstOrderFormula formula term v p f, Ord formula) =>
