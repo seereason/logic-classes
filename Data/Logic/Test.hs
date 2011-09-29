@@ -42,6 +42,8 @@ import Data.Logic.Resolution (SetOfSupport)
 import qualified Data.Set as S
 import Data.String (IsString(fromString))
 
+import PropLogic (PropForm)
+
 import Test.HUnit
 import Text.PrettyPrint (Doc, (<>), text)
 

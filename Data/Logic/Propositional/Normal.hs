@@ -8,7 +8,6 @@ module Data.Logic.Propositional.Normal
 
 import Data.Logic.Logic
 import Data.Logic.Propositional.Formula
-import qualified Data.Set.Extra as S
 
 -- | Simplify and recursively apply nnf.
 negationNormalForm :: PropositionalFormula formula atom => formula -> formula
@@ -103,3 +102,12 @@ psimplify1 fm =
       simplifyNotCombine ((:~:) f) = f
       simplifyNotCombine _ = fm
       simplifyNotAtom x = (.~.) (atomic x)
+      -- We don't require an Eq instance, but we do require Ord so that
+      -- we can make sets.
+      asBool :: formula -> Maybe Bool
+      asBool x =
+          case compare x (fromBool True) of
+            EQ -> Just True
+            _ -> case compare x (fromBool False) of
+                   EQ -> Just False
+                   _ -> Nothing

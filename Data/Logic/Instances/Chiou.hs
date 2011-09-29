@@ -57,7 +57,7 @@ instance Negatable (Sentence v p f) where
     negated (Not x) = not (negated x)
     negated _ = False
 
-instance Logic (Sentence v p f) where
+instance (Ord v, Ord p, Ord f) => Logic (Sentence v p f) where
     x .<=>. y = Connective x Equiv y
     x .=>.  y = Connective x Imply y
     x .|.   y = Connective x Or y
@@ -66,7 +66,7 @@ instance Logic (Sentence v p f) where
 instance (Ord v, IsString v, Data v, L.Variable v, 
           Ord p, IsString p, Data p, Boolean p, Arity p,
           Ord f, IsString f, Data f, Skolem f, 
-          Logic (Sentence v p f)) =>
+          Boolean (Sentence v p f), Logic (Sentence v p f)) =>
          PropositionalFormula (Sentence v p f) (Sentence v p f) where
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
@@ -99,7 +99,7 @@ instance Skolem AtomicFunction where
     fromSkolem (AtomicSkolemFunction n) = Just n
     fromSkolem _ = Nothing
 
-instance (Arity p, Boolean p) => Pred p (CTerm v f) (Sentence v p f) where
+instance (Ord v, Ord p, Arity p, Boolean p, Ord f) => Pred p (CTerm v f) (Sentence v p f) where
     pApp0 x = Predicate x []
     pApp1 x a = Predicate x [a]
     pApp2 x a b = Predicate x [a,b]

@@ -20,7 +20,7 @@ instance Negatable (Formula atom) where
     negated (Combine ((:~:) x)) = not (negated x)
     negated _ = False
 
-instance Logic (Formula atom) where
+instance Ord atom => Logic (Formula atom) where
     x .<=>. y = Combine (BinOp  x (:<=>:) y)
     x .=>.  y = Combine (BinOp  x (:=>:)  y)
     x .|.   y = Combine (BinOp  x (:|:)   y)
@@ -29,7 +29,7 @@ instance Logic (Formula atom) where
 instance Boolean atom => Boolean (Formula atom) where
     fromBool = Atom . fromBool
 
-instance (Boolean atom, Eq atom) => PropositionalFormula (Formula atom) atom where
+instance (Boolean atom, Ord atom) => PropositionalFormula (Formula atom) atom where
     atomic a = Atom a
     foldF0 c a formula =
         case formula of

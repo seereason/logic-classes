@@ -48,7 +48,9 @@ instance Negatable (Formula v p f) where
     negated = negated . unFormula
     (.~.) = Formula . (.~.) . unFormula
 
-instance Logic (Formula v p f) where
+instance (Variable v, Show v, Ord v, Data v,
+          Arity p, Boolean p, Show p, Ord p, Data p,
+          Skolem f, Show f, Ord f, Data f) => Logic (Formula v p f) where
     x .<=>. y = Formula $ (unFormula x) .<=>. (unFormula y)
     x .=>.  y = Formula $ (unFormula x) .=>. (unFormula y)
     x .|.   y = Formula $ (unFormula x) .|. (unFormula y)
@@ -60,7 +62,9 @@ instance (Arity p, Variable v, Skolem f, Boolean p,
           Data p, Data v, Data f) => Show (Formula v p f) where
     showsPrec n x = showsPrec n (unFormula x)
 
-instance (Boolean p, Arity p) => Pred p (N.PTerm v f) (Formula v p f) where
+instance (Variable v, Show v, Ord v, Data v,
+          Show p, Ord p, Data p, Boolean p, Arity p,
+          Skolem f, Show f, Ord f, Data f) => Pred p (N.PTerm v f) (Formula v p f) where
     pApp0 p = (public :: N.Formula v p f -> Formula v p f) $ pApp0 p
     pApp1 p t1 = (public :: N.Formula v p f -> Formula v p f) $ pApp1 p (t1)
     pApp2 p t1 t2 = (public :: N.Formula v p f -> Formula v p f) $ pApp2 p (t1) (t2)

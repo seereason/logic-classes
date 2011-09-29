@@ -31,7 +31,7 @@ class Negatable formula where
 -- @
 --  (.|.), (.~.)
 -- @
-class Negatable formula => Logic formula where
+class (Negatable formula, Ord formula) => Logic formula where
     -- | Disjunction/OR
     (.|.) :: formula -> formula -> formula
 

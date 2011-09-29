@@ -21,13 +21,13 @@ instance Negatable (PropForm a) where
     negated (N x) = not (negated x)
     negated _ = False
 
-instance Logic (PropForm a) where
+instance Ord a => Logic (PropForm a) where
     x .<=>. y = EJ [x, y]
     x .=>.  y = SJ [x, y]
     x .|.   y = DJ [x, y]
     x .&.   y = CJ [x, y]
 
-instance Logic (PropForm a) => PropositionalFormula (PropForm a) a where
+instance (Logic (PropForm a), Ord a) => PropositionalFormula (PropForm a) a where
     atomic = A
     foldF0 c a formula =
         case formula of
@@ -51,6 +51,10 @@ instance Logic (PropForm a) => PropositionalFormula (PropForm a) a where
           T -> error "foldF0 method of PropForm: T"
           F -> error "foldF0 method of PropForm: F"
           A x -> a x
+
+instance Boolean (PropForm formula) where
+    fromBool True = T
+    fromBool False = F
 
 pairs :: [a] -> [(a, a)]
 pairs (x:y:zs) = (x,y) : pairs (y:zs)
@@ -76,7 +80,8 @@ plSat :: forall m formula term v p f. (Monad m, FirstOrderFormula formula term v
                 formula -> NormalT v term m Bool
 plSat f = clauses f >>= (\ (x :: PropForm formula) -> return x) >>= return . satisfiable
 
-clauses :: forall m formula term v p f. (Monad m, FirstOrderFormula formula term v p f, Literal formula term v p f) => formula -> NormalT v term m (PropForm formula)
+clauses :: forall m formula term v p f. (Monad m, FirstOrderFormula formula term v p f, Literal formula term v p f) =>
+           formula -> NormalT v term m (PropForm formula)
 clauses f = clauseNormalForm f >>= return . CJ . map (DJ . map (toPropositional (A :: formula -> PropForm formula))) . map S.toList . S.toList
 
 {-
