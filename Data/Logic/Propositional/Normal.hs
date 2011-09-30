@@ -4,6 +4,8 @@ module Data.Logic.Propositional.Normal
     ( negationNormalForm
     , clauseNormalForm
     , clauseNormalForm'
+    , clauseNormalFormAlt
+    , clauseNormalFormAlt'
     , disjunctiveNormalForm
     , disjunctiveNormalForm'
     ) where
@@ -128,6 +130,20 @@ clauseNormalForm formula =
       lists = Set.toList . Set.map Set.toList
       cnf = clauseNormalForm' formula
 
+-- |I'm not sure of the clauseNormalForm functions above are wrong or just different.
+clauseNormalFormAlt' :: (PropositionalFormula formula atom) => formula -> Set.Set (Set.Set formula)
+clauseNormalFormAlt' = simp purecnf' . negationNormalForm
+
+clauseNormalFormAlt :: forall formula atom. (PropositionalFormula formula atom) => formula -> formula
+clauseNormalFormAlt formula =
+    case clean (lists cnf) of
+      [] -> fromBool True
+      xss -> foldr1 (.&.) . map (foldr1 (.|.)) $ xss
+    where
+      clean = filter (not . null)
+      lists = Set.toList . Set.map Set.toList
+      cnf = clauseNormalFormAlt' formula
+
 disjunctiveNormalForm :: (PropositionalFormula formula atom) => formula -> formula
 disjunctiveNormalForm formula =
     case clean (lists dnf) of
@@ -160,7 +176,6 @@ trivial lits =
     not . Set.null $ Set.intersection (Set.map (.~.) n) p
     where (n, p) = Set.partition negated lits
 
--- | CNF: (a | b | c) & (d | e | f)
 --purecnf :: forall formula term v p f lit. (FirstOrderFormula formula term v p f, Literal lit term v p f) => formula -> Set.Set (Set.Set lit)
 purecnf :: forall formula atom. PropositionalFormula formula atom => formula -> Set.Set (Set.Set formula)
 purecnf fm = Set.map (Set.map (.~.)) (purednf (nnf ((.~.) fm)))
@@ -172,6 +187,17 @@ purednf fm =
       c :: Combine formula -> Set.Set (Set.Set formula)
       c (BinOp p (:&:) q) = Set.distrib (purednf p) (purednf q)
       c (BinOp p (:|:) q) = Set.union (purednf p) (purednf q)
+      c _ = x
+      x :: Set.Set (Set.Set formula)
+      x = Set.singleton (Set.singleton (convertProp id fm)) :: Set.Set (Set.Set formula)
+
+purecnf' :: forall formula atom. (PropositionalFormula formula atom) => formula -> Set.Set (Set.Set formula)
+purecnf' fm =
+    foldF0 c (\ _ -> x)  fm
+    where
+      c :: Combine formula -> Set.Set (Set.Set formula)
+      c (BinOp p (:&:) q) = Set.union (purecnf' p) (purecnf' q)
+      c (BinOp p (:|:) q) = Set.distrib (purecnf' p) (purecnf' q)
       c _ = x
       x :: Set.Set (Set.Set formula)
       x = Set.singleton (Set.singleton (convertProp id fm)) :: Set.Set (Set.Set formula)

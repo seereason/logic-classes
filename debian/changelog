@@ -4,6 +4,9 @@ haskell-logic (0.43) unstable; urgency=low
   * Add a Native instance for PropositionalFormula.
   * Add a Normal in the Propositional directory
   * Add clauseNormalForm and disjunctiveNormalForm for Propositional
+  * Add clauseNormalFormAlt which is an alternate implementation of
+    clauseNormalForm, I'm not sure if it gives results that are actually
+    different or just look different, but it makes cabal-debian work.       
 
  -- David Fox <dsf@seereason.com>  Thu, 29 Sep 2011 05:56:41 -0700
 
