@@ -25,6 +25,7 @@ Library
                    Data.Logic.Harrison.Skolem
                    Data.Logic.Instances.Chiou
                    Data.Logic.Instances.Native
+                   Data.Logic.Instances.PropLogic
                    Data.Logic.Instances.Public
                    Data.Logic.Instances.SatSolver
                    Data.Logic.KnowledgeBase
