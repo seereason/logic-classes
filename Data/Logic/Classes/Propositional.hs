@@ -1,7 +1,21 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses,
-             RankNTypes, ScopedTypeVariables, UndecidableInstances #-}
-module Data.Logic.Propositional.Normal
-    ( negationNormalForm
+-- | PropositionalFormula is a multi-parameter type class for
+-- representing instance of propositional (aka zeroth order) logic
+-- datatypes.  These are formulas which have truth values, but no "for
+-- all" or "there exists" quantifiers and thus no variables or terms
+-- as we have in first order or predicate logic.  It is intended that
+-- we will be able to write instances for various different
+-- implementations to allow these systems to interoperate.  The
+-- operator names were adopted from the Logic-TPTP package.
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
+             MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TemplateHaskell, UndecidableInstances #-}
+module Data.Logic.Classes.Propositional
+    ( PropositionalFormula(..)
+    , showPropositional
+    , convertProp
+    , BinOp(..)
+    , Combine(..)
+    , combine
+    , negationNormalForm
     , clauseNormalForm
     , clauseNormalForm'
     , clauseNormalFormAlt
@@ -10,9 +24,111 @@ module Data.Logic.Propositional.Normal
     , disjunctiveNormalForm'
     ) where
 
-import Data.Logic.Logic
-import Data.Logic.Propositional.Formula
+import Data.Generics (Data, Typeable)
+import Data.Logic.Classes.Boolean
+import Data.Logic.Classes.Negatable
+import Data.Logic.Classes.Logic
+import Data.SafeCopy (base, deriveSafeCopy)
 import qualified Data.Set.Extra as Set
+import Happstack.Data (deriveNewData)
+
+-- |A type class for propositional logic.  If the type we are writing
+-- an instance for is a zero-order (aka propositional) logic type
+-- there will generally by a type or a type parameter corresponding to
+-- atom.  For first order or predicate logic types, it is generally
+-- easiest to just use the formula type itself as the atom type, and
+-- raise errors in the implementation if a non-atomic formula somehow
+-- appears where an atomic formula is expected (i.e. as an argument to
+-- atomic or to the third argument of foldPropositional.)
+class (Logic formula, Boolean formula, Ord formula, Ord atom) => PropositionalFormula formula atom | formula -> atom where
+    -- | Build an atomic formula from the atom type.
+    atomic :: atom -> formula
+    -- | A fold function that distributes different sorts of formula
+    -- to its parameter functions, one to handle binary operators, one
+    -- for negations, and one for atomic formulas.  See examples of its
+    -- use to implement the polymorphic functions below.
+    foldPropositional :: (Combine formula -> r)
+                      -> (atom -> r)
+                      -> formula
+                      -> r
+
+-- | Show a formula in a format that can be evaluated 
+showPropositional :: (PropositionalFormula formula atom) => (atom -> String) -> formula -> String
+showPropositional showAtom formula =
+    foldPropositional c a formula
+    where
+      c ((:~:) f) = "(.~.) " ++ parenForm f
+      c (BinOp f1 op f2) = parenForm f1 ++ " " ++ showFormOp op ++ " " ++ parenForm f2
+      a = showAtom
+      parenForm x = "(" ++ showPropositional showAtom x ++ ")"
+      showFormOp (:<=>:) = ".<=>."
+      showFormOp (:=>:) = ".=>."
+      showFormOp (:&:) = ".&."
+      showFormOp (:|:) = ".|."
+
+-- |Convert any instance of a propositional logic expression to any
+-- other using the supplied atom conversion function.
+convertProp :: forall formula1 atom1 formula2 atom2.
+               (PropositionalFormula formula1 atom1,
+                PropositionalFormula formula2 atom2) =>
+               (atom1 -> atom2) -> formula1 -> formula2
+convertProp convertA formula =
+    foldPropositional c a formula
+    where
+      convert' = convertProp convertA
+      c ((:~:) f) = (.~.) (convert' f)
+      c (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
+      a = atomic . convertA
+
+-- |'Combine' is a helper type used in the signatures of the
+-- 'foldPropositional' and 'foldFirstOrder' methods so can represent
+-- all the ways that formulas can be combined using boolean logic -
+-- negation, logical And, and so forth.
+data Combine formula
+    = BinOp formula BinOp formula
+    | (:~:) formula
+    deriving (Eq,Ord,Read,Data,Typeable)
+
+-- | Represents the boolean logic binary operations, used in the
+-- Combine type above.
+data BinOp
+    = (:<=>:)  -- ^ Equivalence
+    |  (:=>:)  -- ^ Implication
+    |  (:&:)  -- ^ AND
+    |  (:|:)  -- ^ OR
+    deriving (Eq,Ord,Read,Data,Typeable,Enum,Bounded)
+
+-- |We need to implement read manually here due to
+-- <http://hackage.haskell.org/trac/ghc/ticket/4136>
+{-
+instance Read BinOp where
+    readsPrec _ s = 
+        map (\ (x, t) -> (x, drop (length t) s))
+            (take 1 (dropWhile (\ (_, t) -> not (isPrefixOf t s)) prs))
+        where
+          prs = [((:<=>:), ":<=>:"),
+                 ((:=>:), ":=>:"),
+                 ((:&:), ":&:"),
+                 ((:|:), ":|:")]
+-}
+
+instance Show BinOp where
+    show (:<=>:) = "(:<=>:)"
+    show (:=>:) = "(:=>:)"
+    show (:&:) = "(:&:)"
+    show (:|:) = "(:|:)"
+
+-- | A helper function for building folds:
+-- @
+--   foldPropositional combine atomic
+-- @
+-- is a no-op.
+combine :: Logic formula => Combine formula -> formula
+combine (BinOp f1 (:<=>:) f2) = f1 .<=>. f2
+combine (BinOp f1 (:=>:) f2) = f1 .=>. f2
+combine (BinOp f1 (:&:) f2) = f1 .&. f2
+combine (BinOp f1 (:|:) f2) = f1 .|. f2
+combine ((:~:) f) = (.~.) f
 
 -- | Simplify and recursively apply nnf.
 negationNormalForm :: PropositionalFormula formula atom => formula -> formula
@@ -33,10 +149,10 @@ negationNormalForm = nnf . psimplify
 -- 
 nnf :: PropositionalFormula formula atom => formula -> formula
 nnf fm =
-    foldF0 (nnfCombine fm) (\ _ -> fm) fm
+    foldPropositional (nnfCombine fm) (\ _ -> fm) fm
 
 nnfCombine :: PropositionalFormula r atom => r -> Combine r -> r
-nnfCombine fm ((:~:) p) = foldF0 nnfNotCombine (\ _ -> fm) p
+nnfCombine fm ((:~:) p) = foldPropositional nnfNotCombine (\ _ -> fm) p
 nnfCombine _ (BinOp p (:=>:) q) = nnf ((.~.) p) .|. (nnf q)
 nnfCombine _ (BinOp p (:<=>:) q) =  (nnf p .&. nnf q) .|. (nnf ((.~.) p) .&. nnf ((.~.) q))
 nnfCombine _ (BinOp p (:&:) q) = nnf p .&. nnf q
@@ -52,7 +168,7 @@ nnfNotCombine (BinOp p (:<=>:) q) = (nnf p .&. nnf ((.~.) q)) .|. nnf ((.~.) p) 
 -- |Do a bottom-up recursion to simplify a propositional formula.
 psimplify :: PropositionalFormula formula atom => formula -> formula
 psimplify fm =
-    foldF0 c a fm
+    foldPropositional c a fm
     where
       c ((:~:) p) = psimplify1 ((.~.) (psimplify p))
       c (BinOp p (:&:) q) = psimplify1 (psimplify p .&. psimplify q)
@@ -82,9 +198,9 @@ psimplify fm =
 -- 
 psimplify1 :: forall formula atom. PropositionalFormula formula atom => formula -> formula
 psimplify1 fm =
-    foldF0 simplifyCombine (\ _ -> fm) fm
+    foldPropositional simplifyCombine (\ _ -> fm) fm
     where
-      simplifyCombine ((:~:) f) = foldF0 simplifyNotCombine simplifyNotAtom f
+      simplifyCombine ((:~:) f) = foldPropositional simplifyNotCombine simplifyNotAtom f
       simplifyCombine (BinOp l op r) =
           case (asBool l, op, asBool r) of
             (Just True,  (:&:), _)            -> r
@@ -182,7 +298,7 @@ purecnf fm = Set.map (Set.map (.~.)) (purednf (nnf ((.~.) fm)))
 
 purednf :: forall formula atom. (PropositionalFormula formula atom) => formula -> Set.Set (Set.Set formula)
 purednf fm =
-    foldF0 c (\ _ -> x)  fm
+    foldPropositional c (\ _ -> x)  fm
     where
       c :: Combine formula -> Set.Set (Set.Set formula)
       c (BinOp p (:&:) q) = Set.distrib (purednf p) (purednf q)
@@ -193,7 +309,7 @@ purednf fm =
 
 purecnf' :: forall formula atom. (PropositionalFormula formula atom) => formula -> Set.Set (Set.Set formula)
 purecnf' fm =
-    foldF0 c (\ _ -> x)  fm
+    foldPropositional c (\ _ -> x)  fm
     where
       c :: Combine formula -> Set.Set (Set.Set formula)
       c (BinOp p (:&:) q) = Set.union (purecnf' p) (purecnf' q)
@@ -201,3 +317,8 @@ purecnf' fm =
       c _ = x
       x :: Set.Set (Set.Set formula)
       x = Set.singleton (Set.singleton (convertProp id fm)) :: Set.Set (Set.Set formula)
+
+$(deriveSafeCopy 1 'base ''BinOp)
+$(deriveSafeCopy 1 'base ''Combine)
+
+$(deriveNewData [''BinOp, ''Combine])

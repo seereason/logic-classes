@@ -6,9 +6,10 @@ module Data.Logic.Harrison.FOL
     , tsubst
     ) where
 
-import Data.Logic.FirstOrder (Term(..), FirstOrderFormula(..), Predicate(..))
+import Data.Logic.Classes.Term (Term(..))
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Predicate(..))
 import Data.Logic.Harrison.Lib
-import Data.Logic.Logic (Combine(..))
+import Data.Logic.Classes (Combine(..))
 import qualified Data.Map as M
 import qualified Data.Set as S
 

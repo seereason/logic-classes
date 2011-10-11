@@ -6,20 +6,27 @@
 -- only differ in ways that preserve identity, e.g. swapped arguments to a
 -- commutative operator.
 
-module Data.Logic.Instances.Public
+module Data.Logic.Types.FirstOrderPublic
     ( Formula(..)
     , N.PTerm(..)
     , Bijection(..)
     ) where
 
 import Data.Data (Data)
-import Data.Logic.FirstOrder (Term(..), FirstOrderFormula(..), Skolem(..), Variable, Pred(..), Arity)
-import qualified Data.Logic.Instances.Native as N
-import Data.Logic.Logic (Negatable(..), Logic(..), Boolean(..), Combine(..))
-import qualified Data.Logic.Logic as Logic
-import Data.Logic.Monad (runNormal)
-import Data.Logic.Normal (Literal, ImplicativeNormalForm)
-import Data.Logic.NormalForm (implicativeNormalForm)
+import Data.Logic.Classes.Arity (Arity)
+import Data.Logic.Classes.Boolean (Boolean(..))
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
+import qualified Data.Logic.Types.FirstOrder as N
+import Data.Logic.Classes.Literal (Literal)
+import Data.Logic.Classes.Logic (Logic(..))
+import Data.Logic.Classes.Negatable (Negatable(..))
+import Data.Logic.Classes.Pred (Pred(..))
+import Data.Logic.Classes.Propositional (Combine(..))
+import Data.Logic.Classes.Skolem (Skolem(..))
+import Data.Logic.Classes.Term (Term(..), )
+import Data.Logic.Classes.Variable (Variable)
+import Data.Logic.Normal.Implicative (implicativeNormalForm, ImplicativeForm)
+import Data.Logic.Normal.Skolem (runNormal)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set)
 import Data.Typeable (Typeable)
@@ -81,10 +88,10 @@ instance (Logic (Formula v p f), Term (N.PTerm v f) v f,
           Ord f, Show f) => FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f where
     for_all v x = public $ for_all v (intern x :: N.Formula v p f)
     exists v x = public $ exists v (intern x :: N.Formula v p f)
-    foldF q c p f = foldF q' c' p (intern f :: N.Formula v p f)
+    foldFirstOrder q c p f = foldFirstOrder q' c' p (intern f :: N.Formula v p f)
         where q' quant v form = q quant v (public form)
               c' x = c (public x)
-    zipF q c p f1 f2 = zipF q' c' p (intern f1 :: N.Formula v p f) (intern f2 :: N.Formula v p f)
+    zipFirstOrder q c p f1 f2 = zipFirstOrder q' c' p (intern f1 :: N.Formula v p f) (intern f2 :: N.Formula v p f)
         where q' q1 v1 f1' q2 v2 f2' = q q1 v1 (public f1') q2 v2 (public f2')
               c' combine1 combine2 = c (public combine1) (public combine2)
 
@@ -94,8 +101,8 @@ instance (FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
           FirstOrderFormula (N.Formula v p f) (N.PTerm v f) v p f,
           Ord (N.Formula v p f)) => Ord (Formula v p f) where
     compare a b =
-        let (a' :: Set (ImplicativeNormalForm (N.Formula v p f))) = runNormal (implicativeNormalForm (intern a :: N.Formula v p f))
-            (b' :: Set (ImplicativeNormalForm (N.Formula v p f))) = runNormal (implicativeNormalForm (intern b :: N.Formula v p f)) in
+        let (a' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm (intern a :: N.Formula v p f))
+            (b' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm (intern b :: N.Formula v p f)) in
         case compare a' b' of
           EQ -> EQ
           x -> {- if isRenameOf a' b' then EQ else -} x

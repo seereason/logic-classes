@@ -7,8 +7,8 @@ module Data.Logic.Harrison.Formula
     , mk_exists
     ) where
 
-import Data.Logic.FirstOrder (FirstOrderFormula(..))
-import Data.Logic.Logic (Logic(..))
+import Data.Logic.Classes (FirstOrderFormula(..))
+import Data.Logic.Classes (Logic(..))
 
 {-
 (* ========================================================================= *)

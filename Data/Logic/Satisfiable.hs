@@ -1,41 +1,44 @@
 -- |Do satisfiability computations on any FirstOrderFormula formula by
 -- converting it to a convenient instance of PropositionalFormula and
--- using the satisfiable function from that instance, in this case
--- the PropLogic package.
-{-# LANGUAGE FlexibleContexts, OverloadedStrings, RankNTypes #-}
+-- using the satisfiable function from that instance.  Currently we
+-- use the satisfiable function from the PropLogic package, by the
+-- Bucephalus project.
+{-# LANGUAGE FlexibleContexts, OverloadedStrings, RankNTypes, ScopedTypeVariables #-}
 module Data.Logic.Satisfiable
-    ( clauses
-    , satisfiable
+    ( satisfiable
     , theorem
     , inconsistant
     , invalid
     ) where
 
-import qualified Data.Set as S
-import Data.Logic.FirstOrder (FirstOrderFormula(..), toPropositional)
-import Data.Logic.Logic ((.~.))
-import Data.Logic.Monad (NormalT)
-import Data.Logic.Normal (Literal)
-import Data.Logic.NormalForm (clauseNormalForm)
-import Data.Logic.Propositional.Instances.PropLogic ()
+import qualified Data.Set as Set
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), toPropositional)
+import Data.Logic.Classes.Literal (Literal)
+import Data.Logic.Classes.Negatable ((.~.))
+import Data.Logic.Instances.PropLogic ()
+import Data.Logic.Normal.Clause (clauseNormalForm)
+import Data.Logic.Normal.Skolem (NormalT)
 import qualified PropLogic as PL
 
-satisfiable :: (Monad m, FirstOrderFormula formula term v p f, Ord formula, Literal formula term v p f) =>
+-- |Is there any variable assignment that makes the formula true?
+satisfiable :: forall formula term v p f m. (Monad m, FirstOrderFormula formula term v p f, Ord formula, Literal formula term v p f) =>
                 formula -> NormalT v term m Bool
-satisfiable f = clauses f >>= return . PL.satisfiable
+satisfiable f =
+    do (clauses :: Set.Set (Set.Set formula)) <- clauseNormalForm f
+       let f' = PL.CJ . map (PL.DJ . map (toPropositional PL.A)) . map Set.toList . Set.toList $ clauses
+       return . PL.satisfiable $ f'
 
-clauses :: forall m formula term v p f. (Monad m, FirstOrderFormula formula term v p f, Literal formula term v p f) =>
-           formula -> NormalT v term m (PL.PropForm formula)
-clauses f = clauseNormalForm f >>= return . PL.CJ . map (PL.DJ . map (toPropositional PL.A)) . map S.toList . S.toList
-
+-- |Is the formula always false?  (Not satisfiable.)
 inconsistant :: (Monad m, FirstOrderFormula formula term v p f, Ord formula, Literal formula term v p f) =>
                 formula -> NormalT v term m Bool
 inconsistant f =  satisfiable f >>= return . not
 
+-- |Is the negation of the formula inconsistant?
 theorem :: (Monad m, FirstOrderFormula formula term v p f, Ord formula, Literal formula term v p f) =>
            formula -> NormalT v term m Bool
 theorem f = inconsistant ((.~.) f)
 
+-- |A formula is invalid if it is neither a theorem nor inconsistent.
 invalid :: (Monad m, FirstOrderFormula formula term v p f, Ord formula, Literal formula term v p f) =>
            formula -> NormalT v term m Bool
 invalid f = inconsistant f >>= \ fi -> theorem f >>= \ ft -> return (not (fi || ft))

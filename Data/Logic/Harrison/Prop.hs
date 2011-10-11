@@ -6,9 +6,8 @@ module Data.Logic.Harrison.Prop
     , trivial
     ) where
 
-import Data.Logic.FirstOrder (FirstOrderFormula(..), Pred(..), Predicate(..), Quant(..), quant, pApp)
-import Data.Logic.Logic (Negatable(..), Logic(..), Combine(..), Boolean(..), BinOp(..))
-import Data.Logic.Normal (Literal, fromFirstOrder)
+import Data.Logic.Classes (FirstOrderFormula(..), Pred(..), Quant(..), quant, pApp, Predicate(..))
+import Data.Logic.Classes (Negatable(..), Logic(..), Combine(..), Boolean(..), BinOp(..), Literal, fromFirstOrder)
 import qualified Data.Set.Extra as S
 
 {-

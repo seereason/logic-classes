@@ -1,4 +1,4 @@
-Source: haskell-logic
+Source: haskell-logic-classes
 Priority: optional
 Section: misc
 Maintainer: David Fox <dsf@seereason.com>
@@ -32,11 +32,14 @@ Build-Depends-Indep: ghc-doc,
                      libghc-text-doc
 Standards-Version: 3.8.1
 
-Package: libghc-logic-dev
+Package: libghc-logic-classes-dev
 Architecture: any
 Section: haskell
 Depends: ${haskell:Depends},
          ${misc:Depends}
+Conflicts: libghc-logic-dev
+Provides: libghc-logic-dev
+Replaces: libghc-logic-dev
 Description: Library for unifying various treatments of propositional and first order logic
  Library for unifying various treatments of propositional and first order logic
  .
@@ -45,12 +48,15 @@ Description: Library for unifying various treatments of propositional and first 
  .
  This package contains the normal library files.
 
-Package: libghc-logic-prof
+Package: libghc-logic-classes-prof
 Architecture: any
 Section: haskell
 Depends: ${haskell:Depends},
          ${misc:Depends},
          libghc-logic-dev
+Conflicts: libghc-logic-prof
+Provides: libghc-logic-prof
+Replaces: libghc-logic-prof
 Description: Library for unifying various treatments of propositional and first order logic
  Library for unifying various treatments of propositional and first order logic
  .
@@ -59,12 +65,15 @@ Description: Library for unifying various treatments of propositional and first 
  .
  This package contains the libraries compiled with profiling enabled.
 
-Package: libghc-logic-doc
+Package: libghc-logic-classes-doc
 Architecture: all
 Section: doc
 Depends: ${haskell:Depends},
          ${misc:Depends},
          ghc-doc
+Conflicts: libghc-logic-doc
+Provides: libghc-logic-doc
+Replaces: libghc-logic-doc
 Description: Library for unifying various treatments of propositional and first order logic
  Library for unifying various treatments of first order logic
  .

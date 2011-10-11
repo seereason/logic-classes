@@ -2,8 +2,7 @@ module Data.Logic.Harrison.Tableaux where
 
 import Control.Applicative.Error (Failing(..))
 import Data.Logic.Harrison.Unif (unify)
-import Data.Logic.Logic (Combine(..))
-import Data.Logic.Normal (Literal(..), Predicate(..))
+import Data.Logic.Classes (Combine(..), Literal(..), Predicate(..))
 import qualified Data.Map as M
 
 {-

@@ -1,22 +1,10 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses,
-             ScopedTypeVariables, TemplateHaskell, UndecidableInstances #-}
-module Data.Logic.Predicate
-    ( Arity(..)
-    , Pred(..)
-    , pApp
-    , Predicate(..)
-    ) where
+{-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses, ScopedTypeVariables #-}
+module Data.Logic.Classes.Pred where
 
-import Data.Data (Data)
-import Data.SafeCopy (base, deriveSafeCopy)
-import Data.Typeable (Typeable)
-import Happstack.Data (deriveNewData)
-import Data.Logic.Logic (Boolean(fromBool), Negatable((.~.)), Logic)
-
-class Arity p where
-    -- |How many arguments does the predicate take?  Nothing
-    -- means any number of arguments.
-    arity :: p -> Maybe Int
+import Data.Logic.Classes.Arity
+import Data.Logic.Classes.Boolean
+import Data.Logic.Classes.Logic
+import Data.Logic.Classes.Negatable
 
 -- |A class of predicates
 class (Logic formula, Boolean p, Arity p) => Pred p term formula | formula -> p, formula -> term where
@@ -52,18 +40,3 @@ pApp p ts =
       ([a,b,c,d,e,f], 6) -> pApp6 p a b c d e f
       ([a,b,c,d,e,f,g], 7) -> pApp7 p a b c d e f g
       _ -> error ("Arity error" {- ++ show (pretty p) ++ " " ++ intercalate " " (map (show . pretty) ts) -})
-
--- |A temporary type used in the fold method to represent the
--- combination of a predicate and its arguments.  This reduces the
--- number of arguments to foldF and makes it easier to manage the
--- mapping of the different instances to the class methods.
-data Predicate p term
-    = Equal term term
-    | NotEqual term term
-    | Constant Bool
-    | Apply p [term]
-    deriving (Eq, Ord, Show, Read, Data, Typeable)
-
-$(deriveSafeCopy 1 'base ''Predicate)
-
-$(deriveNewData [''Predicate])

@@ -7,7 +7,7 @@ module Data.Logic.Harrison.Unif
     ) where
 
 import Control.Applicative.Error (Failing(..), failing)
-import Data.Logic.FirstOrder (Term(..))
+import Data.Logic.Classes (Term(..))
 import Data.Logic.Harrison.FOL (tsubst)
 import Data.Logic.Harrison.Lib (apply, defined)
 import qualified Data.Map as M

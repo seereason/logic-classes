@@ -5,7 +5,7 @@ import Data.Logic.FirstOrder (conj)
 import Data.Logic.Instances.TPTP
 import Data.Logic.Monad (runNormal)
 import Data.Logic.Logic (Logic ((.~.), (.=>.)))
-import Data.Logic.NormalForm (cnfTrace)
+import Data.Logic.Normal (cnfTrace)
 import Data.Logic.Test (TestFormula(formula))
 import Test.Data (chang43KB, chang43Conjecture)
 import Test.HUnit

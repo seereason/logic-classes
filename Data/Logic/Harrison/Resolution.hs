@@ -4,7 +4,7 @@ import Control.Applicative.Error (Failing(..), failing)
 import qualified Data.Map as M
 import Data.Logic.Harrison.Tableaux (unifyLiterals)
 import Data.Logic.Harrison.Unif (solve)
-import Data.Logic.Normal (Literal)
+import Data.Logic.Classes (Literal)
 
 {-
 (* ========================================================================= *)

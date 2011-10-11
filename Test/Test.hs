@@ -1,7 +1,6 @@
-import Data.Logic.Instances.Native
-import Data.Logic.Normal (ImplicativeNormalForm)
-import Data.Logic.Pretty (showForm)
+import Data.Logic.Classes.FirstOrder (showFirstOrder)
 import Data.Logic.Test (TestFormula, TestProof, V, Pr, AtomicFunction, TFormula, TTerm)
+import Data.Logic.Types.FirstOrder
 import System.Exit
 import Test.HUnit
 import qualified Test.Logic as Logic

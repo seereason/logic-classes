@@ -3,13 +3,18 @@
 {-# OPTIONS -Wall -Wwarn -fno-warn-name-shadowing -fno-warn-orphans #-}
 module Test.Logic (tests) where
 
-import Data.Logic.Logic (Negatable(..), Logic(..), Boolean(..))
-import Data.Logic.Monad (runNormal)
-import Data.Logic.Normal (Literal)
-import Data.Logic.NormalForm (clauseNormalForm, clauseNormalForm)
-import Data.Logic.FirstOrder (Skolem(..), FirstOrderFormula(..), Term(..), Variable, freeVars, substitute, pApp)
-import Data.Logic.Predicate (Pred(..), Arity(arity))
-import Data.Logic.Pretty (showForm)
+import Data.Logic.Classes.Arity (Arity(arity))
+import Data.Logic.Classes.Boolean (Boolean(..))
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder, freeVars, substitute)
+import Data.Logic.Classes.Literal (Literal)
+import Data.Logic.Classes.Logic (Logic(..))
+import Data.Logic.Classes.Negatable (Negatable(..))
+import Data.Logic.Classes.Skolem (Skolem(..))
+import Data.Logic.Classes.Term (Term(..))
+import Data.Logic.Classes.Variable (Variable)
+import Data.Logic.Classes.Pred (Pred(..), pApp)
+import Data.Logic.Normal.Clause (clauseNormalForm)
+import Data.Logic.Normal.Skolem (runNormal)
 import Data.Logic.Satisfiable (theorem, inconsistant)
 import Data.Logic.Test (V(..), AtomicFunction(..), Pr, TFormula, TTerm)
 import qualified Data.Set as Set
@@ -373,7 +378,7 @@ theorem5 =
 -}
 
 instance TD.Display TFormula where
-    textFrame x = [showForm x]
+    textFrame x = [showFirstOrder x]
 {-
     textFrame x = [quickShow x]
         where

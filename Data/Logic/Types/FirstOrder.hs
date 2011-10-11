@@ -4,18 +4,24 @@
 -- |Data types which are instances of the Logic type class for use
 -- when you just want to use the classes and you don't have a
 -- particular representation you need to use.
-module Data.Logic.Instances.Native
+module Data.Logic.Types.FirstOrder
     ( Formula(..)
     , PTerm(..)
     ) where
 
 import Data.Data (Data)
-import Data.Logic.FirstOrder (Term(..), FirstOrderFormula(..), Quant(..), Skolem(..), Variable,
-                         Pred(..), Predicate(..), Arity, pApp)
-import Data.Logic.Logic (Negatable(..), Logic(..), BinOp(..), Boolean(..), Combine(..))
-import qualified Data.Logic.Normal as N
-import Data.Logic.Pretty (showForm, showTerm)
-import Data.Logic.Propositional.Formula (PropositionalFormula(..))
+import Data.Logic.Classes.Arity (Arity)
+import Data.Logic.Classes.Boolean (Boolean(..))
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder, Quant(..), Predicate(..))
+import Data.Logic.Classes.Literal (Literal(..), PredicateLit(..))
+import Data.Logic.Classes.Logic (Logic(..))
+import Data.Logic.Classes.Negatable(Negatable(..))
+import Data.Logic.Classes.Pred (Pred(..), pApp)
+import Data.Logic.Classes.Propositional (Combine(..), BinOp(..))
+import Data.Logic.Classes.Skolem (Skolem(..))
+import Data.Logic.Classes.Term (Term(..), showTerm)
+import Data.Logic.Classes.Variable (Variable)
+import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
@@ -54,7 +60,7 @@ instance Read InfixPred where
 -}
 
 instance (FirstOrderFormula (Formula v p f) (PTerm v f) v p f, Show v, Show p, Show f) => Show (Formula v p f) where
-    show = showForm
+    show = showFirstOrder
 
 instance (FirstOrderFormula (Formula v p f) (PTerm v f) v p f, Show v, Show p, Show f) => Show (PTerm v f) where
     show = showTerm
@@ -81,14 +87,14 @@ instance (Ord v, Variable v, Data v,
     atomic (Predicate (NotEqual t1 t2)) = t1 .!=. t2
     atomic (Predicate (Apply p ts)) = pApp p ts
     atomic _ = error "atomic method of PropositionalFormula for Parameterized: invalid argument"
-    foldF0 c a formula =
+    foldPropositional c a formula =
         case formula of
           Quant _ _ _ -> error "foldF0: quantifiers should not be present"
           Combine x -> c x
           Predicate x -> a (Predicate x)
 
 instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (PTerm v f) v f where
-    foldT vf fn t =
+    foldTerm vf fn t =
         case t of
           Var v -> vf v
           FunApp f ts -> fn f ts
@@ -119,12 +125,12 @@ instance (Pred p (PTerm v f) (Formula v p f),
          FirstOrderFormula (Formula v p f) (PTerm v f) v p f where
     for_all v x = Quant All v x
     exists v x = Quant Exists v x
-    foldF q c p f =
+    foldFirstOrder q c p f =
         case f of
           Quant op v f' -> q op v f'
           Combine x -> c x
           Predicate x -> p x
-    zipF q c p f1 f2 =
+    zipFirstOrder q c p f1 f2 =
         case (f1, f2) of
           (Quant q1 v1 f1', Quant q2 v2 f2') -> q q1 v1 (Quant q1 v1 f1') q2 v2 (Quant q2 v2 f2')
           (Combine x, Combine y) -> c x y
@@ -133,19 +139,19 @@ instance (Pred p (PTerm v f) (Formula v p f),
 
 instance (Variable v, Ord v, Data v, Show v,
           Arity p, Boolean p, Ord p, Data p, Show p,
-          Skolem f, Ord f, Data f, Show f) => N.Literal (Formula v p f) (PTerm v f) v p f where
-    x .=. y = Predicate (Equal x y)
-    pApp p ts = Predicate (Apply p ts)
-    foldN c pr l =
+          Skolem f, Ord f, Data f, Show f) => Literal (Formula v p f) (PTerm v f) v p f where
+    equals x y = Predicate (Equal x y)
+    pAppLiteral p ts = Predicate (Apply p ts)
+    foldLiteral c pr l =
         case l of
           (Combine ((:~:) x)) -> c x
-          (Predicate (Apply p ts)) -> pr (N.Apply p ts)
-          (Predicate (Equal x y)) -> pr (N.Equal x y)
+          (Predicate (Apply p ts)) -> pr (ApplyLit p ts)
+          (Predicate (Equal x y)) -> pr (EqualLit x y)
           _ -> error "Invalid formula used as Literal instance"
-    zipN c pr l1 l2 =
+    zipLiterals c pr l1 l2 =
         case (l1, l2) of
           (Combine ((:~:) x), Combine ((:~:) y)) -> c x y
-          (Predicate (Apply p1 ts1), Predicate (Apply p2 ts2)) -> pr (N.Apply p1 ts1) (N.Apply p2 ts2)
+          (Predicate (Apply p1 ts1), Predicate (Apply p2 ts2)) -> pr (ApplyLit p1 ts1) (ApplyLit p2 ts2)
           _ -> Nothing
 
 $(deriveSafeCopy 1 'base ''PTerm)

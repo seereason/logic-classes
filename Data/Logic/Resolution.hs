@@ -2,7 +2,7 @@
 {-# OPTIONS -Wall -Wwarn #-}
 
 {- Resolution.hs -}
-{- Charles Chiou -}
+{- Charles Chiou, David Fox -}
 
 module Data.Logic.Resolution
     ( prove
@@ -12,8 +12,9 @@ module Data.Logic.Resolution
     , Subst )
     where
 
-import Data.Logic.FirstOrder (Term(..))
-import Data.Logic.Normal (Predicate(..), Literal(..), ImplicativeNormalForm(..), makeINF)
+import Data.Logic.Classes.Term (Term(..))
+import Data.Logic.Classes.Literal (Literal(..), PredicateLit(..))
+import Data.Logic.Normal.Implicative (ImplicativeForm(INF, neg, pos))
 import qualified Data.Set.Extra as S
 import Data.Map (Map, empty)
 import qualified Data.Map as M
@@ -23,10 +24,10 @@ type Subst v term = Map v term
 
 type SetOfSupport lit v term = S.Set (Unification lit v term)
 
-type Unification lit v term = (ImplicativeNormalForm lit, Subst v term)
+type Unification lit v term = (ImplicativeForm lit, Subst v term)
 
 prove :: Literal lit term v p f =>
-         SetOfSupport lit v term -> SetOfSupport lit v term -> S.Set (ImplicativeNormalForm lit) -> (Bool, SetOfSupport lit v term)
+         SetOfSupport lit v term -> SetOfSupport lit v term -> S.Set (ImplicativeForm lit) -> (Bool, SetOfSupport lit v term)
 prove ss1 ss2' kb =
     case S.minView ss2' of
       Nothing -> (False, ss1)
@@ -45,7 +46,7 @@ prove ss1 ss2' kb =
 --         prove (ss1 ++ [s]) ss' (fst s:kb)
 prove' :: forall lit p f v term.
           Literal lit term v p f =>
-          Unification lit v term -> S.Set (ImplicativeNormalForm lit) -> SetOfSupport lit v term -> SetOfSupport lit v term -> (SetOfSupport lit v term, Bool)
+          Unification lit v term -> S.Set (ImplicativeForm lit) -> SetOfSupport lit v term -> SetOfSupport lit v term -> (SetOfSupport lit v term, Bool)
 prove' p kb ss1 ss2 =
     let
       res1 = S.map (\x -> resolution p (x, empty)) kb
@@ -85,11 +86,11 @@ getResult ss ((Just x):xs)  =
 
 -- |Convert the "question" to a set of support.
 getSetOfSupport :: (Literal formula term v p f) =>
-                   S.Set (ImplicativeNormalForm formula) -> S.Set (ImplicativeNormalForm formula, Subst v term)
+                   S.Set (ImplicativeForm formula) -> S.Set (ImplicativeForm formula, Subst v term)
 getSetOfSupport s = S.map (\ x -> (x, getSubsts x empty)) s
 
 getSubsts :: (Literal formula term v p f) =>
-             ImplicativeNormalForm formula -> Subst v term -> Subst v term
+             ImplicativeForm formula -> Subst v term -> Subst v term
 getSubsts inf theta =
     getSubstSentences (pos inf) (getSubstSentences (neg inf) theta)
 
@@ -99,10 +100,11 @@ getSubstSentences xs theta = foldr getSubstSentence theta (S.toList xs)
 
 getSubstSentence :: Literal formula term v p f => formula -> Subst v term -> Subst v term
 getSubstSentence formula theta =
-    foldN (\ s -> getSubstSentence s theta)
+    foldLiteral
+          (\ s -> getSubstSentence s theta)
           (\ pa -> case pa of
-                     Equal t1 t2 -> getSubstsTerms [t1, t2] theta
-                     Apply _ ts -> getSubstsTerms ts theta)
+                     EqualLit t1 t2 -> getSubstsTerms [t1, t2] theta
+                     ApplyLit _ ts -> getSubstsTerms ts theta)
           formula
 
 getSubstsTerms :: Term term v f => [term] -> Subst v term -> Subst v term
@@ -116,12 +118,12 @@ getSubstsTerms (x:xs) theta =
 
 getSubstsTerm :: Term term v f => term -> Subst v term -> Subst v term
 getSubstsTerm term theta =
-    foldT (\ v -> M.insertWith (\ _ old -> old) v (var v) theta)
-          (\ _ ts -> getSubstsTerms ts theta)
-          term
+    foldTerm (\ v -> M.insertWith (\ _ old -> old) v (var v) theta)
+             (\ _ ts -> getSubstsTerms ts theta)
+             term
 
 isRenameOf :: Literal lit term v p f =>
-              ImplicativeNormalForm lit -> ImplicativeNormalForm lit -> Bool
+              ImplicativeForm lit -> ImplicativeForm lit -> Bool
 isRenameOf inf1 inf2 =
     (isRenameOfSentences lhs1 lhs2) && (isRenameOfSentences rhs1 rhs2)
     where
@@ -137,10 +139,10 @@ isRenameOfSentences xs1 xs2 =
 isRenameOfSentence :: forall formula term v p f. Literal formula term v p f => formula -> formula -> Bool
 isRenameOfSentence f1 f2 =
     maybe False id $
-    zipN (\ _ _ -> Just False) p f1 f2
-    where p :: Predicate p term -> Predicate p term -> Maybe Bool
-          p (Equal t1l t1r) (Equal t2l t2r) = Just (isRenameOfTerm t1l t2l && isRenameOfTerm t1r t2r)
-          p (Apply p1 ts1) (Apply p2 ts2) = Just (p1 == p2 && isRenameOfTerms ts1 ts2)
+    zipLiterals (\ _ _ -> Just False) p f1 f2
+    where p :: PredicateLit p term -> PredicateLit p term -> Maybe Bool
+          p (EqualLit t1l t1r) (EqualLit t2l t2r) = Just (isRenameOfTerm t1l t2l && isRenameOfTerm t1r t2r)
+          p (ApplyLit p1 ts1) (ApplyLit p2 ts2) = Just (p1 == p2 && isRenameOfTerms ts1 ts2)
           p _ _ = Nothing
 
 isRenameOfTerm :: Term term v f => term -> term -> Bool
@@ -161,7 +163,7 @@ isRenameOfTerms ts1 ts2 =
       False
 
 resolution :: forall lit p f term v. Literal lit term v p f =>
-             (ImplicativeNormalForm lit, Subst v term) -> (ImplicativeNormalForm lit, Subst v term) -> Maybe (ImplicativeNormalForm lit, Map v term)
+             (ImplicativeForm lit, Subst v term) -> (ImplicativeForm lit, Subst v term) -> Maybe (ImplicativeForm lit, Map v term)
 resolution (inf1, theta1) (inf2, theta2) =
     let
         lhs1 = neg inf1
@@ -179,7 +181,7 @@ resolution (inf1, theta1) (inf2, theta2) =
                               (S.catMaybes $ S.map (\s -> subst s theta2') rhs2)
               theta = M.unionWith (\ l _r -> l) (updateSubst theta1 theta1') (updateSubst theta2 theta2')
             in
-              Just (makeINF lhs'' rhs'', theta)
+              Just (INF lhs'' rhs'', theta)
         Nothing -> Nothing
     where
       tryUnify :: (Literal formula term v p f, Ord formula) =>
@@ -211,10 +213,10 @@ demodulate :: (Literal lit term v p f) =>
 demodulate (inf1, theta1) (inf2, theta2) =
     case (S.null (neg inf1), S.toList (pos inf1)) of
       (True, [lit1]) ->
-          foldN (\ _ -> error "demodulate") p lit1
+          foldLiteral (\ _ -> error "demodulate") p lit1
       _ -> Nothing
     where
-      p (Equal t1 t2) =
+      p (EqualLit t1 t2) =
           case findUnify t1 t2 (S.union lhs2 rhs2) of
             Just ((t1', t2'), theta1', theta2') ->
                 let substNeg2 = S.catMaybes $ S.map (\x -> subst x theta2') lhs2
@@ -222,7 +224,7 @@ demodulate (inf1, theta1) (inf2, theta2) =
                     lhs = S.catMaybes $ S.map (\x -> replaceTerm x (t1', t2')) substNeg2
                     rhs = S.catMaybes $ S.map (\x -> replaceTerm x (t1', t2')) substPos2
                     theta = M.unionWith (\ l _r -> l) (updateSubst theta1 theta1') (updateSubst theta2 theta2') in
-                Just (makeINF lhs rhs, theta)
+                Just (INF lhs rhs, theta)
             Nothing -> Nothing
       p _ = Nothing
       lhs2 = neg inf2
@@ -235,28 +237,30 @@ unify s1 s2 = unify' s1 s2 empty empty
 unify' :: Literal formula term v p f =>
           formula -> formula -> Subst v term -> Subst v term -> Maybe (Subst v term, Subst v term)
 unify' f1 f2 theta1 theta2 =
-    zipN (\ _ _ -> error "unify'")
+    zipLiterals
+         (\ _ _ -> error "unify'")
          (\ pa1 pa2 ->
               case (pa1, pa2) of
-                (Equal l1 r1, Equal l2 r2) -> unifyTerms [l1, r1] [l2, r2] theta1 theta2
-                (Apply p1 ts1, Apply p2 ts2) -> if p1 == p2 then unifyTerms ts1 ts2 theta1 theta2 else Nothing
+                (EqualLit l1 r1, EqualLit l2 r2) -> unifyTerms [l1, r1] [l2, r2] theta1 theta2
+                (ApplyLit p1 ts1, ApplyLit p2 ts2) -> if p1 == p2 then unifyTerms ts1 ts2 theta1 theta2 else Nothing
                 _ -> Nothing)
          f1 f2
 
 unifyTerm :: Term term v f => term -> term -> Subst v term -> Subst v term -> Maybe (Subst v term, Subst v term)
 unifyTerm t1 t2 theta1 theta2 =
-    foldT (\ v1 ->
+    foldTerm
+          (\ v1 ->
                maybe (Just (M.insert v1 t2 theta1, theta2))
                      (\ t1' -> unifyTerm t1' t2 theta1 theta2)
                      (M.lookup v1 theta1))
           (\ f1 ts1 ->
-               foldT (\ v2 -> maybe (Just (theta1, M.insert v2 t1 theta2))
-                              (\ t2' -> unifyTerm t1 t2' theta1 theta2)
-                              (M.lookup v2 theta2))
-                     (\ f2 ts2 -> if f1 == f2
-                                  then unifyTerms ts1 ts2 theta1 theta2
-                                  else Nothing)
-                     t2)
+               foldTerm (\ v2 -> maybe (Just (theta1, M.insert v2 t1 theta2))
+                                 (\ t2' -> unifyTerm t1 t2' theta1 theta2)
+                                 (M.lookup v2 theta2))
+                        (\ f2 ts2 -> if f1 == f2
+                                     then unifyTerms ts1 ts2 theta1 theta2
+                                     else Nothing)
+                        t2)
           t1
 
 unifyTerms :: Term term v f =>
@@ -272,7 +276,7 @@ findUnify :: forall formula term v p f. (Literal formula term v p f, Term term v
              term -> term -> S.Set formula -> Maybe ((term, term), Subst v term, Subst v term)
 findUnify tl tr s =
     let
-      terms = concatMap (foldN (\ (_ :: formula) -> error "getTerms") p) (S.toList s)
+      terms = concatMap (foldLiteral (\ (_ :: formula) -> error "getTerms") p) (S.toList s)
       unifiedTerms' = map (\t -> unifyTerm tl t empty empty) terms
       unifiedTerms = filter isJust unifiedTerms'
     in
@@ -282,17 +286,17 @@ findUnify tl tr s =
          Just ((substTerm tl theta1, substTerm tr theta1), theta1, theta2)
        (Nothing:_) -> error "findUnify"
     where
-      -- getTerms formula = foldN (\ _ -> error "getTerms") p formula
-      p :: Predicate p term -> [term]
-      p (Equal t1 t2) = getTerms' t1 ++ getTerms' t2
-      p (Apply _ ts) = concatMap getTerms' ts
+      -- getTerms formula = foldLiteral (\ _ -> error "getTerms") p formula
+      p :: PredicateLit p term -> [term]
+      p (EqualLit t1 t2) = getTerms' t1 ++ getTerms' t2
+      p (ApplyLit _ ts) = concatMap getTerms' ts
       getTerms' :: term -> [term]
-      getTerms' t = foldT (\ v -> [var v]) (\ f ts -> fApp f ts : concatMap getTerms' ts) t
+      getTerms' t = foldTerm (\ v -> [var v]) (\ f ts -> fApp f ts : concatMap getTerms' ts) t
 
 {-
 getTerms :: Literal formula term v p f => formula -> [term]
 getTerms formula =
-    foldN (\ _ -> error "getTerms") p formula
+    foldLiteral (\ _ -> error "getTerms") p formula
     where
       getTerms' t = foldT (\ v -> [var v]) (\ f ts -> fApp f ts : concatMap getTerms' ts) t
       p (Equal t1 t2) = getTerms' t1 ++ getTerms' t2
@@ -301,38 +305,40 @@ getTerms formula =
 
 replaceTerm :: (Literal lit term v p f) => lit -> (term, term) -> Maybe lit
 replaceTerm formula (tl', tr') =
-    foldN (\ _ -> error "error in replaceTerm")
+    foldLiteral
+          (\ _ -> error "error in replaceTerm")
           (\ pa -> case pa of
-                     Equal t1 t2 ->
+                     EqualLit t1 t2 ->
                          let t1' = replaceTerm' t1
                              t2' = replaceTerm' t2 in
-                         if t1' == t2' then Nothing else Just (t1' .=. t2')
-                     Apply p ts -> Just (pApp p (map (\ t -> replaceTerm' t) ts)))
+                         if t1' == t2' then Nothing else Just (t1' `equals` t2')
+                     ApplyLit p ts -> Just (pAppLiteral p (map (\ t -> replaceTerm' t) ts)))
           formula
     where
       replaceTerm' t =
           if termEq t tl'
           then tr'
-          else foldT var (\ f ts -> fApp f (map replaceTerm' ts)) t
+          else foldTerm var (\ f ts -> fApp f (map replaceTerm' ts)) t
       termEq t1 t2 =
           maybe False id (zipT (\ v1 v2 -> Just (v1 == v2)) (\ f1 ts1 f2 ts2 -> Just (f1 == f2 && length ts1 == length ts2 && all (uncurry termEq) (zip ts1 ts2))) t1 t2)
 
 subst :: Literal formula term v p f => formula -> Subst v term -> Maybe formula
 subst formula theta =
-    foldN (\ _ -> Just formula)
+    foldLiteral
+          (\ _ -> Just formula)
           (\ pa -> case pa of
-                     Equal t1 t2 ->
+                     EqualLit t1 t2 ->
                          let t1' = substTerm t1 theta
                              t2' = substTerm t2 theta in
-                         if t1' == t2' then Nothing else Just (t1' .=. t2')
-                     Apply p ts -> Just (pApp p (substTerms ts theta)))
+                         if t1' == t2' then Nothing else Just (t1' `equals` t2')
+                     ApplyLit p ts -> Just (pAppLiteral p (substTerms ts theta)))
           formula
 
 substTerm :: Term term v f => term -> Subst v term -> term
 substTerm term theta =
-    foldT (\ v -> maybe term id (M.lookup v theta))
-          (\ f ts -> fApp f (substTerms ts theta))
-          term
+    foldTerm (\ v -> maybe term id (M.lookup v theta))
+             (\ f ts -> fApp f (substTerms ts theta))
+             term
 
 substTerms :: Term term v f => [term] -> Subst v term -> [term]
 substTerms ts theta = map (\t -> substTerm t theta) ts

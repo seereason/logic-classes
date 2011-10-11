@@ -24,28 +24,33 @@ module Data.Logic.Test
 import Control.Monad.Reader (MonadPlus(..), msum)
 import Data.Boolean.SatSolver (CNF)
 import Data.Char (isDigit)
-import Data.Generics (Data, Typeable, listify, Fixity(..))
+import Data.Generics (Data, Typeable, listify)
 --import Data.Logic.Clause (ClauseNormalFormula(satisfiable))
-import Data.Logic.FirstOrder (FirstOrderFormula, convertFOF, Predicate(..), Skolem(..), Variable(one, next))
-import qualified Data.Logic.Instances.Chiou as C
-import qualified Data.Logic.Instances.Native as P
+import Data.Logic.Classes.Boolean (Boolean(..))
+import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(satisfiable))
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula, convertFOF)
+import Data.Logic.Classes.Literal (Literal)
+import Data.Logic.Classes.Skolem (Skolem(..))
+import Data.Logic.Classes.Variable (Variable(one, next))
+--import qualified Data.Logic.Instances.Chiou as C
+import qualified Data.Logic.Types.FirstOrder as P
 import Data.Logic.Instances.PropLogic (plSat)
 import qualified Data.Logic.Instances.SatSolver as SS
-import Data.Logic.KnowledgeBase (Proof, ProofResult, loadKB, theoremKB, getKB)
-import Data.Logic.Logic (Boolean(..))
-import Data.Logic.Monad (WithId, runNormal, runProver', runNormal', runNormalT')
-import Data.Logic.Normal (ClauseNormalFormula(satisfiable), ImplicativeNormalForm(..), Literal)
-import Data.Logic.NormalForm (simplify, negationNormalForm, prenexNormalForm, skolemNormalForm, clauseNormalForm, trivial)
-import Data.Logic.Predicate (Arity(arity))
-import Data.Logic.Pretty (showForm)
+import Data.Logic.KnowledgeBase (WithId, runProver', Proof, loadKB, theoremKB, getKB)
+import Data.Logic.Normal.Clause (clauseNormalForm, trivial)
+import Data.Logic.Normal.Negation (negationNormalForm, simplify)
+import Data.Logic.Normal.Prenex (prenexNormalForm)
+import Data.Logic.Normal.Implicative (ImplicativeForm)
+import Data.Logic.Normal.Skolem (skolemNormalForm, runNormal, runNormal', runNormalT')
+import Data.Logic.Classes.Arity (Arity(arity))
 import Data.Logic.Resolution (SetOfSupport)
 import qualified Data.Set as S
 import Data.String (IsString(fromString))
 
-import PropLogic (PropForm)
+--import PropLogic (PropForm)
 
 import Test.HUnit
-import Text.PrettyPrint (Doc, (<>), text)
+import Text.PrettyPrint (Doc, text)
 
 newtype V = V String deriving (Eq, Ord, Data, Typeable)
 
@@ -55,6 +60,7 @@ instance IsString V where
 instance Show V where
     show (V s) = show s
 
+prettyV :: V -> Doc
 prettyV (V s) = text s
 
 instance Variable V where
@@ -89,10 +95,13 @@ instance Arity Pr where
 instance Show Pr where
     show T = "fromBool True"
     show F = "fromBool False"
+    show Equals = ".=."
     show (Pr s) = show s            -- Because Pr is an instance of IsString
 
+prettyP :: Pr -> Doc
 prettyP T = text "True"
 prettyP F = text "False"
+prettyP Equals = text ".=."
 prettyP (Pr s) = text s
 
 data AtomicFunction
@@ -112,6 +121,7 @@ instance Show AtomicFunction where
     show (Fn s) = show s
     show (Skolem n) = "toSkolem " ++ show n
 
+prettyF :: AtomicFunction -> Doc
 prettyF (Fn s) = text s
 prettyF (Skolem n) = text ("sK" ++ show n)
 
@@ -119,7 +129,7 @@ type TFormula = P.Formula V Pr AtomicFunction
 type TTerm = P.PTerm V AtomicFunction
 
 -- |This allows you to use an expression that returns the Doc type in a
--- unit test, such as prettyForm 0.
+-- unit test, such as prettyFirstOrder.
 instance Eq Doc where
     a == b = show a == show b
 
@@ -176,10 +186,12 @@ doTest f =
       doExpected (PropLogicSat result) =
           TestCase (assertEqual (name f ++ " PropLogic.satisfiable") result (runNormal (plSat (formula f))))
       doExpected (SatSolverCNF result) =
-          TestCase (assertEqual (name f ++ " SatSolver CNF") result (runNormal' (SS.toCNF (formula f))))
+          TestCase (assertEqual (name f ++ " SatSolver CNF") (norm result) (runNormal' (SS.toCNF (formula f))))
       doExpected (SatSolverSat result) =
           TestCase (assertEqual (name f ++ " SatSolver CNF") result (null (runNormalT' (SS.toCNF (formula f) >>= satisfiable))))
-      p = id -- prettyForm 0
+      p = id
+
+      norm = map S.toList . S.toList . S.fromList . map S.fromList
 
 skolemSet :: (FirstOrderFormula formula term v p f, Data f, Typeable f, Data formula) => formula -> S.Set Int
 skolemSet =
@@ -208,7 +220,7 @@ data TestProof formula term v
 
 data ProofExpected formula v term
     = ChiouResult (Bool, SetOfSupport formula v term)
-    | ChiouKB (S.Set (WithId (ImplicativeNormalForm formula)))
+    | ChiouKB (S.Set (WithId (ImplicativeForm formula)))
     deriving (Data, Typeable)
 
 doProof :: forall formula term v p f. (FirstOrderFormula formula term v p f, Literal formula term v p f, Eq term, Show term, Show v, Show formula) =>

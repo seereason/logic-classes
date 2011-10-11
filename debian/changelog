@@ -1,3 +1,9 @@
+haskell-logic-classes (0.44) unstable; urgency=low
+
+  * Major re-organization of modules.
+
+ -- David Fox <dsf@seereason.com>  Sun, 09 Oct 2011 17:31:36 -0700
+
 haskell-logic (0.43) unstable; urgency=low
 
   * Move Propositional modules into Data.Logic.Propositional.

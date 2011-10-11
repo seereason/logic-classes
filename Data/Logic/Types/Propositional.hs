@@ -1,9 +1,11 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleInstances, MultiParamTypeClasses #-}
-module Data.Logic.Propositional.Instances.Native where
+module Data.Logic.Types.Propositional where
 
 import Data.Generics (Data, Typeable)
-import Data.Logic.Logic
-import Data.Logic.Propositional.Formula
+import Data.Logic.Classes.Negatable (Negatable(..))
+import Data.Logic.Classes.Propositional (PropositionalFormula(..), Combine(..), BinOp(..))
+import Data.Logic.Classes.Logic (Logic(..))
+import Data.Logic.Classes.Boolean (Boolean(..))
 
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula atom
@@ -31,7 +33,7 @@ instance Boolean atom => Boolean (Formula atom) where
 
 instance (Boolean atom, Ord atom) => PropositionalFormula (Formula atom) atom where
     atomic a = Atom a
-    foldF0 c a formula =
+    foldPropositional c a formula =
         case formula of
           Combine x -> c x
           Atom x -> a x
