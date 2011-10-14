@@ -1,3 +1,11 @@
+haskell-logic-classes (0.45) unstable; urgency=low
+
+  * Modify the superclasses of the Ord instance of Formula in
+    Data.Logic.Types.FirstOrderPublic.  It was causing a loop
+    when the PropLogic satisfiable function ran.
+
+ -- David Fox <dsf@seereason.com>  Fri, 14 Oct 2011 10:15:50 -0700
+
 haskell-logic-classes (0.44) unstable; urgency=low
 
   * Major re-organization of modules.

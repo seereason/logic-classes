@@ -8,8 +8,6 @@
 
 module Data.Logic.Types.FirstOrderPublic
     ( Formula(..)
-    , N.PTerm(..)
-    , Bijection(..)
     ) where
 
 import Data.Data (Data)
@@ -32,6 +30,7 @@ import Data.Set (Set)
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 
+-- |Convert between the public and internal representations.
 class Bijection p i where
     public :: i -> p
     intern :: p -> i
@@ -96,9 +95,13 @@ instance (Logic (Formula v p f), Term (N.PTerm v f) v f,
               c' combine1 combine2 = c (public combine1) (public combine2)
 
 -- |Here are the magic Ord and Eq instances
-instance (FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
+instance ({- FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
           Literal (N.Formula v p f) (N.PTerm v f) v p f,
-          FirstOrderFormula (N.Formula v p f) (N.PTerm v f) v p f,
+          FirstOrderFormula (N.Formula v p f) (N.PTerm v f) v p f, -}
+          Data v, Data f, Data p,
+          Ord v, Ord p, Ord f,
+          Show v, Show p, Show f,
+          Arity p, Boolean p, Skolem f, Variable v,
           Ord (N.Formula v p f)) => Ord (Formula v p f) where
     compare a b =
         let (a' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm (intern a :: N.Formula v p f))
