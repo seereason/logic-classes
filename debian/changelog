@@ -1,3 +1,9 @@
+haskell-logic-classes (0.46) unstable; urgency=low
+
+  * Limit the recursion depth of the prover to 100.
+
+ -- David Fox <dsf@seereason.com>  Tue, 29 Nov 2011 15:05:39 -0800
+
 haskell-logic-classes (0.45) unstable; urgency=low
 
   * Modify the superclasses of the Ord instance of Formula in

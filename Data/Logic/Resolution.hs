@@ -26,15 +26,18 @@ type SetOfSupport lit v term = S.Set (Unification lit v term)
 
 type Unification lit v term = (ImplicativeForm lit, Subst v term)
 
-prove :: Literal lit term v p f =>
-         SetOfSupport lit v term -> SetOfSupport lit v term -> S.Set (ImplicativeForm lit) -> (Bool, SetOfSupport lit v term)
-prove ss1 ss2' kb =
+prove d ss1 ss2' kb = prove'' 0 d ss1 ss2' kb
+
+prove'' :: (Literal lit term v p f, Show v, Show term) =>
+           Int -> SetOfSupport lit v term -> SetOfSupport lit v term -> S.Set (ImplicativeForm lit) -> (Bool, SetOfSupport lit v term)
+prove'' d ss1 _ _ | d > 100 = (False, ss1)
+prove'' d ss1 ss2' kb =
     case S.minView ss2' of
       Nothing -> (False, ss1)
       Just (s, ss2) ->
           case prove' s kb ss2 ss1 of
             (ss', True) -> (True, (S.insert s (S.union ss1 ss')))
-            (ss', False) -> prove (S.insert s ss1) ss' (S.insert (fst s) kb)
+            (ss', False) -> prove'' (d+1) (S.insert s ss1) ({-trace ("ss'=" ++ show ss')-} ss') (S.insert (fst s) kb)
 -- prove ss1 [] _kb = (False, ss1)
 -- prove ss1 (s:ss2) kb =
 --     let
