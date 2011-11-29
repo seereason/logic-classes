@@ -26,7 +26,9 @@ type SetOfSupport lit v term = S.Set (Unification lit v term)
 
 type Unification lit v term = (ImplicativeForm lit, Subst v term)
 
-prove d ss1 ss2' kb = prove'' 0 d ss1 ss2' kb
+prove :: (Literal lit term v p f, Show v, Show term) =>
+         SetOfSupport lit v term -> SetOfSupport lit v term -> S.Set (ImplicativeForm lit) -> (Bool, SetOfSupport lit v term)
+prove ss1 ss2' kb = prove'' 0 ss1 ss2' kb
 
 prove'' :: (Literal lit term v p f, Show v, Show term) =>
            Int -> SetOfSupport lit v term -> SetOfSupport lit v term -> S.Set (ImplicativeForm lit) -> (Bool, SetOfSupport lit v term)
