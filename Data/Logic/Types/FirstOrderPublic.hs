@@ -16,7 +16,6 @@ import Data.Logic.Classes.Arity (Arity)
 import Data.Logic.Classes.Boolean (Boolean(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import qualified Data.Logic.Types.FirstOrder as N
-import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Logic (Logic(..))
 import Data.Logic.Classes.Negatable (Negatable(..))
 import Data.Logic.Classes.Pred (Pred(..))
