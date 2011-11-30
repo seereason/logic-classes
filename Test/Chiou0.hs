@@ -29,7 +29,7 @@ tests = TestLabel "Chiou0" $ TestList [loadTest, proofTest1, proofTest2]
 
 loadTest :: Test
 loadTest =
-    TestCase (assertEqual "Chiuo0 - loadKB test" expected (runProver' (loadKB sentences)))
+    TestCase (assertEqual "Chiuo0 - loadKB test" expected (runProver' Nothing (loadKB sentences)))
     where
       expected :: [Proof TFormula]
       expected = [Proof Invalid (S.fromList [makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
@@ -41,7 +41,7 @@ loadTest =
                   Proof Invalid (S.fromList [makeINF' ([(pApp ("Cat") [var ("x")])]) ([(pApp ("Animal") [var ("x")])])])]
 
 proofTest1 :: Test
-proofTest1 = TestCase (assertEqual "Chiuo0 - proof test 1" proof1 (runProver' (loadKB sentences >> theoremKB (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []] :: TFormula))))
+proofTest1 = TestCase (assertEqual "Chiuo0 - proof test 1" proof1 (runProver' Nothing (loadKB sentences >> theoremKB (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []] :: TFormula))))
 
 inf' l1 l2 = INF (S.fromList l1) (S.fromList l2)
 
@@ -61,7 +61,7 @@ proof1 = (False,
             (makeINF' ([(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList [])]))
 
 proofTest2 :: Test
-proofTest2 = TestCase (assertEqual "Chiuo0 - proof test 2" proof2 (runProver' (loadKB sentences >> theoremKB conjecture)))
+proofTest2 = TestCase (assertEqual "Chiuo0 - proof test 2" proof2 (runProver' Nothing (loadKB sentences >> theoremKB conjecture)))
     where
       conjecture :: TFormula
       conjecture = (pApp "Kills" [fApp "Curiosity" [], fApp (Fn "Tuna") []])

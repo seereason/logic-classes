@@ -62,24 +62,27 @@ type KnowledgeBase inf = S.Set (WithId inf)
 
 data ProverState inf
     = ProverState
-      { knowledgeBase :: KnowledgeBase inf
+      { recursionLimit :: Maybe Int
+      , knowledgeBase :: KnowledgeBase inf
       , sentenceCount :: Int }
 
-zeroKB :: ProverState inf
-zeroKB = ProverState
-         { knowledgeBase = S.empty
+zeroKB :: Maybe Int -> ProverState inf
+zeroKB limit =
+    ProverState
+         { recursionLimit = limit
+         , knowledgeBase = S.empty
          , sentenceCount = 1 }
 
 -- |A monad for running the knowledge base.
 type ProverT inf = StateT (ProverState inf)
 type ProverT' v term inf m a = ProverT inf (NormalT v term m) a
 
-runProverT' :: Monad m => ProverT' v term inf m a -> m a
-runProverT' = runNormalT . runProverT
-runProverT :: Monad m => StateT (ProverState inf) m a -> m a
-runProverT action = evalStateT action zeroKB
-runProver' :: ProverT' v term inf Identity a -> a
-runProver' = runIdentity . runProverT'
+runProverT' :: Monad m => Maybe Int -> ProverT' v term inf m a -> m a
+runProverT' limit = runNormalT . runProverT limit
+runProverT :: Monad m => Maybe Int -> StateT (ProverState inf) m a -> m a
+runProverT limit action = evalStateT action (zeroKB limit)
+runProver' :: Maybe Int -> ProverT' v term inf Identity a -> a
+runProver' limit = runIdentity . runProverT' limit
 {-
 runProver :: StateT (ProverState inf) Identity a -> a
 runProver = runIdentity . runProverT
@@ -114,7 +117,12 @@ getKB = get >>= return . knowledgeBase
 -- with a disproof.
 inconsistantKB :: forall m formula term v p f lit. (FirstOrderFormula formula term v p f, Literal lit term v p f, Monad m, Show term) =>
                   formula -> ProverT' v term (ImplicativeForm lit) m (Bool, SetOfSupport lit v term)
-inconsistantKB s = lift (implicativeNormalForm s) >>= return . getSetOfSupport >>= \ sos -> getKB >>= return . prove S.empty sos . S.map wiItem
+inconsistantKB s =
+    get >>= \ st ->
+    lift (implicativeNormalForm s) >>=
+    return . getSetOfSupport >>= \ sos ->
+    getKB >>=
+    return . prove (recursionLimit st) S.empty sos . S.map wiItem
 
 -- |Return a flag indicating whether sentence was proved, along with a
 -- proof.

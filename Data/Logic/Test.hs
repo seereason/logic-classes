@@ -182,7 +182,7 @@ doTest f =
       doExpected (ConvertToChiou result) =
           TestCase (assertEqual (name f ++ " converted to Chiou") result (convertFOF id id id (formula f)))
       doExpected (ChiouKB1 result) =
-          TestCase (assertEqual (name f ++ " Chiou KB") result (runProver' (loadKB [formula f] >>= return . head)))
+          TestCase (assertEqual (name f ++ " Chiou KB") result (runProver' Nothing (loadKB [formula f] >>= return . head)))
       doExpected (PropLogicSat result) =
           TestCase (assertEqual (name f ++ " PropLogic.satisfiable") result (runNormal (plSat (formula f))))
       doExpected (SatSolverCNF result) =
@@ -233,11 +233,11 @@ doProof p =
           [TestLabel (proofName p ++ " with " ++ fst (proofKnowledge p)) . TestList $
            [TestCase (assertEqual (proofName p ++ " with " ++ fst (proofKnowledge p) ++ " using Chiou prover")
                       result
-                      (runProver' (loadKB kb >> theoremKB c)))]]
+                      (runProver' Nothing (loadKB kb >> theoremKB c)))]]
       doExpected (ChiouKB result) =
           [TestLabel (proofName p ++ " with " ++ fst (proofKnowledge p)) . TestList $
            [TestCase (assertEqual (proofName p ++ " with " ++ fst (proofKnowledge p) ++ " Chiou knowledge base")
                       result
-                      (runProver' (loadKB kb >> getKB)))]]
+                      (runProver' Nothing (loadKB kb >> getKB)))]]
       kb = snd (proofKnowledge p) :: [formula]
       c = conjecture p :: formula
