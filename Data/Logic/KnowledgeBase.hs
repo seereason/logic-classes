@@ -112,26 +112,26 @@ getKB = get >>= return . knowledgeBase
 
 -- |Return a flag indicating whether sentence was disproved, along
 -- with a disproof.
-inconsistantKB :: forall m formula term v p f lit. (FirstOrderFormula formula term v p f, Literal lit term v p f, Monad m) =>
+inconsistantKB :: forall m formula term v p f lit. (FirstOrderFormula formula term v p f, Literal lit term v p f, Monad m, Show term) =>
                   formula -> ProverT' v term (ImplicativeForm lit) m (Bool, SetOfSupport lit v term)
 inconsistantKB s = lift (implicativeNormalForm s) >>= return . getSetOfSupport >>= \ sos -> getKB >>= return . prove S.empty sos . S.map wiItem
 
 -- |Return a flag indicating whether sentence was proved, along with a
 -- proof.
-theoremKB :: forall m formula term v p f lit. (Monad m, FirstOrderFormula formula term v p f, Literal lit term v p f) =>
+theoremKB :: forall m formula term v p f lit. (Monad m, FirstOrderFormula formula term v p f, Literal lit term v p f, Show term) =>
              formula -> ProverT' v term (ImplicativeForm lit) m (Bool, SetOfSupport lit v term)
 theoremKB s = inconsistantKB ((.~.) s)
 
 -- |Try to prove a sentence, return the result and the proof.
 -- askKB should be in KnowledgeBase module. However, since resolution
 -- is here functions are here, it is also placed in this module.
-askKB :: (Monad m, FirstOrderFormula formula term v p f, Literal lit term v p f) =>
+askKB :: (Monad m, FirstOrderFormula formula term v p f, Literal lit term v p f, Show term) =>
          formula -> ProverT' v term (ImplicativeForm lit) m Bool
 askKB s = theoremKB s >>= return . fst
 
 -- |See whether the sentence is true, false or invalid.  Return proofs
 -- for truth and falsity.
-validKB :: (FirstOrderFormula formula term v p f, Literal lit term v p f, Monad m) =>
+validKB :: (FirstOrderFormula formula term v p f, Literal lit term v p f, Monad m, Show term) =>
            formula -> ProverT' v term (ImplicativeForm lit) m (ProofResult, SetOfSupport lit v term, SetOfSupport lit v term)
 validKB s =
     theoremKB s >>= \ (proved, proof1) ->
@@ -141,7 +141,7 @@ validKB s =
 -- |Validate a sentence and insert it into the knowledgebase.  Returns
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
-tellKB :: (FirstOrderFormula formula term v p f, Literal lit term v p f, Monad m) =>
+tellKB :: (FirstOrderFormula formula term v p f, Literal lit term v p f, Monad m, Show term) =>
           formula -> ProverT' v term (ImplicativeForm lit) m (Proof lit)
 tellKB s =
     do st <- get
@@ -154,7 +154,7 @@ tellKB s =
                      , sentenceCount = sentenceCount st + 1 }
        return $ Proof {proofResult = valid, proof = S.map wiItem inf'}
 
-loadKB :: (FirstOrderFormula formula term v p f, Literal lit term v p f, Monad m) =>
+loadKB :: (FirstOrderFormula formula term v p f, Literal lit term v p f, Monad m, Show term) =>
           [formula] -> ProverT' v term (ImplicativeForm lit) m [Proof lit]
 loadKB sentences = mapM tellKB sentences
 
