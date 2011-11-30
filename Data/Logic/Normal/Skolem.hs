@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE PackageImports, RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS -Wall #-}
 module Data.Logic.Normal.Skolem
     ( LiteralMapT
@@ -14,8 +14,8 @@ module Data.Logic.Normal.Skolem
 import Data.Logic.Normal.Negation (negationNormalForm)
 import Data.Logic.Normal.Prenex (prenexNormalForm)
 
-import Control.Monad.Identity (Identity(runIdentity))
-import Control.Monad.State (StateT(runStateT), get, put)
+import "mtl" Control.Monad.Identity (Identity(runIdentity))
+import "mtl" Control.Monad.State (StateT(runStateT), get, put)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), freeVars, Quant(..), substitute)
 import Data.Logic.Classes.Propositional (Combine(..), BinOp(..))
 import Data.Logic.Classes.Logic (Logic(..))

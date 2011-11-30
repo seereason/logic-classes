@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE DeriveDataTypeable, PackageImports, RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS -Wall #-}
 module Data.Logic.Normal.Implicative
     ( ImplicativeForm(INF, neg, pos)
@@ -11,7 +11,7 @@ module Data.Logic.Normal.Implicative
 import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Skolem (NormalT)
 
-import Control.Monad.State (MonadPlus, msum)
+import "mtl" Control.Monad.State (MonadPlus, msum)
 import Data.Generics (Data, Typeable, listify)
 import Data.List (intersperse)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))

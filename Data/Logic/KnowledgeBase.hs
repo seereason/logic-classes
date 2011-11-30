@@ -1,5 +1,5 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes,
-             TypeSynonymInstances, UndecidableInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, PackageImports,
+             RankNTypes, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wall #-}
 
 {- KnowledgeBase.hs -}
@@ -24,9 +24,9 @@ module Data.Logic.KnowledgeBase
     , showKB
     ) where
 
-import Control.Monad.Identity (Identity(runIdentity))
-import Control.Monad.State (StateT, evalStateT, MonadState(get, put))
-import Control.Monad.Trans (lift)
+import "mtl" Control.Monad.Identity (Identity(runIdentity))
+import "mtl" Control.Monad.State (StateT, evalStateT, MonadState(get, put))
+import "mtl" Control.Monad.Trans (lift)
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
 import Data.Logic.Classes.Negatable (Negatable(..))
