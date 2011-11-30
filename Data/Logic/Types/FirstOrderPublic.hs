@@ -8,6 +8,7 @@
 
 module Data.Logic.Types.FirstOrderPublic
     ( Formula(..)
+    , Bijection(..)
     ) where
 
 import Data.Data (Data)
