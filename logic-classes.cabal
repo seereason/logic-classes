@@ -43,7 +43,7 @@ Library
                    Data.Logic.Types.FirstOrderPublic
                    Data.Logic.Types.Propositional
  Other-Modules:    Data.Logic.Test
- Build-Depends:    base, containers, fgl, happstack-data, incremental-sat-solver,
+ Build-Depends:    base >= 4.3, containers, fgl, happstack-data, incremental-sat-solver,
                    mtl, syb-with-class, text, PropLogic, pretty, safecopy, set-extra, syb
 
 Executable tests
