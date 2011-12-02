@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, PackageImports,
-             RankNTypes, TypeSynonymInstances, UndecidableInstances #-}
+             RankNTypes, TemplateHaskell, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wall #-}
 
 {- KnowledgeBase.hs -}
@@ -34,7 +34,9 @@ import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Normal.Implicative (ImplicativeForm, implicativeNormalForm)
 import Data.Logic.Normal.Skolem (NormalT, runNormalT)
 import Data.Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
+import Data.SafeCopy (deriveSafeCopy, base)
 import qualified Data.Set.Extra as S
+import Happstack.Data (Default(defaultValue), deriveNewDataNoDefault)
 import Prelude hiding (negate)
 
 type SentenceCount = Int
@@ -96,6 +98,13 @@ data ProofResult
     | Invalid
     -- ^ Both are satisfiable
     deriving (Data, Typeable, Eq, Ord, Show)
+
+$(deriveSafeCopy 1 'base ''ProofResult)
+
+$(deriveNewDataNoDefault [''ProofResult])
+
+instance Default ProofResult where
+    defaultValue = Invalid
 
 data Proof lit = Proof {proofResult :: ProofResult, proof :: S.Set (ImplicativeForm lit)} deriving (Data, Typeable, Eq, Ord)
 

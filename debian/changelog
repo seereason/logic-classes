@@ -1,3 +1,9 @@
+haskell-logic-classes (0.47) unstable; urgency=low
+
+  * Move some orphan ProofResult instances here from ontology.y
+
+ -- David Fox <dsf@seereason.com>  Fri, 02 Dec 2011 11:41:33 -0800
+
 haskell-logic-classes (0.46) unstable; urgency=low
 
   * Limit the recursion depth of the prover to 100.
