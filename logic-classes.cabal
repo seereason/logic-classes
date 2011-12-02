@@ -14,7 +14,7 @@ Category:         Logic, Theorem Provers
 Cabal-version:    >= 1.2
 
 Library
- GHC-options: -threaded -Wall -O2
+ GHC-options: -Wall -O2
  Exposed-Modules:  Data.Logic
                    Data.Logic.Classes.Arity
                    Data.Logic.Classes.Boolean
