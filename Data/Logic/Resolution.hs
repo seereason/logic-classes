@@ -257,7 +257,7 @@ unifyTerm :: Term term v f => term -> term -> Subst v term -> Subst v term -> Ma
 unifyTerm t1 t2 theta1 theta2 =
     foldTerm
           (\ v1 ->
-               maybe (Just (M.insert v1 t2 theta1, theta2))
+               maybe (if var v1 == t2 then Nothing else Just (M.insert v1 t2 theta1, theta2))
                      (\ t1' -> unifyTerm t1' t2 theta1 theta2)
                      (M.lookup v1 theta1))
           (\ f1 ts1 ->

@@ -1,3 +1,10 @@
+haskell-logic-classes (0.49) unstable; urgency=low
+
+  * Fix a bug in the unification algorithm.  Unification should fail if
+    we try to unify a variable with itself.
+
+ -- David Fox <dsf@seereason.com>  Mon, 05 Dec 2011 17:02:49 -0800
+
 haskell-logic-classes (0.48) unstable; urgency=low
 
   * Add missing test modules.
