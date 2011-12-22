@@ -13,13 +13,11 @@ module Data.Logic.Types.FirstOrderPublic
 
 import Data.Data (Data)
 import Data.Logic.Classes.Arity (Arity)
-import Data.Logic.Classes.Boolean (Boolean(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
+import Data.Logic.Classes.Combine (Combinable(..), Combine(..))
+import Data.Logic.Classes.Constants (Boolean(..))
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Pred(..))
 import qualified Data.Logic.Types.FirstOrder as N
-import Data.Logic.Classes.Logic (Logic(..))
-import Data.Logic.Classes.Negatable (Negatable(..))
-import Data.Logic.Classes.Pred (Pred(..))
-import Data.Logic.Classes.Propositional (Combine(..))
+import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..), )
 import Data.Logic.Classes.Variable (Variable)
@@ -54,21 +52,24 @@ instance Negatable (Formula v p f) where
     negated = negated . unFormula
     (.~.) = Formula . (.~.) . unFormula
 
-instance (Variable v, Show v, Ord v, Data v,
+instance (Boolean (Formula v p f), Boolean (N.Formula v p f),
+          Variable v, Show v, Ord v, Data v,
           Arity p, Boolean p, Show p, Ord p, Data p,
-          Skolem f, Show f, Ord f, Data f) => Logic (Formula v p f) where
+          Skolem f, Show f, Ord f, Data f) => Combinable (Formula v p f) where
     x .<=>. y = Formula $ (unFormula x) .<=>. (unFormula y)
     x .=>.  y = Formula $ (unFormula x) .=>. (unFormula y)
     x .|.   y = Formula $ (unFormula x) .|. (unFormula y)
     x .&.   y = Formula $ (unFormula x) .&. (unFormula y)
 
-instance (Arity p, Variable v, Skolem f, Boolean p,
+instance (Boolean (N.Formula v p f),
+          Arity p, Variable v, Skolem f, Boolean p,
           Show p, Show v, Show f,
           Ord f, Ord v, Ord p,
           Data p, Data v, Data f) => Show (Formula v p f) where
     showsPrec n x = showsPrec n (unFormula x)
 
-instance (Variable v, Show v, Ord v, Data v,
+instance (Boolean (Formula v p f), Boolean (N.Formula v p f),
+          Variable v, Show v, Ord v, Data v,
           Show p, Ord p, Data p, Boolean p, Arity p,
           Skolem f, Show f, Ord f, Data f) => Pred p (N.PTerm v f) (Formula v p f) where
     pApp0 p = (public :: N.Formula v p f -> Formula v p f) $ pApp0 p
@@ -81,7 +82,8 @@ instance (Variable v, Show v, Ord v, Data v,
     pApp7 p t1 t2 t3 t4 t5 t6 t7 = (public :: N.Formula v p f -> Formula v p f) $ pApp7 (p) (t1) (t2) (t3) (t4) (t5) (t6) (t7)
     t1 .=. t2 = (public :: N.Formula v p f -> Formula v p f) $ (t1) .=. (t2)
 
-instance (Logic (Formula v p f), Term (N.PTerm v f) v f,
+instance (Boolean (Formula v p f), Boolean (N.Formula v p f),
+          Combinable (Formula v p f), Term (N.PTerm v f) v f,
           Show v,
           Arity p, Boolean p, Ord p, Data p, Show p,
           Ord f, Show f) => FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f where
@@ -98,6 +100,7 @@ instance (Logic (Formula v p f), Term (N.PTerm v f) v f,
 instance ({- FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
           Literal (N.Formula v p f) (N.PTerm v f) v p f,
           FirstOrderFormula (N.Formula v p f) (N.PTerm v f) v p f, -}
+          Boolean (Formula v p f), Boolean (N.Formula v p f),
           Data v, Data f, Data p,
           Ord v, Ord p, Ord f,
           Show v, Show p, Show f,

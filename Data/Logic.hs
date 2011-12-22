@@ -3,7 +3,7 @@ module Data.Logic
     ( -- * Boolean Logic
       Negatable(..)
     , Boolean(fromBool)
-    , Logic(..)
+    , Combinable(..)
     -- * Propositional Logic
     , PropositionalFormula(..)
     , Combine(..)
@@ -30,13 +30,12 @@ module Data.Logic
     ) where
 
 import Data.Logic.Classes.Arity
-import Data.Logic.Classes.Boolean
+import Data.Logic.Classes.Combine
+import Data.Logic.Classes.Constants
 import Data.Logic.Classes.ClauseNormalForm
 import Data.Logic.Classes.FirstOrder
 import Data.Logic.Classes.Literal
-import Data.Logic.Classes.Logic
-import Data.Logic.Classes.Negatable
-import Data.Logic.Classes.Pred
+import Data.Logic.Classes.Negate
 import Data.Logic.Classes.Propositional
 import Data.Logic.Classes.Skolem
 import Data.Logic.Classes.Term

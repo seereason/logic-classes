@@ -6,12 +6,10 @@ module Data.Logic.Normal.Negation
     , simplify
     ) where
 
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), freeVars, quant, Quant(..), Predicate(..))
-import Data.Logic.Classes.Propositional (Combine(..), combine, BinOp(..))
-import Data.Logic.Classes.Pred (Pred(..), pApp)
-import Data.Logic.Classes.Boolean (Boolean(..))
-import Data.Logic.Classes.Negatable (Negatable(..))
-import Data.Logic.Classes.Logic (Logic(..))
+import Data.Logic.Classes.Combine (Combinable(..), Combine(..), combine, BinOp(..))
+import Data.Logic.Classes.Constants (Boolean(..))
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), freeVars, quant, Quant(..), Predicate(..), Pred(..), pApp)
+import Data.Logic.Classes.Negate (Negatable(..))
 import qualified Data.Set.Extra as S
 
 -- | Simplify and recursively apply nnf.

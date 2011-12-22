@@ -6,9 +6,8 @@ module Data.Logic.Normal.Prenex
 
 import Data.Logic.Normal.Negation (negationNormalForm)
 
+import Data.Logic.Classes.Combine (Combinable(..), Combine(..), BinOp(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), freeVars, quant, Quant(..), substitute)
-import Data.Logic.Classes.Propositional (Combine(..), BinOp(..))
-import Data.Logic.Classes.Logic (Logic(..))
 import Data.Logic.Classes.Term (Term(var))
 import Data.Logic.Classes.Variable (variant)
 

@@ -6,11 +6,11 @@ module Data.Logic.Instances.PropLogic
     , plSat
     ) where
 
-import Data.Logic.Classes.Boolean (Boolean(fromBool))
+import Data.Logic.Classes.Combine (Combinable(..), Combine(..), BinOp(..))
+import Data.Logic.Classes.Constants (Boolean(fromBool))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula, toPropositional)
-import Data.Logic.Classes.Negatable (Negatable(..))
-import Data.Logic.Classes.Logic (Logic(..))
-import Data.Logic.Classes.Propositional (PropositionalFormula(..), Combine(..), BinOp(..), clauseNormalForm')
+import Data.Logic.Classes.Negate (Negatable(..))
+import Data.Logic.Classes.Propositional (PropositionalFormula(..), clauseNormalForm')
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Skolem (NormalT)
@@ -24,13 +24,13 @@ instance Negatable (PropForm a) where
     negated (N x) = not (negated x)
     negated _ = False
 
-instance Ord a => Logic (PropForm a) where
+instance Ord a => Combinable (PropForm a) where
     x .<=>. y = EJ [x, y]
     x .=>.  y = SJ [x, y]
     x .|.   y = DJ [x, y]
     x .&.   y = CJ [x, y]
 
-instance (Logic (PropForm a), Ord a) => PropositionalFormula (PropForm a) a where
+instance (Combinable (PropForm a), Ord a) => PropositionalFormula (PropForm a) a where
     atomic = A
     foldPropositional c a formula =
         case formula of

@@ -17,7 +17,7 @@ import Data.List (intersperse)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Skolem (Skolem(fromSkolem))
 import Data.Logic.Classes.Literal (Literal(..))
-import Data.Logic.Classes.Negatable (Negatable(..))
+import Data.Logic.Classes.Negate (Negatable(..))
 import qualified Data.Set.Extra as Set
 import Data.Maybe (isJust)
 import Text.PrettyPrint (Doc, cat, text, hsep)

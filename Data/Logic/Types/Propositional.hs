@@ -2,10 +2,10 @@
 module Data.Logic.Types.Propositional where
 
 import Data.Generics (Data, Typeable)
-import Data.Logic.Classes.Negatable (Negatable(..))
-import Data.Logic.Classes.Propositional (PropositionalFormula(..), Combine(..), BinOp(..))
-import Data.Logic.Classes.Logic (Logic(..))
-import Data.Logic.Classes.Boolean (Boolean(..))
+import Data.Logic.Classes.Combine (Combinable(..), Combine(..), BinOp(..))
+import Data.Logic.Classes.Constants (Boolean(..))
+import Data.Logic.Classes.Negate (Negatable(..))
+import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula atom
@@ -22,7 +22,7 @@ instance Negatable (Formula atom) where
     negated (Combine ((:~:) x)) = not (negated x)
     negated _ = False
 
-instance Ord atom => Logic (Formula atom) where
+instance (Boolean atom, Ord atom) => Combinable (Formula atom) where
     x .<=>. y = Combine (BinOp  x (:<=>:) y)
     x .=>.  y = Combine (BinOp  x (:=>:)  y)
     x .|.   y = Combine (BinOp  x (:|:)   y)

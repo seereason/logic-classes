@@ -1,4 +1,4 @@
-module Data.Logic.Classes.Boolean
+module Data.Logic.Classes.Constants
     ( Boolean(fromBool)
     ) where
 

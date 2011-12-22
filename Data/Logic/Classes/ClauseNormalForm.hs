@@ -4,7 +4,7 @@ module Data.Logic.Classes.ClauseNormalForm
     ) where
 
 import Control.Monad (MonadPlus)
-import Data.Logic.Classes.Negatable
+import Data.Logic.Classes.Negate
 import Data.Set as S
 
 -- |A class to represent formulas in CNF, which is the conjunction of

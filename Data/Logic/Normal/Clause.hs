@@ -38,10 +38,10 @@ import Data.Logic.Normal.Prenex (prenexNormalForm)
 import Data.Logic.Normal.Skolem (skolemNormalForm, NormalT)
 
 import Data.List (intersperse)
+import Data.Logic.Classes.Combine (Combine(..), BinOp(..))
+import Data.Logic.Classes.Constants (Boolean(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder, Predicate(..))
-import Data.Logic.Classes.Propositional (Combine(..), BinOp(..))
-import Data.Logic.Classes.Boolean (Boolean(..))
-import Data.Logic.Classes.Negatable (Negatable(..))
+import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Literal (Literal(..), prettyLit, fromFirstOrder)
 import qualified Data.Set.Extra as Set
 import Text.PrettyPrint (Doc, hcat, vcat, text, nest, ($$), brackets, render)

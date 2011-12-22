@@ -11,13 +11,11 @@ module Data.Logic.Types.FirstOrder
 
 import Data.Data (Data)
 import Data.Logic.Classes.Arity (Arity)
-import Data.Logic.Classes.Boolean (Boolean(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder, Quant(..), Predicate(..))
+import Data.Logic.Classes.Combine (Combinable(..), Combine(..), BinOp(..))
+import Data.Logic.Classes.Constants (Boolean(..))
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder, Quant(..), Predicate(..), Pred(..), pApp)
 import Data.Logic.Classes.Literal (Literal(..), PredicateLit(..))
-import Data.Logic.Classes.Logic (Logic(..))
-import Data.Logic.Classes.Negatable(Negatable(..))
-import Data.Logic.Classes.Pred (Pred(..), pApp)
-import Data.Logic.Classes.Propositional (Combine(..), BinOp(..))
+import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..), showTerm)
 import Data.Logic.Classes.Variable (Variable)
@@ -72,7 +70,10 @@ instance Negatable (Formula v p f) where
     negated (Combine ((:~:) x)) = not (negated x)
     negated _ = False
 
-instance (Ord v, Ord p, Ord f) => Logic (Formula v p f) where
+-- instance (Boolean p, Arity p, Ord p, Ord v, Ord f) => Boolean (Formula v p f) where
+--     fromBool x = pApp (fromBool x) []
+
+instance (Ord v, Ord p, Ord f) => Combinable (Formula v p f) where
     x .<=>. y = Combine (BinOp  x (:<=>:) y)
     x .=>.  y = Combine (BinOp  x (:=>:)  y)
     x .|.   y = Combine (BinOp  x (:|:)   y)
@@ -81,7 +82,7 @@ instance (Ord v, Ord p, Ord f) => Logic (Formula v p f) where
 instance (Ord v, Variable v, Data v,
           Ord p, Boolean p, Arity p, Data p,
           Ord f, Skolem f, Data f,
-          Boolean (Formula v p f), Logic (Formula v p f)) =>
+          Boolean (Formula v p f), Combinable (Formula v p f)) =>
          PropositionalFormula (Formula v p f) (Formula v p f) where
     atomic (Predicate (Equal t1 t2)) = t1 .=. t2
     atomic (Predicate (NotEqual t1 t2)) = t1 .!=. t2
@@ -106,7 +107,7 @@ instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (PTe
     var = Var
     fApp x args = FunApp x args
 
-instance (Ord v, Ord p, Boolean p, Arity p, Ord f) => Pred p (PTerm v f) (Formula v p f) where
+instance (Boolean (Formula v p f), Ord v, Ord p, Boolean p, Arity p, Ord f) => Pred p (PTerm v f) (Formula v p f) where
     pApp0 x = Predicate (Apply x [])
     pApp1 x a = Predicate (Apply x [a])
     pApp2 x a b = Predicate (Apply x [a,b])
@@ -137,7 +138,8 @@ instance (Pred p (PTerm v f) (Formula v p f),
           (Predicate x, Predicate y) -> p x y
           _ -> Nothing
 
-instance (Variable v, Ord v, Data v, Show v,
+instance (Boolean (Formula v p f),
+          Variable v, Ord v, Data v, Show v,
           Arity p, Boolean p, Ord p, Data p, Show p,
           Skolem f, Ord f, Data f, Show f) => Literal (Formula v p f) (PTerm v f) v p f where
     equals x y = Predicate (Equal x y)

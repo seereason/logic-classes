@@ -12,8 +12,6 @@ module Data.Logic.Classes.Propositional
     ( PropositionalFormula(..)
     , showPropositional
     , convertProp
-    , BinOp(..)
-    , Combine(..)
     , combine
     , negationNormalForm
     , clauseNormalForm
@@ -25,9 +23,9 @@ module Data.Logic.Classes.Propositional
     ) where
 
 import Data.Generics (Data, Typeable)
-import Data.Logic.Classes.Boolean
-import Data.Logic.Classes.Negatable
-import Data.Logic.Classes.Logic
+import Data.Logic.Classes.Combine
+import Data.Logic.Classes.Constants
+import Data.Logic.Classes.Negate
 import Data.SafeCopy (base, deriveSafeCopy)
 import qualified Data.Set.Extra as Set
 import Happstack.Data (deriveNewData)
@@ -40,7 +38,7 @@ import Happstack.Data (deriveNewData)
 -- raise errors in the implementation if a non-atomic formula somehow
 -- appears where an atomic formula is expected (i.e. as an argument to
 -- atomic or to the third argument of foldPropositional.)
-class (Logic formula, Boolean formula, Ord formula, Ord atom) => PropositionalFormula formula atom | formula -> atom where
+class (Combinable formula, Boolean formula, Ord formula, Ord atom) => PropositionalFormula formula atom | formula -> atom where
     -- | Build an atomic formula from the atom type.
     atomic :: atom -> formula
     -- | A fold function that distributes different sorts of formula
@@ -79,56 +77,6 @@ convertProp convertA formula =
       c ((:~:) f) = (.~.) (convert' f)
       c (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
       a = atomic . convertA
-
--- |'Combine' is a helper type used in the signatures of the
--- 'foldPropositional' and 'foldFirstOrder' methods so can represent
--- all the ways that formulas can be combined using boolean logic -
--- negation, logical And, and so forth.
-data Combine formula
-    = BinOp formula BinOp formula
-    | (:~:) formula
-    deriving (Eq,Ord,Read,Data,Typeable)
-
--- | Represents the boolean logic binary operations, used in the
--- Combine type above.
-data BinOp
-    = (:<=>:)  -- ^ Equivalence
-    |  (:=>:)  -- ^ Implication
-    |  (:&:)  -- ^ AND
-    |  (:|:)  -- ^ OR
-    deriving (Eq,Ord,Read,Data,Typeable,Enum,Bounded)
-
--- |We need to implement read manually here due to
--- <http://hackage.haskell.org/trac/ghc/ticket/4136>
-{-
-instance Read BinOp where
-    readsPrec _ s = 
-        map (\ (x, t) -> (x, drop (length t) s))
-            (take 1 (dropWhile (\ (_, t) -> not (isPrefixOf t s)) prs))
-        where
-          prs = [((:<=>:), ":<=>:"),
-                 ((:=>:), ":=>:"),
-                 ((:&:), ":&:"),
-                 ((:|:), ":|:")]
--}
-
-instance Show BinOp where
-    show (:<=>:) = "(:<=>:)"
-    show (:=>:) = "(:=>:)"
-    show (:&:) = "(:&:)"
-    show (:|:) = "(:|:)"
-
--- | A helper function for building folds:
--- @
---   foldPropositional combine atomic
--- @
--- is a no-op.
-combine :: Logic formula => Combine formula -> formula
-combine (BinOp f1 (:<=>:) f2) = f1 .<=>. f2
-combine (BinOp f1 (:=>:) f2) = f1 .=>. f2
-combine (BinOp f1 (:&:) f2) = f1 .&. f2
-combine (BinOp f1 (:|:) f2) = f1 .|. f2
-combine ((:~:) f) = (.~.) f
 
 -- | Simplify and recursively apply nnf.
 negationNormalForm :: PropositionalFormula formula atom => formula -> formula

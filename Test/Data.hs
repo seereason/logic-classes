@@ -16,13 +16,12 @@ module Test.Data
 
 import Data.Boolean.SatSolver (Literal(..))
 import Data.Generics (Typeable)
-import Data.Logic.Classes.Boolean (Boolean(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), for_all', exists', convertFOF)
-import Data.Logic.Classes.Logic (Logic(..))
+import Data.Logic.Classes.Combine (Combinable(..))
+import Data.Logic.Classes.Constants (Boolean(..))
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), for_all', exists', convertFOF, Pred(..), pApp)
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Skolem (Skolem(toSkolem))
-import Data.Logic.Classes.Pred (Pred(..), pApp)
-import Data.Logic.Classes.Negatable (Negatable(..))
+import Data.Logic.Classes.Negate (Negatable(..))
 import qualified Data.Logic.Classes.Literal as N
 import qualified Data.Logic.Instances.Chiou as C
 import Data.Logic.KnowledgeBase (WithId(WithId, wiItem, wiIdent), Proof(..), ProofResult(..))
@@ -48,7 +47,7 @@ allFormulas = (formulas ++
 formulas :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, IsString v, IsString p, IsString f) =>
             [TestFormula formula term v p f]
 formulas =
-    let n = (.~.) :: Logic formula => formula -> formula
+    let n = (.~.) :: Combinable formula => formula -> formula
         p = pApp "p" :: [term] -> formula
         q = pApp "q" :: [term] -> formula
         r = pApp "r" :: [term] -> formula

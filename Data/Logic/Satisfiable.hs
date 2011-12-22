@@ -14,7 +14,7 @@ module Data.Logic.Satisfiable
 import qualified Data.Set as Set
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), toPropositional)
 import Data.Logic.Classes.Literal (Literal)
-import Data.Logic.Classes.Negatable ((.~.))
+import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Instances.PropLogic ()
 import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Skolem (NormalT)

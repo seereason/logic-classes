@@ -10,7 +10,7 @@ import qualified Data.Set.Extra as S
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(..))
 import qualified Data.Logic.Classes.Literal as N
-import Data.Logic.Classes.Negatable (Negatable(..))
+import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Skolem (LiteralMapT, NormalT')
 import qualified Data.Map as M

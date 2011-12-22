@@ -1,4 +1,4 @@
-module Data.Logic.Classes.Negatable where
+module Data.Logic.Classes.Negate where
 
 -- |The class of formulas that can be negated.  There are some types
 -- that can be negated but do not support the other Boolean Logic

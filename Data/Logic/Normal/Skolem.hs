@@ -16,9 +16,8 @@ import Data.Logic.Normal.Prenex (prenexNormalForm)
 
 import "mtl" Control.Monad.Identity (Identity(runIdentity))
 import "mtl" Control.Monad.State (StateT(runStateT), get, put)
+import Data.Logic.Classes.Combine (Combinable(..), Combine(..), BinOp(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), freeVars, Quant(..), substitute)
-import Data.Logic.Classes.Propositional (Combine(..), BinOp(..))
-import Data.Logic.Classes.Logic (Logic(..))
 import Data.Logic.Classes.Term (Term(var, fApp))
 import Data.Logic.Classes.Skolem (Skolem(toSkolem))
 import qualified Data.Map as Map

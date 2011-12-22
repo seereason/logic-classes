@@ -9,10 +9,10 @@ module Data.Logic.Classes.Literal
 
 import Data.Generics (Data)
 import Data.List (intersperse)
-import Data.Logic.Classes.Boolean
+import Data.Logic.Classes.Combine (Combine(..))
+import Data.Logic.Classes.Constants
 import Data.Logic.Classes.FirstOrder
-import Data.Logic.Classes.Negatable
-import Data.Logic.Classes.Propositional (Combine(..))
+import Data.Logic.Classes.Negate
 import Data.Logic.Classes.Term
 import Text.PrettyPrint (Doc, (<>), (<+>), text, empty, parens, hcat, nest)
 
