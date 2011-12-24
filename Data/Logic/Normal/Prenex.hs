@@ -67,7 +67,7 @@ pullQuants fm =
 pullq :: FirstOrderFormula formula term v p f =>
          Bool -> Bool -> formula -> (v -> formula -> formula) -> (formula -> formula -> formula) -> v -> v -> formula -> formula -> formula
 pullq l r fm mkq op x y p q =
-    let z = variant (freeVars fm) x
+    let z = variant x (freeVars fm)
         p' = if l then substitute x (var z) p else p
         q' = if r then substitute y (var z) q else q
         fm' = pullQuants (op p' q') in

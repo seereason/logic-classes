@@ -9,7 +9,8 @@ module Data.Logic
     , Combine(..)
     , BinOp(..)
     -- * FirstOrderLogic
-    , Variable(..)
+    , Variable(variant, prefix, prettyVariable) -- omit fromString, get it from Variable module if necessary
+    , variants
     , Arity(arity)
     , Pred(..)
     , pApp

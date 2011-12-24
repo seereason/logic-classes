@@ -1,4 +1,38 @@
 module Data.Logic.Classes.Variable
+    ( Variable(..)
+    , variants
+    , showVariable
+    ) where
+
+import qualified Data.Set as Set
+import Text.PrettyPrint (Doc)
+
+class Ord v => Variable v where
+    variant :: v -> Set.Set v -> v
+    -- ^ Return a variable based on v but different from any set
+    -- element.  The result may be v itself if v is not a member of
+    -- the set.
+    prefix :: String -> v -> v
+    -- ^ Modify a variable by adding a prefix.  This unfortunately
+    -- assumes that v is "string-like" but at least one algorithm in
+    -- Harrison currently requires this.
+    fromString :: String -> v
+    -- ^ Build a variable based on a string.  This should also be
+    -- removed, the Data.String.IsString class could be used instead.
+    prettyVariable :: v -> Doc
+    -- ^ Pretty print a variable
+
+-- | Return an infinite list of variations on v
+variants :: Variable v => v -> [v]
+variants v0 =
+    iter' Set.empty v0
+    where iter' s v = let v' = variant v s in v' : iter' (Set.insert v s) v'
+
+showVariable :: Variable v => v -> String
+showVariable v = "fromString (" ++ show (show (prettyVariable v)) ++ ")"
+
+{-
+module Data.Logic.Classes.Variable
     ( Variable(one, next)
     , variant
     ) where
@@ -21,3 +55,4 @@ class Variable v where
 -- a monad, just pass in the set of free variables.)
 variant :: (Variable v, Ord v) => S.Set v -> v -> v
 variant names x = if S.member x names then variant names (next x) else x
+-}

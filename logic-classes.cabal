@@ -17,6 +17,7 @@ Library
  GHC-options: -Wall -O2
  Exposed-Modules:  Data.Logic
                    Data.Logic.Classes.Arity
+                   Data.Logic.Classes.Atom
                    Data.Logic.Classes.ClauseNormalForm
                    Data.Logic.Classes.Combine
                    Data.Logic.Classes.Constants

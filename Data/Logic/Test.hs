@@ -31,7 +31,7 @@ import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula, convertFOF)
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Skolem (Skolem(..))
-import Data.Logic.Classes.Variable (Variable(one, next))
+import Data.Logic.Classes.Variable (Variable(..))
 --import qualified Data.Logic.Instances.Chiou as C
 import qualified Data.Logic.Types.FirstOrder as P
 import Data.Logic.Instances.PropLogic (plSat)
@@ -64,13 +64,21 @@ prettyV :: V -> Doc
 prettyV (V s) = text s
 
 instance Variable V where
-    one = V "x"
-    next (V s) =
-        V (case break (not . isDigit) (reverse s) of
-             (_, "") -> "x"
-             ("", nondigits) -> nondigits ++ "2"
-             (digits, nondigits) -> nondigits ++ show (1 + read (reverse digits) :: Int))
-        
+    prefix p (V s) = V (p ++ s)
+    variant x xs =
+        if S.member x xs
+        then variant (next x) xs
+        else x
+        where
+          next :: V -> V
+          next (V s) = 
+              V (case break (not . isDigit) (reverse s) of
+                   (_, "") -> "x"
+                   ("", nondigits) -> nondigits ++ "2"
+                   (digits, nondigits) -> nondigits ++ show (1 + read (reverse digits) :: Int))
+    fromString = V
+    prettyVariable (V s) = text s
+
 -- |A newtype for the Primitive Predicate parameter.
 data Pr
     = Pr String
