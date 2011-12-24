@@ -24,7 +24,7 @@ import Data.String (IsString(..))
 import Test.HUnit
 
 tests :: Test
-tests = TestLabel "Chiou0" $ TestList [loadTest, proofTest1, proofTest2]
+tests = TestLabel "Test.Chiou0" $ TestList [loadTest, proofTest1, proofTest2]
 
 loadTest :: Test
 loadTest =

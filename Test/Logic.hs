@@ -28,7 +28,7 @@ instance Constants String where
     fromBool = show
 
 tests :: Test
-tests = TestLabel "Logic" $ TestList (precTests ++ theoremTests)
+tests = TestLabel "Test.Logic" $ TestList (precTests ++ theoremTests)
 
 formCase :: FirstOrderFormula TFormula TTerm V Pr AtomicFunction =>
             String -> TFormula -> TFormula -> Test
@@ -37,7 +37,7 @@ formCase s expected input = TestLabel s $ TestCase (assertEqual s expected input
 precTests :: [Test]
 precTests =
     [ formCase "Logic - prec test 1"
-               (a .&. (b .|. c))
+               ((a .&. b) .|. c)
                (a .&. b .|. c)
       -- You can't apply .~. without parens:
       -- :type (.~. a)   -> (FormulaPF -> t) -> t

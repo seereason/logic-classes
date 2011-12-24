@@ -11,7 +11,7 @@ import Test.Data (chang43KB, chang43Conjecture)
 import Test.HUnit
 
 tests :: Test
-tests = TestLabel "TPTP" $ TestList [tptp]
+tests = TestLabel "Test.TPTP" $ TestList [tptp]
 
 tptp :: Test
 tptp =
