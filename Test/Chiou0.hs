@@ -6,7 +6,7 @@ module Test.Chiou0 where
 import Control.Monad.Identity (runIdentity)
 import Control.Monad.Trans (MonadIO, liftIO)
 import Data.Logic.Classes.Combine (Combinable(..))
-import Data.Logic.Classes.Constants (Boolean(..))
+import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), pApp)
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Skolem (Skolem(..))

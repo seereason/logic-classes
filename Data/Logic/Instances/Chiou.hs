@@ -16,7 +16,7 @@ module Data.Logic.Instances.Chiou
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Arity (Arity)
 import Data.Logic.Classes.Combine (Combinable(..), BinOp(..), Combine(..))
-import Data.Logic.Classes.Constants (Boolean(..))
+import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', Pred(..), pApp)
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Term as Logic
@@ -58,16 +58,16 @@ instance Negatable (Sentence v p f) where
     negated (Not x) = not (negated x)
     negated _ = False
 
-instance (Boolean (Sentence v p f), Ord v, Ord p, Ord f) => Combinable (Sentence v p f) where
+instance (Constants (Sentence v p f), Ord v, Ord p, Ord f) => Combinable (Sentence v p f) where
     x .<=>. y = Connective x Equiv y
     x .=>.  y = Connective x Imply y
     x .|.   y = Connective x Or y
     x .&.   y = Connective x And y
 
 instance (Ord v, IsString v, Data v, Variable v, 
-          Ord p, IsString p, Data p, Boolean p, Arity p,
+          Ord p, IsString p, Data p, Constants p, Arity p,
           Ord f, IsString f, Data f, Skolem f, 
-          Boolean (Sentence v p f), Combinable (Sentence v p f)) =>
+          Constants (Sentence v p f), Combinable (Sentence v p f)) =>
          PropositionalFormula (Sentence v p f) (Sentence v p f) where
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
@@ -100,7 +100,7 @@ instance Skolem AtomicFunction where
     fromSkolem (AtomicSkolemFunction n) = Just n
     fromSkolem _ = Nothing
 
-instance (Boolean (Sentence v p f), Ord v, Ord p, Arity p, Boolean p, Ord f) => Pred p (CTerm v f) (Sentence v p f) where
+instance (Constants (Sentence v p f), Ord v, Ord p, Arity p, Constants p, Ord f) => Pred p (CTerm v f) (Sentence v p f) where
     pApp0 x = Predicate x []
     pApp1 x a = Predicate x [a]
     pApp2 x a b = Predicate x [a,b]
@@ -114,7 +114,7 @@ instance (Boolean (Sentence v p f), Ord v, Ord p, Arity p, Boolean p, Ord f) => 
     x .=. y = Equal x y
 
 instance (Ord v, IsString v, Variable v, Data v, Show v,
-          Ord p, IsString p, Boolean p, Arity p, Data p, Show p,
+          Ord p, IsString p, Constants p, Arity p, Data p, Show p,
           Ord f, IsString f, Skolem f, Data f, Show f,
           PropositionalFormula (Sentence v p f) (Sentence v p f)) =>
           FirstOrderFormula (Sentence v p f) (CTerm v f) v p f where
@@ -198,7 +198,7 @@ instance Negatable (NormalSentence v p f) where
     negated (NFNot x) = not (negated x)
     negated _ = False
 
-instance (Arity p, Boolean p, Combinable (NormalSentence v p f)) => Pred p (NormalTerm v f) (NormalSentence v p f) where
+instance (Arity p, Constants p, Combinable (NormalSentence v p f)) => Pred p (NormalTerm v f) (NormalSentence v p f) where
     pApp0 x = NFPredicate x []
     pApp1 x a = NFPredicate x [a]
     pApp2 x a b = NFPredicate x [a,b]
@@ -212,7 +212,7 @@ instance (Arity p, Boolean p, Combinable (NormalSentence v p f)) => Pred p (Norm
 
 instance (Combinable (NormalSentence v p f), Logic.Term (NormalTerm v f) v f,
           IsString v, Show v,
-          Ord p, IsString p, Boolean p, Arity p, Data p, Show p,
+          Ord p, IsString p, Constants p, Arity p, Data p, Show p,
           Ord f, IsString f, Show f) => FirstOrderFormula (NormalSentence v p f) (NormalTerm v f) v p f where
     for_all _ _ = error "FirstOrderFormula NormalSentence"
     exists _ _ = error "FirstOrderFormula NormalSentence"

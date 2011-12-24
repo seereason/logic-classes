@@ -8,6 +8,7 @@
 -- operator names were adopted from the Logic-TPTP package.
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
              MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TemplateHaskell, UndecidableInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Data.Logic.Classes.Propositional
     ( PropositionalFormula(..)
     , showPropositional
@@ -22,7 +23,6 @@ module Data.Logic.Classes.Propositional
     , disjunctiveNormalForm'
     ) where
 
-import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Combine
 import Data.Logic.Classes.Constants
 import Data.Logic.Classes.Negate
@@ -38,7 +38,7 @@ import Happstack.Data (deriveNewData)
 -- raise errors in the implementation if a non-atomic formula somehow
 -- appears where an atomic formula is expected (i.e. as an argument to
 -- atomic or to the third argument of foldPropositional.)
-class (Combinable formula, Boolean formula, Ord formula, Ord atom) => PropositionalFormula formula atom | formula -> atom where
+class (Combinable formula, Constants formula, Ord formula, Ord atom) => PropositionalFormula formula atom | formula -> atom where
     -- | Build an atomic formula from the atom type.
     atomic :: atom -> formula
     -- | A fold function that distributes different sorts of formula

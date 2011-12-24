@@ -39,7 +39,7 @@ import Data.Logic.Normal.Skolem (skolemNormalForm, NormalT)
 
 import Data.List (intersperse)
 import Data.Logic.Classes.Combine (Combine(..), BinOp(..))
-import Data.Logic.Classes.Constants (Boolean(..))
+import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder, Predicate(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Literal (Literal(..), prettyLit, fromFirstOrder)

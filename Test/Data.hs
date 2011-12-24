@@ -17,7 +17,7 @@ module Test.Data
 import Data.Boolean.SatSolver (Literal(..))
 import Data.Generics (Typeable)
 import Data.Logic.Classes.Combine (Combinable(..))
-import Data.Logic.Classes.Constants (Boolean(..))
+import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), for_all', exists', convertFOF, Pred(..), pApp)
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Skolem (Skolem(toSkolem))

@@ -12,7 +12,7 @@ module Data.Logic.Types.FirstOrder
 import Data.Data (Data)
 import Data.Logic.Classes.Arity (Arity)
 import Data.Logic.Classes.Combine (Combinable(..), Combine(..), BinOp(..))
-import Data.Logic.Classes.Constants (Boolean(..))
+import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder, Quant(..), Predicate(..), Pred(..), pApp)
 import Data.Logic.Classes.Literal (Literal(..), PredicateLit(..))
 import Data.Logic.Classes.Negate (Negatable(..))
@@ -31,7 +31,7 @@ data Formula v p f
     | Quant Quant v (Formula v p f)
     -- Note that a derived Eq instance is not going to tell us that
     -- a&b is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).
-    deriving (Eq,Ord,Read,Data,Typeable)
+    deriving (Eq,Ord,Data,Typeable)
 
 -- | The range of a term is an element of a set.
 data PTerm v f
@@ -70,19 +70,19 @@ instance Negatable (Formula v p f) where
     negated (Combine ((:~:) x)) = not (negated x)
     negated _ = False
 
--- instance (Boolean p, Arity p, Ord p, Ord v, Ord f) => Boolean (Formula v p f) where
---     fromBool x = pApp (fromBool x) []
+instance (Constants p, Arity p, Ord p, Ord v, Ord f) => Constants (Formula v p f) where
+    fromBool x = pApp0 (fromBool x)
 
-instance (Ord v, Ord p, Ord f) => Combinable (Formula v p f) where
+instance (Constants (Formula v p f), Ord v, Ord p, Ord f) => Combinable (Formula v p f) where
     x .<=>. y = Combine (BinOp  x (:<=>:) y)
     x .=>.  y = Combine (BinOp  x (:=>:)  y)
     x .|.   y = Combine (BinOp  x (:|:)   y)
     x .&.   y = Combine (BinOp  x (:&:)   y)
 
 instance (Ord v, Variable v, Data v,
-          Ord p, Boolean p, Arity p, Data p,
+          Ord p, Constants p, Arity p, Data p,
           Ord f, Skolem f, Data f,
-          Boolean (Formula v p f), Combinable (Formula v p f)) =>
+          Constants (Formula v p f), Combinable (Formula v p f)) =>
          PropositionalFormula (Formula v p f) (Formula v p f) where
     atomic (Predicate (Equal t1 t2)) = t1 .=. t2
     atomic (Predicate (NotEqual t1 t2)) = t1 .!=. t2
@@ -107,7 +107,7 @@ instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (PTe
     var = Var
     fApp x args = FunApp x args
 
-instance (Boolean (Formula v p f), Ord v, Ord p, Boolean p, Arity p, Ord f) => Pred p (PTerm v f) (Formula v p f) where
+instance (Constants (Formula v p f), Ord v, Ord p, Constants p, Arity p, Ord f) => Pred p (PTerm v f) (Formula v p f) where
     pApp0 x = Predicate (Apply x [])
     pApp1 x a = Predicate (Apply x [a])
     pApp2 x a b = Predicate (Apply x [a,b])
@@ -138,9 +138,9 @@ instance (Pred p (PTerm v f) (Formula v p f),
           (Predicate x, Predicate y) -> p x y
           _ -> Nothing
 
-instance (Boolean (Formula v p f),
+instance (Constants (Formula v p f),
           Variable v, Ord v, Data v, Show v,
-          Arity p, Boolean p, Ord p, Data p, Show p,
+          Arity p, Constants p, Ord p, Data p, Show p,
           Skolem f, Ord f, Data f, Show f) => Literal (Formula v p f) (PTerm v f) v p f where
     equals x y = Predicate (Equal x y)
     pAppLiteral p ts = Predicate (Apply p ts)

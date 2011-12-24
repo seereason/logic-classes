@@ -7,7 +7,7 @@ module Data.Logic.Instances.PropLogic
     ) where
 
 import Data.Logic.Classes.Combine (Combinable(..), Combine(..), BinOp(..))
-import Data.Logic.Classes.Constants (Boolean(fromBool))
+import Data.Logic.Classes.Constants (Constants(fromBool))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula, toPropositional)
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..), clauseNormalForm')
@@ -55,7 +55,7 @@ instance (Combinable (PropForm a), Ord a) => PropositionalFormula (PropForm a) a
           F -> error "foldPropositional method of PropForm: F"
           A x -> a x
 
-instance Boolean (PropForm formula) where
+instance Constants (PropForm formula) where
     fromBool True = T
     fromBool False = F
 

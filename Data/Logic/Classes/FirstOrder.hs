@@ -42,7 +42,7 @@ import Happstack.Data (deriveNewData)
 import Text.PrettyPrint (Doc, (<>), (<+>), text, empty, parens, hcat, nest)
 
 -- |A class of predicates
-class (Combinable formula, Boolean p, Arity p) => Pred p term formula | formula -> p, formula -> term where
+class (Combinable formula, Constants p, Arity p) => Pred p term formula | formula -> p, formula -> term where
     pApp0 :: p  -> formula
     pApp1 :: p -> term -> formula
     pApp2 :: p -> term -> term -> formula
@@ -56,12 +56,6 @@ class (Combinable formula, Boolean p, Arity p) => Pred p term formula | formula 
     -- | Inequality of Terms
     (.!=.) :: term -> term -> formula
     a .!=. b = (.~.) (a .=. b)
-    -- | The tautological formula
-    true :: formula
-    true = pApp0 (fromBool True :: p)
-    -- | The inconsistant formula
-    false :: formula
-    false = pApp0 (fromBool False :: p)
 
 pApp :: (Pred p term formula, Arity p) => p -> [term] -> formula
 pApp p ts =
@@ -89,7 +83,7 @@ class ( Term term v f
       , Data formula   -- Allows us to use Data.Generics functions on formulas
       , Show v
       , Data p
-      , Boolean p      -- To implement true and false below
+      , Constants p    -- To implement true and false below
       , Arity p        -- To decide how many arguments
       , Eq p           -- Required during resolution
       , Ord p

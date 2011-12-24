@@ -2,7 +2,7 @@
 module Data.Logic
     ( -- * Boolean Logic
       Negatable(..)
-    , Boolean(fromBool)
+    , Constants(..)
     , Combinable(..)
     -- * Propositional Logic
     , PropositionalFormula(..)

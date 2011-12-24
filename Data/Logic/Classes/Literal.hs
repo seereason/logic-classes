@@ -21,7 +21,7 @@ import Text.PrettyPrint (Doc, (<>), (<+>), text, empty, parens, hcat, nest)
 class ( Ord lit
       , Eq p
       , Ord p
-      , Boolean p
+      , Constants p
       , Term term v f
       , Negatable lit
       , Data lit

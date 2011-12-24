@@ -14,7 +14,7 @@ module Data.Logic.Types.FirstOrderPublic
 import Data.Data (Data)
 import Data.Logic.Classes.Arity (Arity)
 import Data.Logic.Classes.Combine (Combinable(..), Combine(..))
-import Data.Logic.Classes.Constants (Boolean(..))
+import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Pred(..))
 import qualified Data.Logic.Types.FirstOrder as N
 import Data.Logic.Classes.Negate (Negatable(..))
@@ -36,7 +36,7 @@ class Bijection p i where
 -- |The new Formula type is just a wrapper around the Native instance
 -- (which eventually should be renamed the Internal instance.)  No
 -- derived Eq or Ord instances.
-data Formula v p f = Formula {unFormula :: N.Formula v p f} deriving (Read, Data, Typeable)
+data Formula v p f = Formula {unFormula :: N.Formula v p f} deriving (Data, Typeable)
 
 instance Bijection (Formula v p f) (N.Formula v p f) where
     public = Formula
@@ -52,25 +52,28 @@ instance Negatable (Formula v p f) where
     negated = negated . unFormula
     (.~.) = Formula . (.~.) . unFormula
 
-instance (Boolean (Formula v p f), Boolean (N.Formula v p f),
+instance (Arity p, Constants p, Ord v, Ord p, Ord f) => Constants (Formula v p f) where
+    fromBool = Formula . fromBool
+
+instance (Constants (Formula v p f), Constants (N.Formula v p f),
           Variable v, Show v, Ord v, Data v,
-          Arity p, Boolean p, Show p, Ord p, Data p,
+          Arity p, Constants p, Show p, Ord p, Data p,
           Skolem f, Show f, Ord f, Data f) => Combinable (Formula v p f) where
     x .<=>. y = Formula $ (unFormula x) .<=>. (unFormula y)
     x .=>.  y = Formula $ (unFormula x) .=>. (unFormula y)
     x .|.   y = Formula $ (unFormula x) .|. (unFormula y)
     x .&.   y = Formula $ (unFormula x) .&. (unFormula y)
 
-instance (Boolean (N.Formula v p f),
-          Arity p, Variable v, Skolem f, Boolean p,
+instance (Constants (N.Formula v p f),
+          Arity p, Variable v, Skolem f, Constants p,
           Show p, Show v, Show f,
           Ord f, Ord v, Ord p,
           Data p, Data v, Data f) => Show (Formula v p f) where
     showsPrec n x = showsPrec n (unFormula x)
 
-instance (Boolean (Formula v p f), Boolean (N.Formula v p f),
+instance (Constants (Formula v p f), Constants (N.Formula v p f),
           Variable v, Show v, Ord v, Data v,
-          Show p, Ord p, Data p, Boolean p, Arity p,
+          Show p, Ord p, Data p, Constants p, Arity p,
           Skolem f, Show f, Ord f, Data f) => Pred p (N.PTerm v f) (Formula v p f) where
     pApp0 p = (public :: N.Formula v p f -> Formula v p f) $ pApp0 p
     pApp1 p t1 = (public :: N.Formula v p f -> Formula v p f) $ pApp1 p (t1)
@@ -82,10 +85,10 @@ instance (Boolean (Formula v p f), Boolean (N.Formula v p f),
     pApp7 p t1 t2 t3 t4 t5 t6 t7 = (public :: N.Formula v p f -> Formula v p f) $ pApp7 (p) (t1) (t2) (t3) (t4) (t5) (t6) (t7)
     t1 .=. t2 = (public :: N.Formula v p f -> Formula v p f) $ (t1) .=. (t2)
 
-instance (Boolean (Formula v p f), Boolean (N.Formula v p f),
+instance (Constants (Formula v p f), Constants (N.Formula v p f),
           Combinable (Formula v p f), Term (N.PTerm v f) v f,
           Show v,
-          Arity p, Boolean p, Ord p, Data p, Show p,
+          Arity p, Constants p, Ord p, Data p, Show p,
           Ord f, Show f) => FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f where
     for_all v x = public $ for_all v (intern x :: N.Formula v p f)
     exists v x = public $ exists v (intern x :: N.Formula v p f)
@@ -100,11 +103,11 @@ instance (Boolean (Formula v p f), Boolean (N.Formula v p f),
 instance ({- FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
           Literal (N.Formula v p f) (N.PTerm v f) v p f,
           FirstOrderFormula (N.Formula v p f) (N.PTerm v f) v p f, -}
-          Boolean (Formula v p f), Boolean (N.Formula v p f),
+          Constants (Formula v p f), Constants (N.Formula v p f),
           Data v, Data f, Data p,
           Ord v, Ord p, Ord f,
           Show v, Show p, Show f,
-          Arity p, Boolean p, Skolem f, Variable v,
+          Arity p, Constants p, Skolem f, Variable v,
           Ord (N.Formula v p f)) => Ord (Formula v p f) where
     compare a b =
         let (a' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm (intern a :: N.Formula v p f))

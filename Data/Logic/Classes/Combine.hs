@@ -5,19 +5,28 @@
 module Data.Logic.Classes.Combine
     ( Combinable(..)
     , Combine(..)
-    , BinOp(..)
     , combine
+    , BinOp(..)
+    , binop
+    -- * Unicode aliases for Combinable class methods
+    , (∧)
+    , (∨)
+    , (⇒)
+    , (⇔)
+    -- * Use in Harrison's code
+    , (==>)
+    , (<=>)
     ) where
 
 import Data.Generics (Data, Typeable)
---import Data.Logic.Classes.Constants
-import Data.Logic.Classes.Negate
+import Data.Logic.Classes.Constants (Constants(..))
+import Data.Logic.Classes.Negate (Negatable(..))
 
 -- |A type class for logical formulas.  Minimal implementation:
 -- @
 --  (.|.), (.~.)
 -- @
-class (Negatable formula, {-Boolean formula,-} Ord formula) => Combinable formula where
+class (Constants formula, Negatable formula, Ord formula) => Combinable formula where
     -- | Disjunction/OR
     (.|.) :: formula -> formula -> formula
 
@@ -57,16 +66,7 @@ infixl 4  .|.  -- a & b | c means a & (b | c), which in cnf would be [[a], [b, c
 data Combine formula
     = BinOp formula BinOp formula
     | (:~:) formula
-    deriving (Eq,Ord,Read,Data,Typeable)
-
--- | Represents the boolean logic binary operations, used in the
--- Combine type above.
-data BinOp
-    = (:<=>:)  -- ^ Equivalence
-    |  (:=>:)  -- ^ Implication
-    |  (:&:)  -- ^ AND
-    |  (:|:)  -- ^ OR
-    deriving (Eq,Ord,Read,Data,Typeable,Enum,Bounded)
+    deriving (Eq,Ord,Data,Typeable)
 
 -- |We need to implement read manually here due to
 -- <http://hackage.haskell.org/trac/ghc/ticket/4136>
@@ -82,12 +82,6 @@ instance Read BinOp where
                  ((:|:), ":|:")]
 -}
 
-instance Show BinOp where
-    show (:<=>:) = "(:<=>:)"
-    show (:=>:) = "(:=>:)"
-    show (:&:) = "(:&:)"
-    show (:|:) = "(:|:)"
-
 -- | A helper function for building folds:
 -- @
 --   foldPropositional combine atomic
@@ -99,3 +93,33 @@ combine (BinOp f1 (:=>:) f2) = f1 .=>. f2
 combine (BinOp f1 (:&:) f2) = f1 .&. f2
 combine (BinOp f1 (:|:) f2) = f1 .|. f2
 combine ((:~:) f) = (.~.) f
+
+-- | Represents the boolean logic binary operations, used in the
+-- Combine type above.
+data BinOp
+    = (:<=>:)  -- ^ Equivalence
+    |  (:=>:)  -- ^ Implication
+    |  (:&:)  -- ^ AND
+    |  (:|:)  -- ^ OR
+    deriving (Eq,Ord,Data,Typeable,Enum,Bounded)
+
+binop :: Combinable formula => formula -> BinOp -> formula -> formula
+binop a (:&:) b = a .&. b
+binop a (:|:) b = a .|. b
+binop a (:=>:) b = a .=>. b
+binop a (:<=>:) b = a .<=>. b
+
+(∧) :: Combinable formula => formula -> formula -> formula
+(∧) = (.&.)
+(∨) :: Combinable formula => formula -> formula -> formula
+(∨) = (.|.)
+-- | ⇒ can't be a function when -XUnicodeSyntax is enabled.
+(⇒) :: Combinable formula => formula -> formula -> formula
+(⇒) = (.=>.)
+(⇔) :: Combinable formula => formula -> formula -> formula
+(⇔) = (.<=>.)
+
+(==>) :: Combinable formula => formula -> formula -> formula
+(==>) = (.=>.)
+(<=>) :: Combinable formula => formula -> formula -> formula
+(<=>) = (.<=>.)

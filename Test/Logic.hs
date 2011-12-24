@@ -5,7 +5,7 @@ module Test.Logic (tests) where
 
 import Data.Logic.Classes.Arity (Arity(arity))
 import Data.Logic.Classes.Combine (Combinable(..))
-import Data.Logic.Classes.Constants (Boolean(..))
+import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder, freeVars, substitute, Pred(..), pApp)
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Negate (Negatable(..))
@@ -24,7 +24,7 @@ import Test.HUnit
 
 -- |Don't use this at home!  It breaks type safety, fromString "True"
 -- fromBool True.
-instance Boolean String where
+instance Constants String where
     fromBool = show
 
 tests :: Test

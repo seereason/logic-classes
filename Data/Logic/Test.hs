@@ -27,8 +27,8 @@ import Data.Char (isDigit)
 import Data.Generics (Data, Typeable, listify)
 --import Data.Logic.Clause (ClauseNormalFormula(satisfiable))
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(satisfiable))
-import Data.Logic.Classes.Constants (Boolean(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula, convertFOF, Predicate(..))
+import Data.Logic.Classes.Constants (Constants(..))
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula, convertFOF)
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Variable (Variable(one, next))
@@ -82,7 +82,7 @@ data Pr
 instance IsString Pr where
     fromString = Pr
 
-instance Boolean Pr where
+instance Constants Pr where
     fromBool True = T
     fromBool False = F
 
@@ -127,10 +127,6 @@ prettyF (Skolem n) = text ("sK" ++ show n)
 
 type TFormula = P.Formula V Pr AtomicFunction
 type TTerm = P.PTerm V AtomicFunction
-
-instance Boolean TFormula where
-    fromBool True = P.Predicate (Apply T [])
-    fromBool False = P.Predicate (Apply F [])
 
 -- |This allows you to use an expression that returns the Doc type in a
 -- unit test, such as prettyFirstOrder.
