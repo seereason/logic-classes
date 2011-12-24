@@ -9,7 +9,7 @@ module Data.Logic.Harrison.FOL
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Predicate(..))
 import Data.Logic.Harrison.Lib
-import Data.Logic.Classes (Combine(..))
+import Data.Logic.Classes (Combination(..))
 import qualified Data.Map as M
 import qualified Data.Set as S
 

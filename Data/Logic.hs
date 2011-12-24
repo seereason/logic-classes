@@ -6,7 +6,7 @@ module Data.Logic
     , Combinable(..)
     -- * Propositional Logic
     , PropositionalFormula(..)
-    , Combine(..)
+    , Combination(..)
     , BinOp(..)
     -- * FirstOrderLogic
     , Variable(variant, prefix, prettyVariable) -- omit fromString, get it from Variable module if necessary

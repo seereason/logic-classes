@@ -7,7 +7,7 @@ module Data.Logic.Harrison.Prop
     ) where
 
 import Data.Logic.Classes (FirstOrderFormula(..), Pred(..), Quant(..), quant, pApp, Predicate(..))
-import Data.Logic.Classes (Negatable(..), Logic(..), Combine(..), Boolean(..), BinOp(..), Literal, fromFirstOrder)
+import Data.Logic.Classes (Negatable(..), Logic(..), Combination(..), Boolean(..), BinOp(..), Literal, fromFirstOrder)
 import qualified Data.Set.Extra as S
 
 {-
@@ -531,7 +531,7 @@ purednf :: forall formula term v p f lit. (FirstOrderFormula formula term v p f,
 purednf fm =
     foldF (\ _ _ _ -> x) c (\ _ -> x)  fm
     where
-      c :: Combine formula -> S.Set (S.Set lit)
+      c :: Combination formula -> S.Set (S.Set lit)
       c (BinOp p (:&:) q) = S.distrib (purednf p) (purednf q)
       c (BinOp p (:|:) q) = S.union (purednf p) (purednf q)
       c _ = x

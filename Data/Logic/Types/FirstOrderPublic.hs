@@ -13,7 +13,7 @@ module Data.Logic.Types.FirstOrderPublic
 
 import Data.Data (Data)
 import Data.Logic.Classes.Arity (Arity)
-import Data.Logic.Classes.Combine (Combinable(..), Combine(..))
+import Data.Logic.Classes.Combine (Combinable(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Pred(..))
 import qualified Data.Logic.Types.FirstOrder as N
@@ -42,11 +42,15 @@ instance Bijection (Formula v p f) (N.Formula v p f) where
     public = Formula
     intern = unFormula
 
-instance Bijection (Combine (Formula v p f)) (Combine (N.Formula v p f)) where
+instance Bijection (Combination (Formula v p f)) (Combination (N.Formula v p f)) where
     public (BinOp x op y) = BinOp (public x) op (public y)
     public ((:~:) x) = (:~:) (public x)
+    public TRUE = TRUE
+    public FALSE = FALSE
     intern (BinOp x op y) = BinOp (intern x) op (intern y)
     intern ((:~:) x) = (:~:) (intern x)
+    intern TRUE = TRUE
+    intern FALSE = FALSE
 
 instance Negatable (Formula v p f) where
     negated = negated . unFormula

@@ -45,7 +45,7 @@ class (Combinable formula, Constants formula, Ord formula, Ord atom) => Proposit
     -- to its parameter functions, one to handle binary operators, one
     -- for negations, and one for atomic formulas.  See examples of its
     -- use to implement the polymorphic functions below.
-    foldPropositional :: (Combine formula -> r)
+    foldPropositional :: (Combination formula -> r)
                       -> (atom -> r)
                       -> formula
                       -> r
@@ -57,6 +57,8 @@ showPropositional showAtom formula =
     where
       c ((:~:) f) = "(.~.) " ++ parenForm f
       c (BinOp f1 op f2) = parenForm f1 ++ " " ++ showFormOp op ++ " " ++ parenForm f2
+      c TRUE = "true"
+      c FALSE = "false"
       a = showAtom
       parenForm x = "(" ++ showPropositional showAtom x ++ ")"
       showFormOp (:<=>:) = ".<=>."
@@ -76,6 +78,8 @@ convertProp convertA formula =
       convert' = convertProp convertA
       c ((:~:) f) = (.~.) (convert' f)
       c (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
+      c TRUE = true
+      c FALSE = false
       a = atomic . convertA
 
 -- | Simplify and recursively apply nnf.
@@ -99,19 +103,23 @@ nnf :: PropositionalFormula formula atom => formula -> formula
 nnf fm =
     foldPropositional (nnfCombine fm) (\ _ -> fm) fm
 
-nnfCombine :: PropositionalFormula r atom => r -> Combine r -> r
+nnfCombine :: PropositionalFormula r atom => r -> Combination r -> r
 nnfCombine fm ((:~:) p) = foldPropositional nnfNotCombine (\ _ -> fm) p
 nnfCombine _ (BinOp p (:=>:) q) = nnf ((.~.) p) .|. (nnf q)
 nnfCombine _ (BinOp p (:<=>:) q) =  (nnf p .&. nnf q) .|. (nnf ((.~.) p) .&. nnf ((.~.) q))
 nnfCombine _ (BinOp p (:&:) q) = nnf p .&. nnf q
 nnfCombine _ (BinOp p (:|:) q) = nnf p .|. nnf q
+nnfCombine fm TRUE = fm
+nnfCombine fm FALSE = fm
 
-nnfNotCombine :: PropositionalFormula formula atom => Combine formula -> formula
+nnfNotCombine :: PropositionalFormula formula atom => Combination formula -> formula
 nnfNotCombine ((:~:) p) = nnf p
 nnfNotCombine (BinOp p (:&:) q) = nnf ((.~.) p) .|. nnf ((.~.) q)
 nnfNotCombine (BinOp p (:|:) q) = nnf ((.~.) p) .&. nnf ((.~.) q)
 nnfNotCombine (BinOp p (:=>:) q) = nnf p .&. nnf ((.~.) q)
 nnfNotCombine (BinOp p (:<=>:) q) = (nnf p .&. nnf ((.~.) q)) .|. nnf ((.~.) p) .&. nnf q
+nnfNotCombine TRUE = false
+nnfNotCombine FALSE = true
 
 -- |Do a bottom-up recursion to simplify a propositional formula.
 psimplify :: PropositionalFormula formula atom => formula -> formula
@@ -123,6 +131,8 @@ psimplify fm =
       c (BinOp p (:|:) q) = psimplify1 (psimplify p .|. psimplify q)
       c (BinOp p (:=>:) q) = psimplify1 (psimplify p .=>. psimplify q)
       c (BinOp p (:<=>:) q) = psimplify1 (psimplify p .<=>. psimplify q)
+      c TRUE = true
+      c FALSE = false
       a _ = fm
 
 -- |Do one step of simplify for propositional formulas:
@@ -168,7 +178,11 @@ psimplify1 fm =
             (_,          (:<=>:), Just True)  -> l
             (_,          (:<=>:), Just False) -> (.~.) l
             _                                 -> fm
+      simplifyCombine TRUE = fromBool True
+      simplifyCombine FALSE = fromBool False
       simplifyNotCombine ((:~:) f) = f
+      simplifyNotCombine TRUE = fromBool False
+      simplifyNotCombine FALSE = fromBool True
       simplifyNotCombine _ = fm
       simplifyNotAtom x = (.~.) (atomic x)
       -- We don't require an Eq instance, but we do require Ord so that
@@ -248,7 +262,7 @@ purednf :: forall formula atom. (PropositionalFormula formula atom) => formula -
 purednf fm =
     foldPropositional c (\ _ -> x)  fm
     where
-      c :: Combine formula -> Set.Set (Set.Set formula)
+      c :: Combination formula -> Set.Set (Set.Set formula)
       c (BinOp p (:&:) q) = Set.distrib (purednf p) (purednf q)
       c (BinOp p (:|:) q) = Set.union (purednf p) (purednf q)
       c _ = x
@@ -259,7 +273,7 @@ purecnf' :: forall formula atom. (PropositionalFormula formula atom) => formula 
 purecnf' fm =
     foldPropositional c (\ _ -> x)  fm
     where
-      c :: Combine formula -> Set.Set (Set.Set formula)
+      c :: Combination formula -> Set.Set (Set.Set formula)
       c (BinOp p (:&:) q) = Set.union (purecnf' p) (purecnf' q)
       c (BinOp p (:|:) q) = Set.distrib (purecnf' p) (purecnf' q)
       c _ = x
@@ -267,6 +281,6 @@ purecnf' fm =
       x = Set.singleton (Set.singleton (convertProp id fm)) :: Set.Set (Set.Set formula)
 
 $(deriveSafeCopy 1 'base ''BinOp)
-$(deriveSafeCopy 1 'base ''Combine)
+$(deriveSafeCopy 1 'base ''Combination)
 
-$(deriveNewData [''BinOp, ''Combine])
+$(deriveNewData [''BinOp, ''Combination])

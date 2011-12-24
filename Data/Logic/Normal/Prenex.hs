@@ -6,7 +6,8 @@ module Data.Logic.Normal.Prenex
 
 import Data.Logic.Normal.Negation (negationNormalForm)
 
-import Data.Logic.Classes.Combine (Combinable(..), Combine(..), BinOp(..))
+import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
+import Data.Logic.Classes.Constants (Constants(true, false))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), freeVars, quant, Quant(..), substitute)
 import Data.Logic.Classes.Term (Term(var))
 import Data.Logic.Classes.Variable (variant)
@@ -60,6 +61,8 @@ pullQuants fm =
             (Just (Exists, vl, l'), (:|:), _)                     -> pullq True  False fm exists  (.|.) vl vl l' r
             (_,                     (:|:), Just (Exists, vr, r')) -> pullq False True  fm exists  (.|.) vr vr l  r'
             _                                                     -> fm
+      pullQuantsCombine TRUE = true
+      pullQuantsCombine FALSE = false
 
 -- |Helper function to rename variables when we want to enclose a
 -- formula containing a free occurrence of that variable a quantifier

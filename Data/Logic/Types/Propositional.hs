@@ -2,14 +2,14 @@
 module Data.Logic.Types.Propositional where
 
 import Data.Generics (Data, Typeable)
-import Data.Logic.Classes.Combine (Combinable(..), Combine(..), BinOp(..))
+import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula atom
-    = Combine (Combine (Formula atom))
+    = Combine (Combination (Formula atom))
     | Atom atom
     -- Note that a derived Eq instance is not going to tell us that
     -- a&b is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).

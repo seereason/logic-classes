@@ -38,7 +38,7 @@ import Data.Logic.Normal.Prenex (prenexNormalForm)
 import Data.Logic.Normal.Skolem (skolemNormalForm, NormalT)
 
 import Data.List (intersperse)
-import Data.Logic.Classes.Combine (Combine(..), BinOp(..))
+import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder, Predicate(..))
 import Data.Logic.Classes.Negate (Negatable(..))
@@ -115,7 +115,7 @@ purednf :: forall formula term v p f lit. (FirstOrderFormula formula term v p f,
 purednf fm =
     foldFirstOrder (\ _ _ _ -> x) c (\ _ -> x)  fm
     where
-      c :: Combine formula -> Set.Set (Set.Set lit)
+      c :: Combination formula -> Set.Set (Set.Set lit)
       c (BinOp p (:&:) q) = Set.distrib (purednf p) (purednf q)
       c (BinOp p (:|:) q) = Set.union (purednf p) (purednf q)
       c _ = x

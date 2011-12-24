@@ -15,7 +15,7 @@ module Data.Logic.Instances.Chiou
 
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Arity (Arity)
-import Data.Logic.Classes.Combine (Combinable(..), BinOp(..), Combine(..))
+import Data.Logic.Classes.Combine (Combinable(..), BinOp(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', Pred(..), pApp)
 import Data.Logic.Classes.Negate (Negatable(..))

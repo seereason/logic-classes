@@ -6,7 +6,7 @@ module Data.Logic.Normal.Negation
     , simplify
     ) where
 
-import Data.Logic.Classes.Combine (Combinable(..), Combine(..), combine, BinOp(..))
+import Data.Logic.Classes.Combine (Combinable(..), Combination(..), combine, BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), freeVars, quant, Quant(..), Predicate(..), Pred(..), pApp)
 import Data.Logic.Classes.Negate (Negatable(..))
@@ -39,6 +39,8 @@ nnf fm =
       nnfCombine (BinOp p (:<=>:) q) =  (nnf p .&. nnf q) .|. (nnf ((.~.) p) .&. nnf ((.~.) q))
       nnfCombine (BinOp p (:&:) q) = nnf p .&. nnf q
       nnfCombine (BinOp p (:|:) q) = nnf p .|. nnf q
+      nnfCombine TRUE = true
+      nnfCombine FALSE = false
       nnfNotQuant All v p = exists v (nnf ((.~.) p))
       nnfNotQuant Exists v p = for_all v (nnf ((.~.) p))
       nnfNotCombine ((:~:) p) = nnf p
@@ -46,6 +48,8 @@ nnf fm =
       nnfNotCombine (BinOp p (:|:) q) = nnf ((.~.) p) .&. nnf ((.~.) q)
       nnfNotCombine (BinOp p (:=>:) q) = nnf p .&. nnf ((.~.) q)
       nnfNotCombine (BinOp p (:<=>:) q) = (nnf p .&. nnf ((.~.) q)) .|. nnf ((.~.) p) .&. nnf q
+      nnfNotCombine TRUE = false
+      nnfNotCombine FALSE = true
 
 -- |Do a bottom-up recursion to simplify a formula.
 simplify :: FirstOrderFormula formula term v p f => formula -> formula
@@ -53,7 +57,9 @@ simplify fm =
     foldFirstOrder (\ op v p -> simplify1 (quant op v (simplify p)))
           (\ cm -> case cm of
                      (:~:) p -> simplify1 ((.~.) (simplify p))
-                     BinOp p op q -> simplify1 (combine (BinOp (simplify p) op (simplify q))))
+                     BinOp p op q -> simplify1 (combine (BinOp (simplify p) op (simplify q)))
+                     TRUE -> true
+                     FALSE -> false)
           (\ _ -> simplify1 fm)
           fm
 
@@ -110,8 +116,12 @@ psimplify1 fm =
             (_,          (:<=>:), Just True)  -> l
             (_,          (:<=>:), Just False) -> (.~.) l
             _                                 -> fm
+      simplifyCombine TRUE = true
+      simplifyCombine FALSE = false
       simplifyNotCombine ((:~:) f) = f
-      simplifyNotCombine _ = fm
+      simplifyNotCombine TRUE = false
+      simplifyNotCombine FALSE = true
+      simplifyNotCombine (BinOp _ _ _) = fm
       simplifyNotPred (Apply pr ts)
           | pr == fromBool False = pApp0 (fromBool True)
           | pr == fromBool True = pApp0 (fromBool False)

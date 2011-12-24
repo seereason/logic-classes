@@ -9,7 +9,7 @@ module Data.Logic.Classes.Literal
 
 import Data.Generics (Data)
 import Data.List (intersperse)
-import Data.Logic.Classes.Combine (Combine(..))
+import Data.Logic.Classes.Combine (Combination(..))
 import Data.Logic.Classes.Constants
 import Data.Logic.Classes.FirstOrder
 import Data.Logic.Classes.Negate
@@ -46,7 +46,7 @@ fromFirstOrder :: forall formula term v p f lit term2 v2 p2 f2.
 fromFirstOrder cv cp cf formula =
     foldFirstOrder (\ _ _ _ -> error "toLiteral q") c p formula
     where
-      c :: Combine formula -> lit
+      c :: Combination formula -> lit
       c ((:~:) f) =  (.~.) (fromFirstOrder cv cp cf f)
       c _ = error "fromFirstOrder"
       p :: Predicate p term -> lit

@@ -107,12 +107,12 @@ class ( Term term v f
     -- ones introduced here.  @foldFirstOrder (.~.) quant binOp infixPred pApp@
     -- is a no op.  The argument order is taken from Logic-TPTP.
     foldFirstOrder :: (Quant -> v -> formula -> r)
-                   -> (Combine formula -> r)
+                   -> (Combination formula -> r)
                    -> (Predicate p term -> r)
                    -> formula
                    -> r
     zipFirstOrder :: (Quant -> v -> formula -> Quant -> v -> formula -> Maybe r)
-                  -> (Combine formula -> Combine formula -> Maybe r)
+                  -> (Combination formula -> Combination formula -> Maybe r)
                   -> (Predicate p term -> Predicate p term -> Maybe r)
                   -> formula -> formula -> Maybe r
 
@@ -174,7 +174,9 @@ freeVars f =
           (\ cm ->
                case cm of
                  BinOp x _ y -> (mappend `on` freeVars) x y
-                 (:~:) f' -> freeVars f')
+                 (:~:) f' -> freeVars f'
+                 TRUE -> S.empty
+                 FALSE -> S.empty)
           (\ pa -> case pa of
                      Constant _ -> S.empty
                      Equal t1 t2 -> S.union (freeVarsOfTerm t1) (freeVarsOfTerm t2)
@@ -217,7 +219,9 @@ quantVars =
           (\ cm ->
                case cm of
                  BinOp x _ y -> (mappend `on` quantVars) x y
-                 ((:~:) f) -> quantVars f)
+                 ((:~:) f) -> quantVars f
+                 TRUE -> S.empty
+                 FALSE -> S.empty)
           (\ _ -> S.empty)
 
 -- |Find the free and quantified variables in a formula.
@@ -228,7 +232,9 @@ allVars f =
           (\ cm ->
                case cm of
                  BinOp x _ y -> (mappend `on` allVars) x y
-                 (:~:) f' -> freeVars f')
+                 (:~:) f' -> freeVars f'
+                 TRUE -> S.empty
+                 FALSE -> S.empty)
           (\ pa -> case pa of
                      Equal t1 t2 -> S.union (allVarsOfTerm t1) (allVarsOfTerm t2)
                      NotEqual t1 t2 -> S.union (allVarsOfTerm t1) (allVarsOfTerm t2)
@@ -257,7 +263,9 @@ substitute old new formula =
                 (\ q v f' -> quant q v (if old == v then f' else substitute' f'))
                 (\ cm -> case cm of
                            ((:~:) f') -> combine ((:~:) (substitute' f'))
-                           (BinOp f1 op f2) -> combine (BinOp (substitute' f1) op (substitute' f2)))
+                           (BinOp f1 op f2) -> combine (BinOp (substitute' f1) op (substitute' f2))
+                           TRUE -> true
+                           FALSE -> false)
                 (\ pa -> case pa of
                            Equal t1 t2 -> (st t1) .=. (st t2)
                            NotEqual t1 t2 -> (st t1) .!=. (st t2)
@@ -282,6 +290,8 @@ convertFOF convertV convertP convertF formula =
       q x v f = quant x (convertV v) (convert' f)
       c (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
       c ((:~:) f) = combine ((:~:) (convert' f))
+      c TRUE = true
+      c FALSE = false
       p (Equal t1 t2) = (convertTerm' t1) .=. (convertTerm' t2)
       p (NotEqual t1 t2) = (convertTerm' t1) .!=. (convertTerm' t2)
       p (Apply x ts) = pApp (convertP x) (map convertTerm' ts)
@@ -308,6 +318,8 @@ toPropositional convertAtom formula =
       q _ _ _ = error "toPropositional: invalid argument"
       c (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
       c ((:~:) f) = combine ((:~:) (convert' f))
+      c TRUE = true
+      c FALSE = false
       p _ = convertAtom formula
 
 -- | Display a formula in a format that can be read into the interpreter.
@@ -320,6 +332,8 @@ showFirstOrder formula =
       q Exists v f = "(exists " ++  show v ++ " " ++ showFirstOrder f ++ ")"
       c (BinOp f1 op f2) = "(" ++ parenForm f1 ++ " " ++ showCombine op ++ " " ++ parenForm f2 ++ ")"
       c ((:~:) f) = "((.~.) " ++ showFirstOrder f ++ ")"
+      c TRUE = "true"
+      c FALSE = "false"
       a :: Predicate p term -> String
       a (Equal t1 t2) =
           "(" ++ parenTerm t1 ++ " .=. " ++ parenTerm t2 ++ ")"
@@ -353,7 +367,9 @@ prettyFirstOrder pv pp pf prec formula =
                        (:<=>:) -> parensIf (prec > 2) $ (prettyFirstOrder pv pp pf 2 f1 <+> formOp op <+> prettyFirstOrder pv pp pf 2 f2)
                        (:&:) -> parensIf (prec > 3) $ (prettyFirstOrder pv pp pf 3 f1 <+> formOp op <+> prettyFirstOrder pv pp pf 3 f2)
                        (:|:) -> parensIf {-(prec > 4)-} True $ (prettyFirstOrder pv pp pf 4 f1 <+> formOp op <+> prettyFirstOrder pv pp pf 4 f2)
-                 ((:~:) f) -> text {-"¬"-} "~" <> prettyFirstOrder pv pp pf 5 f)
+                 ((:~:) f) -> text {-"¬"-} "~" <> prettyFirstOrder pv pp pf 5 f
+                 TRUE -> text "true"
+                 FALSE -> text "false")
           pr
           formula
     where

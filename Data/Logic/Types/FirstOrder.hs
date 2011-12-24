@@ -11,7 +11,7 @@ module Data.Logic.Types.FirstOrder
 
 import Data.Data (Data)
 import Data.Logic.Classes.Arity (Arity)
-import Data.Logic.Classes.Combine (Combinable(..), Combine(..), BinOp(..))
+import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder, Quant(..), Predicate(..), Pred(..), pApp)
 import Data.Logic.Classes.Literal (Literal(..), PredicateLit(..))
@@ -27,7 +27,7 @@ import Happstack.Data (deriveNewData)
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula v p f
     = Predicate (Predicate p (PTerm v f))
-    | Combine (Combine (Formula v p f))
+    | Combine (Combination (Formula v p f))
     | Quant Quant v (Formula v p f)
     -- Note that a derived Eq instance is not going to tell us that
     -- a&b is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).

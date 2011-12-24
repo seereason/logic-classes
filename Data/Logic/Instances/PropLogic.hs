@@ -6,7 +6,7 @@ module Data.Logic.Instances.PropLogic
     , plSat
     ) where
 
-import Data.Logic.Classes.Combine (Combinable(..), Combine(..), BinOp(..))
+import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula, toPropositional)
 import Data.Logic.Classes.Negate (Negatable(..))

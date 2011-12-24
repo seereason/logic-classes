@@ -4,7 +4,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Data.Logic.Classes.Combine
     ( Combinable(..)
-    , Combine(..)
+    , Combination(..)
     , combine
     , BinOp(..)
     , binop
@@ -63,13 +63,15 @@ infixr 2  .<=>. ,  .=>. ,  .<~>.
 infixl 3  .|.
 infixl 4  .&.
 
--- |'Combine' is a helper type used in the signatures of the
+-- |'Combination' is a helper type used in the signatures of the
 -- 'foldPropositional' and 'foldFirstOrder' methods so can represent
 -- all the ways that formulas can be combined using boolean logic -
 -- negation, logical And, and so forth.
-data Combine formula
+data Combination formula
     = BinOp formula BinOp formula
     | (:~:) formula
+    | TRUE
+    | FALSE
     deriving (Eq,Ord,Data,Typeable)
 
 -- |We need to implement read manually here due to
@@ -91,15 +93,17 @@ instance Read BinOp where
 --   foldPropositional combine atomic
 -- @
 -- is a no-op.
-combine :: Combinable formula => Combine formula -> formula
+combine :: Combinable formula => Combination formula -> formula
 combine (BinOp f1 (:<=>:) f2) = f1 .<=>. f2
 combine (BinOp f1 (:=>:) f2) = f1 .=>. f2
 combine (BinOp f1 (:&:) f2) = f1 .&. f2
 combine (BinOp f1 (:|:) f2) = f1 .|. f2
 combine ((:~:) f) = (.~.) f
+combine TRUE = true
+combine FALSE = false
 
 -- | Represents the boolean logic binary operations, used in the
--- Combine type above.
+-- Combination type above.
 data BinOp
     = (:<=>:)  -- ^ Equivalence
     |  (:=>:)  -- ^ Implication
