@@ -1,17 +1,51 @@
-{-# OPTIONS -Wall #-}
+{-# LANGUAGE RankNTypes #-}
+{-# OPTIONS_GHC -Wall -fno-warn-unused-binds #-}
 module Data.Logic.Harrison.Lib
-    ( exists
+    ( tests
+    , setAny
+    , setAll
+    -- , itlist2
+    -- , itlist  -- same as foldr with last arguments flipped
+    , tryfind
+    , settryfind
+    -- , end_itlist -- same as foldr1
+    , (|=>)
+    , (|->)
+    , fpf
+    , defined
+    , apply
+    , exists
+    , tryApplyD
     , allpairs
     , image
-    , apply
-    , applyd
-    , tryapplyd
-    , defined
-    , itlist
+    , optimize
+    , minimize
+    , maximize
+    , can
+    , allsubsets
+    , allnonemptysubsets
+    , mapfilter
+    , setmapfilter
+    , (∅)
     ) where
 
-import qualified Data.Set.Extra as S
-import qualified Data.Map as M
+import Control.Applicative.Error (Failing(..), failing)
+import qualified Data.Map as Map
+import Data.Maybe
+import qualified Data.Set as Set
+import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual)
+
+(∅) :: Set.Set a
+(∅) = Set.empty
+
+tests :: Test
+tests = TestLabel "Data.Logic.Harrison.Lib" $ TestList [test01]
+
+setAny :: forall a. Ord a => (a -> Bool) -> Set.Set a -> Bool
+setAny f s = Set.member True (Set.map f s)
+
+setAll :: forall a. Ord a => (a -> Bool) -> Set.Set a -> Bool
+setAll f s = not (Set.member False (Set.map f s))
 
 {-
 (* ========================================================================= *)
@@ -50,9 +84,11 @@ let check p x = if p(x) then x else failwith "check";;
 
 let rec funpow n f x =
   if n < 1 then x else funpow (n-1) f (f x);;
-
-let can f x = try f x; true with Failure _ -> false;;
-
+-}
+-- let can f x = try f x; true with Failure _ -> false;;
+can :: (t -> Failing a) -> t -> Bool
+can f x = failing (const True) (const False) (f x)
+{-
 let rec repeat f x = try repeat f (f x) with Failure _ -> x;;
 
 (* ------------------------------------------------------------------------- *)
@@ -85,29 +121,26 @@ let tl l =
   match l with
    h::t -> t
   | _ -> failwith "tl";;
-
-let rec itlist f l b =
-  match l with
-    [] -> b
-  | (h::t) -> f h (itlist f t b);;
 -}
+
+-- (^) = (++)
+
 itlist :: (a -> b -> b) -> [a] -> b -> b
-itlist f xs y = foldr f y xs
+-- itlist f xs z = foldr f z xs
+itlist f xs z = foldr f z xs
+
+end_itlist :: (t -> t -> t) -> [t] -> t
+-- end_itlist = foldr1
+end_itlist = foldr1
+
+itlist2 :: (t -> t1 -> Failing t2 -> Failing t2) -> [t] -> [t1] -> Failing t2 -> Failing t2
+itlist2 f l1 l2 b =
+  case (l1,l2) of
+    ([],[]) -> b
+    (h1 : t1, h2 : t2) -> f h1 h2 (itlist2 f t1 t2 b)
+    _ -> Failure ["itlist2"]
 
 {-
-
-let rec end_itlist f l =
-  match l with
-        []     -> failwith "end_itlist"
-      | [x]    -> x
-      | (h::t) -> f h (end_itlist f t);;
-
-let rec itlist2 f l1 l2 b =
-  match (l1,l2) with
-    ([],[]) -> b
-  | (h1::t1,h2::t2) -> f h1 h2 (itlist2 f t1 t2 b)
-  | _ -> failwith "itlist2";;
-
 let rec zip l1 l2 =
   match (l1,l2) with
         ([],[]) -> []
@@ -118,15 +151,9 @@ let rec forall p l =
   match l with
     [] -> true
   | h::t -> p(h) & forall p t;;
-
-let rec exists p l =
-  match l with
-    [] -> false
-  | h::t -> p(h) or exists p t;;
 -}
 exists :: (a -> Bool) -> [a] -> Bool
 exists = any
-    
 {-
 let partition p l =
     itlist (fun a (yes,no) -> if p a then a::yes,no else yes,a::no) l ([],[]);;
@@ -164,17 +191,18 @@ let map f =
       [] -> []
     | (x::t) -> let y = f x in y::(mapf t) in
   mapf;;
-
-let rec allpairs f l1 l2 =
-  match l1 with
-   h1::t1 ->  itlist (fun x a -> f h1 x :: a) l2 (allpairs f t1 l2)
-  | [] -> [];;
 -}
--- |return the cartesian product of two sets.
-allpairs :: (Ord a, Ord b) => S.Set a -> S.Set b -> S.Set (a, b)
-allpairs = S.cartesianProduct
-{-
 
+allpairs :: forall a b c. (Ord c) => (a -> b -> c) -> Set.Set a -> Set.Set b -> Set.Set c
+-- allpairs f xs ys = Set.fromList (concatMap (\ z -> map (f z) (Set.toList ys)) (Set.toList xs))
+allpairs f xs ys = Set.fold (\ x zs -> Set.fold (\ y zs' -> Set.insert (f x y) zs') zs ys) Set.empty xs
+
+test01 :: Test
+test01 = TestCase $ assertEqual "itlist2" expected input
+    where input = allpairs (,) (Set.fromList [1,2,3]) (Set.fromList [4,5,6])
+          expected = Set.fromList [(1,4),(1,5),(1,6),(2,4),(2,5),(2,6),(3,4),(3,5),(3,6)] :: Set.Set (Int, Int)
+
+{-
 let rec distinctpairs l =
   match l with
    x::t -> itlist (fun y a -> (x,y) :: a) t (distinctpairs t)
@@ -297,32 +325,46 @@ let repetitions =
     | [x] -> [x,n]
     | [] -> failwith "repcount" in
   fun l -> if l = [] then [] else repcount 1 l;;
+-}
 
-let rec tryfind f l =
-  match l with
-      [] -> failwith "tryfind"
-    | (h::t) -> try f h with Failure _ -> tryfind f t;;
+tryfind :: (t -> Failing a) -> [t] -> Failing a
+tryfind _ [] = Failure ["tryfind"]
+tryfind f l =
+    case l of
+      [] -> Failure ["tryfind"]
+      h : t -> failing (\ _ -> tryfind f t) Success (f h)
 
-let rec mapfilter f l =
-  match l with
-    [] -> []
-  | (h::t) -> let rest = mapfilter f t in
-              try (f h)::rest with Failure _ -> rest;;
+settryfind :: (t -> Failing a) -> Set.Set t -> Failing a
+settryfind f l =
+    case Set.minView l of
+      Nothing -> Failure ["settryfind"]
+      Just (h, t) -> failing (\ _ -> settryfind f t) Success (f h)
 
-(* ------------------------------------------------------------------------- *)
-(* Find list member that maximizes or minimizes a function.                  *)
-(* ------------------------------------------------------------------------- *)
+mapfilter :: (a -> Failing b) -> [a] -> [b]
+mapfilter f l = catMaybes (map (failing (const Nothing) Just . f) l) 
+    -- filter (failing (const False) (const True)) (map f l)
 
-let optimize ord f l =
-  fst(end_itlist (fun (x,y as p) (x',y' as p') -> if ord y y' then p else p')
-                 (map (fun x -> x,f x) l));;
+setmapfilter :: Ord b => (a -> Failing b) -> Set.Set a -> Set.Set b
+setmapfilter f s = Set.fold (\ a r -> failing (const r) (`Set.insert` r) (f a)) Set.empty s
 
-let maximize f l = optimize (>) f l and minimize f l = optimize (<) f l;;
+-- -------------------------------------------------------------------------
+-- Find list member that maximizes or minimizes a function.                 
+-- -------------------------------------------------------------------------
 
-(* ------------------------------------------------------------------------- *)
-(* Set operations on ordered lists.                                          *)
-(* ------------------------------------------------------------------------- *)
+optimize :: forall a b. (b -> b -> Bool) -> (a -> b) -> [a] -> a
+optimize ord f l =
+  fst (end_itlist (\ p@(_,y) p'@(_,y') -> if ord y y' then p else p') (map (\ x -> (x,f x)) l))
 
+maximize :: forall a b. Ord b => (a -> b) -> [a] -> a
+maximize f l = optimize (>) f l
+
+minimize :: forall a b. Ord b => (a -> b) -> [a] -> a
+minimize f l = optimize (<) f l
+
+-- -------------------------------------------------------------------------
+-- Set operations on ordered lists.                                         
+-- -------------------------------------------------------------------------
+{-
 let setify =
   let rec canonical lis =
      match lis with
@@ -387,13 +429,12 @@ let subset,psubset =
 let rec set_eq s1 s2 = (setify s1 = setify s2);;
 
 let insert x s = union [x] s;;
-
-let image f s = setify (map f s);;
 -}
-image :: (Ord a, Ord b) => (a -> b) -> [a] -> S.Set b
-image f = S.map f . S.fromList
-{-
 
+image :: (Ord b, Ord a) => (a -> b) -> Set.Set a -> Set.Set b
+image f s = Set.map f s
+
+{-
 (* ------------------------------------------------------------------------- *)
 (* Union of a family of sets.                                                *)
 (* ------------------------------------------------------------------------- *)
@@ -418,15 +459,21 @@ let rec allsets m l =
   match l with
     [] -> []
   | h::t -> union (image (fun g -> h::g) (allsets (m - 1) t)) (allsets m t);;
+-}
 
-let rec allsubsets s =
-  match s with
-    [] -> [[]]
-  | (a::t) -> let res = allsubsets t in
-              union (image (fun b -> a::b) res) res;;
+allsubsets :: forall a. Ord a => Set.Set a -> Set.Set (Set.Set a)
+allsubsets s =
+    maybe (Set.singleton Set.empty)
+          (\ (x, t) -> 
+               let res = allsubsets t in
+               Set.union res (Set.map (Set.insert x) res))
+          (Set.minView s)
 
-let allnonemptysubsets s = subtract (allsubsets s) [[]];;
 
+allnonemptysubsets :: forall a. Ord a => Set.Set a -> Set.Set (Set.Set a)
+allnonemptysubsets s = Set.delete Set.empty (allsubsets s)
+
+{-
 (* ------------------------------------------------------------------------- *)
 (* Explosion and implosion of strings.                                       *)
 (* ------------------------------------------------------------------------- *)
@@ -451,135 +498,120 @@ let time f x =
     ("CPU time (user): "^(string_of_float(finish_time -. start_time)));
   print_newline();
   result;;
+-}
 
-(* ------------------------------------------------------------------------- *)
-(* Polymorphic finite partial functions via Patricia trees.                  *)
-(*                                                                           *)
-(* The point of this strange representation is that it is canonical (equal   *)
-(* functions have the same encoding) yet reasonably efficient on average.    *)
-(*                                                                           *)
-(* Idea due to Diego Olivier Fernandez Pons (OCaml list, 2003/11/10).        *)
-(* ------------------------------------------------------------------------- *)
+-- -------------------------------------------------------------------------
+-- Polymorphic finite partial functions via Patricia trees.                 
+--                                                                          
+-- The point of this strange representation is that it is canonical (equal  
+-- functions have the same encoding) yet reasonably efficient on average.   
+--                                                                          
+-- Idea due to Diego Olivier Fernandez Pons (OCaml list, 2003/11/10).       
+-- -------------------------------------------------------------------------
+{-
+data Func a b
+    = Empty
+    | Leaf Int [(a, b)]
+    | Branch Int Int (Func a b) (Func a b)
 
-type ('a,'b)func =
-   Empty
- | Leaf of int * ('a*'b)list
- | Branch of int * int * ('a,'b)func * ('a,'b)func;;
+-- -------------------------------------------------------------------------
+-- Undefined function.                                                      
+-- -------------------------------------------------------------------------
 
-(* ------------------------------------------------------------------------- *)
-(* Undefined function.                                                       *)
-(* ------------------------------------------------------------------------- *)
+undefinedFunction = Empty
 
-let undefined = Empty;;
+-- -------------------------------------------------------------------------
+-- In case of equality comparison worries, better use this.                 
+-- -------------------------------------------------------------------------
 
-(* ------------------------------------------------------------------------- *)
-(* In case of equality comparison worries, better use this.                  *)
-(* ------------------------------------------------------------------------- *)
+isUndefined Empty = True
+isUndefined _ = False
 
-let is_undefined f =
-  match f with
-    Empty -> true
-  | _ -> false;;
+-- -------------------------------------------------------------------------
+-- Operation analogous to "map" for functions.                                  
+-- -------------------------------------------------------------------------
 
-(* ------------------------------------------------------------------------- *)
-(* Operation analogous to "map" for lists.                                   *)
-(* ------------------------------------------------------------------------- *)
-
-let mapf =
-  let rec map_list f l =
-    match l with
-      [] -> []
-    | (x,y)::t -> (x,f(y))::(map_list f t) in
-  let rec mapf f t =
-    match t with
+mapf f t =
+    case t of
       Empty -> Empty
-    | Leaf(h,l) -> Leaf(h,map_list f l)
-    | Branch(p,b,l,r) -> Branch(p,b,mapf f l,mapf f r) in
-  mapf;;
+      Leaf h l -> Leaf h (map_list f l)
+      Branch p b l r -> Branch p b (mapf f l) (mapf f r)
+    where
+      map_list f l =
+          case l of
+            [] -> []
+            (x,y) : t -> (x, f y) : map_list f t
 
-(* ------------------------------------------------------------------------- *)
-(* Operations analogous to "fold" for lists.                                 *)
-(* ------------------------------------------------------------------------- *)
+-- -------------------------------------------------------------------------
+-- Operations analogous to "fold" for lists.                                
+-- -------------------------------------------------------------------------
 
-let foldl =
-  let rec foldl_list f a l =
-    match l with
-      [] -> a
-    | (x,y)::t -> foldl_list f (f a x y) t in
-  let rec foldl f a t =
-    match t with
+foldlFn f a t =
+    case t of
       Empty -> a
-    | Leaf(h,l) -> foldl_list f a l
-    | Branch(p,b,l,r) -> foldl f (foldl f a l) r in
-  foldl;;
+      Leaf h l -> foldl_list f a l
+      Branch p b l r -> foldlFn f (foldlFn f a l) r
+    where
+      foldl_list f a l =
+          case l of
+            [] -> a
+            (x,y) : t -> foldl_list f (f a x y) t
 
-let foldr =
-  let rec foldr_list f l a =
-    match l with
-      [] -> a
-    | (x,y)::t -> f x y (foldr_list f t a) in
-  let rec foldr f t a =
-    match t with
+foldrFn f t a =
+    case t of
       Empty -> a
-    | Leaf(h,l) -> foldr_list f l a
-    | Branch(p,b,l,r) -> foldr f l (foldr f r a) in
-  foldr;;
+      Leaf h l -> foldr_list f l a
+      Branch p b l r -> foldrFn f l (foldrFn f r a)
+    where
+      foldr_list f l a =
+          case l of
+            [] -> a
+            (x, y) : t -> f x y (foldr_list f t a)
 
-(* ------------------------------------------------------------------------- *)
-(* Mapping to sorted-list representation of the graph, domain and range.     *)
-(* ------------------------------------------------------------------------- *)
+-- -------------------------------------------------------------------------
+-- Mapping to sorted-list representation of the graph, domain and range.    
+-- -------------------------------------------------------------------------
 
-let graph f = setify (foldl (fun a x y -> (x,y)::a) [] f);;
+graph f = Set.fromList (foldlFn (\ a x y -> (x,y) : a) [] f)
 
-let dom f = setify(foldl (fun a x y -> x::a) [] f);;
+dom f = Set.fromList (foldlFn (\ a x y -> x :a) [] f)
 
-let ran f = setify(foldl (fun a x y -> y::a) [] f);;
-
-(* ------------------------------------------------------------------------- *)
-(* Application.                                                              *)
-(* ------------------------------------------------------------------------- *)
-
-let applyd =
-  let rec apply_listd l d x =
-    match l with
-      (a,b)::t -> let c = Pervasives.compare x a in
-                  if c = 0 then b else if c > 0 then apply_listd t d x else d x
-    | [] -> d x in
-  fun f d x ->
-    let k = Hashtbl.hash x in
-    let rec look t =
-      match t with
-        Leaf(h,l) when h = k -> apply_listd l d x
-      | Branch(p,b,l,r) when (k lxor p) land (b - 1) = 0
-                -> look (if k land b = 0 then l else r)
-      | _ -> d x in
-    look f;;
+ran f = Set.fromList (foldlFn (\ a x y -> y : a) [] f)
 -}
 
-applyd :: Ord a => M.Map a b -> (a -> b) -> a -> b
-applyd f d x = maybe (d x) id (M.lookup x f)
-      
+-- -------------------------------------------------------------------------
+-- Application.                                                             
+-- -------------------------------------------------------------------------
+
+applyD :: Ord k => Map.Map k a -> k -> a -> Map.Map k a
+applyD m k a = Map.insert k a m
+
+apply :: Ord k => Map.Map k a -> k -> Maybe a
+apply m k = Map.lookup k m
+
+tryApplyD :: Ord k => Map.Map k a -> k -> a -> a
+tryApplyD m k d = fromMaybe d (Map.lookup k m)
+
+tryApplyL :: Ord k => Map.Map k [a] -> k -> [a]
+tryApplyL m k = tryApplyD m k []
 {-
-let apply f = applyd f (fun x -> failwith "apply");;
+applyD :: (t -> Maybe b) -> (t -> b) -> t -> b
+applyD f d x = maybe (d x) id (f x)
+
+apply :: (t -> Maybe b) -> t -> b
+apply f = applyD f (\ _ -> error "apply")
+
+tryApplyD :: (t -> Maybe b) -> t -> b -> b
+tryApplyD f a d = maybe d id (f a)
+
+tryApplyL :: (t -> Maybe [a]) -> t -> [a]
+tryApplyL f x = tryApplyD f x []
 -}
-apply :: Ord a => M.Map a b -> a -> b
-apply f = applyd f (\ _ -> error "apply")
+
+defined :: Ord t => Map.Map t a -> t -> Bool
+defined = flip Map.member
+
 {-
-
-let tryapplyd f a d = applyd f (fun x -> d) a;;
--}
-tryapplyd :: Ord a => M.Map a b -> a -> b -> b
-tryapplyd f a d = applyd f (const d) a
-{-
-
-let tryapplyl f x = tryapplyd f x [];;
-
-let defined f x = try apply f x; true with Failure _ -> false;;
--}
-defined :: Ord a => M.Map a b -> a -> Bool
-defined = flip M.member
-{-
-
 (* ------------------------------------------------------------------------- *)
 (* Undefinition.                                                             *)
 (* ------------------------------------------------------------------------- *)
@@ -709,29 +741,33 @@ let (|->),combine =
           else
             newbranch p1 t1 p2 t2 in
   (|->),combine;;
+-}
 
-(* ------------------------------------------------------------------------- *)
-(* Special case of point function.                                           *)
-(* ------------------------------------------------------------------------- *)
+-- -------------------------------------------------------------------------
+-- Special case of point function.                                          
+-- -------------------------------------------------------------------------
 
-let (|=>) = fun x y -> (x |-> y) undefined;;
+(|=>) :: Ord k => k -> a -> Map.Map k a
+x |=> y = Map.fromList [(x, y)]
 
-(* ------------------------------------------------------------------------- *)
-(* Idiom for a mapping zipping domain and range lists.                       *)
-(* ------------------------------------------------------------------------- *)
+-- -------------------------------------------------------------------------
+-- Idiom for a mapping zipping domain and range lists.                      
+-- -------------------------------------------------------------------------
 
-let fpf xs ys = itlist2 (|->) xs ys undefined;;
+(|->) :: Ord k => k -> a -> Map.Map k a -> Map.Map k a
+(|->) a b m = Map.insert a b m
 
-(* ------------------------------------------------------------------------- *)
-(* Grab an arbitrary element.                                                *)
-(* ------------------------------------------------------------------------- *)
+fpf :: Ord a => Map.Map a b -> a -> Maybe b
+fpf m a = Map.lookup a m
 
-let rec choose t =
-  match t with
-    Empty -> failwith "choose: completely undefined function"
-  | Leaf(h,l) -> hd l
-  | Branch(b,p,t1,t2) -> choose t1;;
+-- -------------------------------------------------------------------------
+-- Grab an arbitrary element.                                               
+-- -------------------------------------------------------------------------
 
+choose :: Map.Map k a -> (k, a)
+choose = Map.findMin
+
+{-
 (* ------------------------------------------------------------------------- *)
 (* Install a (trivial) printer for finite partial functions.                 *)
 (* ------------------------------------------------------------------------- *)

@@ -1,67 +1,78 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TypeFamilies, TypeSynonymInstances #-}
+{-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Harrison.FOL
-    ( fvt
+    ( eval
+    , list_disj
+    , list_conj
+    , var
+    , fvt
     , fv
-    , generalize
     , tsubst
+    , subst
+    , generalize
     ) where
 
-import Data.Logic.Classes.Term (Term(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Predicate(..))
-import Data.Logic.Harrison.Lib
-import Data.Logic.Classes (Combination(..))
-import qualified Data.Map as M
-import qualified Data.Set as S
+import Data.Logic.Classes.Atom (Atom(..))
+import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
+import Data.Logic.Classes.Constants (true, false)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant, quant, pApp)
+import Data.Logic.Classes.Negate ((.~.))
+import Data.Logic.Classes.Term (Term(vt, foldTerm, fApp))
+import Data.Logic.Classes.Variable (Variable(..))
+import qualified Data.Logic.Classes.Term as C
+import Data.Logic.Harrison.Formulas.FirstOrder (on_atoms)
+import Data.Logic.Harrison.Lib ((|->), setAny)
+import qualified Data.Map as Map
+import Data.Maybe (fromMaybe)
+import qualified Data.Set as Set
+import Prelude hiding (pred)
+
+-- =========================================================================
+-- Basic stuff for first order logic.                                       
+--                                                                          
+-- Copyright (c) 2003-2007, John Harrison. (See "LICENSE.txt" for details.) 
+-- =========================================================================
+
+-- ------------------------------------------------------------------------- 
+-- Interpretation of formulas.                                               
+-- ------------------------------------------------------------------------- 
+
+eval :: FirstOrderFormula formula atom v => formula -> (atom -> Bool) -> Bool
+eval fm v =
+    foldFirstOrder qu co pr fm
+    where
+      qu _ _ p = eval p v
+      co FALSE = False
+      co TRUE = True
+      co ((:~:) p) = not (eval p v)
+      co (BinOp p (:&:) q) = eval p v && eval q v
+      co (BinOp p (:|:) q) = eval p v || eval q v
+      co (BinOp p (:=>:) q) = not (eval p v) || eval q v
+      co (BinOp p (:<=>:) q) = eval p v == eval q v
+      pr = v
+
+list_conj :: (FirstOrderFormula formula atom v) => Set.Set formula -> formula
+list_conj l = maybe true (\ (x, xs) -> Set.fold (.&.) x xs) (Set.minView l)
+
+list_disj :: (FirstOrderFormula formula atom v) => Set.Set formula -> formula
+list_disj l = maybe false (\ (x, xs) -> Set.fold (.|.) x xs) (Set.minView l)
+
+mkLits :: (FirstOrderFormula formula atom v, Ord formula) =>
+          Set.Set formula -> (atom -> Bool) -> formula
+mkLits pvs v = list_conj (Set.map (\ p -> if eval p v then p else (.~.) p) pvs)
+
+-- -------------------------------------------------------------------------
+-- Special case of applying a subfunction to the top *terms*.               
+-- -------------------------------------------------------------------------
+
+on_formula :: (FirstOrderFormula fol atom v, Atom atom p term) => (term -> term) -> fol -> fol
+on_formula f = on_atoms (foldAtom (\ p ts -> atomic (apply p (map f ts))))
+
+-- ------------------------------------------------------------------------- 
+-- Parsing of terms.                                                         
+-- ------------------------------------------------------------------------- 
 
 {-
-
-(* ========================================================================= *)
-(* Basic stuff for first order logic.                                        *)
-(*                                                                           *)
-(* Copyright (c) 2003-2007, John Harrison. (See "LICENSE.txt" for details.)  *)
-(* ========================================================================= *)
-
-(* ------------------------------------------------------------------------- *)
-(* Terms.                                                                    *)
-(* ------------------------------------------------------------------------- *)
-
-type term = Var of string
-          | Fn of string * term list;;
-
-(* ------------------------------------------------------------------------- *)
-(* Example.                                                                  *)
-(* ------------------------------------------------------------------------- *)
-
-START_INTERACTIVE;;
-Fn("sqrt",[Fn("-",[Fn("1",[]);
-                   Fn("cos",[Fn("power",[Fn("+",[Var "x"; Var "y"]);
-                                        Fn("2",[])])])])]);;
-END_INTERACTIVE;;
-
-(* ------------------------------------------------------------------------- *)
-(* Abbreviation for FOL formula.                                             *)
-(* ------------------------------------------------------------------------- *)
-
-type fol = R of string * term list;;
-
-(* ------------------------------------------------------------------------- *)
-(* Special case of applying a subfunction to the top *terms*.                *)
-(* ------------------------------------------------------------------------- *)
-
-let onformula f = onatoms(fun (R(p,a)) -> Atom(R(p,map f a)));;
-
-(* ------------------------------------------------------------------------- *)
-(* Trivial example of "x + y < z".                                           *)
-(* ------------------------------------------------------------------------- *)
-
-START_INTERACTIVE;;
-Atom(R("<",[Fn("+",[Var "x"; Var "y"]); Var "z"]));;
-END_INTERACTIVE;;
-
-(* ------------------------------------------------------------------------- *)
-(* Parsing of terms.                                                         *)
-(* ------------------------------------------------------------------------- *)
-
 let is_const_name s = forall numeric (explode s) or s = "nil";;
 
 let rec parse_atomic_term vs inp =
@@ -87,9 +98,9 @@ and parse_term vs inp =
 
 let parset = make_parser (parse_term []);;
 
-(* ------------------------------------------------------------------------- *)
-(* Parsing of formulas.                                                      *)
-(* ------------------------------------------------------------------------- *)
+-- ------------------------------------------------------------------------- 
+-- Parsing of formulas.                                                      
+-- ------------------------------------------------------------------------- 
 
 let parse_infix_atom vs inp =       
   let tm,rest = parse_term vs inp in
@@ -111,28 +122,19 @@ let parse_atom vs inp =
 let parse = make_parser                                                        
   (parse_formula (parse_infix_atom,parse_atom) []);;              
 
-(* ------------------------------------------------------------------------- *)
-(* Set up parsing of quotations.                                             *)
-(* ------------------------------------------------------------------------- *)
+-- ------------------------------------------------------------------------- 
+-- Set up parsing of quotations.                                             
+-- ------------------------------------------------------------------------- 
 
 let default_parser = parse;;
 
 let secondary_parser = parset;;
+-}
 
-(* ------------------------------------------------------------------------- *)
-(* Example.                                                                  *)
-(* ------------------------------------------------------------------------- *)
-
-START_INTERACTIVE;;
-<<(forall x. x < 2 ==> 2 * x <= 3) \/ false>>;;
-
-<<|2 * x|>>;;
-END_INTERACTIVE;;
-
-(* ------------------------------------------------------------------------- *)
-(* Printing of terms.                                                        *)
-(* ------------------------------------------------------------------------- *)
-
+-- ------------------------------------------------------------------------- 
+-- Printing of terms.                                                        
+-- ------------------------------------------------------------------------- 
+{-
 let rec print_term prec fm =
   match fm with
     Var x -> print_string x
@@ -170,9 +172,9 @@ let printert tm =
 
 #install_printer printert;;
 
-(* ------------------------------------------------------------------------- *)
-(* Printing of formulas.                                                     *)
-(* ------------------------------------------------------------------------- *)
+-- ------------------------------------------------------------------------- 
+-- Printing of formulas.                                                     
+-- ------------------------------------------------------------------------- 
 
 let print_atom prec (R(p,args)) =
   if mem p ["="; "<"; "<="; ">"; ">="] & length args = 2
@@ -183,200 +185,86 @@ let print_fol_formula = print_qformula print_atom;;
 
 #install_printer print_fol_formula;;
 
-(* ------------------------------------------------------------------------- *)
-(* Examples in the main text.                                                *)
-(* ------------------------------------------------------------------------- *)
+-- ------------------------------------------------------------------------- 
+-- Examples in the main text.                                                
+-- ------------------------------------------------------------------------- 
 
 START_INTERACTIVE;;
 <<forall x y. exists z. x < z /\ y < z>>;;
 
 <<~(forall x. P(x)) <=> exists y. ~P(y)>>;;
 END_INTERACTIVE;;
-
-(* ------------------------------------------------------------------------- *)
-(* Semantics, implemented of course for finite domains only.                 *)
-(* ------------------------------------------------------------------------- *)
-
-let rec termval (domain,func,pred as m) v tm =
-  match tm with
-    Var(x) -> apply v x
-  | Fn(f,args) -> func f (map (termval m v) args);;
-
-let rec holds (domain,func,pred as m) v fm =
-  match fm with
-    False -> false
-  | True -> true
-  | Atom(R(r,args)) -> pred r (map (termval m v) args)
-  | Not(p) -> not(holds m v p)
-  | And(p,q) -> (holds m v p) & (holds m v q)
-  | Or(p,q) -> (holds m v p) or (holds m v q)
-  | Imp(p,q) -> not(holds m v p) or (holds m v q)
-  | Iff(p,q) -> (holds m v p = holds m v q)
-  | Forall(x,p) -> forall (fun a -> holds m ((x |-> a) v) p) domain
-  | Exists(x,p) -> exists (fun a -> holds m ((x |-> a) v) p) domain;;
-
-(* ------------------------------------------------------------------------- *)
-(* Examples of particular interpretations.                                   *)
-(* ------------------------------------------------------------------------- *)
-
-let bool_interp =
-  let func f args =
-    match (f,args) with
-      ("0",[]) -> false
-    | ("1",[]) -> true
-    | ("+",[x;y]) -> not(x = y)
-    | ("*",[x;y]) -> x & y
-    | _ -> failwith "uninterpreted function"
-  and pred p args =
-    match (p,args) with
-      ("=",[x;y]) -> x = y
-    | _ -> failwith "uninterpreted predicate" in
-  ([false; true],func,pred);;
-
-let mod_interp n =
-  let func f args =
-    match (f,args) with
-      ("0",[]) -> 0
-    | ("1",[]) -> 1 mod n
-    | ("+",[x;y]) -> (x + y) mod n
-    | ("*",[x;y]) -> (x * y) mod n
-    | _ -> failwith "uninterpreted function"
-  and pred p args =
-    match (p,args) with
-      ("=",[x;y]) -> x = y
-    | _ -> failwith "uninterpreted predicate" in
-  (0--(n-1),func,pred);;
-
-START_INTERACTIVE;;
-holds bool_interp undefined <<forall x. (x = 0) \/ (x = 1)>>;;
-
-holds (mod_interp 2) undefined <<forall x. (x = 0) \/ (x = 1)>>;;
-
-holds (mod_interp 3) undefined <<forall x. (x = 0) \/ (x = 1)>>;;
-
-let fm = <<forall x. ~(x = 0) ==> exists y. x * y = 1>>;;
-
-filter (fun n -> holds (mod_interp n) undefined fm) (1--45);;
-
-holds (mod_interp 3) undefined <<(forall x. x = 0) ==> 1 = 0>>;;
-holds (mod_interp 3) undefined <<forall x. x = 0 ==> 1 = 0>>;;
-END_INTERACTIVE;;
-
-(* ------------------------------------------------------------------------- *)
-(* Free variables in terms and formulas.                                     *)
-(* ------------------------------------------------------------------------- *)
-
-let rec fvt tm =
-  match tm with
-    Var x -> [x]
-  | Fn(f,args) -> unions (map fvt args);;
 -}
-fvt :: Term term v f => term -> S.Set v
-fvt tm =
-    foldT S.singleton (\ _ args -> S.unions (map fvt args)) tm
-{-
 
-let rec var fm =
-   match fm with
-    False | True -> []
-  | Atom(R(p,args)) -> unions (map fvt args)
-  | Not(p) -> var p
-  | And(p,q) | Or(p,q) | Imp(p,q) | Iff(p,q) -> union (var p) (var q)
-  | Forall(x,p) | Exists(x,p) -> insert x (var p);;
+-- ------------------------------------------------------------------------- 
+-- Free variables in terms and formulas.                                     
+-- ------------------------------------------------------------------------- 
 
-let rec fv fm =
-  match fm with
-    False | True -> []
-  | Atom(R(p,args)) -> unions (map fvt args)
-  | Not(p) -> fv p
-  | And(p,q) | Or(p,q) | Imp(p,q) | Iff(p,q) -> union (fv p) (fv q)
-  | Forall(x,p) | Exists(x,p) -> subtract (fv p) [x];;
--}
-fv :: forall formula term v p f. FirstOrderFormula formula term v p f => formula -> S.Set v
-fv fm =
-    foldF q c p fm
+fvt :: (Term term v f, Ord v) => term -> Set.Set v
+fvt tm = C.foldTerm Set.singleton (\ _ args -> Set.unions (map fvt args)) tm
+
+var :: (FirstOrderFormula formula atom v, Ord v, Atom atom p term, Term term v f) => formula -> Set.Set v
+var fm =
+    foldFirstOrder qu co pr fm
     where
-      q _ x f = S.difference (fv f) (S.singleton x)
-      c (BinOp f _ g) = S.union (fv f) (fv g)
-      c ((:~:) f) = fv f
-      p (Apply _ args) = S.unions (map fvt args)
-      p (Constant _) = S.empty
-      p (Equal a b) = S.union (fvt a) (fvt b)
-      p (NotEqual a b) = S.union (fvt a) (fvt b)
-    
-{-
+      qu _ x p = Set.insert x (var p)
+      co TRUE = Set.empty
+      co FALSE = Set.empty
+      co ((:~:) p) = var p
+      co (BinOp p _ q) = Set.union (var p) (var q)
+      pr = foldAtom (\ _ args -> Set.unions (map fvt args))
 
-(* ------------------------------------------------------------------------- *)
-(* Universal closure of a formula.                                           *)
-(* ------------------------------------------------------------------------- *)
+fv :: (FirstOrderFormula formula atom v, Ord v, Atom atom p term, Term term v f) => formula -> Set.Set v
+fv fm =
+    foldFirstOrder qu co pr fm
+    where
+      qu _ x p = Set.delete x (fv p)
+      co TRUE = Set.empty
+      co FALSE = Set.empty
+      co ((:~:) p) = fv p
+      co (BinOp p _ q) = Set.union (fv p) (fv q)
+      pr = foldAtom (\ _ args -> Set.unions (map fvt args))
 
-let generalize fm = itlist mk_forall (fv fm) fm;;
--}
-generalize :: FirstOrderFormula formula term v p f => formula -> formula
-generalize fm = S.fold for_all fm (fv fm)
-{-
+-- ------------------------------------------------------------------------- 
+-- Universal closure of a formula.                                           
+-- ------------------------------------------------------------------------- 
 
-(* ------------------------------------------------------------------------- *)
-(* Substitution within terms.                                                *)
-(* ------------------------------------------------------------------------- *)
+generalize :: (FirstOrderFormula formula atom v, Ord v, Atom atom p term, Term term v f) => formula -> formula
+generalize fm = Set.fold for_all fm (fv fm)
 
-let rec tsubst sfn tm =
-  match tm with
-    Var x -> tryapplyd sfn x tm
-  | Fn(f,args) -> Fn(f,map (tsubst sfn) args);;
--}
-tsubst :: Term term v f => M.Map v term -> term -> term
-tsubst sfn tm =
-    foldT (\ x -> tryapplyd sfn x tm)
-          (\ f args -> fApp f (map (tsubst sfn) args))
-          tm
-{-
+-- ------------------------------------------------------------------------- 
+-- Substitution within terms.                                                
+-- ------------------------------------------------------------------------- 
 
-(* ------------------------------------------------------------------------- *)
-(* Variant function and examples.                                            *)
-(* ------------------------------------------------------------------------- *)
+tsubst :: (Term term v f, Ord v) => (Map.Map v term) -> term -> term
+tsubst sfn tm = foldTerm (\ x -> fromMaybe tm (Map.lookup x sfn)) (\ fn args -> fApp fn (map (tsubst sfn) args)) tm
 
-let rec variant x vars =
-  if mem x vars then variant (x^"'") vars else x;;
+-- ------------------------------------------------------------------------- 
+-- Substitution in formulas, with variable renaming.                         
+-- ------------------------------------------------------------------------- 
 
-START_INTERACTIVE;;
-variant "x" ["y"; "z"];;
+subst :: (FirstOrderFormula formula atom v, Atom atom p term, Term term v f) =>
+         Map.Map v term -> formula -> formula
+subst subfn fm =
+    foldFirstOrder qu co pr fm
+    where
+      qu op x p = substq subfn op x p
+      co TRUE = true
+      co FALSE = false
+      co ((:~:) p) = ((.~.) (subst subfn p))
+      co (BinOp p op q) = binop (subst subfn p) op (subst subfn q)
+      pr = foldAtom (\ p args -> pApp p (map (tsubst subfn) args))
 
-variant "x" ["x"; "y"];;
-
-variant "x" ["x"; "x'"];;
-END_INTERACTIVE;;
-
-(* ------------------------------------------------------------------------- *)
-(* Substitution in formulas, with variable renaming.                         *)
-(* ------------------------------------------------------------------------- *)
-
-let rec subst subfn fm =
-  match fm with
-    False -> False
-  | True -> True
-  | Atom(R(p,args)) -> Atom(R(p,map (tsubst subfn) args))
-  | Not(p) -> Not(subst subfn p)
-  | And(p,q) -> And(subst subfn p,subst subfn q)
-  | Or(p,q) -> Or(subst subfn p,subst subfn q)
-  | Imp(p,q) -> Imp(subst subfn p,subst subfn q)
-  | Iff(p,q) -> Iff(subst subfn p,subst subfn q)
-  | Forall(x,p) -> substq subfn mk_forall x p
-  | Exists(x,p) -> substq subfn mk_exists x p
-
-and substq subfn quant x p =
-  let x' = if exists (fun y -> mem x (fvt(tryapplyd subfn y (Var y))))
-                     (subtract (fv p) [x])
-           then variant x (fv(subst (undefine x subfn) p)) else x in
-  quant x' (subst ((x |-> Var x') subfn) p);;
-
-(* ------------------------------------------------------------------------- *)
-(* Examples.                                                                 *)
-(* ------------------------------------------------------------------------- *)
-
-START_INTERACTIVE;;
-subst ("y" |=> Var "x") <<forall x. x = y>>;;
-
-subst ("y" |=> Var "x") <<forall x x'. x = y ==> x = x'>>;;
-END_INTERACTIVE;;
--}
+substq :: forall formula atom term v p f. (FirstOrderFormula formula atom v, Atom atom p term, Term term v f) =>
+          Map.Map v term
+       -> Quant
+       -> v
+       -> formula
+       -> formula
+substq subfn op x p =
+    quant op x' (subst ((x |-> vt x') subfn) p)
+    where
+      x' :: v
+      x' = if setAny (\ y -> Set.member x (fvt (fromMaybe (vt y) (Map.lookup y subfn)))) (Set.delete x (fv p))
+           then variant x (fv (subst (Map.delete x subfn) p))
+           else x
