@@ -21,6 +21,7 @@ Library
                    Data.Logic.Classes.ClauseNormalForm
                    Data.Logic.Classes.Combine
                    Data.Logic.Classes.Constants
+                   Data.Logic.Classes.Equals
                    Data.Logic.Classes.FirstOrder
                    Data.Logic.Classes.Literal
                    Data.Logic.Classes.Negate
