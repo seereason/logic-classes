@@ -31,6 +31,7 @@ class ( Ord lit
     pAppLiteral :: p -> [term] -> lit
     foldLiteral :: (lit -> r) -> (PredicateLit p term -> r) -> lit -> r
     zipLiterals :: (lit -> lit -> Maybe r) -> (PredicateLit p term -> PredicateLit p term -> Maybe r) -> lit -> lit -> Maybe r
+    atomic :: PredicateLit p term -> lit
 
 -- |Helper type to implement the fold function for 'Literal'.
 data PredicateLit p term

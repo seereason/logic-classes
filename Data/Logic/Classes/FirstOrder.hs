@@ -115,6 +115,7 @@ class ( Term term v f
                   -> (Combination formula -> Combination formula -> Maybe r)
                   -> (Predicate p term -> Predicate p term -> Maybe r)
                   -> formula -> formula -> Maybe r
+    atomic :: Predicate p term -> formula
 
 -- |A temporary type used in the fold method to represent the
 -- combination of a predicate and its arguments.  This reduces the

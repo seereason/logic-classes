@@ -160,6 +160,10 @@ instance (Ord v, IsString v, Variable v, Data v, Show v,
           (Equal l1 r1, Equal l2 r2) -> p (L.Equal l1 r1) (L.Equal l2 r2)
           (Predicate p1 ts1, Predicate p2 ts2) -> p (L.Apply p1 ts1) (L.Apply p2 ts2)
           _ -> Nothing
+    atomic (L.Apply p ts) = pApp p ts
+    atomic (L.Equal t1 t2) = t1 .=. t2
+    atomic (L.NotEqual t1 t2) = (.~.)(t1 .=. t2)
+    atomic (L.Constant b) = fromBool b
 
 instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Logic.Term (CTerm v f) v f where
     foldTerm v fn t =
@@ -227,6 +231,10 @@ instance (Combinable (NormalSentence v p f), Logic.Term (NormalTerm v f) v f,
           (NFEqual f1l f1r, NFEqual f2l f2r) -> p (L.Equal f1l f1r) (L.Equal f2l f2r)
           (NFPredicate p1 ts1, NFPredicate p2 ts2) -> p (L.Apply p1 ts1) (L.Apply p2 ts2)
           _ -> Nothing
+    atomic (L.Apply p ts) = pApp p ts
+    atomic (L.Equal t1 t2) = t1 .=. t2
+    atomic (L.NotEqual t1 t2) = (.~.)(t1 .=. t2)
+    atomic (L.Constant b) = fromBool b
 
 instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Logic.Term (NormalTerm v f) v f where
     vt = NormalVariable

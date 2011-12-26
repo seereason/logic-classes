@@ -102,6 +102,7 @@ instance (Constants (Formula v p f), Constants (N.Formula v p f),
     zipFirstOrder q c p f1 f2 = zipFirstOrder q' c' p (intern f1 :: N.Formula v p f) (intern f2 :: N.Formula v p f)
         where q' q1 v1 f1' q2 v2 f2' = q q1 v1 (public f1') q2 v2 (public f2')
               c' combine1 combine2 = c (public combine1) (public combine2)
+    atomic = Formula . atomic
 
 -- |Here are the magic Ord and Eq instances
 instance ({- FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,

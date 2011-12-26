@@ -137,6 +137,7 @@ instance (Pred p (PTerm v f) (Formula v p f),
           (Combine x, Combine y) -> c x y
           (Predicate x, Predicate y) -> p x y
           _ -> Nothing
+    atomic = Predicate
 
 instance (Constants (Formula v p f),
           Variable v, Ord v, Data v, Show v,
@@ -155,6 +156,8 @@ instance (Constants (Formula v p f),
           (Combine ((:~:) x), Combine ((:~:) y)) -> c x y
           (Predicate (Apply p1 ts1), Predicate (Apply p2 ts2)) -> pr (ApplyLit p1 ts1) (ApplyLit p2 ts2)
           _ -> Nothing
+    atomic (ApplyLit p ts) = Predicate (Apply p ts)
+    atomic (EqualLit t1 t2) = Predicate (Equal t1 t2)
 
 $(deriveSafeCopy 1 'base ''PTerm)
 $(deriveSafeCopy 1 'base ''Formula)
