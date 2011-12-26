@@ -99,12 +99,12 @@ instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (PTe
         case t of
           Var v -> vf v
           FunApp f ts -> fn f ts
-    zipT v f t1 t2 =
+    zipTerms v f t1 t2 =
         case (t1, t2) of
           (Var v1, Var v2) -> v v1 v2
           (FunApp f1 ts1, FunApp f2 ts2) -> f f1 ts1 f2 ts2
           _ -> Nothing
-    var = Var
+    vt = Var
     fApp x args = FunApp x args
 
 instance (Constants (Formula v p f), Ord v, Ord p, Constants p, Arity p, Ord f) => Pred p (PTerm v f) (Formula v p f) where

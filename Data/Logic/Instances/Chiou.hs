@@ -166,12 +166,12 @@ instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Logic.Ter
         case t of
           Variable x -> v x
           Function f ts -> fn f ts
-    zipT  v f t1 t2 =
+    zipTerms  v f t1 t2 =
         case (t1, t2) of
           (Variable v1, Variable v2) -> v v1 v2
           (Function f1 ts1, Function f2 ts2) -> f f1 ts1 f2 ts2
           _ -> Nothing
-    var = Variable
+    vt = Variable
     fApp f ts = Function f ts
 
 data ConjunctiveNormalForm v p f =
@@ -229,13 +229,13 @@ instance (Combinable (NormalSentence v p f), Logic.Term (NormalTerm v f) v f,
           _ -> Nothing
 
 instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Logic.Term (NormalTerm v f) v f where
-    var = NormalVariable
+    vt = NormalVariable
     fApp = NormalFunction
     foldTerm v f t =
             case t of
               NormalVariable x -> v x
               NormalFunction x ts -> f x ts
-    zipT v fn t1 t2 =
+    zipTerms v fn t1 t2 =
         case (t1, t2) of
           (NormalVariable x1, NormalVariable x2) -> v x1 x2
           (NormalFunction f1 ts1, NormalFunction f2 ts2) -> fn f1 ts1 f2 ts2
@@ -248,7 +248,7 @@ toSentence (NFPredicate p ts) = pApp p (map toTerm ts)
 
 toTerm :: (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => NormalTerm v f -> CTerm v f
 toTerm (NormalFunction f ts) = Logic.fApp f (map toTerm ts)
-toTerm (NormalVariable v) = Logic.var v
+toTerm (NormalVariable v) = vt v
 
 fromSentence :: forall v p f. FirstOrderFormula (Sentence v p f) (CTerm v f) v p f =>
                 Sentence v p f -> NormalSentence v p f

@@ -18,7 +18,7 @@ import "mtl" Control.Monad.Identity (Identity(runIdentity))
 import "mtl" Control.Monad.State (StateT(runStateT), get, put)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), freeVars, Quant(..), substitute)
-import Data.Logic.Classes.Term (Term(var, fApp))
+import Data.Logic.Classes.Term (Term(vt, fApp))
 import Data.Logic.Classes.Skolem (Skolem(toSkolem))
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -97,7 +97,7 @@ skolem fm =
              state <- get
              let f = toSkolem (skolemCount state)
              put (state {skolemCount = skolemCount state + 1})
-             let fx = fApp f (map var (Set.toList xs))
+             let fx = fApp f (map vt (Set.toList xs))
              skolem (substitute y fx p)
       q All x p = skolem p >>= return . for_all x
       c (BinOp l (:&:) r) = skolem2 (.&.) l r

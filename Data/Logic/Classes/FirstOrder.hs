@@ -272,7 +272,7 @@ substitute old new formula =
                            Constant x -> pApp0 (fromBool x)
                            Apply p ts -> pApp p (map st ts))
       st t = foldTerm sv (\ func ts -> fApp func (map st ts)) t
-      sv v = if v == old then new else var v
+      sv v = if v == old then new else vt v
 
 substitutePairs :: (FirstOrderFormula formula term v p f) => [(v, term)] -> formula -> formula
 substitutePairs pairs formula = foldr (\ (old, new) f -> substitute old new f) formula pairs 

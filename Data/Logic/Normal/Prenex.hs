@@ -9,7 +9,7 @@ import Data.Logic.Normal.Negation (negationNormalForm)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(true, false))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), freeVars, quant, Quant(..), substitute)
-import Data.Logic.Classes.Term (Term(var))
+import Data.Logic.Classes.Term (Term(vt))
 import Data.Logic.Classes.Variable (variant)
 
 -- |Convert to Prenex normal form, with all quantifiers at the left.
@@ -71,7 +71,7 @@ pullq :: FirstOrderFormula formula term v p f =>
          Bool -> Bool -> formula -> (v -> formula -> formula) -> (formula -> formula -> formula) -> v -> v -> formula -> formula -> formula
 pullq l r fm mkq op x y p q =
     let z = variant x (freeVars fm)
-        p' = if l then substitute x (var z) p else p
-        q' = if r then substitute y (var z) q else q
+        p' = if l then substitute x (vt z) p else p
+        q' = if r then substitute y (vt z) q else q
         fm' = pullQuants (op p' q') in
     mkq z fm'

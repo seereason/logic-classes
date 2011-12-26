@@ -33,11 +33,11 @@ loadTest =
       expected :: [Proof TFormula]
       expected = [Proof Invalid (S.fromList [makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
                                              makeINF' ([]) ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem 1) []])])]),
-                  Proof Invalid (S.fromList [makeINF' ([(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [var ("x"),var ("y")])]) ([(pApp ("AnimalLover") [var ("x")])])]),
-                  Proof Invalid (S.fromList [makeINF' ([(pApp ("Animal") [var ("y")]),(pApp ("AnimalLover") [var ("x")]),(pApp ("Kills") [var ("x"),var ("y")])]) ([])]),
+                  Proof Invalid (S.fromList [makeINF' ([(pApp ("Dog") [vt ("y2")]),(pApp ("Owns") [vt ("x"),vt ("y")])]) ([(pApp ("AnimalLover") [vt ("x")])])]),
+                  Proof Invalid (S.fromList [makeINF' ([(pApp ("Animal") [vt ("y")]),(pApp ("AnimalLover") [vt ("x")]),(pApp ("Kills") [vt ("x"),vt ("y")])]) ([])]),
                   Proof Invalid (S.fromList [makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])])]),
                   Proof Invalid (S.fromList [makeINF' ([]) ([(pApp ("Cat") [fApp ("Tuna") []])])]),
-                  Proof Invalid (S.fromList [makeINF' ([(pApp ("Cat") [var ("x")])]) ([(pApp ("Animal") [var ("x")])])])]
+                  Proof Invalid (S.fromList [makeINF' ([(pApp ("Cat") [vt ("x")])]) ([(pApp ("Animal") [vt ("x")])])])]
 
 proofTest1 :: Test
 proofTest1 = TestCase (assertEqual "Chiuo0 - proof test 1" proof1 (runProver' Nothing (loadKB sentences >> theoremKB (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []] :: TFormula))))
@@ -50,14 +50,14 @@ proof1 = (False,
            [(makeINF' ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]) ([]),fromList []),
             (makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []])]),fromList []),
             (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("AnimalLover") [fApp ("Curiosity") []])]) ([]),fromList []),
-            (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList []),
+            (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Dog") [vt ("y2")]),(pApp ("Owns") [fApp ("Curiosity") [],vt ("y")])]) ([]),fromList []),
             (makeINF' ([(pApp ("AnimalLover") [fApp ("Curiosity") []]),(pApp ("Cat") [fApp ("Tuna") []])]) ([]),fromList []),
-            (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList []),
-            (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList []),
+            (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Curiosity") [],vt ("y")])]) ([]),fromList []),
+            (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Dog") [vt ("y2")]),(pApp ("Owns") [fApp ("Curiosity") [],vt ("y")])]) ([]),fromList []),
             (makeINF' ([(pApp ("AnimalLover") [fApp ("Curiosity") []])]) ([]),fromList []),
-            (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList []),
-            (makeINF' ([(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList []),
-            (makeINF' ([(pApp ("Owns") [fApp ("Curiosity") [],var ("y")])]) ([]),fromList [])]))
+            (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Curiosity") [],vt ("y")])]) ([]),fromList []),
+            (makeINF' ([(pApp ("Dog") [vt ("y2")]),(pApp ("Owns") [fApp ("Curiosity") [],vt ("y")])]) ([]),fromList []),
+            (makeINF' ([(pApp ("Owns") [fApp ("Curiosity") [],vt ("y")])]) ([]),fromList [])]))
 
 proofTest2 :: Test
 proofTest2 = TestCase (assertEqual "Chiuo0 - proof test 2" proof2 (runProver' Nothing (loadKB sentences >> theoremKB conjecture)))
@@ -72,16 +72,16 @@ proof2 = (True,
            (makeINF' ([]) ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]),fromList []),
            (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []])]) ([]),fromList []),
            (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("AnimalLover") [fApp ("Jack") []])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Jack") [],var ("y")])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Jack") [],var ("y")])]) ([]),fromList []),
+           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Dog") [vt ("y2")])]) ([]),fromList []),
+           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Dog") [vt ("y2")]),(pApp ("Owns") [fApp ("Jack") [],vt ("y")])]) ([]),fromList []),
+           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Jack") [],vt ("y")])]) ([]),fromList []),
            (makeINF' ([(pApp ("AnimalLover") [fApp ("Jack") []])]) ([]),fromList []),
            (makeINF' ([(pApp ("AnimalLover") [fApp ("Jack") []]),(pApp ("Cat") [fApp ("Tuna") []])]) ([]),fromList []),
            (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Jack") [],var ("y")])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Jack") [],var ("y")])]) ([]),fromList []),
-           (makeINF' ([(pApp ("Dog") [var ("y2")]),(pApp ("Owns") [fApp ("Jack") [],var ("y")])]) ([]),fromList []),
+           (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Dog") [vt ("y2")])]) ([]),fromList []),
+           (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Dog") [vt ("y2")]),(pApp ("Owns") [fApp ("Jack") [],vt ("y")])]) ([]),fromList []),
+           (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Jack") [],vt ("y")])]) ([]),fromList []),
+           (makeINF' ([(pApp ("Dog") [vt ("y2")]),(pApp ("Owns") [fApp ("Jack") [],vt ("y")])]) ([]),fromList []),
            (makeINF' ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []])]) ([]),fromList [])])
 
 testProof :: MonadIO m => String -> (TFormula, Bool, (S.Set (ImplicativeForm TFormula))) -> ProverT (ImplicativeForm TFormula) (NormalT V TTerm m) ()
@@ -97,9 +97,9 @@ loadCmd :: Monad m => ProverT (ImplicativeForm TFormula) (NormalT V TTerm m) [Pr
 loadCmd = loadKB sentences
 
 sentences :: [TFormula]
-sentences = [exists "x" ((pApp "Dog" [var "x"]) .&. (pApp "Owns" [fApp "Jack" [], var "x"])),
-             for_all "x" (((exists "y" (pApp "Dog" [var "y"])) .&. (pApp "Owns" [var "x", var "y"])) .=>. (pApp "AnimalLover" [var "x"])),
-             for_all "x" ((pApp "AnimalLover" [var "x"]) .=>. (for_all "y" ((pApp "Animal" [var "y"]) .=>. ((.~.) (pApp "Kills" [var "x", var "y"]))))),
+sentences = [exists "x" ((pApp "Dog" [vt "x"]) .&. (pApp "Owns" [fApp "Jack" [], vt "x"])),
+             for_all "x" (((exists "y" (pApp "Dog" [vt "y"])) .&. (pApp "Owns" [vt "x", vt "y"])) .=>. (pApp "AnimalLover" [vt "x"])),
+             for_all "x" ((pApp "AnimalLover" [vt "x"]) .=>. (for_all "y" ((pApp "Animal" [vt "y"]) .=>. ((.~.) (pApp "Kills" [vt "x", vt "y"]))))),
              (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []]) .|. (pApp "Kills" [fApp "Curiosity" [], fApp "Tuna" []]),
              pApp "Cat" [fApp "Tuna" []],
-             for_all "x" ((pApp "Cat" [var "x"]) .=>. (pApp "Animal" [var "x"]))]
+             for_all "x" ((pApp "Cat" [vt "x"]) .=>. (pApp "Animal" [vt "x"]))]

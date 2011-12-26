@@ -125,7 +125,7 @@ getSubstsTerms (x:xs) theta =
 
 getSubstsTerm :: Term term v f => term -> Subst v term -> Subst v term
 getSubstsTerm term theta =
-    foldTerm (\ v -> M.insertWith (\ _ old -> old) v (var v) theta)
+    foldTerm (\ v -> M.insertWith (\ _ old -> old) v (vt v) theta)
              (\ _ ts -> getSubstsTerms ts theta)
              term
 
@@ -155,9 +155,9 @@ isRenameOfSentence f1 f2 =
 isRenameOfTerm :: Term term v f => term -> term -> Bool
 isRenameOfTerm t1 t2 =
     maybe False id $
-    zipT (\ _ _ -> Just True)
-         (\ f1 ts1 f2 ts2 -> Just (f1 == f2 && isRenameOfTerms ts1 ts2))
-         t1 t2
+    zipTerms (\ _ _ -> Just True)
+             (\ f1 ts1 f2 ts2 -> Just (f1 == f2 && isRenameOfTerms ts1 ts2))
+             t1 t2
 
 isRenameOfTerms :: Term term v f => [term] -> [term] -> Bool
 isRenameOfTerms ts1 ts2 =
@@ -257,7 +257,7 @@ unifyTerm :: Term term v f => term -> term -> Subst v term -> Subst v term -> Ma
 unifyTerm t1 t2 theta1 theta2 =
     foldTerm
           (\ v1 ->
-               maybe (if var v1 == t2 then Nothing else Just (M.insert v1 t2 theta1, theta2))
+               maybe (if vt v1 == t2 then Nothing else Just (M.insert v1 t2 theta1, theta2))
                      (\ t1' -> unifyTerm t1' t2 theta1 theta2)
                      (M.lookup v1 theta1))
           (\ f1 ts1 ->
@@ -298,14 +298,14 @@ findUnify tl tr s =
       p (EqualLit t1 t2) = getTerms' t1 ++ getTerms' t2
       p (ApplyLit _ ts) = concatMap getTerms' ts
       getTerms' :: term -> [term]
-      getTerms' t = foldTerm (\ v -> [var v]) (\ f ts -> fApp f ts : concatMap getTerms' ts) t
+      getTerms' t = foldTerm (\ v -> [vt v]) (\ f ts -> fApp f ts : concatMap getTerms' ts) t
 
 {-
 getTerms :: Literal formula term v p f => formula -> [term]
 getTerms formula =
     foldLiteral (\ _ -> error "getTerms") p formula
     where
-      getTerms' t = foldT (\ v -> [var v]) (\ f ts -> fApp f ts : concatMap getTerms' ts) t
+      getTerms' t = foldT (\ v -> [vt v]) (\ f ts -> fApp f ts : concatMap getTerms' ts) t
       p (Equal t1 t2) = getTerms' t1 ++ getTerms' t2
       p (Apply _ ts) = concatMap getTerms' ts
 -}
@@ -325,9 +325,9 @@ replaceTerm formula (tl', tr') =
       replaceTerm' t =
           if termEq t tl'
           then tr'
-          else foldTerm var (\ f ts -> fApp f (map replaceTerm' ts)) t
+          else foldTerm vt (\ f ts -> fApp f (map replaceTerm' ts)) t
       termEq t1 t2 =
-          maybe False id (zipT (\ v1 v2 -> Just (v1 == v2)) (\ f1 ts1 f2 ts2 -> Just (f1 == f2 && length ts1 == length ts2 && all (uncurry termEq) (zip ts1 ts2))) t1 t2)
+          maybe False id (zipTerms (\ v1 v2 -> Just (v1 == v2)) (\ f1 ts1 f2 ts2 -> Just (f1 == f2 && length ts1 == length ts2 && all (uncurry termEq) (zip ts1 ts2))) t1 t2)
 
 subst :: Literal formula term v p f => formula -> Subst v term -> Maybe formula
 subst formula theta =
