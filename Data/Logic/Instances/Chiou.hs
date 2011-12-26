@@ -125,7 +125,7 @@ instance (Ord v, IsString v, Variable v, Data v, Show v,
           Not x -> c ((:~:) x)
           Quantifier op (v:vs) f' ->
               let op' = case op of
-                          ForAll -> All
+                          ForAll -> Forall
                           ExistsCh -> Exists in
               -- Use Logic.quant' here instead of the constructor
               -- Quantifier so as not to create quantifications with
@@ -144,9 +144,9 @@ instance (Ord v, IsString v, Variable v, Data v, Show v,
           (Quantifier op1 (v1:vs1) f1', Quantifier op2 (v2:vs2) f2') ->
               if op1 == op2
               then let op' = case op1 of
-                               ForAll -> All
+                               ForAll -> Forall
                                ExistsCh -> Exists in
-                   q op' v1 (Quantifier op1 vs1 f1') All v2 (Quantifier op2 vs2 f2')
+                   q op' v1 (Quantifier op1 vs1 f1') Forall v2 (Quantifier op2 vs2 f2')
               else Nothing
           (Quantifier q1 [] f1', Quantifier q2 [] f2') ->
               if q1 == q2 then zipFirstOrder q c p f1' f2' else Nothing

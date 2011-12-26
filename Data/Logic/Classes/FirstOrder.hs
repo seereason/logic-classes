@@ -149,7 +149,7 @@ conj (x:xs) = x .&. conj xs
 -- | Helper function for building folds.
 quant :: FirstOrderFormula formula term v p f => 
          Quant -> v -> formula -> formula
-quant All v f = for_all v f
+quant Forall v f = for_all v f
 quant Exists v f = exists v f
 
 -- |Legacy version of quant from when we supported lists of quantified
@@ -157,14 +157,14 @@ quant Exists v f = exists v f
 -- empty variable lists (by calling for_all' and exists'.)
 quant' :: FirstOrderFormula formula term v p f => 
          Quant -> [v] -> formula -> formula
-quant' All = for_all'
+quant' Forall = for_all'
 quant' Exists = exists'
 
 -- |The 'Quant' and 'InfixPred' types, like the BinOp type in
 -- 'Data.Logic.Propositional', could be additional parameters to the type
 -- class, but it would add additional complexity with unclear
 -- benefits.
-data Quant = All | Exists deriving (Eq,Ord,Show,Read,Data,Typeable,Enum,Bounded)
+data Quant = Forall | Exists deriving (Eq,Ord,Show,Read,Data,Typeable,Enum,Bounded)
 
 -- |Find the free (unquantified) variables in a formula.
 freeVars :: FirstOrderFormula formula term v p f => formula -> S.Set v
@@ -199,7 +199,7 @@ withUnivQuants fn formula =
                 (\ _ -> fn (reverse vs) f)
                 (\ _ -> fn (reverse vs) f)
                 f
-      doQuant vs All v f = doFormula (v : vs) f
+      doQuant vs Forall v f = doFormula (v : vs) f
       doQuant vs Exists v f = fn (reverse vs) (exists v f)
 
 {-
@@ -328,7 +328,7 @@ showFirstOrder :: forall formula term v p f. (FirstOrderFormula formula term v p
 showFirstOrder formula =
     foldFirstOrder q c a formula
     where
-      q All v f = "(for_all " ++ show v ++ " " ++ showFirstOrder f ++ ")"
+      q Forall v f = "(for_all " ++ show v ++ " " ++ showFirstOrder f ++ ")"
       q Exists v f = "(exists " ++  show v ++ " " ++ showFirstOrder f ++ ")"
       c (BinOp f1 op f2) = "(" ++ parenForm f1 ++ " " ++ showCombine op ++ " " ++ parenForm f2 ++ ")"
       c ((:~:) f) = "((.~.) " ++ showFirstOrder f ++ ")"
@@ -383,7 +383,7 @@ prettyFirstOrder pv pp pf prec formula =
                     _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts)))
       parensIf False = id
       parensIf _ = parens . nest 1
-      prettyQuant All = text {-"∀"-} "!"
+      prettyQuant Forall = text {-"∀"-} "!"
       prettyQuant Exists = text {-"∃"-} "?"
       formOp (:<=>:) = text "<=>"
       formOp (:=>:) = text "=>"

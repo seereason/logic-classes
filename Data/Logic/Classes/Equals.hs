@@ -13,7 +13,6 @@ import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Propositional (showPropositionalFormula)
 import Data.Logic.Classes.Term (Term(..))
 
 class PredicateEq p where

@@ -99,7 +99,7 @@ skolem fm =
              put (state {skolemCount = skolemCount state + 1})
              let fx = fApp f (map vt (Set.toList xs))
              skolem (substitute y fx p)
-      q All x p = skolem p >>= return . for_all x
+      q Forall x p = skolem p >>= return . for_all x
       c (BinOp l (:&:) r) = skolem2 (.&.) l r
       c (BinOp l (:|:) r) = skolem2 (.|.) l r
       c _ = return fm
@@ -115,5 +115,5 @@ specialize :: FirstOrderFormula formula term v p f => formula -> formula
 specialize f =
     foldFirstOrder q (\ _ -> f) (\ _ -> f) f
     where
-      q All _ f' = specialize f'
+      q Forall _ f' = specialize f'
       q _ _ _ = f

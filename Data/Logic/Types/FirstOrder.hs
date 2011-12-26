@@ -124,7 +124,7 @@ instance (Pred p (PTerm v f) (Formula v p f),
           Ord p, Data p, Show p,
           Skolem f, Ord f, Data f, Show f) =>
          FirstOrderFormula (Formula v p f) (PTerm v f) v p f where
-    for_all v x = Quant All v x
+    for_all v x = Quant Forall v x
     exists v x = Quant Exists v x
     foldFirstOrder q c p f =
         case f of
