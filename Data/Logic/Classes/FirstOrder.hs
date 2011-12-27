@@ -34,7 +34,6 @@ module Data.Logic.Classes.FirstOrder
 -}
     ) where
 
-import Data.Function (on)
 import Data.Generics (Data, Typeable)
 import Data.List (intercalate, intersperse)
 import Data.Logic.Classes.Atom (Atom(..), apply0, apply1, apply2, apply3, apply4, apply5, apply6, apply7)
@@ -43,9 +42,7 @@ import Data.Logic.Classes.Combine
 import Data.Logic.Classes.Propositional (PropositionalFormula)
 import Data.Logic.Classes.Term (Term(..), showTerm, prettyTerm, convertTerm)
 import Data.Logic.Classes.Variable (Variable)
-import Data.Monoid (mappend)
 import Data.SafeCopy (base, deriveSafeCopy)
-import qualified Data.Set as S
 import Happstack.Data (deriveNewData)
 import Text.PrettyPrint (Doc, (<>), (<+>), text, empty, parens, hcat, nest)
 
@@ -204,8 +201,8 @@ showFirstOrder formula =
       c FALSE = "false"
       a = foldAtom (\ p ts -> "(pApp" ++ show (length ts) ++ " (" ++ show p ++ ") (" ++ intercalate ") (" (map showTerm ts) ++ "))")
       parenForm x = "(" ++ showFirstOrder x ++ ")"
-      parenTerm :: term -> String
-      parenTerm x = "(" ++ showTerm x ++ ")"
+      -- parenTerm :: term -> String
+      -- parenTerm x = "(" ++ showTerm x ++ ")"
       showCombine (:<=>:) = ".<=>."
       showCombine (:=>:) = ".=>."
       showCombine (:&:) = ".&."

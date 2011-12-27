@@ -14,10 +14,10 @@ import Data.Logic.Classes.Arity (Arity(..))
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Maybe (fromMaybe, fromJust)
+import Data.Maybe (fromMaybe)
 
 class PredicateEq p where
-    eqp :: p
+    eqp :: p -- | Return the equality predicate
 
 -- | Its not safe to make Atom a superclass of AtomEq, because the Atom methods will fail on AtomEq instances.
 class (Arity p, PredicateEq p, Show p) => AtomEq atom p term | atom -> p term, term -> atom p where
@@ -31,17 +31,25 @@ class (Arity p, PredicateEq p, Show p) => AtomEq atom p term | atom -> p term, t
           Just n | n /= length ts -> arityError p ts
           _ -> applyEq' p ts
 
+apply0 :: AtomEq atom p term => p -> atom
 apply0 p = if fromMaybe 0 (arity p) == 0 then applyEq' p [] else arityError p []
+apply1 :: AtomEq atom p a => p -> a -> atom
 apply1 p a = if fromMaybe 1 (arity p) == 1 then applyEq' p [a] else arityError p [a]
+apply2 :: AtomEq atom p a => p -> a -> a -> atom
 apply2 p a b = if fromMaybe 2 (arity p) == 2 then applyEq' p [a,b] else arityError p [a,b]
+apply3 :: AtomEq atom p a => p -> a -> a -> a -> atom
 apply3 p a b c = if fromMaybe 3 (arity p) == 3 then applyEq' p [a,b,c] else arityError p [a,b,c]
+apply4 :: AtomEq atom p a => p -> a -> a -> a -> a -> atom
 apply4 p a b c d = if fromMaybe 4 (arity p) == 4 then applyEq' p [a,b,c,d] else arityError p [a,b,c,d]
+apply5 :: AtomEq atom p a => p -> a -> a -> a -> a -> a -> atom
 apply5 p a b c d e = if fromMaybe 5 (arity p) == 5 then applyEq' p [a,b,c,d,e] else arityError p [a,b,c,d,e]
+apply6 :: AtomEq atom p a => p -> a -> a -> a -> a -> a -> a -> atom
 apply6 p a b c d e f = if fromMaybe 6 (arity p) == 6 then applyEq' p [a,b,c,d,e,f] else arityError p [a,b,c,d,e,f]
+apply7 :: AtomEq atom p a => p -> a -> a -> a -> a -> a -> a -> a -> atom
 apply7 p a b c d e f g = if fromMaybe 7 (arity p) == 7 then applyEq' p [a,b,c,d,e,f,g] else arityError p [a,b,c,d,e,f,g]
 
-arityError p ts =
-    error $ "arity error for " ++ show p ++ ": expected " ++ show (arity p) ++ ", got " ++ show (length ts)
+arityError :: (Arity p, Show p) => p -> [a] -> t
+arityError p ts = error $ "arity error for " ++ show p ++ ": expected " ++ show (arity p) ++ ", got " ++ show (length ts)
 
 pApp :: (FirstOrderFormula formula atom v, AtomEq atom p term) => p -> [term] -> formula
 pApp p ts = atomic (applyEq p ts)

@@ -12,7 +12,7 @@ import Data.List (intercalate, intersperse)
 import Data.Logic.Classes.Skolem
 import Data.Logic.Classes.Variable
 import qualified Data.Set as Set
-import Data.String (IsString(fromString))
+import Data.String (IsString)
 import Text.PrettyPrint (Doc, (<>), brackets, hcat, text)
 
 class (Ord f, IsString f) => Function f where

@@ -162,7 +162,7 @@ instance (AtomEq (Predicate p (PTerm v f)) p (PTerm v f),
         case f of
           Quant op v f' -> q op v f'
           Combine x -> c x
-          Predicate x@(Apply pr ts) -> if pr == fromBool True then c TRUE else if pr == fromBool False then c FALSE else p x
+          Predicate x@(Apply pr _ts) -> if pr == fromBool True then c TRUE else if pr == fromBool False then c FALSE else p x
           Predicate x -> p x
     zipFirstOrder q c p f1 f2 =
         case (f1, f2) of

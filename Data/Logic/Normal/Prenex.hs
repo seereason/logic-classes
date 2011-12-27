@@ -4,7 +4,6 @@ module Data.Logic.Normal.Prenex
     ( prenexNormalForm
     ) where
 
-import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
 import Data.Logic.Classes.Term (Term)

@@ -4,7 +4,6 @@ module Data.Logic.Classes.FirstOrderEq where
 
 import Data.Function (on)
 import Data.List (intercalate, intersperse)
-import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Constants
 import Data.Logic.Classes.Combine
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.), pApp)

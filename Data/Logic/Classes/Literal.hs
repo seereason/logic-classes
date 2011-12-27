@@ -13,7 +13,7 @@ import Data.Logic.Classes.Constants
 import Data.Logic.Classes.FirstOrder
 import Data.Logic.Classes.Negate
 import Data.Logic.Classes.Term
-import Text.PrettyPrint (Doc, (<>), text, empty, parens, hcat, nest)
+import Text.PrettyPrint (Doc, (<>), text, empty, parens, hcat)
 
 -- |Literals are the building blocks of the clause and implicative normal
 -- |forms.  They support negation and must include True and False elements.
@@ -68,7 +68,7 @@ prettyLit :: forall lit atom term v p f. (Literal lit atom v, Atom atom p term, 
            -> Int
            -> lit
            -> Doc
-prettyLit pv pp pf prec lit =
+prettyLit pv pp pf _prec lit =
     foldLiteral c p lit
     where
       c x = if negated x then text {-"¬"-} "~" <> prettyLit pv pp pf 5 x else prettyLit pv pp pf 5 x
@@ -76,5 +76,5 @@ prettyLit pv pp pf prec lit =
                         pp pr <> case ts of
                                    [] -> empty
                                    _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts))))
-      parensIf False = id
-      parensIf _ = parens . nest 1
+      -- parensIf False = id
+      -- parensIf _ = parens . nest 1

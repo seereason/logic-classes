@@ -42,6 +42,11 @@ Library
                    Data.Logic.Satisfiable
                    Data.Logic.Types.FirstOrder
                    Data.Logic.Types.FirstOrderPublic
+                   -- Data.Logic.Types.Harrison.Equal
+                   -- Data.Logic.Types.Harrison.FOL
+                   -- Data.Logic.Types.Harrison.Formulas.FirstOrder
+                   -- Data.Logic.Types.Harrison.Formulas.Propositional
+                   -- Data.Logic.Types.Harrison.Prop
                    Data.Logic.Types.Propositional
  Other-Modules:    Data.Logic.Test
  Build-Depends:    applicative-extras, base >= 4.3 && < 5, containers, fgl, happstack-data, incremental-sat-solver,

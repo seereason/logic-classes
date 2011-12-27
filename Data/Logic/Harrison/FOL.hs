@@ -15,7 +15,7 @@ module Data.Logic.Harrison.FOL
 import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (true, false)
-import Data.Logic.Classes.Equals (AtomEq(foldAtomEq, equals), (.=.), pApp)
+import Data.Logic.Classes.Equals (AtomEq(foldAtomEq), (.=.), pApp)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant, quant)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term(vt, foldTerm, fApp))

@@ -12,7 +12,6 @@ module Data.Logic.Resolution
     , Subst )
     where
 
-import Data.Logic.Classes.Atom (Atom(apply))
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq, zipAtomsEq, applyEq, equals))
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Term (Term(..))
