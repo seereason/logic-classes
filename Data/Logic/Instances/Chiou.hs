@@ -17,7 +17,7 @@ import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Arity (Arity)
 import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combinable(..), BinOp(..), Combination(..))
-import Data.Logic.Classes.Constants (Constants(..))
+import Data.Logic.Classes.Constants (Constants(..), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', pApp)
 import Data.Logic.Classes.Negate (Negatable(..))
@@ -104,19 +104,27 @@ instance Skolem AtomicFunction where
 
 -- The Atom type is not cleanly distinguished from the Sentence type, so we need an Atom instance for Sentence.
 instance (Constants (Sentence v p f), Ord v, Ord p, Arity p, Constants p, Ord f) => Atom (Sentence v p f) p (CTerm v f) where
-    foldAtom ap (Predicate p ts) = ap p ts
-    foldAtom _ _ = error "Data.Logic.Instances.Chiou: Invalid atom"
-    zipAtoms ap (Predicate p1 ts1) (Predicate p2 ts2) = ap p1 ts1 p2 ts2
-    zipAtoms _ _ _ = Nothing
+    foldAtom ap tf (Predicate p ts) = maybe (ap p ts) tf (asBool p)
+    foldAtom _ _ _ = error "Data.Logic.Instances.Chiou: Invalid atom"
+    zipAtoms ap tf (Predicate p1 ts1) (Predicate p2 ts2) =
+        case (asBool p1, asBool p2) of
+          (Just a, Just b) -> tf a b
+          (Nothing, Nothing) -> ap p1 ts1 p2 ts2
+          _ -> Nothing
+    zipAtoms _ _ _ _ = Nothing
     apply' = Predicate
 
-instance (Arity p, Show p) => AtomEq (Sentence v p f) p (CTerm v f) where
-    foldAtomEq ap _ (Predicate p ts) = ap p ts
-    foldAtomEq _ eq (Equal t1 t2) = eq t1 t2
-    foldAtomEq _ _ _ = error "Data.Logic.Instances.Chiou: Invalid atom"
-    zipAtomsEq ap _ (Predicate p1 ts1) (Predicate p2 ts2) = ap p1 ts1 p2 ts2
-    zipAtomsEq _ eq (Equal t1 t2) (Equal t3 t4) = eq t1 t2 t3 t4
-    zipAtomsEq _ _ _ _ = Nothing
+instance (Arity p, Show p, Constants p, Eq p) => AtomEq (Sentence v p f) p (CTerm v f) where
+    foldAtomEq ap tf _ (Predicate p ts) = if p == true then tf True else if p == false then tf False else ap p ts
+    foldAtomEq _ _ eq (Equal t1 t2) = eq t1 t2
+    foldAtomEq _ _ _ _ = error "Data.Logic.Instances.Chiou: Invalid atom"
+    zipAtomsEq ap tf _ (Predicate p1 ts1) (Predicate p2 ts2) =
+        case (asBool p1, asBool p2) of
+          (Just a, Just b) -> tf a b
+          (Nothing, Nothing) -> ap p1 ts1 p2 ts2
+          _ -> Nothing
+    zipAtomsEq _ _ eq (Equal t1 t2) (Equal t3 t4) = eq t1 t2 t3 t4
+    zipAtomsEq _ _ _ _ _ = Nothing
     equals = Equal
     applyEq' = Predicate
 
@@ -275,6 +283,7 @@ fromSentence = foldFirstOrder
                         ((:~:) f) -> NFNot (fromSentence f)
                         _ -> error "fromSentence 2")
                  (foldAtomEq (\ p ts -> NFPredicate p (map fromTerm ts))
+                             (\ x -> NFPredicate (fromBool x) [])
                              (\ t1 t2 -> NFEqual (fromTerm t1) (fromTerm t2)))
 
 fromTerm :: CTerm v f -> NormalTerm v f

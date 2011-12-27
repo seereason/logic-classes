@@ -165,9 +165,7 @@ convertFOF convertV convertP convertF formula =
       q x v f = quant x (convertV v) (convert' f)
       c (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
       c ((:~:) f) = combine ((:~:) (convert' f))
-      c TRUE = true
-      c FALSE = false
-      p = foldAtom (\ x ts -> pApp (convertP x) (map convertTerm' ts))
+      p = foldAtom (\ x ts -> pApp (convertP x) (map convertTerm' ts)) (pApp0 . fromBool)
 
 -- |Try to convert a first order logic formula to propositional.  This
 -- will return Nothing if there are any quantifiers, or if it runs
@@ -183,8 +181,6 @@ toPropositional convertAtom formula =
       q _ _ _ = error "toPropositional: invalid argument"
       c (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
       c ((:~:) f) = combine ((:~:) (convert' f))
-      c TRUE = true
-      c FALSE = false
       p _ = convertAtom formula
 
 -- | Display a formula in a format that can be read into the interpreter.
@@ -197,9 +193,7 @@ showFirstOrder formula =
       q Exists v f = "(exists " ++  show v ++ " " ++ showFirstOrder f ++ ")"
       c (BinOp f1 op f2) = "(" ++ parenForm f1 ++ " " ++ showCombine op ++ " " ++ parenForm f2 ++ ")"
       c ((:~:) f) = "((.~.) " ++ showFirstOrder f ++ ")"
-      c TRUE = "true"
-      c FALSE = "false"
-      a = foldAtom (\ p ts -> "(pApp" ++ show (length ts) ++ " (" ++ show p ++ ") (" ++ intercalate ") (" (map showTerm ts) ++ "))")
+      a = foldAtom (\ p ts -> "(pApp" ++ show (length ts) ++ " (" ++ show p ++ ") (" ++ intercalate ") (" (map showTerm ts) ++ "))") (\ x -> if x then "true" else "false")
       parenForm x = "(" ++ showFirstOrder x ++ ")"
       -- parenTerm :: term -> String
       -- parenTerm x = "(" ++ showTerm x ++ ")"
@@ -227,8 +221,7 @@ prettyFirstOrder pv pp pf prec formula =
                        (:&:) -> parensIf (prec > 3) $ (prettyFirstOrder pv pp pf 3 f1 <+> formOp op <+> prettyFirstOrder pv pp pf 3 f2)
                        (:|:) -> parensIf {-(prec > 4)-} True $ (prettyFirstOrder pv pp pf 4 f1 <+> formOp op <+> prettyFirstOrder pv pp pf 4 f2)
                  ((:~:) f) -> text {-"¬"-} "~" <> prettyFirstOrder pv pp pf 5 f
-                 TRUE -> text "true"
-                 FALSE -> text "false")
+          )
           pr
           formula
     where
@@ -237,6 +230,7 @@ prettyFirstOrder pv pp pf prec formula =
                          pp p <> case ts of
                                    [] -> empty
                                    _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts))))
+                    (\ x -> text (if x then "true" else "false"))
       parensIf False = id
       parensIf _ = parens . nest 1
       prettyQuant Forall = text {-"∀"-} "!"
@@ -266,9 +260,7 @@ freeVars f =
           (\ cm ->
                case cm of
                  BinOp x _ y -> (mappend `on` freeVars) x y
-                 (:~:) f' -> freeVars f'
-                 TRUE -> S.empty
-                 FALSE -> S.empty)
+                 (:~:) f' -> freeVars f')
           (foldAtom (\ _ ts -> S.unions (fmap freeVarsOfTerm ts)))
           f
     where
@@ -307,9 +299,7 @@ quantVars =
           (\ cm ->
                case cm of
                  BinOp x _ y -> (mappend `on` quantVars) x y
-                 ((:~:) f) -> quantVars f
-                 TRUE -> S.empty
-                 FALSE -> S.empty)
+                 ((:~:) f) -> quantVars f)
           (\ _ -> S.empty)
 
 -- |Find the free and quantified variables in a formula.
@@ -320,9 +310,7 @@ allVars f =
           (\ cm ->
                case cm of
                  BinOp x _ y -> (mappend `on` allVars) x y
-                 (:~:) f' -> freeVars f'
-                 TRUE -> S.empty
-                 FALSE -> S.empty)
+                 (:~:) f' -> freeVars f')
           (foldAtom (\ _ ts -> S.unions (fmap allVarsOfTerm ts)))
           f
     where
@@ -347,9 +335,7 @@ substitute old new formula =
                 (\ q v f' -> quant q v (if old == v then f' else substitute' f'))
                 (\ cm -> case cm of
                            ((:~:) f') -> combine ((:~:) (substitute' f'))
-                           (BinOp f1 op f2) -> combine (BinOp (substitute' f1) op (substitute' f2))
-                           TRUE -> true
-                           FALSE -> false)
+                           (BinOp f1 op f2) -> combine (BinOp (substitute' f1) op (substitute' f2)))
                 (foldAtom (\ p ts -> pApp p (map st ts)))
       st t = foldTerm sv (\ func ts -> fApp func (map st ts)) t
       sv v = if v == old then new else vt v

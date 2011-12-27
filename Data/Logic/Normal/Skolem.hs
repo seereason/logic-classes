@@ -15,9 +15,9 @@ module Data.Logic.Normal.Skolem
 
 import "mtl" Control.Monad.Identity (Identity(runIdentity))
 import "mtl" Control.Monad.State (StateT(runStateT), get, put)
-import Data.Logic.Classes.Atom (Atom)
+import Data.Logic.Classes.Atom (Atom(foldAtom))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (true, false)
+import Data.Logic.Classes.Constants (fromBool)
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
 import Data.Logic.Classes.FirstOrderEq (substituteEq)
@@ -136,12 +136,12 @@ literal fm =
     foldFirstOrder (error "quantifier") co at fm
     where
       at :: atom -> Set.Set (Set.Set lit)
-      at x = Set.singleton (Set.singleton (Data.Logic.Classes.Literal.atomic x))
+      at x = foldAtom (\ _ _ -> Set.singleton (Set.singleton (Data.Logic.Classes.Literal.atomic x))) 
+                      (Set.singleton . Set.singleton . fromBool)
+                      x
       co ((:~:) x) = Set.map (Set.map (.~.)) (literal x)
       co (BinOp p (:|:) q) = Set.singleton (Set.unions (Set.toList (literal p) ++ Set.toList (literal q)))
           -- Set.singleton (Set.union (flatten (literal p)) (flatten (literal q)))
           -- where flatten = Set.fold Set.union Set.empty
       co (BinOp p (:&:) q) = Set.union (literal p) (literal q)
-      co TRUE = Set.singleton (Set.singleton true)
-      co FALSE = Set.singleton (Set.singleton false)
       co _ = error "literal"

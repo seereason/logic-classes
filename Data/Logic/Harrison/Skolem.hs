@@ -12,7 +12,7 @@ module Data.Logic.Harrison.Skolem
     ) where
 
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
-import Data.Logic.Classes.Constants (true, false)
+import Data.Logic.Classes.Constants (Constants(true, false))
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(exists, for_all, foldFirstOrder), Quant(..), quant)
 import Data.Logic.Classes.Negate ((.~.))
@@ -32,13 +32,11 @@ import qualified Data.Set as Set
 -- Routine simplification. Like "psimplify" but with quantifier clauses.     
 -- ------------------------------------------------------------------------- 
 
-simplify1 :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f) => fof -> fof
+simplify1 :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Constants p, Eq p) => fof -> fof
 simplify1 fm =
     foldFirstOrder qu co pr fm
     where
       qu _ x p = if Set.member x (fv p) then fm else p
-      co TRUE = fm
-      co FALSE = fm
       co ((:~:) p) = foldFirstOrder (\ _ _ _ -> fm) nco (\ _ -> fm) p
       co (BinOp l op r) =
           case (testBool l, op, testBool r) of
@@ -59,22 +57,18 @@ simplify1 fm =
             (_,          (:<=>:), Just True ) -> l
             (_,          (:<=>:), Just False) -> (.~.) l
             _ -> fm
-      nco TRUE = false
-      nco FALSE = true
       nco ((:~:) p) = p
       nco _ = fm
-      testBool = foldFirstOrder (\ _ _ _ -> Nothing) (\ x -> case x of TRUE -> Just True; FALSE -> Just False; _ -> Nothing) (\ _ -> Nothing)
+      testBool = foldFirstOrder (\ _ _ _ -> Nothing) (\ _ -> Nothing) (foldAtomEq (\ _ _ -> Nothing) Just (\ _ _ -> Nothing))
       pr _ = fm
 
-simplify :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f) => fof -> fof
+simplify :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Constants p, Eq p) => fof -> fof
 simplify fm =
     foldFirstOrder q c p fm
     where
       q op x fm' = simplify1 (quant op x (simplify fm'))
       c ((:~:) fm') = simplify1 ((.~.) (simplify fm'))
       c (BinOp fm1 op fm2) = simplify1 (binop (simplify fm1) op (simplify fm2))
-      c FALSE = false
-      c TRUE = true
       p _ = fm
 
 -- ------------------------------------------------------------------------- 
@@ -91,8 +85,6 @@ nnf fm =
       nnfCombine (BinOp p (:<=>:) q) =  (nnf p .&. nnf q) .|. (nnf ((.~.) p) .&. nnf ((.~.) q))
       nnfCombine (BinOp p (:&:) q) = nnf p .&. nnf q
       nnfCombine (BinOp p (:|:) q) = nnf p .|. nnf q
-      nnfCombine TRUE = true
-      nnfCombine FALSE = false
       nnfNotQuant Forall v p = exists v (nnf ((.~.) p))
       nnfNotQuant Exists v p = for_all v (nnf ((.~.) p))
       nnfNotCombine ((:~:) p) = nnf p
@@ -100,8 +92,6 @@ nnf fm =
       nnfNotCombine (BinOp p (:|:) q) = nnf ((.~.) p) .&. nnf ((.~.) q)
       nnfNotCombine (BinOp p (:=>:) q) = nnf p .&. nnf ((.~.) q)
       nnfNotCombine (BinOp p (:<=>:) q) = (nnf p .&. nnf ((.~.) q)) .|. nnf ((.~.) p) .&. nnf q
-      nnfNotCombine TRUE = false
-      nnfNotCombine FALSE = true
 
 -- ------------------------------------------------------------------------- 
 -- Prenex normal form.                                                       
@@ -126,7 +116,6 @@ pullQuants fm =
             (Just (Exists, vl, l'), (:|:), _)                     -> pullq True  False fm exists  (.|.) vl vl l' r
             (_,                     (:|:), Just (Exists, vr, r')) -> pullq False True  fm exists  (.|.) vr vr l  r'
             _                                                     -> fm
-      pullQuantsCombine _ = error "Unsimplified formula passed to pullQuants"
 
 -- |Helper function to rename variables when we want to enclose a
 -- formula containing a free occurrence of that variable a quantifier
@@ -152,7 +141,7 @@ prenex fm =
       c _ = fm
 
 -- |Convert to Prenex normal form, with all quantifiers at the left.
-pnf :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> formula
+pnf :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Constants p, Eq p) => formula -> formula
 pnf = prenex . nnf . simplify
 
 -- ------------------------------------------------------------------------- 
@@ -172,8 +161,7 @@ functions fm =
       qu _ _ p = functions p
       co ((:~:) p) = functions p
       co (BinOp p _ q) = Set.union (functions p) (functions q)
-      co _ = error "Unsimplified formula passed to functions"
-      pr = foldAtomEq (\ _ ts -> Set.unions (map funcs ts)) (\ t1 t2 -> Set.union (funcs t1) (funcs t2))
+      pr = foldAtomEq (\ _ ts -> Set.unions (map funcs ts)) (const Set.empty) (\ t1 t2 -> Set.union (funcs t1) (funcs t2))
     -- atom_union (\ (R p a) -> foldr (Set.union . funcs) Set.empty a) fm
 {-
 -- ------------------------------------------------------------------------- 
@@ -239,7 +227,5 @@ literal fm =
           -- Set.singleton (Set.union (flatten (literal p)) (flatten (literal q)))
           -- where flatten = Set.fold Set.union Set.empty
       co (BinOp p (:&:) q) = Set.union (literal p) (literal q)
-      co TRUE = Set.singleton (Set.singleton true)
-      co FALSE = Set.singleton (Set.singleton false)
       co _ = error "literal"
 -}

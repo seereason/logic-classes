@@ -14,14 +14,13 @@ import Data.Data (Data)
 import Data.Logic.Classes.Arity (Arity)
 -- import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (Constants(..))
+import Data.Logic.Classes.Constants (Constants(..), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.), (.!=.), pApp)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
-import Data.Logic.Classes.FirstOrderEq (showFirstOrderEq)
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
-import Data.Logic.Classes.Term (Term(..), showTerm)
+import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable(..))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.SafeCopy (base, deriveSafeCopy)
@@ -86,8 +85,7 @@ instance Negatable (Formula v p f) where
     negated _ = False
 
 instance Constants p => Constants (Formula v p f) where
-    fromBool True = Combine TRUE
-    fromBool False = Combine FALSE
+    fromBool x = Predicate (Apply (fromBool x) [])
 
 {-
 instance (Constants p, Arity p, Ord p, Ord v, Ord f, Variable v, Skolem f, Show p, Show v, Show f, Data f, Data v, Data p) => Constants (Formula v p f) where
@@ -139,15 +137,19 @@ instance (Arity p, Constants p) => Atom (Predicate p (PTerm v f)) p (PTerm v f) 
     apply' = Apply
 -}
 
-instance ({- Atom (Predicate p (PTerm v f)) p (PTerm v f), -} Constants p, Arity p, Show p) => AtomEq (Predicate p (PTerm v f)) p (PTerm v f) where
-    foldAtomEq ap _ (Apply p ts) = ap p ts
-    foldAtomEq ap _ (Constant x) = ap (fromBool x) []
-    foldAtomEq _ eq (Equal t1 t2) = eq t1 t2
-    foldAtomEq _ _ _ = error "foldAtomEq Predicate"
-    zipAtomsEq ap _ (Apply p1 ts1) (Apply p2 ts2) = ap p1 ts1 p2 ts2
-    zipAtomsEq ap _ (Constant x) (Constant y) = ap (fromBool x) [] (fromBool y) []
-    zipAtomsEq _ eq (Equal t1 t2) (Equal t3 t4) = eq t1 t2 t3 t4
-    zipAtomsEq _ _ _ _ = error "zipAtomsEq Predicate"
+instance (Constants p, Eq p, Arity p, Show p) => AtomEq (Predicate p (PTerm v f)) p (PTerm v f) where
+    foldAtomEq ap tf _ (Apply p ts) = maybe (ap p ts) tf (asBool p)
+    -- foldAtomEq ap _ _ (Constant x) = ap (fromBool x) []
+    foldAtomEq _ _ eq (Equal t1 t2) = eq t1 t2
+    foldAtomEq _ _ _ _ = error "foldAtomEq Predicate"
+    zipAtomsEq ap tf _ (Apply p1 ts1) (Apply p2 ts2) =
+        case (asBool p1, asBool p2) of
+          (Just a, Just b) -> tf a b
+          (Nothing, Nothing) -> ap p1 ts1 p2 ts2
+          _ -> Nothing
+    -- zipAtomsEq ap _ (Constant x) (Constant y) = ap (fromBool x) [] (fromBool y) []
+    zipAtomsEq _ _ eq (Equal t1 t2) (Equal t3 t4) = eq t1 t2 t3 t4
+    zipAtomsEq _ _ _ _ _ = error "zipAtomsEq Predicate"
     equals = Equal
     applyEq' = Apply
 
@@ -163,7 +165,6 @@ instance (AtomEq (Predicate p (PTerm v f)) p (PTerm v f),
         case f of
           Quant op v f' -> q op v f'
           Combine x -> c x
-          Predicate x@(Apply pr _ts) -> if pr == fromBool True then c TRUE else if pr == fromBool False then c FALSE else p x
           Predicate x -> p x
     zipFirstOrder q c p f1 f2 =
         case (f1, f2) of

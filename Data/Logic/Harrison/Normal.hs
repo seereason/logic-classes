@@ -4,7 +4,7 @@ module Data.Logic.Harrison.Normal where
 
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (true, false)
-import Data.Logic.Classes.Equals (AtomEq)
+import Data.Logic.Classes.Equals (AtomEq(foldAtomEq))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term(..))
@@ -78,8 +78,6 @@ simpdnf fm =
     foldFirstOrder qu co pr fm
     where
       qu _ _ _ = def
-      co FALSE = Set.empty
-      co TRUE = Set.singleton Set.empty
       co _ = def
       pr _ = Set.singleton (Set.singleton fm)
       def =
@@ -98,10 +96,8 @@ simpcnf fm =
     foldFirstOrder qu co pr fm
     where
       qu _ _ _ = def
-      co FALSE = Set.singleton Set.empty
-      co TRUE = Set.empty
       co _ = def
-      pr _ = Set.singleton (Set.singleton fm)
+      pr = foldAtomEq (\ _ _ -> Set.singleton (Set.singleton fm)) (\ x -> if x then Set.empty else Set.singleton Set.empty) (\ _ _ -> Set.singleton (Set.singleton fm))
       def =
           -- Discard any clause that is the proper subset of another clause
           Set.filter (\ cj -> not (setAny (\ c' -> Set.isProperSubsetOf c' cj) cjs)) cjs

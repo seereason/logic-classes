@@ -1,5 +1,6 @@
 module Data.Logic.Classes.Constants
     ( Constants(..)
+    , asBool
     , (⊨)
     , (⊭)
     ) where
@@ -12,6 +13,11 @@ class Constants p where
     true = fromBool True
     false :: p
     false = fromBool False
+
+asBool :: (Eq p, Constants p) => p -> Maybe Bool 
+asBool p | p == true = Just True
+         | p == false = Just False
+         | True = Nothing
 
 (⊨) :: Constants formula => formula
 (⊨) = true

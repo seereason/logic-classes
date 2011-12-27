@@ -72,8 +72,6 @@ infixl 4  .&.
 data Combination formula
     = BinOp formula BinOp formula
     | (:~:) formula
-    | TRUE
-    | FALSE
     deriving (Eq,Ord,Data,Typeable,Show)
 
 -- |We need to implement read manually here due to
@@ -101,8 +99,6 @@ combine (BinOp f1 (:=>:) f2) = f1 .=>. f2
 combine (BinOp f1 (:&:) f2) = f1 .&. f2
 combine (BinOp f1 (:|:) f2) = f1 .|. f2
 combine ((:~:) f) = (.~.) f
-combine TRUE = true
-combine FALSE = false
 
 -- | Represents the boolean logic binary operations, used in the
 -- Combination type above.

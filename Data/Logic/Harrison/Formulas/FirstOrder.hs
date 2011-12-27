@@ -184,7 +184,7 @@ on_atoms f fm =
       q op v fm' = quant op v (on_atoms f fm')
       c ((:~:) fm') = (.~.) (on_atoms f fm')
       c (BinOp f1 op f2) = binop (on_atoms f f1) op (on_atoms f f2)
-      c _ = fm
+      -- c _ = fm
       p = f
 
 -- ------------------------------------------------------------------------- 
@@ -198,7 +198,7 @@ over_atoms f fm b =
       qu _ _ p = over_atoms f p b
       co ((:~:) p) = over_atoms f p b
       co (BinOp p _ q) = over_atoms f p (over_atoms f q b)
-      co _ = b
+      -- co _ = b
       pr atom = f atom b
 
 -- ------------------------------------------------------------------------- 

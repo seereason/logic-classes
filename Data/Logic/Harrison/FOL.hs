@@ -14,7 +14,7 @@ module Data.Logic.Harrison.FOL
 
 import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
-import Data.Logic.Classes.Constants (true, false)
+import Data.Logic.Classes.Constants (fromBool, true, false)
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq), (.=.), pApp)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant, quant)
 import Data.Logic.Classes.Negate ((.~.))
@@ -43,8 +43,6 @@ eval fm v =
     foldFirstOrder qu co pr fm
     where
       qu _ _ p = eval p v
-      co FALSE = False
-      co TRUE = True
       co ((:~:) p) = not (eval p v)
       co (BinOp p (:&:) q) = eval p v && eval q v
       co (BinOp p (:|:) q) = eval p v || eval q v
@@ -67,7 +65,7 @@ mkLits pvs v = list_conj (Set.map (\ p -> if eval p v then p else (.~.) p) pvs)
 -- -------------------------------------------------------------------------
 
 on_formula :: (FirstOrderFormula fol atom v, Atom atom p term) => (term -> term) -> fol -> fol
-on_formula f = on_atoms (foldAtom (\ p ts -> atomic (apply p (map f ts))))
+on_formula f = on_atoms (foldAtom (\ p ts -> atomic (apply p (map f ts))) fromBool)
 
 -- ------------------------------------------------------------------------- 
 -- Parsing of terms.                                                         
@@ -209,22 +207,18 @@ var fm =
     foldFirstOrder qu co pr fm
     where
       qu _ x p = Set.insert x (var p)
-      co TRUE = Set.empty
-      co FALSE = Set.empty
       co ((:~:) p) = var p
       co (BinOp p _ q) = Set.union (var p) (var q)
-      pr = foldAtom (\ _ args -> Set.unions (map fvt args))
+      pr = foldAtom (\ _ args -> Set.unions (map fvt args)) (const Set.empty)
 
 fv :: (FirstOrderFormula formula atom v, Ord v, AtomEq atom p term, Term term v f) => formula -> Set.Set v
 fv fm =
     foldFirstOrder qu co pr fm
     where
       qu _ x p = Set.delete x (fv p)
-      co TRUE = Set.empty
-      co FALSE = Set.empty
       co ((:~:) p) = fv p
       co (BinOp p _ q) = Set.union (fv p) (fv q)
-      pr = foldAtomEq (\ _ args -> Set.unions (map fvt args)) (\ t1 t2 -> Set.union (fvt t1) (fvt t2))
+      pr = foldAtomEq (\ _ args -> Set.unions (map fvt args)) (const Set.empty) (\ t1 t2 -> Set.union (fvt t1) (fvt t2))
 
 -- ------------------------------------------------------------------------- 
 -- Universal closure of a formula.                                           
@@ -250,11 +244,9 @@ subst subfn fm =
     foldFirstOrder qu co pr fm
     where
       qu op x p = substq subfn op x p
-      co TRUE = true
-      co FALSE = false
       co ((:~:) p) = ((.~.) (subst subfn p))
       co (BinOp p op q) = binop (subst subfn p) op (subst subfn q)
-      pr = foldAtomEq (\ p args -> pApp p (map (tsubst subfn) args)) (\ t1 t2 -> tsubst subfn t1 .=. tsubst subfn t2)
+      pr = foldAtomEq (\ p args -> pApp p (map (tsubst subfn) args)) fromBool (\ t1 t2 -> tsubst subfn t1 .=. tsubst subfn t2)
 
 substq :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
           Map.Map v term

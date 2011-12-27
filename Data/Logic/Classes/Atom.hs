@@ -8,13 +8,13 @@ module Data.Logic.Classes.Atom
     ) where
 
 import Data.Logic.Classes.Arity
---import Data.Logic.Classes.Propositional
+import Data.Logic.Classes.Constants
 --import Data.Logic.Classes.Term
 import Data.Maybe (fromMaybe)
 
-class Arity p => Atom atom p term | atom -> p term, term -> atom p where
-    foldAtom :: (p -> [term] -> r) -> atom -> r
-    zipAtoms :: (p -> [term] -> p -> [term] -> Maybe r) -> atom -> atom -> Maybe r
+class (Arity p, Constants p, Eq p) => Atom atom p term | atom -> p term, term -> atom p where
+    foldAtom :: (p -> [term] -> r) -> (Bool -> r) -> atom -> r
+    zipAtoms :: (p -> [term] -> p -> [term] -> Maybe r) -> (Bool -> Bool -> Maybe r) -> atom -> atom -> Maybe r
     apply' :: p -> [term] -> atom
     -- | apply' with an arity check - clients should always call this.
     apply :: p -> [term] -> atom

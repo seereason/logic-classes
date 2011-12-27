@@ -54,11 +54,9 @@ fromFirstOrder cv cp cf formula =
     where
       c :: Combination formula -> lit
       c ((:~:) f) =  (.~.) (fromFirstOrder cv cp cf f)
-      c TRUE = fromBool True
-      c FALSE = fromBool False
       c _ = error "FirstOrder -> Literal"
       p :: atom -> lit
-      p = foldAtom (\ pr ts -> Data.Logic.Classes.Literal.atomic (apply (cp pr) (map ct ts)))
+      p = foldAtom (\ pr ts -> Data.Logic.Classes.Literal.atomic (apply (cp pr) (map ct ts))) fromBool
       ct = convertTerm cv cf
 
 prettyLit :: forall lit atom term v p f. (Literal lit atom v, Atom atom p term, Term term v f) =>
@@ -76,5 +74,6 @@ prettyLit pv pp pf _prec lit =
                         pp pr <> case ts of
                                    [] -> empty
                                    _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts))))
+                   (\ x -> text $ if x then "true" else "false")
       -- parensIf False = id
       -- parensIf _ = parens . nest 1

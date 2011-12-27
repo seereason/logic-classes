@@ -57,8 +57,6 @@ showPropositional showAtom formula =
     where
       c ((:~:) f) = "(.~.) " ++ parenForm f
       c (BinOp f1 op f2) = parenForm f1 ++ " " ++ showFormOp op ++ " " ++ parenForm f2
-      c TRUE = "true"
-      c FALSE = "false"
       a = showAtom
       parenForm x = "(" ++ showPropositional showAtom x ++ ")"
       showFormOp (:<=>:) = ".<=>."
@@ -78,8 +76,6 @@ convertProp convertA formula =
       convert' = convertProp convertA
       c ((:~:) f) = (.~.) (convert' f)
       c (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
-      c TRUE = true
-      c FALSE = false
       a = atomic . convertA
 
 -- | Simplify and recursively apply nnf.
@@ -109,8 +105,6 @@ nnfCombine _ (BinOp p (:=>:) q) = nnf ((.~.) p) .|. (nnf q)
 nnfCombine _ (BinOp p (:<=>:) q) =  (nnf p .&. nnf q) .|. (nnf ((.~.) p) .&. nnf ((.~.) q))
 nnfCombine _ (BinOp p (:&:) q) = nnf p .&. nnf q
 nnfCombine _ (BinOp p (:|:) q) = nnf p .|. nnf q
-nnfCombine fm TRUE = fm
-nnfCombine fm FALSE = fm
 
 nnfNotCombine :: PropositionalFormula formula atom => Combination formula -> formula
 nnfNotCombine ((:~:) p) = nnf p
@@ -118,8 +112,6 @@ nnfNotCombine (BinOp p (:&:) q) = nnf ((.~.) p) .|. nnf ((.~.) q)
 nnfNotCombine (BinOp p (:|:) q) = nnf ((.~.) p) .&. nnf ((.~.) q)
 nnfNotCombine (BinOp p (:=>:) q) = nnf p .&. nnf ((.~.) q)
 nnfNotCombine (BinOp p (:<=>:) q) = (nnf p .&. nnf ((.~.) q)) .|. nnf ((.~.) p) .&. nnf q
-nnfNotCombine TRUE = false
-nnfNotCombine FALSE = true
 
 -- |Do a bottom-up recursion to simplify a propositional formula.
 psimplify :: PropositionalFormula formula atom => formula -> formula
@@ -131,8 +123,6 @@ psimplify fm =
       c (BinOp p (:|:) q) = psimplify1 (psimplify p .|. psimplify q)
       c (BinOp p (:=>:) q) = psimplify1 (psimplify p .=>. psimplify q)
       c (BinOp p (:<=>:) q) = psimplify1 (psimplify p .<=>. psimplify q)
-      c TRUE = true
-      c FALSE = false
       a _ = fm
 
 -- |Do one step of simplify for propositional formulas:
@@ -178,11 +168,7 @@ psimplify1 fm =
             (_,          (:<=>:), Just True)  -> l
             (_,          (:<=>:), Just False) -> (.~.) l
             _                                 -> fm
-      simplifyCombine TRUE = fromBool True
-      simplifyCombine FALSE = fromBool False
       simplifyNotCombine ((:~:) f) = f
-      simplifyNotCombine TRUE = fromBool False
-      simplifyNotCombine FALSE = fromBool True
       simplifyNotCombine _ = fm
       simplifyNotAtom x = (.~.) (atomic x)
       -- We don't require an Eq instance, but we do require Ord so that

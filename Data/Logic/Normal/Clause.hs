@@ -90,13 +90,8 @@ simpcnf :: forall formula atom term v p f lit. (FirstOrderFormula formula atom v
 simpcnf fm =
     foldFirstOrder (\ _ _ _ -> cjs') co at fm
     where
-      co TRUE = Set.singleton Set.empty
-      co FALSE = Set.empty
       co _ = cjs'
-      at = foldAtomEq pr (\ _ _ -> cjs')
-      pr p _ | p == false = Set.empty
-             | p == true = Set.singleton Set.empty
-             | True = cjs'
+      at = foldAtomEq (\ _ _ -> cjs') (\ x -> if x then Set.singleton Set.empty else Set.empty) (\ _ _ -> cjs')
       -- Discard any clause that is the proper subset of another clause
       cjs' = Set.filter keep cjs
       keep x = not (Set.or (Set.map (Set.isProperSubsetOf x) cjs))

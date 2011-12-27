@@ -45,12 +45,8 @@ instance Bijection (Formula v p f) (N.Formula v p f) where
 instance Bijection (Combination (Formula v p f)) (Combination (N.Formula v p f)) where
     public (BinOp x op y) = BinOp (public x) op (public y)
     public ((:~:) x) = (:~:) (public x)
-    public TRUE = TRUE
-    public FALSE = FALSE
     intern (BinOp x op y) = BinOp (intern x) op (intern y)
     intern ((:~:) x) = (:~:) (intern x)
-    intern TRUE = TRUE
-    intern FALSE = FALSE
 
 instance Negatable (Formula v p f) where
     negated = negated . unFormula

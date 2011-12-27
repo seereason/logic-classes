@@ -11,14 +11,15 @@ module Data.Logic.Classes.Equals
 
 import Data.Logic.Classes.Arity (Arity(..))
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
+import Data.Logic.Classes.Constants (Constants)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Maybe (fromMaybe)
 
 -- | Its not safe to make Atom a superclass of AtomEq, because the Atom methods will fail on AtomEq instances.
-class (Arity p, {-PredicateEq p,-} Show p) => AtomEq atom p term | atom -> p term, term -> atom p where
-    foldAtomEq :: (p -> [term] -> r) -> (term -> term -> r) -> atom -> r
-    zipAtomsEq :: (p -> [term] -> p -> [term] -> Maybe r) -> (term -> term -> term -> term -> Maybe r) -> atom -> atom -> Maybe r
+class (Arity p, Constants p, Eq p, Show p) => AtomEq atom p term | atom -> p term, term -> atom p where
+    foldAtomEq :: (p -> [term] -> r) -> (Bool -> r) -> (term -> term -> r) -> atom -> r
+    zipAtomsEq :: (p -> [term] -> p -> [term] -> Maybe r) -> (Bool -> Bool -> Maybe r) -> (term -> term -> term -> term -> Maybe r) -> atom -> atom -> Maybe r
     equals :: term -> term -> atom
     applyEq' :: p -> [term] -> atom
     applyEq :: p -> [term] -> atom
@@ -74,15 +75,12 @@ showFirstOrderFormulaEq fm =
     where
       sfo p = foldFirstOrder qu co pr p
       qu op v f = (showQuant op ++ " " ++ show v ++ " " ++ parens quantPrec (sfo f), quantPrec)
-      -- This code is duplicated from Propositional, but the recursive
-      -- calls are to showFirstOrderFormula
-      co FALSE = ("false", 0)
-      co TRUE = ("true", 0)
       co ((:~:) p) =
           let prec' = 5 in
           ("(.~.)" ++ parens prec' (sfo p), prec')
       co (BinOp p op q) = (parens (opPrec op) (sfo p) ++ " " ++ showBinOp op ++ " " ++ parens (opPrec op) (sfo q), opPrec op)
       pr = foldAtomEq (\ p ts -> ("pApp " ++ show p ++ " " ++ show ts, 6))
+                      (\ x -> (if x then "true" else "false", 0))
                       (\ t1 t2 -> ("(" ++ show t1 ++ ") .=. (" ++ show t2 ++ ")", 6))
       showBinOp (:<=>:) = ".<=>."
       showBinOp (:=>:) = ".=>."
