@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, MonoLocalBinds, NoMonomorphismRestriction, OverloadedStrings, RankNTypes, ScopedTypeVariables  #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, MonoLocalBinds, NoMonomorphismRestriction, OverloadedStrings, RankNTypes, ScopedTypeVariables, TypeFamilies  #-}
 {-# OPTIONS -fno-warn-name-shadowing -fno-warn-missing-signatures #-}
 module Test.Data
     ( tests
@@ -18,7 +18,8 @@ import Data.Boolean.SatSolver (Literal(..))
 import Data.Generics (Typeable)
 import Data.Logic.Classes.Combine (Combinable(..))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), for_all', exists', convertFOF, Pred(..), pApp)
+import Data.Logic.Classes.Equals (AtomEq, (.=.), pApp, pApp2)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), for_all', exists', convertFOF)
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Skolem (Skolem(toSkolem))
 import Data.Logic.Classes.Negate (Negatable(..))
@@ -27,25 +28,39 @@ import qualified Data.Logic.Instances.Chiou as C
 import Data.Logic.KnowledgeBase (WithId(WithId, wiItem, wiIdent), Proof(..), ProofResult(..))
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
 import Data.Logic.Test (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof)
+import Data.Logic.Types.FirstOrder (Predicate(..), PTerm(..))
 import Data.Map (fromList)
 import qualified Data.Set as S
 import Data.String (IsString)
 import Test.HUnit
 
-tests :: (FirstOrderFormula formula term v p f, N.Literal formula term v p f, Eq term, Show term, Show formula, Show v) =>
-         [TestFormula formula term v p f] -> [TestProof formula term v] -> Test
+{-
+:m +Data.Logic.Test
+:m +Data.Logic.Types.FirstOrder
+:m +Data.Set
+runNormal (clauseNormalForm (true :: Formula V Pr AtomicFunction)) :: Set (Set (Formula V Pr AtomicFunction))
+runNormal (skolemNormalForm (true :: Formula V Pr AtomicFunction)) :: Formula V Pr AtomicFunction
+:m +Data.Logic.Normal.Prenex
+prenexNormalForm true :: Formula V Pr AtomicFunction
+:m +Data.Logic.Normal.Skolem
+:m +Data.Logic.Normal.Negation
+-}
+
+tests :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, N.Literal formula atom v, Eq term, Show term, Show formula, Show v, Constants p, Eq p, Show f,
+          atom ~ Predicate p (PTerm v f), term ~ PTerm v f) =>
+         [TestFormula formula atom v] -> [TestProof formula term v] -> Test
 tests fs ps =
     TestLabel "Test.Data" $ TestList (map doTest fs ++ map doProof ps)
 
-allFormulas :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, Typeable formula, IsString v, IsString p, IsString f) =>
-               [TestFormula formula term v p f]
+allFormulas :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Ord formula, Typeable formula, IsString v, IsString p, IsString f, Constants p) =>
+               [TestFormula formula atom v]
 allFormulas = (formulas ++
                concatMap snd [animalKB, chang43KB] ++
                animalConjectures ++
                [chang43Conjecture, chang43ConjectureRenamed])
 
-formulas :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, IsString v, IsString p, IsString f) =>
-            [TestFormula formula term v p f]
+formulas :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Ord formula, IsString v, IsString p, IsString f, Constants p) =>
+            [TestFormula formula atom v]
 formulas =
     let n = (.~.) :: Combinable formula => formula -> formula
         p = pApp "p" :: [term] -> formula
@@ -442,8 +457,8 @@ formulas =
       , expected = [ SkolemNormalForm (((.~.) (p x)) .|. (q (fApp (toSkolem 1) []) .|. (((.~.) (p z)) .|. ((.~.) (q z))))) ] }
     ]
 
-animalKB :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, IsString v, IsString p, IsString f) =>
-            (String, [TestFormula formula term v p f])
+animalKB :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Ord formula, IsString v, IsString p, IsString f) =>
+            (String, [TestFormula formula atom v])
 animalKB =
     let x = vt "x"
         y = vt "y"
@@ -499,8 +514,8 @@ animalKB =
        }
      ])
 
-animalConjectures :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, IsString v, IsString p, IsString f) =>
-                     [TestFormula formula term v p f]
+animalConjectures :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Ord formula, IsString v, IsString p, IsString f) =>
+                     [TestFormula formula atom v]
 animalConjectures =
     let kills = pApp "Kills" :: [term] -> formula
         jack = fApp "Jack" [] :: term
@@ -663,6 +678,7 @@ socratesConjectures =
      ]
 -}
 
+chang43KB :: (Combinable formula, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, IsString p) => (String, [TestFormula formula atom v])
 chang43KB = 
     let e = fApp "e" []
         (x, y, z, u, v, w) = (vt "x", vt "y", vt "z", vt "u", vt "v", vt "w") in
@@ -682,8 +698,8 @@ chang43KB =
                     , expected = [] }
       ])
 
-chang43Conjecture :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, IsString v, IsString p, IsString f) =>
-                     TestFormula formula term v p f
+chang43Conjecture :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Ord formula, IsString v, IsString p, IsString f) =>
+                     TestFormula formula atom v
 chang43Conjecture =
     let e = (fApp "e" [])
         (x, u, v, w) = (vt "x", vt "u", vt "v", vt "w") in
@@ -842,8 +858,8 @@ chang43Conjecture =
 > putStrLn (runNormal (cnfTrace f))
 -}
 
-chang43ConjectureRenamed :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, IsString v, IsString p, IsString f) =>
-                            TestFormula formula term v p f
+chang43ConjectureRenamed :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Ord formula, IsString v, IsString p, IsString f) =>
+                            TestFormula formula atom v
 chang43ConjectureRenamed =
     let e = fApp "e" []
         (x, y, z, u, v, w) = (vt "x", vt "y", vt "z", vt "u", vt "v", vt "w")
@@ -900,8 +916,8 @@ chang43ConjectureRenamed =
                     ]
                 }
 
-withKB :: forall formula term v p f. (FirstOrderFormula formula term v p f) =>
-          (String, [TestFormula formula term v p f]) -> TestFormula formula term v p f -> TestFormula formula term v p f
+withKB :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
+          (String, [TestFormula formula atom v]) -> TestFormula formula atom v -> TestFormula formula atom v
 withKB (kbName, knowledge) conjecture =
     conjecture { name = name conjecture ++ " with " ++ kbName ++ " knowledge base"
                -- Here we say that the conjunction of the knowledge
@@ -914,11 +930,11 @@ withKB (kbName, knowledge) conjecture =
       conj [x] = x
       conj (x:xs) = x .&. conj xs
 
-kbKnowledge :: forall formula term v p f. (FirstOrderFormula formula term v p f) =>
-               (String, [TestFormula formula term v p f]) -> (String, [formula])
-kbKnowledge kb = (fst (kb :: (String, [TestFormula formula term v p f])), map formula (snd kb))
+kbKnowledge :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
+               (String, [TestFormula formula atom v]) -> (String, [formula])
+kbKnowledge kb = (fst (kb :: (String, [TestFormula formula atom v])), map formula (snd kb))
 
-proofs :: forall formula term v p f. (FirstOrderFormula formula term v p f, Ord formula, IsString v, IsString p, IsString f) =>
+proofs :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Ord formula, IsString v, IsString p, IsString f) =>
           [TestProof formula term v]
 proofs =
     let -- dog = pApp "Dog" :: [term] -> formula
@@ -940,7 +956,7 @@ proofs =
 
     [ TestProof
       { proofName = "prove jack kills tuna"
-      , proofKnowledge = kbKnowledge (animalKB :: (String, [TestFormula formula term v p f]))
+      , proofKnowledge = kbKnowledge (animalKB :: (String, [TestFormula formula atom v]))
       , conjecture = kills [jack, tuna]
       , proofExpected = 
           [ ChiouKB (S.fromList
@@ -968,7 +984,7 @@ proofs =
       }
     , TestProof
       { proofName = "prove curiosity kills tuna"
-      , proofKnowledge = kbKnowledge (animalKB :: (String, [TestFormula formula term v p f]))
+      , proofKnowledge = kbKnowledge (animalKB :: (String, [TestFormula formula atom v]))
       , conjecture = kills [curiosity, tuna]
       , proofExpected =
           [ ChiouKB (S.fromList
@@ -1016,7 +1032,7 @@ proofs =
     , let x = vt "x" in
       TestProof
       { proofName = "socrates is mortal"
-      , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula formula term v p f]))
+      , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula formula atom v]))
       , conjecture = for_all "x" (socrates [x] .=>. mortal [x])
       , proofExpected = 
          [ ChiouKB (S.fromList
@@ -1033,7 +1049,7 @@ proofs =
     , let x = vt "x" in
       TestProof
       { proofName = "socrates is not mortal"
-      , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula formula term v p f]))
+      , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula formula atom v]))
       , conjecture = (.~.) (for_all "x" (socrates [x] .=>. mortal [x]))
       , proofExpected = 
          [ ChiouKB (S.fromList
@@ -1045,7 +1061,7 @@ proofs =
     , let x = vt "x" in
       TestProof
       { proofName = "socrates exists and is not mortal"
-      , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula formula term v p f]))
+      , proofKnowledge = kbKnowledge (socratesKB :: (String, [TestFormula formula atom v]))
       , conjecture = (.~.) (exists "x" (socrates [x]) .&. for_all "x" (socrates [x] .=>. mortal [x]))
       , proofExpected = 
          [ ChiouKB (S.fromList

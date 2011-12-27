@@ -5,9 +5,10 @@ module Data.Logic.Classes.Variable
     ) where
 
 import qualified Data.Set as Set
+import Data.String (IsString)
 import Text.PrettyPrint (Doc)
 
-class Ord v => Variable v where
+class (Ord v, IsString v) => Variable v where
     variant :: v -> Set.Set v -> v
     -- ^ Return a variable based on v but different from any set
     -- element.  The result may be v itself if v is not a member of
@@ -16,9 +17,6 @@ class Ord v => Variable v where
     -- ^ Modify a variable by adding a prefix.  This unfortunately
     -- assumes that v is "string-like" but at least one algorithm in
     -- Harrison currently requires this.
-    fromString :: String -> v
-    -- ^ Build a variable based on a string.  This should also be
-    -- removed, the Data.String.IsString class could be used instead.
     prettyVariable :: v -> Doc
     -- ^ Pretty print a variable
 

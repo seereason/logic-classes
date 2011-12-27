@@ -15,7 +15,8 @@ module Data.Logic.Harrison.FOL
 import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (true, false)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant, quant, pApp)
+import Data.Logic.Classes.Equals (AtomEq(foldAtomEq, equals), (.=.), pApp)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant, quant)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term(vt, foldTerm, fApp))
 import Data.Logic.Classes.Variable (Variable(..))
@@ -214,7 +215,7 @@ var fm =
       co (BinOp p _ q) = Set.union (var p) (var q)
       pr = foldAtom (\ _ args -> Set.unions (map fvt args))
 
-fv :: (FirstOrderFormula formula atom v, Ord v, Atom atom p term, Term term v f) => formula -> Set.Set v
+fv :: (FirstOrderFormula formula atom v, Ord v, AtomEq atom p term, Term term v f) => formula -> Set.Set v
 fv fm =
     foldFirstOrder qu co pr fm
     where
@@ -223,13 +224,13 @@ fv fm =
       co FALSE = Set.empty
       co ((:~:) p) = fv p
       co (BinOp p _ q) = Set.union (fv p) (fv q)
-      pr = foldAtom (\ _ args -> Set.unions (map fvt args))
+      pr = foldAtomEq (\ _ args -> Set.unions (map fvt args)) (\ t1 t2 -> Set.union (fvt t1) (fvt t2))
 
 -- ------------------------------------------------------------------------- 
 -- Universal closure of a formula.                                           
 -- ------------------------------------------------------------------------- 
 
-generalize :: (FirstOrderFormula formula atom v, Ord v, Atom atom p term, Term term v f) => formula -> formula
+generalize :: (FirstOrderFormula formula atom v, Ord v, AtomEq atom p term, Term term v f) => formula -> formula
 generalize fm = Set.fold for_all fm (fv fm)
 
 -- ------------------------------------------------------------------------- 
@@ -243,7 +244,7 @@ tsubst sfn tm = foldTerm (\ x -> fromMaybe tm (Map.lookup x sfn)) (\ fn args -> 
 -- Substitution in formulas, with variable renaming.                         
 -- ------------------------------------------------------------------------- 
 
-subst :: (FirstOrderFormula formula atom v, Atom atom p term, Term term v f) =>
+subst :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
          Map.Map v term -> formula -> formula
 subst subfn fm =
     foldFirstOrder qu co pr fm
@@ -253,9 +254,9 @@ subst subfn fm =
       co FALSE = false
       co ((:~:) p) = ((.~.) (subst subfn p))
       co (BinOp p op q) = binop (subst subfn p) op (subst subfn q)
-      pr = foldAtom (\ p args -> pApp p (map (tsubst subfn) args))
+      pr = foldAtomEq (\ p args -> pApp p (map (tsubst subfn) args)) (\ t1 t2 -> tsubst subfn t1 .=. tsubst subfn t2)
 
-substq :: forall formula atom term v p f. (FirstOrderFormula formula atom v, Atom atom p term, Term term v f) =>
+substq :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
           Map.Map v term
        -> Quant
        -> v

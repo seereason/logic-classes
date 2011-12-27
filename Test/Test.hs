@@ -1,5 +1,5 @@
 import Data.Logic.Classes.FirstOrder (showFirstOrder)
-import Data.Logic.Test (TestFormula, TestProof, V, Pr, AtomicFunction, TFormula, TTerm)
+import Data.Logic.Test (TestFormula, TestProof, V, Pr, AtomicFunction, TFormula, TAtom, TTerm)
 import Data.Logic.Types.FirstOrder
 import System.Exit
 import Test.HUnit
@@ -18,5 +18,5 @@ main =
     where
       doCounts counts' = exitWith (if errors counts' /= 0 || failures counts' /= 0 then ExitFailure 1 else ExitSuccess)
       -- Generate the test data with a particular instantiation of FirstOrderFormula.
-      formulas = (Data.allFormulas :: [TestFormula TFormula TTerm V Pr AtomicFunction])
+      formulas = (Data.allFormulas :: [TestFormula TFormula TAtom V])
       proofs = (Data.proofs :: [TestProof TFormula TTerm V])

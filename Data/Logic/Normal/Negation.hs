@@ -6,16 +6,15 @@ module Data.Logic.Normal.Negation
     , simplify
     ) where
 
-import Data.Logic.Classes.Combine (Combinable(..), Combination(..), combine, BinOp(..))
-import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), freeVars, quant, Quant(..), Predicate(..), Pred(..), pApp)
-import Data.Logic.Classes.Negate (Negatable(..))
-import qualified Data.Set.Extra as S
+import Data.Logic.Classes.Equals (AtomEq)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
+import Data.Logic.Classes.Term (Term)
+import Data.Logic.Harrison.Skolem (nnf, simplify)
 
 -- | Simplify and recursively apply nnf.
-negationNormalForm :: FirstOrderFormula formula term v p f => formula -> formula
+negationNormalForm :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> formula
 negationNormalForm = nnf . simplify
-
+{-
 -- |Eliminate => and <=> and move negations inwards:
 -- 
 -- @
@@ -140,3 +139,4 @@ psimplify1 fm =
                          then Just False
                          else Nothing
                 p _ = Nothing
+-}

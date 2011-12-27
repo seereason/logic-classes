@@ -3,40 +3,81 @@
 module Data.Logic.Classes.Equals
     ( PredicateEq(..)
     , AtomEq(..)
+    , apply0, apply1, apply2, apply3, apply4, apply5, apply6, apply7
+    , pApp, pApp0, pApp1, pApp2, pApp3, pApp4, pApp5, pApp6, pApp7
     , showFirstOrderFormulaEq
     , (.=.), (≡)
     , (.!=.), (≢)
     ) where
 
-import Data.Logic.Classes.Arity
-import Data.Logic.Classes.Atom (Atom(..))
+import Data.Logic.Classes.Arity (Arity(..))
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Term (Term(..))
+import Data.Maybe (fromMaybe, fromJust)
 
 class PredicateEq p where
     eqp :: p
 
-class (Atom atom p term, PredicateEq p) => AtomEq atom p term | atom -> p term where
+-- | Its not safe to make Atom a superclass of AtomEq, because the Atom methods will fail on AtomEq instances.
+class (Arity p, PredicateEq p, Show p) => AtomEq atom p term | atom -> p term, term -> atom p where
     foldAtomEq :: (p -> [term] -> r) -> (term -> term -> r) -> atom -> r
-    zipAtomsEq :: (p -> [term] -> p -> [term] -> r) -> (term -> term -> term -> term -> r) -> atom -> atom -> Maybe r
-    equals :: term -> term -> atom    
+    zipAtomsEq :: (p -> [term] -> p -> [term] -> Maybe r) -> (term -> term -> term -> term -> Maybe r) -> atom -> atom -> Maybe r
+    equals :: term -> term -> atom
+    applyEq' :: p -> [term] -> atom
+    applyEq :: p -> [term] -> atom
+    applyEq p ts =
+        case arity p of
+          Just n | n /= length ts -> arityError p ts
+          _ -> applyEq' p ts
+
+apply0 p = if fromMaybe 0 (arity p) == 0 then applyEq' p [] else arityError p []
+apply1 p a = if fromMaybe 1 (arity p) == 1 then applyEq' p [a] else arityError p [a]
+apply2 p a b = if fromMaybe 2 (arity p) == 2 then applyEq' p [a,b] else arityError p [a,b]
+apply3 p a b c = if fromMaybe 3 (arity p) == 3 then applyEq' p [a,b,c] else arityError p [a,b,c]
+apply4 p a b c d = if fromMaybe 4 (arity p) == 4 then applyEq' p [a,b,c,d] else arityError p [a,b,c,d]
+apply5 p a b c d e = if fromMaybe 5 (arity p) == 5 then applyEq' p [a,b,c,d,e] else arityError p [a,b,c,d,e]
+apply6 p a b c d e f = if fromMaybe 6 (arity p) == 6 then applyEq' p [a,b,c,d,e,f] else arityError p [a,b,c,d,e,f]
+apply7 p a b c d e f g = if fromMaybe 7 (arity p) == 7 then applyEq' p [a,b,c,d,e,f,g] else arityError p [a,b,c,d,e,f,g]
+
+arityError p ts =
+    error $ "arity error for " ++ show p ++ ": expected " ++ show (arity p) ++ ", got " ++ show (length ts)
+
+pApp :: (FirstOrderFormula formula atom v, AtomEq atom p term) => p -> [term] -> formula
+pApp p ts = atomic (applyEq p ts)
+
+-- | Versions of pApp specialized for different argument counts.
+pApp0 :: (FirstOrderFormula formula atom v, AtomEq atom p term) => p -> formula
+pApp0 p = atomic (apply0 p)
+pApp1 :: (FirstOrderFormula formula atom v, AtomEq atom p term) => p -> term -> formula
+pApp1 p a = atomic (apply1 p a)
+pApp2 :: (FirstOrderFormula formula atom v, AtomEq atom p term) => p -> term -> term -> formula
+pApp2 p a b = atomic (apply2 p a b)
+pApp3 :: (FirstOrderFormula formula atom v, AtomEq atom p term) => p -> term -> term -> term -> formula
+pApp3 p a b c = atomic (apply3 p a b c)
+pApp4 :: (FirstOrderFormula formula atom v, AtomEq atom p term) => p -> term -> term -> term -> term -> formula
+pApp4 p a b c d = atomic (apply4 p a b c d)
+pApp5 :: (FirstOrderFormula formula atom v, AtomEq atom p term) => p -> term -> term -> term -> term -> term -> formula
+pApp5 p a b c d e = atomic (apply5 p a b c d e)
+pApp6 :: (FirstOrderFormula formula atom v, AtomEq atom p term) => p -> term -> term -> term -> term -> term -> term -> formula
+pApp6 p a b c d e f = atomic (apply6 p a b c d e f)
+pApp7 :: (FirstOrderFormula formula atom v, AtomEq atom p term) => p -> term -> term -> term -> term -> term -> term -> term -> formula
+pApp7 p a b c d e f g = atomic (apply7 p a b c d e f g)
 
 showFirstOrderFormulaEq :: (FirstOrderFormula fof atom v, AtomEq atom p term, Show term, Show v, Show p) => fof -> String
 showFirstOrderFormulaEq fm =
     fst (sfo fm)
     where
-      sfo fm = foldFirstOrder q c pr fm
-      q op v f = (showQuant op ++ " " ++ show v ++ " " ++ parens quantPrec (sfo f), quantPrec)
+      sfo p = foldFirstOrder qu co pr p
+      qu op v f = (showQuant op ++ " " ++ show v ++ " " ++ parens quantPrec (sfo f), quantPrec)
       -- This code is duplicated from Propositional, but the recursive
       -- calls are to showFirstOrderFormula
-      c FALSE = ("false", 0)
-      c TRUE = ("true", 0)
-      c ((:~:) p) =
+      co FALSE = ("false", 0)
+      co TRUE = ("true", 0)
+      co ((:~:) p) =
           let prec' = 5 in
           ("(.~.)" ++ parens prec' (sfo p), prec')
-      c (BinOp p op q) = (parens (opPrec op) (sfo p) ++ " " ++ showBinOp op ++ " " ++ parens (opPrec op) (sfo q), opPrec op)
+      co (BinOp p op q) = (parens (opPrec op) (sfo p) ++ " " ++ showBinOp op ++ " " ++ parens (opPrec op) (sfo q), opPrec op)
       pr = foldAtomEq (\ p ts -> ("pApp " ++ show p ++ " " ++ show ts, 6))
                       (\ t1 t2 -> ("(" ++ show t1 ++ ") .=. (" ++ show t2 ++ ")", 6))
       showBinOp (:<=>:) = ".<=>."

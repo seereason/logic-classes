@@ -14,6 +14,7 @@ module Data.Logic.Harrison.Skolem
 import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (true, false)
+import Data.Logic.Classes.Equals (AtomEq(foldAtomEq))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(exists, for_all, foldFirstOrder), Quant(..), quant)
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate ((.~.))
@@ -33,7 +34,7 @@ import qualified Data.Set as Set
 -- Routine simplification. Like "psimplify" but with quantifier clauses.     
 -- ------------------------------------------------------------------------- 
 
-simplify1 :: (FirstOrderFormula fof atom v, Atom atom p term, Term term v f) => fof -> fof
+simplify1 :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f) => fof -> fof
 simplify1 fm =
     foldFirstOrder qu co pr fm
     where
@@ -67,7 +68,7 @@ simplify1 fm =
       testBool = foldFirstOrder (\ _ _ _ -> Nothing) (\ x -> case x of TRUE -> Just True; FALSE -> Just False; _ -> Nothing) (\ _ -> Nothing)
       pr _ = fm
 
-simplify :: (FirstOrderFormula fof atom v, Atom atom p term, Term term v f) => fof -> fof
+simplify :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f) => fof -> fof
 simplify fm =
     foldFirstOrder q c p fm
     where
@@ -92,7 +93,8 @@ nnf fm =
       nnfCombine (BinOp p (:<=>:) q) =  (nnf p .&. nnf q) .|. (nnf ((.~.) p) .&. nnf ((.~.) q))
       nnfCombine (BinOp p (:&:) q) = nnf p .&. nnf q
       nnfCombine (BinOp p (:|:) q) = nnf p .|. nnf q
-      nnfCombine _ = error "Unsimplified formula passed to nnf"
+      nnfCombine TRUE = true
+      nnfCombine FALSE = false
       nnfNotQuant Forall v p = exists v (nnf ((.~.) p))
       nnfNotQuant Exists v p = for_all v (nnf ((.~.) p))
       nnfNotCombine ((:~:) p) = nnf p
@@ -100,13 +102,14 @@ nnf fm =
       nnfNotCombine (BinOp p (:|:) q) = nnf ((.~.) p) .&. nnf ((.~.) q)
       nnfNotCombine (BinOp p (:=>:) q) = nnf p .&. nnf ((.~.) q)
       nnfNotCombine (BinOp p (:<=>:) q) = (nnf p .&. nnf ((.~.) q)) .|. nnf ((.~.) p) .&. nnf q
-      nnfNotCombine _ = error "Unsimplified formula passed to nnf"
+      nnfNotCombine TRUE = false
+      nnfNotCombine FALSE = true
 
 -- ------------------------------------------------------------------------- 
 -- Prenex normal form.                                                       
 -- ------------------------------------------------------------------------- 
 
-pullQuants :: forall formula atom v term p f. (FirstOrderFormula formula atom v, Atom atom p term, Term term v f) => formula -> formula
+pullQuants :: forall formula atom v term p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> formula
 pullQuants fm =
     foldFirstOrder (\ _ _ _ -> fm) pullQuantsCombine (\ _ -> fm) fm
     where
@@ -130,7 +133,7 @@ pullQuants fm =
 -- |Helper function to rename variables when we want to enclose a
 -- formula containing a free occurrence of that variable a quantifier
 -- that quantifies it.
-pullq :: (FirstOrderFormula formula atom v, Atom atom p term, Term term v f) =>
+pullq :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
          Bool -> Bool -> formula -> (v -> formula -> formula) -> (formula -> formula -> formula) -> v -> v -> formula -> formula -> formula
 pullq l r fm mkq op x y p q =
     let z = variant x (fv fm)
@@ -141,7 +144,7 @@ pullq l r fm mkq op x y p q =
 
 -- |Recursivly apply pullQuants anywhere a quantifier might not be
 -- leftmost.
-prenex :: (FirstOrderFormula formula atom v, Atom atom p term, Term term v f) => formula -> formula 
+prenex :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> formula 
 prenex fm =
     foldFirstOrder q c (\ _ -> fm) fm
     where
@@ -151,7 +154,7 @@ prenex fm =
       c _ = fm
 
 -- |Convert to Prenex normal form, with all quantifiers at the left.
-pnf :: (FirstOrderFormula formula atom v, Atom atom p term, Term term v f) => formula -> formula
+pnf :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> formula
 pnf = prenex . nnf . simplify
 
 -- ------------------------------------------------------------------------- 
@@ -164,7 +167,7 @@ funcs tm =
              (\ f args -> foldr (\ arg r -> Set.union (funcs arg) r) (Set.singleton (f, length args)) args)
              tm
 
-functions :: forall fof atom term v p f. (FirstOrderFormula fof atom v, Atom atom p term, Term term v f, Eq f, Ord f) => fof -> Set.Set (f, Int)
+functions :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Eq f, Ord f) => fof -> Set.Set (f, Int)
 functions fm =
     foldFirstOrder qu co pr fm
     where
@@ -172,21 +175,21 @@ functions fm =
       co ((:~:) p) = functions p
       co (BinOp p _ q) = Set.union (functions p) (functions q)
       co _ = error "Unsimplified formula passed to functions"
-      pr = foldAtom (\ _ ts -> Set.unions (map funcs ts))
+      pr = foldAtomEq (\ _ ts -> Set.unions (map funcs ts)) (\ t1 t2 -> Set.union (funcs t1) (funcs t2))
     -- atom_union (\ (R p a) -> foldr (Set.union . funcs) Set.empty a) fm
 
 -- ------------------------------------------------------------------------- 
 -- Core Skolemization function.                                              
 -- ------------------------------------------------------------------------- 
 
-skolem :: forall fof atom term v p f. (FirstOrderFormula fof atom v, Atom atom p term, Term term v f, Ord f) => fof -> Set.Set f -> (fof, Set.Set f)
+skolem :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord f) => fof -> Set.Set f -> (fof, Set.Set f)
 skolem fm fns =
     foldFirstOrder qu co pr fm
     where
       qu :: Quant -> v -> fof -> (fof, Set.Set f)
       qu Exists y p =
         let xs = fv fm in
-        let f = variantF (if Set.null xs then skolemConstant y else skolemFunction y) fns in
+        let f = variantF (if Set.null xs then skolemConstant (undefined :: term) y else skolemFunction (undefined :: term) y) fns in
         let fx = fApp f (map vt (Set.toList xs)) in
         skolem (subst (y |=> fx) p) (Set.insert f fns)
       qu Forall x p =
@@ -208,7 +211,7 @@ skolem fm fns =
 -- Overall Skolemization function.                                           
 -- ------------------------------------------------------------------------- 
 
-askolemize :: (FirstOrderFormula fof atom v, Atom atom p term, Term term v f) => fof -> fof
+askolemize :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f) => fof -> fof
 askolemize fm =
   fst(skolem (nnf(simplify fm)) (Set.map fst (functions fm)));;
 
@@ -220,7 +223,7 @@ specialize fm =
       q Forall _ p = specialize p
       q _ _ _ = fm
 
-skolemize :: (FirstOrderFormula fof atom v, Atom atom p term, Term term v f) => fof -> fof
+skolemize :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f) => fof -> fof
 skolemize fm = {- t1 $ -} specialize . pnf . askolemize $ fm
     -- where t1 x = trace ("skolemize: " ++ show fm ++ "\n        -> " ++ show x) x
 

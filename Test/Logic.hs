@@ -6,16 +6,19 @@ module Test.Logic (tests) where
 import Data.Logic.Classes.Arity (Arity(arity))
 import Data.Logic.Classes.Combine (Combinable(..))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder, freeVars, substitute, Pred(..), pApp)
+import Data.Logic.Classes.Equals (AtomEq, (.=.), pApp, pApp1)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
+import Data.Logic.Classes.FirstOrderEq (substituteEq, showFirstOrderEq)
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable)
+import Data.Logic.Harrison.FOL (fv)
 import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Skolem (runNormal)
 import Data.Logic.Satisfiable (theorem, inconsistant)
-import Data.Logic.Test (V(..), AtomicFunction(..), Pr, TFormula, TTerm)
+import Data.Logic.Test (V(..), AtomicFunction(..), Pr, TFormula, TAtom, TTerm, myTest)
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 import PropLogic (PropForm(..), TruthTable, truthTable)
@@ -30,30 +33,32 @@ instance Constants String where
 tests :: Test
 tests = TestLabel "Test.Logic" $ TestList (precTests ++ theoremTests)
 
-formCase :: FirstOrderFormula TFormula TTerm V Pr AtomicFunction =>
+{-
+formCase :: (FirstOrderFormula TFormula TAtom V, AtomEq TAtom Pr TTerm, Term TTerm V AtomicFunction) =>
             String -> TFormula -> TFormula -> Test
 formCase s expected input = TestLabel s $ TestCase (assertEqual s expected input)
+-}
 
 precTests :: [Test]
 precTests =
-    [ formCase "Logic - prec test 1"
+    [ myTest "Logic - prec test 1"
                ((a .&. b) .|. c)
                (a .&. b .|. c)
       -- You can't apply .~. without parens:
       -- :type (.~. a)   -> (FormulaPF -> t) -> t
       -- :type ((.~.) a) -> FormulaPF
-    , formCase "Logic - prec test 2"
+    , myTest "Logic - prec test 2"
                (((.~.) a) .&. b)
-               ((.~.) a .&. b)
+               ((.~.) a .&. b :: TFormula)
     -- I switched the precedence of .&. and .|. from infixl to infixr to get
     -- some of the test cases to match the answers given on the miami.edu site,
     -- but maybe I should switch them back and adjust the answer given in the
     -- test case.
-    , formCase "Logic - prec test 3"
+    , myTest "Logic - prec test 3"
                ((a .&. b) .&. c) -- infixl, with infixr we get (a .&. (b .&. c))
-               (a .&. b .&. c)
+               (a .&. b .&. c :: TFormula)
     , TestCase (assertEqual "Logic - Find a free variable"
-                (freeVars (for_all "x" (x .=. y) :: TFormula))
+                (fv (for_all "x" (x .=. y) :: TFormula))
                 (Set.singleton "y"))
     , TestCase (assertEqual "Logic - Substitute a variable"
                 (map sub
@@ -63,7 +68,7 @@ precTests =
                 , for_all "y" (z .=. y) :: TFormula ])
     ]
     where
-      sub f = substitute (head . Set.toList . freeVars $ f) (vt "z") f
+      sub f = substituteEq (head . Set.toList . fv $ f) (vt "z") f
       a = pApp ("a") []
       b = pApp ("b") []
       c = pApp ("c") []
@@ -111,13 +116,13 @@ test9a = TestCase
 
 moveQuantifiersOut1 :: Test
 moveQuantifiersOut1 =
-    formCase "Logic - moveQuantifiersOut1"
+    myTest "Logic - moveQuantifiersOut1"
              (for_all "x2" ((pApp ("p") [vt ("x2")]) .&. ((pApp ("q") [vt ("x")]))))
              (prenexNormalForm (for_all "x" (pApp (fromString "p") [x]) .&. (pApp (fromString "q") [x])))
 
 skolemize1 :: Test
 skolemize1 =
-    formCase "Logic - skolemize1" expected formula
+    myTest "Logic - skolemize1" expected formula
     where
       expected :: TFormula
       expected = for_all [V "y",V "z"] (for_all [V "v"] (pApp "P" [fApp (toSkolem 1) [], y, z, fApp ((toSkolem 2)) [y, z], v, fApp (toSkolem 3) [y, z, v]]))
@@ -126,7 +131,7 @@ skolemize1 =
 
 skolemize2 :: Test
 skolemize2 =
-    formCase "Logic - skolemize2" expected formula
+    myTest "Logic - skolemize2" expected formula
     where
       expected :: TFormula
       expected = for_all [V "y"] (pApp ("loves") [fApp (toSkolem 1) [],y])
@@ -135,7 +140,7 @@ skolemize2 =
 
 skolemize3 :: Test
 skolemize3 =
-    formCase "Logic - skolemize3" expected formula
+    myTest "Logic - skolemize3" expected formula
     where
       expected :: TFormula
       expected = for_all [V "y"] (pApp ("loves") [fApp (toSkolem 1) [y],y])
@@ -145,7 +150,7 @@ skolemize3 =
 {-
 inf1 :: Test
 inf1 =
-    formCase "Logic - inf1" expected formula
+    myTest "Logic - inf1" expected formula
     where
       expected :: TFormula
       expected = ((pApp ("p") [vt ("x")]) .=>. (((pApp ("q") [vt ("x")]) .|. ((pApp ("r") [vt ("x")])))))
@@ -163,7 +168,7 @@ theoremTests =
         m = pApp "M" in
     [ let formula = for_all "x" (((s [x] .=>. h [x]) .&. (h [x] .=>. m [x])) .=>.
                                   (s [x] .=>. m [x])) in
-      TestCase (assertEqual "Logic - theorem test 1"
+      myTest "Logic - theorem test 1"
                 (True,([],Just (CJ []),[([],True)]))
 {-
                 (True,
@@ -193,8 +198,8 @@ theoremTests =
                    ([True,True,False],True),
                    ([True,True,True],True)]))
 -}
-                (runNormal (theorem formula), table formula))
-    , TestCase (assertEqual "Logic - theorem test 1a"
+                (runNormal (theorem formula), table formula)
+    , myTest "Logic - theorem test 1a"
                 (False,
                  False,
                  ([(pApp1 ("H") (fApp (toSkolem 1) [])),
@@ -249,9 +254,9 @@ theoremTests =
                 
                 (let formula = (for_all "x" ((s [x] .=>. h [x]) .&. (h [x] .=>. m [x]))) .=>.
                                (for_all "y" (s [y] .=>. m [y])) in
-                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula)))
+                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula))
                 
-    , TestCase (assertEqual "Logic - socrates is mortal, truth table"
+    , myTest "Logic - socrates is mortal, truth table"
                 ([(pApp1 ("H") (vt ("x"))),
                   (pApp1 ("M") (vt ("x"))),
                   (pApp1 ("S") (vt ("x")))],
@@ -273,9 +278,9 @@ theoremTests =
                 -- variable into each formula.
                 (table (for_all "x" (s [x] .=>. h [x]) .&.
                          for_all "y" (h [y] .=>. m [y]) .&.
-                         for_all "z" (s [z] .=>. m [z]))))
+                         for_all "z" (s [z] .=>. m [z])))
 
-    , TestCase (assertEqual "Logic - socrates is not mortal"
+    , myTest "Logic - socrates is not mortal"
                 (False,
                  False,
                  ([(pApp ("H") [vt ("x")]),
@@ -324,7 +329,7 @@ theoremTests =
                                       (h [x] .=>. m [x]) .&.
                                       (m [x] .=>. ((.~.) (s [x])))) .&.
                          (s [fApp "socrates" []]) in
-                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula, runNormal (clauseNormalForm formula) :: Set.Set (Set.Set TFormula))))
+                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula, runNormal (clauseNormalForm formula) :: Set.Set (Set.Set TFormula)))
     , let (formula :: TFormula) =
               (for_all "x" (pApp "L" [vt "x"] .=>. pApp "F" [vt "x"]) .&. -- All logicians are funny
                exists "x" (pApp "L" [vt "x"])) .=>.                            -- Someone is a logician
@@ -352,7 +357,7 @@ theoremTests =
                        ([True,True,False,True],True),
                        ([True,True,True,False],False),
                        ([True,True,True,True],False)])
-      in TestCase (assertEqual "Logic - gensler189" expected input)
+      in myTest "Logic - gensler189" expected input
     , let (formula :: TFormula) =
               (for_all "x" (pApp "L" [vt "x"] .=>. pApp "F" [vt "x"]) .&. -- All logicians are funny
                exists "y" (pApp "L" [vt (fromString "y")])) .=>.           -- Someone is a logician
@@ -360,7 +365,7 @@ theoremTests =
           input = table formula
           expected :: TruthTable TFormula
           expected = ([(pApp1 ("F") (vt ("z"))),(pApp1 ("F") (fApp (toSkolem 1) [])),(pApp1 ("L") (vt ("y"))),(pApp1 ("L") (fApp (toSkolem 1) []))],Just (CJ [DJ [A (pApp1 ("L") (fApp (toSkolem 1) [])),N (A (pApp1 ("F") (vt ("z")))),N (A (pApp1 ("L") (vt ("y"))))],DJ [N (A (pApp1 ("F") (vt ("z")))),N (A (pApp1 ("F") (fApp (toSkolem 1) []))),N (A (pApp1 ("L") (vt ("y"))))]]),[([False,False,False,False],True),([False,False,False,True],True),([False,False,True,False],True),([False,False,True,True],True),([False,True,False,False],True),([False,True,False,True],True),([False,True,True,False],True),([False,True,True,True],True),([True,False,False,False],True),([True,False,False,True],True),([True,False,True,False],False),([True,False,True,True],True),([True,True,False,False],True),([True,True,False,True],True),([True,True,True,False],False),([True,True,True,True],False)])
-      in TestCase (assertEqual "Logic - gensler189 renamed" expected input)
+      in myTest "Logic - gensler189 renamed" expected input
     ]
 
 toSS :: Ord a => [[a]] -> Set.Set (Set.Set a)
@@ -368,16 +373,16 @@ toSS = Set.fromList . map Set.fromList
 
 {-
 theorem5 =
-    TestCase (assertEqual "Logic - theorm test 2"
+    myTest "Logic - theorm test 2"
               (Just True)
               (theorem ((.~.) ((for_all "x" (((s [x] .=>. h [x]) .&.
                                                (h [x] .=>. m [x]))) .&.
                                 exists "x" (s [x] .&.
-                                             ((.~.) (m [x]))))))))
+                                             ((.~.) (m [x])))))))
 -}
 
 instance TD.Display TFormula where
-    textFrame x = [showFirstOrder x]
+    textFrame x = [showFirstOrderEq x]
 {-
     textFrame x = [quickShow x]
         where
@@ -401,10 +406,10 @@ instance TD.Display TFormula where
 -- Truth table tests, find a more reasonable result value than [String].
 
 (theorem1a, theorem1b, theorem1c, theorem1d) =
-    ( TestCase (assertEqual "Logic - truth table 1"
+    ( myTest "Logic - truth table 1"
                 (Just ["foo"])
                 (prepare (for_all "x" (((s [x] .=>. h [x]) .&. (h [x] .=>. m [x])) .=>. (s [x] .=>. m [x]))) >>=
-                 return . TD.textFrame . truthTable)) )
+                 return . TD.textFrame . truthTable) )
     where s = pApp "S"
           h = pApp "H"
           m = pApp "M"
@@ -418,8 +423,8 @@ prepare formula = ({- flatten . -} fromJust . toPropositional convertA . cnf . (
 convertA = Just . A
 -}
 
-table :: forall formula term v p f. (FirstOrderFormula formula term v p f, Literal formula term v p f,
-                                     Ord formula, Skolem f, IsString v, Variable v, TD.Display formula) =>
+table :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal formula atom v,
+                                     Ord formula, Skolem f, IsString v, Variable v, TD.Display formula, Constants p, Eq p) =>
          formula -> TruthTable formula
 table f =
     -- truthTable :: Ord a => PropForm a -> TruthTable a

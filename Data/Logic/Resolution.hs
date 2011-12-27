@@ -12,8 +12,10 @@ module Data.Logic.Resolution
     , Subst )
     where
 
+import Data.Logic.Classes.Atom (Atom(apply))
+import Data.Logic.Classes.Equals (AtomEq(foldAtomEq, zipAtomsEq, applyEq, equals))
+import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Term (Term(..))
-import Data.Logic.Classes.Literal (Literal(..), PredicateLit(..))
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF, neg, pos))
 import qualified Data.Set.Extra as S
 import Data.Map (Map, empty)
@@ -26,7 +28,7 @@ type SetOfSupport lit v term = S.Set (Unification lit v term)
 
 type Unification lit v term = (ImplicativeForm lit, Subst v term)
 
-prove :: (Literal lit term v p f, Show v, Show term) =>
+prove :: (Literal lit atom v, AtomEq atom p term, Term term v f, Ord lit, Ord term, Ord v, Eq p, Show v, Show term) =>
          Maybe Int -- ^ Recursion limit.  We continue recursing until this
                    -- becomes zero.  If it is negative it may recurse until
                    -- it overflows the stack.
@@ -51,8 +53,8 @@ prove limit ss1 ss2' kb  =
 --         (True, (ss1 ++ [s] ++ss'))
 --       else
 --         prove (ss1 ++ [s]) ss' (fst s:kb)
-prove' :: forall lit p f v term.
-          Literal lit term v p f =>
+prove' :: forall lit atom p f v term.
+          (Literal lit atom v, AtomEq atom p term, Term term v f, Ord lit, Ord term, Ord v, Eq p) =>
           Unification lit v term -> S.Set (ImplicativeForm lit) -> SetOfSupport lit v term -> SetOfSupport lit v term -> (SetOfSupport lit v term, Bool)
 prove' p kb ss1 ss2 =
     let
@@ -64,8 +66,8 @@ prove' p kb ss1 ss2 =
     in
       if S.null ss' then (ss1, False) else (S.union ss1 ss', tf)
 
-getResult :: Literal lit term v p f =>
-             (SetOfSupport lit v term) -> S.Set (Maybe (Unification lit v term)) -> ((SetOfSupport lit v term), Bool)
+getResult :: (Literal lit atom v, AtomEq atom p term, Term term v f, Ord lit, Ord term, Ord v, Eq p) =>
+             SetOfSupport lit v term -> S.Set (Maybe (Unification lit v term)) -> ((SetOfSupport lit v term), Bool)
 getResult ss us =
     case S.minView us of
       Nothing ->
@@ -92,26 +94,24 @@ getResult ss ((Just x):xs)  =
 -}
 
 -- |Convert the "question" to a set of support.
-getSetOfSupport :: (Literal formula term v p f) =>
+getSetOfSupport :: (Literal formula atom v, AtomEq atom p term, Term term v f, Ord formula, Ord term, Ord v) =>
                    S.Set (ImplicativeForm formula) -> S.Set (ImplicativeForm formula, Subst v term)
 getSetOfSupport s = S.map (\ x -> (x, getSubsts x empty)) s
 
-getSubsts :: (Literal formula term v p f) =>
+getSubsts :: (Literal formula atom v, AtomEq atom p term, Term term v f, Ord formula) =>
              ImplicativeForm formula -> Subst v term -> Subst v term
 getSubsts inf theta =
     getSubstSentences (pos inf) (getSubstSentences (neg inf) theta)
 
-getSubstSentences :: Literal formula term v p f => S.Set formula -> Subst v term -> Subst v term
+getSubstSentences :: (Literal formula atom v, AtomEq atom p term, Term term v f) => S.Set formula -> Subst v term -> Subst v term
 getSubstSentences xs theta = foldr getSubstSentence theta (S.toList xs)
 
 
-getSubstSentence :: Literal formula term v p f => formula -> Subst v term -> Subst v term
+getSubstSentence :: (Literal formula atom v, AtomEq atom p term, Term term v f)  => formula -> Subst v term -> Subst v term
 getSubstSentence formula theta =
     foldLiteral
           (\ s -> getSubstSentence s theta)
-          (\ pa -> case pa of
-                     EqualLit t1 t2 -> getSubstsTerms [t1, t2] theta
-                     ApplyLit _ ts -> getSubstsTerms ts theta)
+          (foldAtomEq (\ _ ts -> getSubstsTerms ts theta) (\ t1 t2 -> getSubstsTerms [t1, t2] theta))
           formula
 
 getSubstsTerms :: Term term v f => [term] -> Subst v term -> Subst v term
@@ -129,7 +129,7 @@ getSubstsTerm term theta =
              (\ _ ts -> getSubstsTerms ts theta)
              term
 
-isRenameOf :: Literal lit term v p f =>
+isRenameOf :: (Literal lit atom v, AtomEq atom p term, Term term v f, Ord lit, Eq p) =>
               ImplicativeForm lit -> ImplicativeForm lit -> Bool
 isRenameOf inf1 inf2 =
     (isRenameOfSentences lhs1 lhs2) && (isRenameOfSentences rhs1 rhs2)
@@ -139,18 +139,17 @@ isRenameOf inf1 inf2 =
       lhs2 = neg inf2
       rhs2 = pos inf2
 
-isRenameOfSentences :: Literal lit term v p f => S.Set lit -> S.Set lit -> Bool
+isRenameOfSentences :: (Literal lit atom v, AtomEq atom p term, Term term v f, Eq p) => S.Set lit -> S.Set lit -> Bool
 isRenameOfSentences xs1 xs2 =
     S.size xs1 == S.size xs2 && all (uncurry isRenameOfSentence) (zip (S.toList xs1) (S.toList xs2))
 
-isRenameOfSentence :: forall formula term v p f. Literal formula term v p f => formula -> formula -> Bool
+isRenameOfSentence :: forall formula atom term v p f. (Literal formula atom v, AtomEq atom p term, Term term v f, Eq p) => formula -> formula -> Bool
 isRenameOfSentence f1 f2 =
     maybe False id $
     zipLiterals (\ _ _ -> Just False) p f1 f2
-    where p :: PredicateLit p term -> PredicateLit p term -> Maybe Bool
-          p (EqualLit t1l t1r) (EqualLit t2l t2r) = Just (isRenameOfTerm t1l t2l && isRenameOfTerm t1r t2r)
-          p (ApplyLit p1 ts1) (ApplyLit p2 ts2) = Just (p1 == p2 && isRenameOfTerms ts1 ts2)
-          p _ _ = Nothing
+    where p :: atom -> atom -> Maybe Bool
+          p = zipAtomsEq (\ p1 ts1 p2 ts2 -> Just (p1 == p2 && isRenameOfTerms ts1 ts2))
+                         (\ t1l t1r t2l t2r -> Just (isRenameOfTerm t1l t2l && isRenameOfTerm t1r t2r))
 
 isRenameOfTerm :: Term term v f => term -> term -> Bool
 isRenameOfTerm t1 t2 =
@@ -169,7 +168,7 @@ isRenameOfTerms ts1 ts2 =
     else
       False
 
-resolution :: forall lit p f term v. Literal lit term v p f =>
+resolution :: forall lit atom p f term v. (Literal lit atom v, AtomEq atom p term, Term term v f, Eq lit, Ord lit, Eq term, Ord v, Eq p) =>
              (ImplicativeForm lit, Subst v term) -> (ImplicativeForm lit, Subst v term) -> Maybe (ImplicativeForm lit, Map v term)
 resolution (inf1, theta1) (inf2, theta2) =
     let
@@ -191,11 +190,11 @@ resolution (inf1, theta1) (inf2, theta2) =
               Just (INF lhs'' rhs'', theta)
         Nothing -> Nothing
     where
-      tryUnify :: (Literal formula term v p f, Ord formula) =>
+      tryUnify :: (Literal formula atom v, Ord formula) =>
                   S.Set formula -> S.Set formula -> Maybe ((S.Set formula, Subst v term), (S.Set formula, Subst v term))
       tryUnify lhs rhs = tryUnify' lhs rhs S.empty
                          
-      tryUnify' :: (Literal formula term v p f, Ord formula) =>
+      tryUnify' :: (Literal formula atom v, Ord formula) =>
                    S.Set formula -> S.Set formula -> S.Set formula -> Maybe ((S.Set formula, Subst v term), (S.Set formula, Subst v term))
       tryUnify' lhss _ _ | S.null lhss = Nothing
       tryUnify' lhss'' rhss lhss' =
@@ -205,7 +204,7 @@ resolution (inf1, theta1) (inf2, theta2) =
             Just (rhss', theta1', theta2') ->
                 Just ((S.union lhss' lhss, theta1'), (rhss', theta2'))
 
-      tryUnify'' :: (Literal formula term v p f, Ord formula) =>
+      tryUnify'' :: (Literal formula atom v, Ord formula) =>
                     formula -> S.Set formula -> S.Set formula -> Maybe (S.Set formula, Subst v term, Subst v term)
       tryUnify'' _x rhss _ | S.null rhss = Nothing
       tryUnify'' x rhss'' rhss' =
@@ -215,15 +214,15 @@ resolution (inf1, theta1) (inf2, theta2) =
             Just (theta1', theta2') -> Just (S.union rhss' rhss, theta1', theta2')
 
 -- |Try to unify the second argument using the equality in the first.
-demodulate :: (Literal lit term v p f) =>
+demodulate :: (Literal lit atom v, AtomEq atom p term, Term term v f, Eq lit, Ord lit, Eq term, Ord v) =>
               (Unification lit v term) -> (Unification lit v term) -> Maybe (Unification lit v term)
 demodulate (inf1, theta1) (inf2, theta2) =
     case (S.null (neg inf1), S.toList (pos inf1)) of
       (True, [lit1]) ->
-          foldLiteral (\ _ -> error "demodulate") p lit1
+          foldLiteral (\ _ -> error "demodulate") (foldAtomEq (\ _ _ -> Nothing) p) lit1
       _ -> Nothing
     where
-      p (EqualLit t1 t2) =
+      p t1 t2 =
           case findUnify t1 t2 (S.union lhs2 rhs2) of
             Just ((t1', t2'), theta1', theta2') ->
                 let substNeg2 = S.catMaybes $ S.map (\x -> subst x theta2') lhs2
@@ -233,24 +232,20 @@ demodulate (inf1, theta1) (inf2, theta2) =
                     theta = M.unionWith (\ l _r -> l) (updateSubst theta1 theta1') (updateSubst theta2 theta2') in
                 Just (INF lhs rhs, theta)
             Nothing -> Nothing
-      p _ = Nothing
       lhs2 = neg inf2
       rhs2 = pos inf2
 
 -- |Unification: unifies two sentences.
-unify :: Literal formula term v p f => formula -> formula -> Maybe (Subst v term, Subst v term)
+unify :: (Literal formula atom v, AtomEq atom p term, Term term v f, Eq p)  => formula -> formula -> Maybe (Subst v term, Subst v term)
 unify s1 s2 = unify' s1 s2 empty empty
 
-unify' :: Literal formula term v p f =>
+unify' :: (Literal formula atom v, AtomEq atom p term, Term term v f, Eq p) =>
           formula -> formula -> Subst v term -> Subst v term -> Maybe (Subst v term, Subst v term)
 unify' f1 f2 theta1 theta2 =
     zipLiterals
          (\ _ _ -> error "unify'")
-         (\ pa1 pa2 ->
-              case (pa1, pa2) of
-                (EqualLit l1 r1, EqualLit l2 r2) -> unifyTerms [l1, r1] [l2, r2] theta1 theta2
-                (ApplyLit p1 ts1, ApplyLit p2 ts2) -> if p1 == p2 then unifyTerms ts1 ts2 theta1 theta2 else Nothing
-                _ -> Nothing)
+         (zipAtomsEq (\ p1 ts1 p2 ts2 -> if p1 == p2 then unifyTerms ts1 ts2 theta1 theta2 else Nothing)
+                     (\ l1 r1 l2 r2 -> unifyTerms [l1, r1] [l2, r2] theta1 theta2))
          f1 f2
 
 unifyTerm :: Term term v f => term -> term -> Subst v term -> Subst v term -> Maybe (Subst v term, Subst v term)
@@ -279,7 +274,7 @@ unifyTerms (t1:ts1) (t2:ts2) theta1 theta2 =
       Just (theta1',theta2') -> unifyTerms ts1 ts2 theta1' theta2'
 unifyTerms _ _ _ _ = Nothing
 
-findUnify :: forall formula term v p f. (Literal formula term v p f, Term term v f) =>
+findUnify :: forall formula atom term v p f. (Literal formula atom v, AtomEq atom p term, Term term v f) =>
              term -> term -> S.Set formula -> Maybe ((term, term), Subst v term, Subst v term)
 findUnify tl tr s =
     let
@@ -294,14 +289,13 @@ findUnify tl tr s =
        (Nothing:_) -> error "findUnify"
     where
       -- getTerms formula = foldLiteral (\ _ -> error "getTerms") p formula
-      p :: PredicateLit p term -> [term]
-      p (EqualLit t1 t2) = getTerms' t1 ++ getTerms' t2
-      p (ApplyLit _ ts) = concatMap getTerms' ts
+      p :: atom -> [term]
+      p = foldAtomEq (\ _ ts -> concatMap getTerms' ts) (\ t1 t2 -> getTerms' t1 ++ getTerms' t2)
       getTerms' :: term -> [term]
       getTerms' t = foldTerm (\ v -> [vt v]) (\ f ts -> fApp f ts : concatMap getTerms' ts) t
 
 {-
-getTerms :: Literal formula term v p f => formula -> [term]
+getTerms :: Literal formula atom v => formula -> [term]
 getTerms formula =
     foldLiteral (\ _ -> error "getTerms") p formula
     where
@@ -310,16 +304,15 @@ getTerms formula =
       p (Apply _ ts) = concatMap getTerms' ts
 -}
 
-replaceTerm :: (Literal lit term v p f) => lit -> (term, term) -> Maybe lit
+replaceTerm :: (Literal lit atom v, AtomEq atom p term, Term term v f, Eq term) => lit -> (term, term) -> Maybe lit
 replaceTerm formula (tl', tr') =
     foldLiteral
           (\ _ -> error "error in replaceTerm")
-          (\ pa -> case pa of
-                     EqualLit t1 t2 ->
-                         let t1' = replaceTerm' t1
-                             t2' = replaceTerm' t2 in
-                         if t1' == t2' then Nothing else Just (t1' `equals` t2')
-                     ApplyLit p ts -> Just (pAppLiteral p (map (\ t -> replaceTerm' t) ts)))
+          (foldAtomEq (\ p ts -> Just (atomic (applyEq p (map (\ t -> replaceTerm' t) ts))))
+                      (\ t1 t2 -> 
+                           let t1' = replaceTerm' t1
+                               t2' = replaceTerm' t2 in
+                           if t1' == t2' then Nothing else Just (atomic (t1' `equals` t2'))))
           formula
     where
       replaceTerm' t =
@@ -329,16 +322,15 @@ replaceTerm formula (tl', tr') =
       termEq t1 t2 =
           maybe False id (zipTerms (\ v1 v2 -> Just (v1 == v2)) (\ f1 ts1 f2 ts2 -> Just (f1 == f2 && length ts1 == length ts2 && all (uncurry termEq) (zip ts1 ts2))) t1 t2)
 
-subst :: Literal formula term v p f => formula -> Subst v term -> Maybe formula
+subst :: (Literal formula atom v, AtomEq atom p term, Term term v f, Eq term) => formula -> Subst v term -> Maybe formula
 subst formula theta =
     foldLiteral
           (\ _ -> Just formula)
-          (\ pa -> case pa of
-                     EqualLit t1 t2 ->
-                         let t1' = substTerm t1 theta
-                             t2' = substTerm t2 theta in
-                         if t1' == t2' then Nothing else Just (t1' `equals` t2')
-                     ApplyLit p ts -> Just (pAppLiteral p (substTerms ts theta)))
+          (foldAtomEq (\ p ts -> Just (atomic (applyEq p (substTerms ts theta))))
+                      (\ t1 t2 ->
+                           let t1' = substTerm t1 theta
+                               t2' = substTerm t2 theta in
+                           if t1' == t2' then Nothing else Just (atomic (t1' `equals` t2'))))
           formula
 
 substTerm :: Term term v f => term -> Subst v term -> term

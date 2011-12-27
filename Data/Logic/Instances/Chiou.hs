@@ -15,15 +15,17 @@ module Data.Logic.Instances.Chiou
 
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Arity (Arity)
+import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combinable(..), BinOp(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', Pred(..), pApp)
+import Data.Logic.Classes.Equals (AtomEq(..), (.=.), PredicateEq)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', pApp)
 import Data.Logic.Classes.Negate (Negatable(..))
-import Data.Logic.Classes.Term as Logic
+import Data.Logic.Classes.Term (Term(..), Function)
 import qualified Data.Logic.Classes.FirstOrder as L
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
-import Data.Logic.Classes.Variable (Variable)
+import Data.Logic.Classes.Variable (Variable(prefix, prettyVariable))
 import Data.String (IsString(..))
 
 data Sentence v p f
@@ -72,8 +74,8 @@ instance (Ord v, IsString v, Data v, Variable v,
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Not _) = error "Logic.Instances.Chiou.atomic: unexpected"
-    atomic (Predicate p ts) = pApp p ts
-    atomic (Equal t1 t2) = t1 .=. t2
+    atomic x@(Predicate _ _) = x
+    atomic x@(Equal _ _) = x
     foldPropositional c a formula =
         case formula of
           Not x -> c ((:~:) x)
@@ -100,24 +102,29 @@ instance Skolem AtomicFunction where
     fromSkolem (AtomicSkolemFunction n) = Just n
     fromSkolem _ = Nothing
 
-instance (Constants (Sentence v p f), Ord v, Ord p, Arity p, Constants p, Ord f) => Pred p (CTerm v f) (Sentence v p f) where
-    pApp0 x = Predicate x []
-    pApp1 x a = Predicate x [a]
-    pApp2 x a b = Predicate x [a,b]
-    pApp3 x a b c = Predicate x [a,b,c]
-    pApp4 x a b c d = Predicate x [a,b,c,d]
-    pApp5 x a b c d e = Predicate x [a,b,c,d,e]
-    pApp6 x a b c d e f = Predicate x [a,b,c,d,e,f]
-    pApp7 x a b c d e f g = Predicate x [a,b,c,d,e,f,g]
-    -- fApp (AtomicSkolemFunction n) [] = SkolemConstant n
-    -- fApp (AtomicSkolemFunction n) ts = SkolemFunction n ts
-    x .=. y = Equal x y
+-- The Atom type is not cleanly distinguished from the Sentence type, so we need an Atom instance for Sentence.
+instance (Constants (Sentence v p f), Ord v, Ord p, Arity p, Constants p, Ord f) => Atom (Sentence v p f) p (CTerm v f) where
+    foldAtom ap (Predicate p ts) = ap p ts
+    foldAtom _ _ = error "Data.Logic.Instances.Chiou: Invalid atom"
+    zipAtoms ap (Predicate p1 ts1) (Predicate p2 ts2) = ap p1 ts1 p2 ts2
+    zipAtoms _ _ _ = Nothing
+    apply' = Predicate
+
+instance (Arity p, PredicateEq p, Show p) => AtomEq (Sentence v p f) p (CTerm v f) where
+    foldAtomEq ap _ (Predicate p ts) = ap p ts
+    foldAtomEq _ eq (Equal t1 t2) = eq t1 t2
+    foldAtomEq _ _ _ = error "Data.Logic.Instances.Chiou: Invalid atom"
+    zipAtomsEq ap _ (Predicate p1 ts1) (Predicate p2 ts2) = ap p1 ts1 p2 ts2
+    zipAtomsEq _ eq (Equal t1 t2) (Equal t3 t4) = eq t1 t2 t3 t4
+    zipAtomsEq _ _ _ _ = Nothing
+    equals = Equal
+    applyEq' = Predicate
 
 instance (Ord v, IsString v, Variable v, Data v, Show v,
           Ord p, IsString p, Constants p, Arity p, Data p, Show p,
           Ord f, IsString f, Skolem f, Data f, Show f,
           PropositionalFormula (Sentence v p f) (Sentence v p f)) =>
-          FirstOrderFormula (Sentence v p f) (CTerm v f) v p f where
+          FirstOrderFormula (Sentence v p f) (Sentence v p f) v where
     for_all v x = Quantifier ForAll [v] x
     exists v x = Quantifier ExistsCh [v] x
     foldFirstOrder q c p f =
@@ -136,8 +143,8 @@ instance (Ord v, IsString v, Variable v, Data v, Show v,
           Connective f1 Equiv f2 -> c (BinOp f1 (:<=>:) f2)
           Connective f1 And f2 -> c (BinOp f1 (:&:) f2)
           Connective f1 Or f2 -> c (BinOp f1 (:|:) f2)
-          Predicate name ts -> p (L.Apply name ts)
-          Equal t1 t2 -> p (L.Equal t1 t2)
+          Predicate _ _ -> p f
+          Equal _ _ -> p f
     zipFirstOrder q c p f1 f2 =
         case (f1, f2) of
           (Not f1', Not f2') -> c ((:~:) f1') ((:~:) f2')
@@ -157,15 +164,14 @@ instance (Ord v, IsString v, Variable v, Data v, Show v,
                 (Imply, Imply) -> c (BinOp l1 (:=>:) r1) (BinOp l2 (:=>:) r2)
                 (Equiv, Equiv) -> c (BinOp l1 (:<=>:) r1) (BinOp l2 (:<=>:) r2)
                 _ -> Nothing
-          (Equal l1 r1, Equal l2 r2) -> p (L.Equal l1 r1) (L.Equal l2 r2)
-          (Predicate p1 ts1, Predicate p2 ts2) -> p (L.Apply p1 ts1) (L.Apply p2 ts2)
+          (Equal _ _, Equal _ _) -> p f1 f2
+          (Predicate _ _, Predicate _ _) -> p f1 f2
           _ -> Nothing
-    atomic (L.Apply p ts) = pApp p ts
-    atomic (L.Equal t1 t2) = t1 .=. t2
-    atomic (L.NotEqual t1 t2) = (.~.)(t1 .=. t2)
-    atomic (L.Constant b) = fromBool b
+    atomic x@(Predicate _ _) = x
+    atomic x@(Equal _ _) = x
+    atomic _ = error "Chiou: atomic"
 
-instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Logic.Term (CTerm v f) v f where
+instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f, Function f) => Term (CTerm v f) v f where
     foldTerm v fn t =
         case t of
           Variable x -> v x
@@ -177,6 +183,9 @@ instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Logic.Ter
           _ -> Nothing
     vt = Variable
     fApp f ts = Function f ts
+    -- Yuck!  This can't be the right way...
+    skolemConstant _ v = fromString (show (prettyVariable (prefix "c_" v)))
+    skolemFunction _ v = fromString (show (prettyVariable (prefix "f_" v)))
 
 data ConjunctiveNormalForm v p f =
     CNF [Sentence v p f]
@@ -202,6 +211,7 @@ instance Negatable (NormalSentence v p f) where
     negated (NFNot x) = not (negated x)
     negated _ = False
 
+{-
 instance (Arity p, Constants p, Combinable (NormalSentence v p f)) => Pred p (NormalTerm v f) (NormalSentence v p f) where
     pApp0 x = NFPredicate x []
     pApp1 x a = NFPredicate x [a]
@@ -213,30 +223,30 @@ instance (Arity p, Constants p, Combinable (NormalSentence v p f)) => Pred p (No
     pApp7 x a b c d e f g = NFPredicate x [a,b,c,d,e,f,g]
     x .=. y = NFEqual x y
     x .!=. y = NFNot (NFEqual x y)
+-}
 
-instance (Combinable (NormalSentence v p f), Logic.Term (NormalTerm v f) v f,
+instance (Combinable (NormalSentence v p f), Term (NormalTerm v f) v f,
           IsString v, Show v,
           Ord p, IsString p, Constants p, Arity p, Data p, Show p,
-          Ord f, IsString f, Show f) => FirstOrderFormula (NormalSentence v p f) (NormalTerm v f) v p f where
+          Ord f, IsString f, Show f) => FirstOrderFormula (NormalSentence v p f) (NormalSentence v p f) v where
     for_all _ _ = error "FirstOrderFormula NormalSentence"
     exists _ _ = error "FirstOrderFormula NormalSentence"
     foldFirstOrder _ c p f =
         case f of
           NFNot x -> c ((:~:) x)
-          NFEqual t1 t2 -> p (L.Equal t1 t2)
-          NFPredicate pr ts -> p (L.Apply pr ts)
+          NFEqual _ _ -> p f
+          NFPredicate _ _ -> p f
     zipFirstOrder _ c p f1 f2 =
         case (f1, f2) of
           (NFNot f1', NFNot f2') -> c ((:~:) f1') ((:~:) f2')
-          (NFEqual f1l f1r, NFEqual f2l f2r) -> p (L.Equal f1l f1r) (L.Equal f2l f2r)
-          (NFPredicate p1 ts1, NFPredicate p2 ts2) -> p (L.Apply p1 ts1) (L.Apply p2 ts2)
+          (NFEqual _ _, NFEqual _ _) -> p f1 f2
+          (NFPredicate _ _, NFPredicate _ _) -> p f1 f2
           _ -> Nothing
-    atomic (L.Apply p ts) = pApp p ts
-    atomic (L.Equal t1 t2) = t1 .=. t2
-    atomic (L.NotEqual t1 t2) = (.~.)(t1 .=. t2)
-    atomic (L.Constant b) = fromBool b
+    atomic x@(NFPredicate _ _) = x
+    atomic x@(NFEqual _ _) = x
+    atomic _ = error "Chiou: atomic"
 
-instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Logic.Term (NormalTerm v f) v f where
+instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f, Function f) => Term (NormalTerm v f) v f where
     vt = NormalVariable
     fApp = NormalFunction
     foldTerm v f t =
@@ -248,17 +258,20 @@ instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Logic.Ter
           (NormalVariable x1, NormalVariable x2) -> v x1 x2
           (NormalFunction f1 ts1, NormalFunction f2 ts2) -> fn f1 ts1 f2 ts2
           _ -> Nothing
+    skolemConstant _ v = fromString (show (prettyVariable (prefix "c_" v)))
+    skolemFunction _ v = fromString (show (prettyVariable (prefix "f_" v)))
 
-toSentence :: FirstOrderFormula (Sentence v p f) (CTerm v f) v p f => NormalSentence v p f -> Sentence v p f
+toSentence :: (FirstOrderFormula (Sentence v p f) (Sentence v p f) v, AtomEq (Sentence v p f) p (CTerm v f), Skolem f, Ord f, Data f, Data v, Function f, Constants p, Ord p) =>
+              NormalSentence v p f -> Sentence v p f
 toSentence (NFNot s) = (.~.) (toSentence s)
 toSentence (NFEqual t1 t2) = toTerm t1 .=. toTerm t2
 toSentence (NFPredicate p ts) = pApp p (map toTerm ts)
 
-toTerm :: (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => NormalTerm v f -> CTerm v f
-toTerm (NormalFunction f ts) = Logic.fApp f (map toTerm ts)
+toTerm :: (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f, Function f) => NormalTerm v f -> CTerm v f
+toTerm (NormalFunction f ts) = fApp f (map toTerm ts)
 toTerm (NormalVariable v) = vt v
 
-fromSentence :: forall v p f. FirstOrderFormula (Sentence v p f) (CTerm v f) v p f =>
+fromSentence :: forall v p f. (FirstOrderFormula (Sentence v p f) (Sentence v p f) v, PredicateEq p, Arity p, Constants p, Ord p, Ord f, Show p) =>
                 Sentence v p f -> NormalSentence v p f
 fromSentence = foldFirstOrder 
                  (\ _ _ _ -> error "fromSentence 1")
@@ -266,13 +279,8 @@ fromSentence = foldFirstOrder
                       case cm of
                         ((:~:) f) -> NFNot (fromSentence f)
                         _ -> error "fromSentence 2")
-                 (\ pa ->
-                      case pa of
-                        L.Equal t1 t2 -> NFEqual (fromTerm t1) (fromTerm t2)
-                        L.NotEqual t1 t2 -> NFNot (NFEqual (fromTerm t1) (fromTerm t2))
-                        L.Constant x -> NFPredicate (fromBool x) []
-                        L.Apply p ts -> NFPredicate p (map fromTerm ts))
-
+                 (foldAtomEq (\ p ts -> NFPredicate p (map fromTerm ts))
+                             (\ t1 t2 -> NFEqual (fromTerm t1) (fromTerm t2)))
 
 fromTerm :: CTerm v f -> NormalTerm v f
 fromTerm (Function f ts) = NormalFunction f (map fromTerm ts)

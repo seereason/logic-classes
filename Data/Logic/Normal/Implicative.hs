@@ -14,10 +14,14 @@ import Data.Logic.Normal.Skolem (NormalT)
 import "mtl" Control.Monad.State (MonadPlus, msum)
 import Data.Generics (Data, Typeable, listify)
 import Data.List (intersperse)
+import Data.Logic.Classes.Atom (Atom)
+import Data.Logic.Classes.Constants (Constants)
+import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Skolem (Skolem(fromSkolem))
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
+import Data.Logic.Classes.Term (Term)
 import qualified Data.Set.Extra as Set
 import Data.Maybe (isJust)
 import Text.PrettyPrint (Doc, cat, text, hsep)
@@ -62,8 +66,9 @@ prettyProof lit p = cat $ [text "["] ++ intersperse (text ", ") (map (prettyINF 
 --    a | b | c => e
 --    a | b | c => f
 -- @
-implicativeNormalForm :: forall m formula term v p f lit. 
-                         (Monad m, FirstOrderFormula formula term v p f, Data formula, Literal lit term v p f) =>
+implicativeNormalForm :: forall m formula atom term v p f lit. 
+                         (Monad m, FirstOrderFormula formula atom v, Data formula, Literal lit atom v, AtomEq atom p term, Term term v f,
+                          Eq lit, Ord lit, Data lit, Constants p, Eq p, Skolem f) =>
                          formula -> NormalT v term m (Set.Set (ImplicativeForm lit))
 implicativeNormalForm formula =
     do cnf <- clauseNormalForm formula

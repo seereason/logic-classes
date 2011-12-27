@@ -4,21 +4,20 @@ module Data.Logic.Normal.Prenex
     ( prenexNormalForm
     ) where
 
-import Data.Logic.Normal.Negation (negationNormalForm)
-
-import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (Constants(true, false))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), freeVars, quant, Quant(..), substitute)
-import Data.Logic.Classes.Term (Term(vt))
-import Data.Logic.Classes.Variable (variant)
+import Data.Logic.Classes.Atom (Atom)
+import Data.Logic.Classes.Equals (AtomEq)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
+import Data.Logic.Classes.Term (Term)
+import Data.Logic.Harrison.Skolem (pnf)
 
 -- |Convert to Prenex normal form, with all quantifiers at the left.
-prenexNormalForm :: (FirstOrderFormula formula term v p f) => formula -> formula
-prenexNormalForm = prenex . negationNormalForm
+prenexNormalForm :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> formula
+prenexNormalForm = pnf
 
+{-
 -- |Recursivly apply pullQuants anywhere a quantifier might not be
 -- leftmost.
-prenex :: (FirstOrderFormula formula term v p f) => formula -> formula 
+prenex :: (FirstOrderFormula formula atom v) => formula -> formula 
 prenex fm =
     foldFirstOrder q c (\ _ -> fm) fm
     where
@@ -42,7 +41,7 @@ prenex fm =
 --  (7) ∃x F[x] | G        ∃x    (F[x] | G)
 --  (8) ∃x F[x] | ∃x G[x]  ∃x Yx (F[x] | G[x])
 -- @
-pullQuants :: forall formula term v p f. (FirstOrderFormula formula term v p f) => formula -> formula
+pullQuants :: forall formula atom term v p f. (FirstOrderFormula formula atom v) => formula -> formula
 pullQuants fm =
     foldFirstOrder (\ _ _ _ -> fm) pullQuantsCombine (\ _ -> fm) fm
     where
@@ -67,7 +66,7 @@ pullQuants fm =
 -- |Helper function to rename variables when we want to enclose a
 -- formula containing a free occurrence of that variable a quantifier
 -- that quantifies it.
-pullq :: FirstOrderFormula formula term v p f =>
+pullq :: FirstOrderFormula formula atom v =>
          Bool -> Bool -> formula -> (v -> formula -> formula) -> (formula -> formula -> formula) -> v -> v -> formula -> formula -> formula
 pullq l r fm mkq op x y p q =
     let z = variant x (freeVars fm)
@@ -75,3 +74,4 @@ pullq l r fm mkq op x y p q =
         q' = if r then substitute y (vt z) q else q
         fm' = pullQuants (op p' q') in
     mkq z fm'
+-}

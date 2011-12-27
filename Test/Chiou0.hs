@@ -7,7 +7,8 @@ import Control.Monad.Identity (runIdentity)
 import Control.Monad.Trans (MonadIO, liftIO)
 import Data.Logic.Classes.Combine (Combinable(..))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), pApp)
+import Data.Logic.Classes.Equals (pApp)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
@@ -16,7 +17,7 @@ import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
 import Data.Logic.Normal.Skolem (NormalT, runNormal)
 import Data.Logic.Resolution (SetOfSupport)
-import Data.Logic.Test (V(..), Pr(..), AtomicFunction(..), TFormula, TTerm)
+import Data.Logic.Test (V(..), Pr(..), AtomicFunction(..), TFormula, TTerm, myTest)
 import Data.Logic.Types.FirstOrder (Formula, PTerm)
 import Data.Map (fromList)
 import qualified Data.Set as S
@@ -28,7 +29,7 @@ tests = TestLabel "Test.Chiou0" $ TestList [loadTest, proofTest1, proofTest2]
 
 loadTest :: Test
 loadTest =
-    TestCase (assertEqual "Chiuo0 - loadKB test" expected (runProver' Nothing (loadKB sentences)))
+    myTest "Chiuo0 - loadKB test" expected (runProver' Nothing (loadKB sentences))
     where
       expected :: [Proof TFormula]
       expected = [Proof Invalid (S.fromList [makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
@@ -40,7 +41,7 @@ loadTest =
                   Proof Invalid (S.fromList [makeINF' ([(pApp ("Cat") [vt ("x")])]) ([(pApp ("Animal") [vt ("x")])])])]
 
 proofTest1 :: Test
-proofTest1 = TestCase (assertEqual "Chiuo0 - proof test 1" proof1 (runProver' Nothing (loadKB sentences >> theoremKB (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []] :: TFormula))))
+proofTest1 = myTest "Chiuo0 - proof test 1" proof1 (runProver' Nothing (loadKB sentences >> theoremKB (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []] :: TFormula)))
 
 inf' l1 l2 = INF (S.fromList l1) (S.fromList l2)
 
@@ -60,7 +61,7 @@ proof1 = (False,
             (makeINF' ([(pApp ("Owns") [fApp ("Curiosity") [],vt ("y")])]) ([]),fromList [])]))
 
 proofTest2 :: Test
-proofTest2 = TestCase (assertEqual "Chiuo0 - proof test 2" proof2 (runProver' Nothing (loadKB sentences >> theoremKB conjecture)))
+proofTest2 = myTest "Chiuo0 - proof test 2" proof2 (runProver' Nothing (loadKB sentences >> theoremKB conjecture))
     where
       conjecture :: TFormula
       conjecture = (pApp "Kills" [fApp "Curiosity" [], fApp (Fn "Tuna") []])

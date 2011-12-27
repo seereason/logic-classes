@@ -21,12 +21,14 @@ Library
                    Data.Logic.Classes.Combine
                    Data.Logic.Classes.Constants
                    Data.Logic.Classes.FirstOrder
+                   Data.Logic.Classes.FirstOrderEq
                    Data.Logic.Classes.Literal
                    Data.Logic.Classes.Negate
                    Data.Logic.Classes.Propositional
                    Data.Logic.Classes.Skolem
                    Data.Logic.Classes.Term
                    Data.Logic.Classes.Variable
+                   Data.Logic.Harrison.Normal
                    Data.Logic.Instances.Chiou
                    Data.Logic.Instances.PropLogic
                    Data.Logic.Instances.SatSolver
@@ -42,7 +44,7 @@ Library
                    Data.Logic.Types.FirstOrderPublic
                    Data.Logic.Types.Propositional
  Other-Modules:    Data.Logic.Test
- Build-Depends:    base >= 4.3 && < 5, containers, fgl, happstack-data, incremental-sat-solver,
+ Build-Depends:    applicative-extras, base >= 4.3 && < 5, containers, fgl, happstack-data, incremental-sat-solver,
                    mtl, syb-with-class, text, PropLogic, pretty, safecopy, set-extra, syb
 
 Executable tests

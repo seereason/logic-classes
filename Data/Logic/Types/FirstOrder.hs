@@ -7,20 +7,25 @@
 module Data.Logic.Types.FirstOrder
     ( Formula(..)
     , PTerm(..)
+    , Predicate(..)
     ) where
 
 import Data.Data (Data)
 import Data.Logic.Classes.Arity (Arity)
+-- import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder, Quant(..), Predicate(..), Pred(..), pApp)
-import Data.Logic.Classes.Literal (Literal(..), PredicateLit(..))
+import Data.Logic.Classes.Equals (AtomEq(..), PredicateEq(..), (.=.), (.!=.), pApp)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
+import Data.Logic.Classes.FirstOrderEq (showFirstOrderEq)
+import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
-import Data.Logic.Classes.Term (Term(..), showTerm)
-import Data.Logic.Classes.Variable (Variable)
+import Data.Logic.Classes.Term (Term(..), Function(..), showTerm)
+import Data.Logic.Classes.Variable (Variable(..))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.SafeCopy (base, deriveSafeCopy)
+import Data.String (IsString(fromString))
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 
@@ -32,6 +37,17 @@ data Formula v p f
     -- Note that a derived Eq instance is not going to tell us that
     -- a&b is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).
     deriving (Eq,Ord,Data,Typeable)
+
+-- |A temporary type used in the fold method to represent the
+-- combination of a predicate and its arguments.  This reduces the
+-- number of arguments to foldFirstOrder and makes it easier to manage the
+-- mapping of the different instances to the class methods.
+data Predicate p term
+    = Equal term term
+    | NotEqual term term
+    | Constant Bool
+    | Apply p [term]
+    deriving (Eq, Ord, Show, Read, Data, Typeable)
 
 -- | The range of a term is an element of a set.
 data PTerm v f
@@ -57,10 +73,10 @@ instance Read InfixPred where
                  ((:!=:), ":!=:")]
 -}
 
-instance (FirstOrderFormula (Formula v p f) (PTerm v f) v p f, Show v, Show p, Show f) => Show (Formula v p f) where
-    show = showFirstOrder
+instance (FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v, PredicateEq p, Show v, Show p, Show f, Arity p, Function f, Skolem f, Data v, Data f, Constants p) => Show (Formula v p f) where
+    show = showFirstOrderEq
 
-instance (FirstOrderFormula (Formula v p f) (PTerm v f) v p f, Show v, Show p, Show f) => Show (PTerm v f) where
+instance (FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v, Show v, Show p, Show f, Function f, Skolem f, Data v, Data f) => Show (PTerm v f) where
     show = showTerm
 
 instance Negatable (Formula v p f) where
@@ -70,8 +86,10 @@ instance Negatable (Formula v p f) where
     negated (Combine ((:~:) x)) = not (negated x)
     negated _ = False
 
-instance (Constants p, Arity p, Ord p, Ord v, Ord f) => Constants (Formula v p f) where
+{-
+instance (Constants p, Arity p, Ord p, Ord v, Ord f, Variable v, Skolem f, Show p, Show v, Show f, Data f, Data v, Data p) => Constants (Formula v p f) where
     fromBool x = pApp0 (fromBool x)
+-}
 
 instance (Constants (Formula v p f), Ord v, Ord p, Ord f) => Combinable (Formula v p f) where
     x .<=>. y = Combine (BinOp  x (:<=>:) y)
@@ -79,9 +97,9 @@ instance (Constants (Formula v p f), Ord v, Ord p, Ord f) => Combinable (Formula
     x .|.   y = Combine (BinOp  x (:|:)   y)
     x .&.   y = Combine (BinOp  x (:&:)   y)
 
-instance (Ord v, Variable v, Data v,
-          Ord p, Constants p, Arity p, Data p,
-          Ord f, Skolem f, Data f,
+instance (Ord v, Variable v, Data v, Show v,
+          Ord p, Constants p, Arity p, Data p, Show p, PredicateEq p,
+          Ord f, Skolem f, Data f, Show f,
           Constants (Formula v p f), Combinable (Formula v p f)) =>
          PropositionalFormula (Formula v p f) (Formula v p f) where
     atomic (Predicate (Equal t1 t2)) = t1 .=. t2
@@ -94,7 +112,7 @@ instance (Ord v, Variable v, Data v,
           Combine x -> c x
           Predicate x -> a (Predicate x)
 
-instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (PTerm v f) v f where
+instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f, Function f) => Term (PTerm v f) v f where
     foldTerm vf fn t =
         case t of
           Var v -> vf v
@@ -106,30 +124,45 @@ instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (PTe
           _ -> Nothing
     vt = Var
     fApp x args = FunApp x args
+    skolemConstant _ v = fromString (show (prettyVariable (prefix "c_" v)))
+    skolemFunction _ v = fromString (show (prettyVariable (prefix "f_" v)))
 
-instance (Constants (Formula v p f), Ord v, Ord p, Constants p, Arity p, Ord f) => Pred p (PTerm v f) (Formula v p f) where
-    pApp0 x = Predicate (Apply x [])
-    pApp1 x a = Predicate (Apply x [a])
-    pApp2 x a b = Predicate (Apply x [a,b])
-    pApp3 x a b c = Predicate (Apply x [a,b,c])
-    pApp4 x a b c d = Predicate (Apply x [a,b,c,d])
-    pApp5 x a b c d e = Predicate (Apply x [a,b,c,d,e])
-    pApp6 x a b c d e f = Predicate (Apply x [a,b,c,d,e,f])
-    pApp7 x a b c d e f g = Predicate (Apply x [a,b,c,d,e,f,g])
-    x .=. y = Predicate (Equal x y)
-    x .!=. y = Predicate (NotEqual x y)
+{-
+instance (Arity p, Constants p) => Atom (Predicate p (PTerm v f)) p (PTerm v f) where
+    foldAtom ap (Apply p ts) = ap p ts
+    foldAtom ap (Constant x) = ap (fromBool x) []
+    foldAtom _ _ = error "foldAtom Predicate"
+    zipAtoms ap (Apply p1 ts1) (Apply p2 ts2) = ap p1 ts1 p2 ts2
+    zipAtoms ap (Constant x) (Constant y) = ap (fromBool x) [] (fromBool y) []
+    zipAtoms _ _ _ = error "zipAtoms Predicate"
+    apply' = Apply
+-}
 
-instance (Pred p (PTerm v f) (Formula v p f),
+instance ({- Atom (Predicate p (PTerm v f)) p (PTerm v f), -} Constants p, Arity p, PredicateEq p, Show p) => AtomEq (Predicate p (PTerm v f)) p (PTerm v f) where
+    foldAtomEq ap _ (Apply p ts) = ap p ts
+    foldAtomEq ap _ (Constant x) = ap (fromBool x) []
+    foldAtomEq _ eq (Equal t1 t2) = eq t1 t2
+    foldAtomEq _ _ _ = error "foldAtomEq Predicate"
+    zipAtomsEq ap _ (Apply p1 ts1) (Apply p2 ts2) = ap p1 ts1 p2 ts2
+    zipAtomsEq ap _ (Constant x) (Constant y) = ap (fromBool x) [] (fromBool y) []
+    zipAtomsEq _ eq (Equal t1 t2) (Equal t3 t4) = eq t1 t2 t3 t4
+    zipAtomsEq _ _ _ _ = error "zipAtomsEq Predicate"
+    equals = Equal
+    applyEq' = Apply
+
+instance (AtomEq (Predicate p (PTerm v f)) p (PTerm v f),
+          Constants (Formula v p f),
           Variable v, Ord v, Data v, Show v,
-          Ord p, Data p, Show p,
+          Ord p, Data p, Show p, Constants p,
           Skolem f, Ord f, Data f, Show f) =>
-         FirstOrderFormula (Formula v p f) (PTerm v f) v p f where
+         FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v where
     for_all v x = Quant Forall v x
     exists v x = Quant Exists v x
     foldFirstOrder q c p f =
         case f of
           Quant op v f' -> q op v f'
           Combine x -> c x
+          Predicate x@(Apply pr ts) -> if pr == fromBool True then c TRUE else if pr == fromBool False then c FALSE else p x
           Predicate x -> p x
     zipFirstOrder q c p f1 f2 =
         case (f1, f2) of
@@ -141,25 +174,22 @@ instance (Pred p (PTerm v f) (Formula v p f),
 
 instance (Constants (Formula v p f),
           Variable v, Ord v, Data v, Show v,
-          Arity p, Constants p, Ord p, Data p, Show p,
-          Skolem f, Ord f, Data f, Show f) => Literal (Formula v p f) (PTerm v f) v p f where
-    equals x y = Predicate (Equal x y)
-    pAppLiteral p ts = Predicate (Apply p ts)
+          Arity p, Constants p, Ord p, Data p, Show p, PredicateEq p,
+          Skolem f, Ord f, Data f, Show f, Function f) => Literal (Formula v p f) (Predicate p (PTerm v f)) v where
     foldLiteral c pr l =
         case l of
           (Combine ((:~:) x)) -> c x
-          (Predicate (Apply p ts)) -> pr (ApplyLit p ts)
-          (Predicate (Equal x y)) -> pr (EqualLit x y)
-          _ -> error "Invalid formula used as Literal instance"
+          (Predicate p) -> pr p
+          _ -> error "Literal (Formula v p f)"
     zipLiterals c pr l1 l2 =
         case (l1, l2) of
           (Combine ((:~:) x), Combine ((:~:) y)) -> c x y
-          (Predicate (Apply p1 ts1), Predicate (Apply p2 ts2)) -> pr (ApplyLit p1 ts1) (ApplyLit p2 ts2)
+          (Predicate p1, Predicate p2) -> pr p1 p2
           _ -> Nothing
-    atomic (ApplyLit p ts) = Predicate (Apply p ts)
-    atomic (EqualLit t1 t2) = Predicate (Equal t1 t2)
+    atomic = Predicate
 
 $(deriveSafeCopy 1 'base ''PTerm)
 $(deriveSafeCopy 1 'base ''Formula)
+$(deriveSafeCopy 1 'base ''Predicate)
 
-$(deriveNewData [''PTerm, ''Formula])
+$(deriveNewData [''PTerm, ''Formula, ''Predicate])
