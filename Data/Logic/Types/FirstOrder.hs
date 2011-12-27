@@ -149,7 +149,7 @@ instance (Constants p, Eq p, Arity p, Show p) => AtomEq (Predicate p (PTerm v f)
           _ -> Nothing
     -- zipAtomsEq ap _ (Constant x) (Constant y) = ap (fromBool x) [] (fromBool y) []
     zipAtomsEq _ _ eq (Equal t1 t2) (Equal t3 t4) = eq t1 t2 t3 t4
-    zipAtomsEq _ _ _ _ _ = error "zipAtomsEq Predicate"
+    zipAtomsEq _ _ _ _ _ = Nothing
     equals = Equal
     applyEq' = Apply
 

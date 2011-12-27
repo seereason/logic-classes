@@ -21,9 +21,9 @@ module Data.Logic.Classes.FirstOrder
     , toPropositional
     , showFirstOrder
     , prettyFirstOrder
+    , withUnivQuants
 {-
     , freeVars
-    , withUnivQuants
     , quantVars
     , allVars
     , univquant_free_vars
@@ -240,6 +240,22 @@ prettyFirstOrder pv pp pf prec formula =
       formOp (:&:) = text "&"
       formOp (:|:) = text "|"
 
+-- | Examine the formula to find the list of outermost universally
+-- quantified variables, and call a function with that list and the
+-- formula after the quantifiers are removed.
+withUnivQuants :: FirstOrderFormula formula atom v => ([v] -> formula -> r) -> formula -> r
+withUnivQuants fn formula =
+    doFormula [] formula
+    where
+      doFormula vs f =
+          foldFirstOrder
+                (doQuant vs)
+                (\ _ -> fn (reverse vs) f)
+                (\ _ -> fn (reverse vs) f)
+                f
+      doQuant vs Forall v f = doFormula (v : vs) f
+      doQuant vs Exists v f = fn (reverse vs) (exists v f)
+
 {-
 -- | Functions to disjunct or conjunct a list.
 disj :: FirstOrderFormula formula atom v => [formula] -> formula
@@ -265,22 +281,6 @@ freeVars f =
           f
     where
       freeVarsOfTerm = foldTerm S.singleton (\ _ args -> S.unions (fmap freeVarsOfTerm args))
-
--- | Examine the formula to find the list of outermost universally
--- quantified variables, and call a function with that list and the
--- formula after the quantifiers are removed.
-withUnivQuants :: FirstOrderFormula formula atom v => ([v] -> formula -> r) -> formula -> r
-withUnivQuants fn formula =
-    doFormula [] formula
-    where
-      doFormula vs f =
-          foldFirstOrder
-                (doQuant vs)
-                (\ _ -> fn (reverse vs) f)
-                (\ _ -> fn (reverse vs) f)
-                f
-      doQuant vs Forall v f = doFormula (v : vs) f
-      doQuant vs Exists v f = fn (reverse vs) (exists v f)
 
 {-
 withImplication :: FirstOrderFormula formula atom v => r -> (formula -> formula -> r) -> formula -> r
