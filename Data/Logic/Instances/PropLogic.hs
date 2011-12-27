@@ -15,7 +15,7 @@ import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..), clauseNormalForm')
 import Data.Logic.Classes.Term (Term)
 import Data.Logic.Normal.Clause (clauseNormalForm)
-import Data.Logic.Normal.Skolem (NormalT)
+import Data.Logic.Normal.Skolem (SkolemT)
 import qualified Data.Set.Extra as S
 import PropLogic
 
@@ -88,9 +88,9 @@ clauses0 :: PropositionalFormula formula atom => PropForm formula -> PropForm fo
 clauses0 f = CJ . map DJ . map S.toList . S.toList $ clauseNormalForm' f
 
 plSat :: forall m formula atom term v p f. (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Ord formula, Literal formula atom v, Constants p, Eq p) =>
-                formula -> NormalT v term m Bool
+                formula -> SkolemT v term m Bool
 plSat f = clauses f >>= (\ (x :: PropForm formula) -> return x) >>= return . satisfiable
 
 clauses :: forall m formula atom term v p f. (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal formula atom v, Constants p, Eq p) =>
-           formula -> NormalT v term m (PropForm formula)
+           formula -> SkolemT v term m (PropForm formula)
 clauses f = clauseNormalForm f >>= return . CJ . map (DJ . map (toPropositional (A :: formula -> PropForm formula))) . map S.toList . S.toList

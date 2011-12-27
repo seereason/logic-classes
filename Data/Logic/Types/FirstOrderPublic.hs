@@ -19,7 +19,7 @@ import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import qualified Data.Logic.Types.FirstOrder as N
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
-import Data.Logic.Classes.Term (Term(..), Function(..))
+import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable)
 import Data.Logic.Normal.Implicative (implicativeNormalForm, ImplicativeForm)
 import Data.Logic.Normal.Skolem (runNormal)
@@ -62,7 +62,7 @@ instance (Constants (N.Formula v p f), Arity p, Constants p, Ord v, Ord p, Ord f
 instance (Constants (Formula v p f), Constants (N.Formula v p f),
           Variable v, Show v, Ord v, Data v,
           Arity p, Constants p, Show p, Ord p, Data p,
-          Skolem f, Show f, Ord f, Data f, Function f) => Combinable (Formula v p f) where
+          Skolem f, Show f, Ord f, Data f) => Combinable (Formula v p f) where
     x .<=>. y = Formula $ (unFormula x) .<=>. (unFormula y)
     x .=>.  y = Formula $ (unFormula x) .=>. (unFormula y)
     x .|.   y = Formula $ (unFormula x) .|. (unFormula y)
@@ -72,7 +72,7 @@ instance (Constants (N.Formula v p f),
           Arity p, Variable v, Skolem f, Constants p,
           Show p, Show v, Show f,
           Ord f, Ord v, Ord p,
-          Data p, Data v, Data f, Function f) => Show (Formula v p f) where
+          Data p, Data v, Data f) => Show (Formula v p f) where
     showsPrec n x = showsPrec n (unFormula x)
 
 instance (Constants (Formula v p f), Constants (N.Formula v p f),
@@ -97,7 +97,7 @@ instance ({- FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
           Constants (Formula v p f), Constants (N.Formula v p f),
           Data v, Data f, Data p,
           Ord v, Ord p, Ord f,
-          Show v, Show p, Show f, Function f,
+          Show v, Show p, Show f,
           Arity p, Constants p, Skolem f, Variable v,
           Ord (N.Formula v p f)) => Ord (Formula v p f) where
     compare a b =

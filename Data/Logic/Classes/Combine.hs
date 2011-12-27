@@ -27,6 +27,8 @@ import Data.Logic.Classes.Negate (Negatable(..))
 --  (.|.), (.~.)
 -- @
 class (Constants formula, Negatable formula, Ord formula) => Combinable formula where
+    -- foldCombine :: (formula -> BinOp -> formula -> r) -> (formula -> r) -> (Bool -> r) -> r
+    -- zipCombines :: (formula -> BinOp -> formula -> formula -> BinOp -> formula -> Maybe r) -> (formula -> formula -> Maybe r) -> (Bool -> Maybe r) -> Maybe r
     -- | Disjunction/OR
     (.|.) :: formula -> formula -> formula
 
@@ -72,7 +74,7 @@ data Combination formula
     | (:~:) formula
     | TRUE
     | FALSE
-    deriving (Eq,Ord,Data,Typeable)
+    deriving (Eq,Ord,Data,Typeable,Show)
 
 -- |We need to implement read manually here due to
 -- <http://hackage.haskell.org/trac/ghc/ticket/4136>
@@ -109,7 +111,7 @@ data BinOp
     |  (:=>:)  -- ^ Implication
     |  (:&:)  -- ^ AND
     |  (:|:)  -- ^ OR
-    deriving (Eq,Ord,Data,Typeable,Enum,Bounded)
+    deriving (Eq,Ord,Data,Typeable,Enum,Bounded,Show)
 
 binop :: Combinable formula => formula -> BinOp -> formula -> formula
 binop a (:&:) b = a .&. b

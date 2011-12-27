@@ -35,7 +35,7 @@ module Data.Logic.Normal.Clause
 
 import Data.Logic.Normal.Negation (negationNormalForm, nnf, simplify)
 import Data.Logic.Normal.Prenex (prenexNormalForm)
-import Data.Logic.Normal.Skolem (skolemNormalForm, NormalT)
+import Data.Logic.Normal.Skolem (skolemNormalForm, SkolemT)
 
 import Data.List (intersperse)
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
@@ -58,7 +58,7 @@ import Text.PrettyPrint (Doc, hcat, vcat, text, nest, ($$), brackets, render)
 -- @
 -- 
 clauseNormalForm :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal lit atom v, Ord lit, Constants p, Eq p) =>
-       formula -> NormalT v term m (Set.Set (Set.Set lit))
+       formula -> SkolemT v term m (Set.Set (Set.Set lit))
 clauseNormalForm fm = skolemNormalForm fm >>= return . simpcnf
 
 cnfTrace :: forall m formula atom term v p f lit.
@@ -67,7 +67,7 @@ cnfTrace :: forall m formula atom term v p f lit.
          -> (p -> Doc)
          -> (f -> Doc)
          -> formula
-         -> NormalT v term m (String, Set.Set (Set.Set lit))
+         -> SkolemT v term m (String, Set.Set (Set.Set lit))
 cnfTrace pv pp pf f =
     do let simplified = simplify f
            pnf = prenexNormalForm f

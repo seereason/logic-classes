@@ -21,11 +21,11 @@ import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', pApp)
 import Data.Logic.Classes.Negate (Negatable(..))
-import Data.Logic.Classes.Term (Term(..), Function)
+import Data.Logic.Classes.Term (Term(..))
 import qualified Data.Logic.Classes.FirstOrder as L
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
-import Data.Logic.Classes.Variable (Variable(prefix, prettyVariable))
+import Data.Logic.Classes.Variable (Variable)
 import Data.String (IsString(..))
 
 data Sentence v p f
@@ -171,7 +171,7 @@ instance (Ord v, IsString v, Variable v, Data v, Show v,
     atomic x@(Equal _ _) = x
     atomic _ = error "Chiou: atomic"
 
-instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f, Function f) => Term (CTerm v f) v f where
+instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (CTerm v f) v f where
     foldTerm v fn t =
         case t of
           Variable x -> v x
@@ -183,9 +183,6 @@ instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f, Function f) 
           _ -> Nothing
     vt = Variable
     fApp f ts = Function f ts
-    -- Yuck!  This can't be the right way...
-    skolemConstant _ v = fromString (show (prettyVariable (prefix "c_" v)))
-    skolemFunction _ v = fromString (show (prettyVariable (prefix "f_" v)))
 
 data ConjunctiveNormalForm v p f =
     CNF [Sentence v p f]
@@ -246,7 +243,7 @@ instance (Combinable (NormalSentence v p f), Term (NormalTerm v f) v f,
     atomic x@(NFEqual _ _) = x
     atomic _ = error "Chiou: atomic"
 
-instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f, Function f) => Term (NormalTerm v f) v f where
+instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (NormalTerm v f) v f where
     vt = NormalVariable
     fApp = NormalFunction
     foldTerm v f t =
@@ -258,16 +255,14 @@ instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f, Function f) 
           (NormalVariable x1, NormalVariable x2) -> v x1 x2
           (NormalFunction f1 ts1, NormalFunction f2 ts2) -> fn f1 ts1 f2 ts2
           _ -> Nothing
-    skolemConstant _ v = fromString (show (prettyVariable (prefix "c_" v)))
-    skolemFunction _ v = fromString (show (prettyVariable (prefix "f_" v)))
 
-toSentence :: (FirstOrderFormula (Sentence v p f) (Sentence v p f) v, AtomEq (Sentence v p f) p (CTerm v f), Skolem f, Ord f, Data f, Data v, Function f, Constants p, Ord p) =>
+toSentence :: (FirstOrderFormula (Sentence v p f) (Sentence v p f) v, AtomEq (Sentence v p f) p (CTerm v f), Skolem f, Ord f, Data f, Data v, Constants p, Ord p) =>
               NormalSentence v p f -> Sentence v p f
 toSentence (NFNot s) = (.~.) (toSentence s)
 toSentence (NFEqual t1 t2) = toTerm t1 .=. toTerm t2
 toSentence (NFPredicate p ts) = pApp p (map toTerm ts)
 
-toTerm :: (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f, Function f) => NormalTerm v f -> CTerm v f
+toTerm :: (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => NormalTerm v f -> CTerm v f
 toTerm (NormalFunction f ts) = fApp f (map toTerm ts)
 toTerm (NormalVariable v) = vt v
 

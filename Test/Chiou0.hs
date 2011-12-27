@@ -15,7 +15,7 @@ import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.KnowledgeBase (ProverT, runProver', Proof(..), ProofResult(..), loadKB, theoremKB {-, askKB, showKB-})
 import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
-import Data.Logic.Normal.Skolem (NormalT, runNormal)
+import Data.Logic.Normal.Skolem (SkolemT, runSkolem)
 import Data.Logic.Resolution (SetOfSupport)
 import Data.Logic.Test (V(..), Pr(..), AtomicFunction(..), TFormula, TTerm, myTest)
 import Data.Logic.Types.FirstOrder (Formula, PTerm)
@@ -85,7 +85,7 @@ proof2 = (True,
            (makeINF' ([(pApp ("Dog") [vt ("y2")]),(pApp ("Owns") [fApp ("Jack") [],vt ("y")])]) ([]),fromList []),
            (makeINF' ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []])]) ([]),fromList [])])
 
-testProof :: MonadIO m => String -> (TFormula, Bool, (S.Set (ImplicativeForm TFormula))) -> ProverT (ImplicativeForm TFormula) (NormalT V TTerm m) ()
+testProof :: MonadIO m => String -> (TFormula, Bool, (S.Set (ImplicativeForm TFormula))) -> ProverT (ImplicativeForm TFormula) (SkolemT V TTerm m) ()
 testProof label (question, expectedAnswer, expectedProof) =
     theoremKB question >>= \ (actualFlag, actualProof) ->
     let actual' = (actualFlag, S.map fst actualProof) in
@@ -94,7 +94,7 @@ testProof label (question, expectedAnswer, expectedProof) =
                 "\n Actual:\n  " ++ show actual')
     else liftIO (putStrLn (label ++ " ok"))
 
-loadCmd :: Monad m => ProverT (ImplicativeForm TFormula) (NormalT V TTerm m) [Proof TFormula]
+loadCmd :: Monad m => ProverT (ImplicativeForm TFormula) (SkolemT V TTerm m) [Proof TFormula]
 loadCmd = loadKB sentences
 
 sentences :: [TFormula]

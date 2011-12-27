@@ -5,20 +5,18 @@ module Data.Logic.Harrison.Skolem
     , nnf
     , pnf
     , functions
-    , skolemize
-    , specialize
-    , askolemize
-    , literal
+    -- , skolemize
+    -- , specialize
+    -- , askolemize
+    -- , literal
     ) where
 
-import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (true, false)
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(exists, for_all, foldFirstOrder), Quant(..), quant)
-import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Term (Term(..), Function(variantF))
+import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable(variant))
 import Data.Logic.Harrison.FOL (fv, subst)
 import Data.Logic.Harrison.Lib ((|=>))
@@ -177,7 +175,7 @@ functions fm =
       co _ = error "Unsimplified formula passed to functions"
       pr = foldAtomEq (\ _ ts -> Set.unions (map funcs ts)) (\ t1 t2 -> Set.union (funcs t1) (funcs t2))
     -- atom_union (\ (R p a) -> foldr (Set.union . funcs) Set.empty a) fm
-
+{-
 -- ------------------------------------------------------------------------- 
 -- Core Skolemization function.                                              
 -- ------------------------------------------------------------------------- 
@@ -244,3 +242,4 @@ literal fm =
       co TRUE = Set.singleton (Set.singleton true)
       co FALSE = Set.singleton (Set.singleton false)
       co _ = error "literal"
+-}

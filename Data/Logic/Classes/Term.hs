@@ -1,7 +1,7 @@
 {-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables #-}
 module Data.Logic.Classes.Term
-    ( Function(..)
-    , Term(..)
+    ( Term(..)
+    -- , Function(..)
     , convertTerm
     , showTerm
     , prettyTerm
@@ -11,17 +11,17 @@ import Data.Generics (Data)
 import Data.List (intercalate, intersperse)
 import Data.Logic.Classes.Skolem
 import Data.Logic.Classes.Variable
-import qualified Data.Set as Set
-import Data.String (IsString)
+--import qualified Data.Set as Set
+--import Data.String (IsString)
 import Text.PrettyPrint (Doc, (<>), brackets, hcat, text)
 
-class (Ord f, IsString f) => Function f where
-    variantF :: f -> Set.Set f -> f
+-- class (Ord f, IsString f) => Function f where
+--     variantF :: f -> Set.Set f -> f
 
-class ( Function f
-      , Ord v     -- Required so variables can be inserted into maps and sets
+class ( Ord v     -- Required so variables can be inserted into maps and sets
       , Variable v -- Used to rename variable during conversion to prenex
       , Data v    -- For serialization
+      -- , Function f
       , Eq f      -- We need to check functions for equality during unification
       , Skolem f  -- Used to create skolem functions and constants
       , Data f    -- For serialization
@@ -38,9 +38,6 @@ class ( Function f
     -- from a variable and a term built from the application of a
     -- primitive function to other terms.
     zipTerms :: (v -> v -> Maybe r) -> (f -> [term] -> f -> [term] -> Maybe r) -> term -> term -> Maybe r
-
-    skolemConstant :: term -> v -> f -- ^ Term argument is just a proxy
-    skolemFunction :: term -> v -> f
 
 convertTerm :: forall term1 v1 f1 term2 v2 f2.
                (Term term1 v1 f1,

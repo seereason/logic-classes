@@ -21,11 +21,10 @@ import Data.Logic.Classes.FirstOrderEq (showFirstOrderEq)
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
-import Data.Logic.Classes.Term (Term(..), Function(..), showTerm)
+import Data.Logic.Classes.Term (Term(..), showTerm)
 import Data.Logic.Classes.Variable (Variable(..))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.SafeCopy (base, deriveSafeCopy)
-import Data.String (IsString(fromString))
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 
@@ -36,7 +35,7 @@ data Formula v p f
     | Quant Quant v (Formula v p f)
     -- Note that a derived Eq instance is not going to tell us that
     -- a&b is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).
-    deriving (Eq,Ord,Data,Typeable)
+    deriving (Eq,Ord,Data,Typeable,Show)
 
 -- |A temporary type used in the fold method to represent the
 -- combination of a predicate and its arguments.  This reduces the
@@ -47,7 +46,7 @@ data Predicate p term
     | NotEqual term term
     | Constant Bool
     | Apply p [term]
-    deriving (Eq, Ord, Show, Read, Data, Typeable)
+    deriving (Eq,Ord,Data,Typeable,Show,Read)
 
 -- | The range of a term is an element of a set.
 data PTerm v f
@@ -57,7 +56,7 @@ data PTerm v f
                                     -- Constants are encoded as
                                     -- nullary functions.  The result
                                     -- is another term.
-    deriving (Eq,Ord,Read,Data,Typeable)
+    deriving (Eq,Ord,Data,Typeable,Show,Read)
 
 -- data InfixPred = (:=:) | (:!=:) deriving (Eq,Ord,Show,Data,Typeable,Enum,Bounded)
 
@@ -72,19 +71,23 @@ instance Read InfixPred where
           prs = [((:=:), ":=:"),
                  ((:!=:), ":!=:")]
 -}
-
-instance (FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v, Show v, Show p, Show f, Arity p, Function f, Skolem f, Data v, Data f, Constants p) => Show (Formula v p f) where
+{-
+instance (FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v, Show v, Show p, Show f, Arity p, Skolem f, Data v, Data f, Constants p, Ord f) => Show (Formula v p f) where
     show = showFirstOrderEq
 
-instance (FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v, Show v, Show p, Show f, Function f, Skolem f, Data v, Data f) => Show (PTerm v f) where
+instance (FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v, Show v, Show p, Show f, Skolem f, Data v, Data f, Ord f) => Show (PTerm v f) where
     show = showTerm
-
+-}
 instance Negatable (Formula v p f) where
     (.~.) (Combine ((:~:) (Combine ((:~:) x)))) = (.~.) x
     (.~.) (Combine ((:~:) x)) = x
     (.~.) x = Combine ((:~:) x)
     negated (Combine ((:~:) x)) = not (negated x)
     negated _ = False
+
+instance Constants p => Constants (Formula v p f) where
+    fromBool True = Combine TRUE
+    fromBool False = Combine FALSE
 
 {-
 instance (Constants p, Arity p, Ord p, Ord v, Ord f, Variable v, Skolem f, Show p, Show v, Show f, Data f, Data v, Data p) => Constants (Formula v p f) where
@@ -112,7 +115,7 @@ instance (Ord v, Variable v, Data v, Show v,
           Combine x -> c x
           Predicate x -> a (Predicate x)
 
-instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f, Function f) => Term (PTerm v f) v f where
+instance (Variable v, Data v, Skolem f, Data f, Ord f) => Term (PTerm v f) v f where
     foldTerm vf fn t =
         case t of
           Var v -> vf v
@@ -124,8 +127,6 @@ instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f, Function f) 
           _ -> Nothing
     vt = Var
     fApp x args = FunApp x args
-    skolemConstant _ v = fromString (show (prettyVariable (prefix "c_" v)))
-    skolemFunction _ v = fromString (show (prettyVariable (prefix "f_" v)))
 
 {-
 instance (Arity p, Constants p) => Atom (Predicate p (PTerm v f)) p (PTerm v f) where
@@ -175,7 +176,7 @@ instance (AtomEq (Predicate p (PTerm v f)) p (PTerm v f),
 instance (Constants (Formula v p f),
           Variable v, Ord v, Data v, Show v,
           Arity p, Constants p, Ord p, Data p, Show p,
-          Skolem f, Ord f, Data f, Show f, Function f) => Literal (Formula v p f) (Predicate p (PTerm v f)) v where
+          Skolem f, Ord f, Data f, Show f) => Literal (Formula v p f) (Predicate p (PTerm v f)) v where
     foldLiteral c pr l =
         case l of
           (Combine ((:~:) x)) -> c x

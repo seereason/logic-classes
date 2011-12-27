@@ -2,28 +2,44 @@
 {-# OPTIONS -Wall #-}
 module Data.Logic.Normal.Skolem
     ( LiteralMapT
+    , SkolemT
+    , runSkolemT
+    , runSkolem
     , NormalT
     , runNormalT
     , runNormal
-    , NormalT'
-    , runNormalT'
-    , runNormal'
+    , skolemize
+    , literal
     , skolemNormalForm
     ) where
 
 import "mtl" Control.Monad.Identity (Identity(runIdentity))
 import "mtl" Control.Monad.State (StateT(runStateT), get, put)
+import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
+import Data.Logic.Classes.Constants (true, false)
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
 import Data.Logic.Classes.FirstOrderEq (substituteEq)
+import Data.Logic.Classes.Literal (Literal(atomic))
+import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term(vt, fApp))
 import Data.Logic.Classes.Skolem (Skolem(toSkolem))
 import Data.Logic.Harrison.FOL (fv)
+import Data.Logic.Harrison.Skolem (pnf)
 import Data.Logic.Normal.Negation (negationNormalForm)
 import Data.Logic.Normal.Prenex (prenexNormalForm)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+
+-- |Combination of Normal monad and LiteralMap monad
+type NormalT formula v term m a = SkolemT v term (LiteralMapT formula m) a
+
+runNormalT :: Monad m => NormalT formula v term m a -> m a
+runNormalT action = runLiteralMapM (runSkolemT action)
+
+runNormal :: NormalT formula v term Identity a -> a
+runNormal = runIdentity . runNormalT
  
 --type LiteralMap f = LiteralMapT f Identity
 type LiteralMapT f = StateT (Int, Map.Map f Int)
@@ -34,12 +50,10 @@ type LiteralMapT f = StateT (Int, Map.Map f Int)
 runLiteralMapM :: Monad m => LiteralMapT f m a -> m a
 runLiteralMapM action = (runStateT action) (1, Map.empty) >>= return . fst
 
--- |The logic monad contains (will contain) several types of state to
--- support the operations done on logic formulas: Skolemization,
--- literal substitution, and the set of support during a proof
--- procedure.
-data LogicState v term
-    = LogicState
+type SkolemT v term m = StateT (SkolemState v term) m
+
+data SkolemState v term
+    = SkolemState
       { skolemCount :: Int
         -- ^ The next available Skolem number.
       , skolemMap :: Map.Map v term
@@ -51,46 +65,35 @@ data LogicState v term
         -- function.
       }
 
-newLogicState :: LogicState v term
-newLogicState = LogicState { skolemCount = 1
-                           , skolemMap = Map.empty
-                           , univQuant = [] }
+newSkolemState :: SkolemState v term
+newSkolemState = SkolemState { skolemCount = 1
+                             , skolemMap = Map.empty
+                             , univQuant = [] }
 
-type NormalT v term m = StateT (LogicState v term) m
+runSkolem :: SkolemT v term Identity a -> a
+runSkolem = runIdentity . runSkolemT
 
-runNormalT :: Monad m => NormalT v term m a -> m a
-runNormalT action = (runStateT action) newLogicState >>= return . fst
-
-runNormal :: NormalT v term Identity a -> a
-runNormal = runIdentity . runNormalT
-
--- |Combination of Normal monad and LiteralMap monad
-type NormalT' formula v term m a = NormalT v term (LiteralMapT formula m) a
-
-runNormalT' :: Monad m => NormalT' formula v term m a -> m a
-runNormalT' action = runLiteralMapM (runNormalT action)
-
-runNormal' :: NormalT' formula v term Identity a -> a
-runNormal' = runIdentity . runNormalT'
+runSkolemT :: Monad m => SkolemT v term m a -> m a
+runSkolemT action = (runStateT action) newSkolemState >>= return . fst
 
 -- |We get Skolem Normal Form by skolemizing and then converting to
 -- Prenex Normal Form, and finally eliminating the remaining quantifiers.
-skolemNormalForm :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> NormalT v term m formula
+skolemNormalForm :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> SkolemT v term m formula
 skolemNormalForm f = askolemize f >>= return . specialize . prenexNormalForm
 
 -- |I need to consult the Harrison book for the reasons why we don't
 -- |just Skolemize the result of prenexNormalForm.
-askolemize :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> NormalT v term m formula
+askolemize :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> SkolemT v term m formula
 askolemize = skolem . negationNormalForm {- nnf . simplify -}
 
 -- |Skolemize the formula by removing the existential quantifiers and
 -- replacing the variables they quantify with skolem functions (and
 -- constants, which are functions of zero variables.)  The Skolem
--- functions are new functions (obtained from the NormalT monad) which
+-- functions are new functions (obtained from the SkolemT monad) which
 -- are applied to the list of variables which are universally
 -- quantified in the context where the existential quantifier
 -- appeared.
-skolem :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> NormalT v term m formula
+skolem :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> SkolemT v term m formula
 skolem fm =
     foldFirstOrder q c (\ _ -> return fm) fm
     where
@@ -107,7 +110,7 @@ skolem fm =
       c _ = return fm
 
 skolem2 :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
-           (formula -> formula -> formula) -> formula -> formula -> NormalT v term m formula
+           (formula -> formula -> formula) -> formula -> formula -> SkolemT v term m formula
 skolem2 cons p q =
     skolem p >>= \ p' ->
     skolem q >>= \ q' ->
@@ -119,3 +122,26 @@ specialize f =
     where
       q Forall _ f' = specialize f'
       q _ _ _ = f
+
+skolemize :: (Monad m, FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f) => fof -> SkolemT v term m fof
+-- skolemize fm = {- t1 $ -} specialize . pnf . askolemize $ fm
+skolemize fm = askolemize fm >>= return . specialize . pnf
+
+-- | Convert a first order formula into a disjunct of conjuncts of
+-- literals.  Note that this can convert any instance of
+-- FirstOrderFormula into any instance of Literal.
+literal :: forall fof atom term v p f lit. (FirstOrderFormula fof atom v, Atom atom p term, Term term v f, Literal lit atom v, Ord lit) =>
+           fof -> Set.Set (Set.Set lit)
+literal fm =
+    foldFirstOrder (error "quantifier") co at fm
+    where
+      at :: atom -> Set.Set (Set.Set lit)
+      at x = Set.singleton (Set.singleton (Data.Logic.Classes.Literal.atomic x))
+      co ((:~:) x) = Set.map (Set.map (.~.)) (literal x)
+      co (BinOp p (:|:) q) = Set.singleton (Set.unions (Set.toList (literal p) ++ Set.toList (literal q)))
+          -- Set.singleton (Set.union (flatten (literal p)) (flatten (literal q)))
+          -- where flatten = Set.fold Set.union Set.empty
+      co (BinOp p (:&:) q) = Set.union (literal p) (literal q)
+      co TRUE = Set.singleton (Set.singleton true)
+      co FALSE = Set.singleton (Set.singleton false)
+      co _ = error "literal"

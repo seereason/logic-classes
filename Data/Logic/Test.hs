@@ -35,7 +35,7 @@ import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
 import Data.Logic.Classes.FirstOrderEq (convertFOFEq)
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Skolem (Skolem(..))
-import Data.Logic.Classes.Term (Term, Function(..))
+import Data.Logic.Classes.Term (Term)
 import Data.Logic.Classes.Variable (Variable(..))
 import Data.Logic.Instances.PropLogic (plSat)
 import qualified Data.Logic.Instances.SatSolver as SS
@@ -44,7 +44,7 @@ import Data.Logic.Normal.Clause (clauseNormalForm, trivial)
 import Data.Logic.Normal.Negation (negationNormalForm, simplify)
 import Data.Logic.Normal.Prenex (prenexNormalForm)
 import Data.Logic.Normal.Implicative (ImplicativeForm)
-import Data.Logic.Normal.Skolem (skolemNormalForm, runNormal, runNormal', runNormalT')
+import Data.Logic.Normal.Skolem (skolemNormalForm, runSkolem, runNormal, runNormalT)
 import Data.Logic.Resolution (SetOfSupport)
 import qualified Data.Logic.Types.FirstOrder as P
 import qualified Data.Set as S
@@ -55,6 +55,7 @@ import Data.String (IsString(fromString))
 import Test.HUnit
 import Text.PrettyPrint (Doc, text)
 
+myTest :: (Show a, Eq a) => String -> a -> a -> Test
 myTest label expected input =
     TestLabel label $ TestCase (assertEqual label expected input)
 
@@ -131,10 +132,6 @@ instance Show AtomicFunction where
     show (Fn s) = show s
     show (Skolem n) = "toSkolem " ++ show n
 
-instance Function AtomicFunction where
-    variantF x@(Fn s) xs = if S.member x xs then variantF (Fn (next s)) xs else Fn s
-    variantF _ _ = error "variantF Skolem"
-
 prettyF :: AtomicFunction -> Doc
 prettyF (Fn s) = text s
 prettyF (Skolem n) = text ("sK" ++ show n)
@@ -142,10 +139,6 @@ prettyF (Skolem n) = text ("sK" ++ show n)
 type TFormula = P.Formula V Pr AtomicFunction
 type TAtom = P.Predicate Pr TTerm
 type TTerm = P.PTerm V AtomicFunction
-
-instance Constants TFormula where
-    fromBool True = P.Predicate (P.Apply T [])
-    fromBool False = P.Predicate (P.Apply F [])
 
 -- |This allows you to use an expression that returns the Doc type in a
 -- unit test, such as prettyFirstOrder.
@@ -195,23 +188,23 @@ doTest f =
       doExpected (NegationNormalForm f') =
           myTest (name f ++ " negation normal form") (p f') (p (negationNormalForm (formula f)))
       doExpected (SkolemNormalForm f') =
-          myTest (name f ++ " skolem normal form") (p f') (p (runNormal (skolemNormalForm (formula f))))
+          myTest (name f ++ " skolem normal form") (p f') (p (runSkolem (skolemNormalForm (formula f))))
       doExpected (SkolemNumbers f') =
-          myTest (name f ++ " skolem numbers") f' (skolemSet (runNormal (skolemNormalForm (formula f))))
+          myTest (name f ++ " skolem numbers") f' (skolemSet (runSkolem (skolemNormalForm (formula f))))
       doExpected (ClauseNormalForm fss) =
-          myTest (name f ++ " clause normal form") fss (S.map (S.map p) (runNormal (clauseNormalForm (formula f))))
+          myTest (name f ++ " clause normal form") fss (S.map (S.map p) (runSkolem (clauseNormalForm (formula f))))
       doExpected (TrivialClauses flags) =
-          myTest (name f ++ " trivial clauses") flags (map (\ x -> (trivial x, x)) (S.toList (runNormal (clauseNormalForm (formula f)))))
+          myTest (name f ++ " trivial clauses") flags (map (\ x -> (trivial x, x)) (S.toList (runSkolem (clauseNormalForm (formula f)))))
       doExpected (ConvertToChiou result) =
           myTest (name f ++ " converted to Chiou") result (convertFOFEq id id id (formula f))
       doExpected (ChiouKB1 result) =
           myTest (name f ++ " Chiou KB") result (runProver' Nothing (loadKB [formula f] >>= return . head))
       doExpected (PropLogicSat result) =
-          myTest (name f ++ " PropLogic.satisfiable") result (runNormal (plSat (formula f)))
+          myTest (name f ++ " PropLogic.satisfiable") result (runSkolem (plSat (formula f)))
       doExpected (SatSolverCNF result) =
-          myTest (name f ++ " SatSolver CNF") (norm result) (runNormal' (SS.toCNF (formula f)))
+          myTest (name f ++ " SatSolver CNF") (norm result) (runNormal (SS.toCNF (formula f)))
       doExpected (SatSolverSat result) =
-          myTest (name f ++ " SatSolver CNF") result (null (runNormalT' (SS.toCNF (formula f) >>= satisfiable)))
+          myTest (name f ++ " SatSolver CNF") result (null (runNormalT (SS.toCNF (formula f) >>= satisfiable)))
       p = id
 
       norm = map S.toList . S.toList . S.fromList . map S.fromList

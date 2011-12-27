@@ -35,7 +35,7 @@ import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Term (Term)
 import Data.Logic.Normal.Implicative (ImplicativeForm, implicativeNormalForm)
-import Data.Logic.Normal.Skolem (NormalT, runNormalT)
+import Data.Logic.Normal.Skolem (SkolemT, runSkolemT)
 import Data.Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Data.SafeCopy (deriveSafeCopy, base)
 import qualified Data.Set.Extra as S
@@ -80,10 +80,10 @@ zeroKB limit =
 
 -- |A monad for running the knowledge base.
 type ProverT inf = StateT (ProverState inf)
-type ProverT' v term inf m a = ProverT inf (NormalT v term m) a
+type ProverT' v term inf m a = ProverT inf (SkolemT v term m) a
 
 runProverT' :: Monad m => Maybe Int -> ProverT' v term inf m a -> m a
-runProverT' limit = runNormalT . runProverT limit
+runProverT' limit = runSkolemT . runProverT limit
 runProverT :: Monad m => Maybe Int -> StateT (ProverState inf) m a -> m a
 runProverT limit action = evalStateT action (zeroKB limit)
 runProver' :: Maybe Int -> ProverT' v term inf Identity a -> a

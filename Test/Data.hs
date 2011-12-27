@@ -678,7 +678,7 @@ socratesConjectures =
      ]
 -}
 
-chang43KB :: (Combinable formula, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, IsString p) => (String, [TestFormula formula atom v])
+chang43KB :: (Combinable formula, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, IsString p, IsString f) => (String, [TestFormula formula atom v])
 chang43KB = 
     let e = fApp "e" []
         (x, y, z, u, v, w) = (vt "x", vt "y", vt "z", vt "u", vt "v", vt "w") in
