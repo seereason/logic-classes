@@ -7,7 +7,6 @@ import Control.Monad.Trans (lift)
 import Data.Boolean.SatSolver
 import Data.Generics (Data, Typeable)
 import qualified Data.Set.Extra as S
-import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(..))
 import Data.Logic.Classes.Constants (Constants)
 import Data.Logic.Classes.Equals (AtomEq)

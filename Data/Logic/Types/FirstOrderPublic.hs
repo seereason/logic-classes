@@ -15,7 +15,6 @@ import Data.Data (Data)
 import Data.Logic.Classes.Arity (Arity)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.Equals (PredicateEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import qualified Data.Logic.Types.FirstOrder as N
 import Data.Logic.Classes.Negate (Negatable(..))
@@ -60,7 +59,7 @@ instance Negatable (Formula v p f) where
 instance (Constants (N.Formula v p f), Arity p, Constants p, Ord v, Ord p, Ord f, Variable v, Skolem f, Show v, Show p, Show f, Data v, Data f, Data p) => Constants (Formula v p f) where
     fromBool = Formula . fromBool
 
-instance (Constants (Formula v p f), Constants (N.Formula v p f), PredicateEq p,
+instance (Constants (Formula v p f), Constants (N.Formula v p f),
           Variable v, Show v, Ord v, Data v,
           Arity p, Constants p, Show p, Ord p, Data p,
           Skolem f, Show f, Ord f, Data f, Function f) => Combinable (Formula v p f) where
@@ -70,7 +69,7 @@ instance (Constants (Formula v p f), Constants (N.Formula v p f), PredicateEq p,
     x .&.   y = Formula $ (unFormula x) .&. (unFormula y)
 
 instance (Constants (N.Formula v p f),
-          Arity p, Variable v, Skolem f, Constants p, PredicateEq p,
+          Arity p, Variable v, Skolem f, Constants p,
           Show p, Show v, Show f,
           Ord f, Ord v, Ord p,
           Data p, Data v, Data f, Function f) => Show (Formula v p f) where
@@ -79,7 +78,7 @@ instance (Constants (N.Formula v p f),
 instance (Constants (Formula v p f), Constants (N.Formula v p f),
           Combinable (Formula v p f), Term (N.PTerm v f) v f,
           Show v,
-          Arity p, Constants p, Ord p, Data p, Show p, PredicateEq p,
+          Arity p, Constants p, Ord p, Data p, Show p,
           Ord f, Show f) => FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v where
     for_all v x = public $ for_all v (intern x :: N.Formula v p f)
     exists v x = public $ exists v (intern x :: N.Formula v p f)
@@ -95,7 +94,7 @@ instance (Constants (Formula v p f), Constants (N.Formula v p f),
 instance ({- FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
           Literal (N.Formula v p f) (N.PTerm v f) v p f,
           FirstOrderFormula (N.Formula v p f) (N.PTerm v f) v p f, -}
-          Constants (Formula v p f), Constants (N.Formula v p f), PredicateEq p,
+          Constants (Formula v p f), Constants (N.Formula v p f),
           Data v, Data f, Data p,
           Ord v, Ord p, Ord f,
           Show v, Show p, Show f, Function f,

@@ -2,7 +2,6 @@
 -- | Versions of the normal form functions in Prop for FirstOrderFormula.
 module Data.Logic.Harrison.Normal where
 
-import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (true, false)
 import Data.Logic.Classes.Equals (AtomEq)

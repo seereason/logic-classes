@@ -15,7 +15,7 @@ import Data.Logic.Classes.Arity (Arity)
 -- import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.Equals (AtomEq(..), PredicateEq(..), (.=.), (.!=.), pApp)
+import Data.Logic.Classes.Equals (AtomEq(..), (.=.), (.!=.), pApp)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
 import Data.Logic.Classes.FirstOrderEq (showFirstOrderEq)
 import Data.Logic.Classes.Literal (Literal(..))
@@ -73,7 +73,7 @@ instance Read InfixPred where
                  ((:!=:), ":!=:")]
 -}
 
-instance (FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v, PredicateEq p, Show v, Show p, Show f, Arity p, Function f, Skolem f, Data v, Data f, Constants p) => Show (Formula v p f) where
+instance (FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v, Show v, Show p, Show f, Arity p, Function f, Skolem f, Data v, Data f, Constants p) => Show (Formula v p f) where
     show = showFirstOrderEq
 
 instance (FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v, Show v, Show p, Show f, Function f, Skolem f, Data v, Data f) => Show (PTerm v f) where
@@ -98,7 +98,7 @@ instance (Constants (Formula v p f), Ord v, Ord p, Ord f) => Combinable (Formula
     x .&.   y = Combine (BinOp  x (:&:)   y)
 
 instance (Ord v, Variable v, Data v, Show v,
-          Ord p, Constants p, Arity p, Data p, Show p, PredicateEq p,
+          Ord p, Constants p, Arity p, Data p, Show p,
           Ord f, Skolem f, Data f, Show f,
           Constants (Formula v p f), Combinable (Formula v p f)) =>
          PropositionalFormula (Formula v p f) (Formula v p f) where
@@ -138,7 +138,7 @@ instance (Arity p, Constants p) => Atom (Predicate p (PTerm v f)) p (PTerm v f) 
     apply' = Apply
 -}
 
-instance ({- Atom (Predicate p (PTerm v f)) p (PTerm v f), -} Constants p, Arity p, PredicateEq p, Show p) => AtomEq (Predicate p (PTerm v f)) p (PTerm v f) where
+instance ({- Atom (Predicate p (PTerm v f)) p (PTerm v f), -} Constants p, Arity p, Show p) => AtomEq (Predicate p (PTerm v f)) p (PTerm v f) where
     foldAtomEq ap _ (Apply p ts) = ap p ts
     foldAtomEq ap _ (Constant x) = ap (fromBool x) []
     foldAtomEq _ eq (Equal t1 t2) = eq t1 t2
@@ -174,7 +174,7 @@ instance (AtomEq (Predicate p (PTerm v f)) p (PTerm v f),
 
 instance (Constants (Formula v p f),
           Variable v, Ord v, Data v, Show v,
-          Arity p, Constants p, Ord p, Data p, Show p, PredicateEq p,
+          Arity p, Constants p, Ord p, Data p, Show p,
           Skolem f, Ord f, Data f, Show f, Function f) => Literal (Formula v p f) (Predicate p (PTerm v f)) v where
     foldLiteral c pr l =
         case l of

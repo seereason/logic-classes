@@ -30,7 +30,7 @@ import Data.Generics (Data, Typeable, listify)
 import Data.Logic.Classes.Arity (Arity(arity))
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(satisfiable))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.Equals (AtomEq, PredicateEq(..))
+import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
 import Data.Logic.Classes.FirstOrderEq (convertFOFEq)
 import Data.Logic.Classes.Literal (Literal)
@@ -130,9 +130,6 @@ instance IsString AtomicFunction where
 instance Show AtomicFunction where
     show (Fn s) = show s
     show (Skolem n) = "toSkolem " ++ show n
-
-instance PredicateEq Pr where
-    eqp = Equals
 
 instance Function AtomicFunction where
     variantF x@(Fn s) xs = if S.member x xs then variantF (Fn (next s)) xs else Fn s

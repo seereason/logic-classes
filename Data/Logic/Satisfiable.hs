@@ -12,7 +12,6 @@ module Data.Logic.Satisfiable
     ) where
 
 import qualified Data.Set as Set
-import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Constants (Constants)
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), toPropositional)

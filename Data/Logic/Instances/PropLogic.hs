@@ -6,7 +6,6 @@ module Data.Logic.Instances.PropLogic
     , plSat
     ) where
 
-import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool))
 import Data.Logic.Classes.Equals (AtomEq)

@@ -1,8 +1,7 @@
 {-# LANGUAGE FlexibleContexts, FunctionalDependencies, MultiParamTypeClasses, TypeFamilies #-}
 -- | Support for equality.
 module Data.Logic.Classes.Equals
-    ( PredicateEq(..)
-    , AtomEq(..)
+    ( AtomEq(..)
     , apply0, apply1, apply2, apply3, apply4, apply5, apply6, apply7
     , pApp, pApp0, pApp1, pApp2, pApp3, pApp4, pApp5, pApp6, pApp7
     , showFirstOrderFormulaEq
@@ -16,11 +15,8 @@ import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Maybe (fromMaybe)
 
-class PredicateEq p where
-    eqp :: p -- | Return the equality predicate
-
 -- | Its not safe to make Atom a superclass of AtomEq, because the Atom methods will fail on AtomEq instances.
-class (Arity p, PredicateEq p, Show p) => AtomEq atom p term | atom -> p term, term -> atom p where
+class (Arity p, {-PredicateEq p,-} Show p) => AtomEq atom p term | atom -> p term, term -> atom p where
     foldAtomEq :: (p -> [term] -> r) -> (term -> term -> r) -> atom -> r
     zipAtomsEq :: (p -> [term] -> p -> [term] -> Maybe r) -> (term -> term -> term -> term -> Maybe r) -> atom -> atom -> Maybe r
     equals :: term -> term -> atom
