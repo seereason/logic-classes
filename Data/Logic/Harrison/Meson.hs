@@ -96,7 +96,7 @@ puremeson maxdl fm =
       f :: Int -> Failing (Map.Map v term, Int, Int)
       f n = mexpand rules Set.empty false return (Map.empty, n, 0)
       rules = Set.fold (Set.union . contrapositives) Set.empty cls :: Set.Set (Set.Set fof, fof)
-      cls = {-trace ("cls=" ++ show (Set.size cls))-} (simpcnf (specialize (pnf fm)))
+      cls = simpcnf (specialize (pnf fm))
 
 meson :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord term, Ord fof, Eq fof, Eq p, Show fof, Monad m) =>
          Maybe Int -> fof -> SkolemT v term m (Set.Set (Failing ((Map.Map v term, Int, Int), Int)))

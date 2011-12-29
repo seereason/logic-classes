@@ -5,10 +5,13 @@ module Data.Logic.Tests.Harrison.Meson where
 import Control.Applicative.Error (Failing(..))
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import Data.Logic.Classes.Skolem (Skolem(..))
+import Data.Logic.Classes.Term (Term(vt, fApp))
 import Data.Logic.Harrison.Meson(meson)
 import Data.Logic.Normal.Skolem (runSkolem)
 import Data.Logic.Tests.Harrison.Resolution (dpExampleFm)
 import Data.Logic.Tests.Harrison.HUnit
+import Data.String (IsString(fromString))
 import Prelude hiding (negate)
 -- import Test.HUnit (Test(TestCase, TestLabel), assertEqual)
 
@@ -19,4 +22,23 @@ import Prelude hiding (negate)
 test01 :: forall formula atom term v p f. TestFormulaEq formula atom term v p f => Test formula
 test01 = TestLabel "Data.Logic.Tests.Harrison.Meson" $ TestCase $ assertEqual "meson dp example (p. 220)" expected input
     where input = runSkolem (meson (Just 10) (dpExampleFm :: formula))
-          expected = Set.singleton (Success ((Map.empty, 0, 0), 8))
+          expected = Set.singleton (
+                                    -- Success ((Map.empty, 0, 0), 8)
+                                    Success ((Map.fromList [(fromString "_0",vt' "_6"),
+                                                            (fromString "_1",vt' "_2"),
+                                                            (fromString "_10",fApp (toSkolem 1) [vt' "_6",vt' "_7"]),
+                                                            (fromString "_11",fApp (toSkolem 1) [vt' "_6",vt' "_7"]),
+                                                            (fromString "_12",fApp (toSkolem 1) [vt' "_0",vt' "_1"]),
+                                                            (fromString "_13",fApp (toSkolem 1) [vt' "_0",vt' "_1"]),
+                                                            (fromString "_14",fApp (toSkolem 1) [vt' "_0",vt' "_1"]),
+                                                            (fromString "_15",fApp (toSkolem 1) [vt' "_12",vt' "_13"]),
+                                                            (fromString "_16",fApp (toSkolem 1) [vt' "_12",vt' "_13"]),
+                                                            (fromString "_17",fApp (toSkolem 1) [vt' "_12",vt' "_13"]),
+                                                            (fromString "_3",fApp (toSkolem 1) [vt' "_0",vt' "_1"]),
+                                                            (fromString "_4",fApp (toSkolem 1) [vt' "_0",vt' "_1"]),
+                                                            (fromString "_5",fApp (toSkolem 1) [vt' "_0",vt' "_1"]),
+                                                            (fromString "_7",fApp (toSkolem 1) [vt' "_0",vt' "_1"]),
+                                                            (fromString "_8",fApp (toSkolem 1) [vt' "_0",vt' "_1"]),
+                                                            (fromString "_9",fApp (toSkolem 1) [vt' "_6",vt' "_7"])],0,18),8)
+                                   )
+          vt' = vt . fromString

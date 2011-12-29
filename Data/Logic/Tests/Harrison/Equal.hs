@@ -10,15 +10,16 @@ module Data.Logic.Tests.Harrison.Equal where
 
 import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Combine (Combinable(..), (∧), (⇒))
-import Data.Logic.Classes.Equals ((.=.))
-import Data.Logic.Classes.FirstOrder (pApp, (∃), (∀))
+import Data.Logic.Classes.Equals ((.=.), pApp)
+import Data.Logic.Classes.FirstOrder ((∃), (∀))
+import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Harrison.Equal (equalitize, function_congruence)
 import Data.Logic.Harrison.Meson (meson)
 import Data.Logic.Normal.Skolem (runSkolem)
 import Data.Logic.Types.Harrison.FOL (TermType(..))
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
-import Data.Logic.Types.Harrison.Equal (FOLEQ(..), PredName(..))
+import Data.Logic.Types.Harrison.Equal (FOLEQ(..))
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
@@ -67,24 +68,36 @@ test label expected input = TestLabel label $ TestCase $ assertEqual label expec
 test02 :: forall formula atom term v p f. TestFormulaEq formula atom term v p f => Test formula
 test02 = test "equalitize 1 (p. 241)" expected input
     where input = runSkolem (meson (Just 5) ewd)
+          ewd :: formula
           ewd = equalitize fm
-          fm :: Formula FOLEQ
+          fm :: formula
           fm = ((∀) x (fx ⇒ gx)) ∧ ((∃) x fx) ∧ ((∀) x ((∀) y (gx ∧ gy ⇒ vt x .=. vt y))) ⇒
                (∀) y gy ⇒ fy
-          fx = pApp (Named "f") [vt x]
-          gx = pApp (Named "g") [vt x]
-          fy = pApp (Named "f") [vt y]
-          gy = pApp (Named "g") [vt y]
+          fx = pApp' "f" [vt x]
+          gx = pApp' "g" [vt x]
+          fy = pApp' "f" [vt y]
+          gy = pApp' "g" [vt y]
           x = fromString "x"
           y = fromString "y"
-          expected = Set.singleton (Success ((Map.fromList [("_0",vt' "_2"),
-                                                            ("_1",fApp' "c_y" []),
-                                                            ("_2",vt' "_4"),
-                                                            ("_3",fApp' "c_y" []),
-                                                            ("_4",fApp' "c_x" []),
-                                                            ("_5",fApp' "c_y" [])], 0, 6), 5))
-          fApp' = fApp . fromString
-          vt' = vt . fromString
+          -- y1 = fromString "y1"
+          -- z = fromString "z"
+          expected =
+              Set.singleton (Success ((Map.fromList [(fromString "_0",vt' "_2"),
+                                                     (fromString "_1",fApp (toSkolem 1) []),
+                                                     (fromString "_2",vt' "_4"),
+                                                     (fromString "_3",fApp (toSkolem 1) []),
+                                                     (fromString "_4",fApp (toSkolem 2) []),
+                                                     (fromString "_5",fApp (toSkolem 1) [])], 0, 6), 5))
+{-
+          fApp' :: String -> [term] -> term
+          fApp' s ts = fApp (fromString s) ts
+          for_all' s = for_all (fromString s)
+          exists' s = exists (fromString s)
+-}
+          pApp' :: String -> [term] -> formula
+          pApp' s ts = pApp (fromString s :: p) ts
+          vt' :: String -> term
+          vt' s = vt (fromString s)
 
 -- ------------------------------------------------------------------------- 
 -- Wishnu Prasetya's example (even nicer with an "exists unique" primitive). 
@@ -112,7 +125,7 @@ test03 = TestLabel "equalitize 2" $ TestCase $ assertEqual "equalitize 2 (p. 241
 test04 :: forall formula atom term v p f. TestFormulaEq formula atom term v p f => Test formula
 test04 = test "equalitize 3 (p. 248)" expected input
     where
-      input = runSkolem (meson (Just 50) . equalitize $ fm)
+      input = runSkolem (meson Nothing . equalitize $ fm)
       fm :: Formula FOLEQ
       fm = ((∀) "x" . (∀) "y" . (∀) "z") ((*) [x', (*) [y', z']] .=. (*) [((*) [x', y']), z']) ∧
            (∀) "x" ((*) [one, x'] .=. x') ∧
@@ -128,9 +141,9 @@ test04 = test "equalitize 3 (p. 248)" expected input
           Set.fromList
                  [Success ((Map.fromList
                                    [( "_0",  (*) [one, vt' "_3"]),
-                                    ( "_1",  (*) [fApp' "c_x" [],i [fApp' "c_x" []]]),
+                                    ( "_1",  (*) [fApp (toSkolem 1) [],i [fApp (toSkolem 1) []]]),
                                     ( "_2",  one),
-                                    ( "_3",  (*) [fApp' "c_x" [],i [fApp' "c_x" []]]),
+                                    ( "_3",  (*) [fApp (toSkolem 1) [],i [fApp (toSkolem 1) []]]),
                                     ( "_4",  vt' "_8"),
                                     ( "_5",  (*) [one, vt' "_3"]),
                                     ( "_6",  one),
@@ -149,15 +162,14 @@ test04 = test "equalitize 3 (p. 248)" expected input
                                     ("_19", vt' "_20"),
                                     ("_20", i [vt' "_28"]),
                                     ("_21", vt' "_28"),
-                                    ("_22", fApp' "c_x" []),
-                                    ("_23", i [fApp' "c_x" []]),
+                                    ("_22", fApp (toSkolem 1) []),
+                                    ("_23", i [fApp (toSkolem 1) []]),
                                     ("_24", (*) [vt' "_13", vt' "_14"]),
                                     ("_25", (*) [vt' "_22", vt' "_23"]),
-                                    ("_26", (*) [fApp' "c_x" [],i [fApp' "c_x" []]]),
+                                    ("_26", (*) [fApp (toSkolem 1) [],i [fApp (toSkolem 1) []]]),
                                     ("_27", one),
                                     ("_28", vt' "_30"),
                                     ("_29", (*) [vt' "_22", vt' "_23"]),
                                     ("_30", (*) [(*) [vt' "_21", vt' "_22"], vt' "_23"])],
                             0,31),13)]
-      fApp' = fApp . fromString
       vt' = vt . fromString

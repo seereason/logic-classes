@@ -37,7 +37,7 @@ class (FirstOrderFormula formula atom v,
        Term term v f,
        Eq formula, Ord formula, Show formula,
        Eq p,
-       IsString v, IsString p, IsString f,
+       IsString v, IsString p, IsString f, Ord f, Ord p,
        Eq term, Show term, Ord term,
        Show v) => TestFormula formula atom term v p f
 
@@ -46,7 +46,7 @@ class (FirstOrderFormula formula atom v,
        Term term v f,
        Eq formula, Ord formula, Show formula,
        Eq p,
-       IsString v, IsString p, IsString f,
+       IsString v, IsString p, IsString f, Ord f, Ord p,
        Eq term, Show term, Ord term,
        Show v) => TestFormulaEq formula atom term v p f
 

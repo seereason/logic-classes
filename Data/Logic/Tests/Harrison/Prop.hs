@@ -37,9 +37,9 @@ tests = TestLabel "Data.Logic.Tests.Harrison.Prop" $
 test36 :: Test
 test36 = TestCase $ assertEqual "show propositional formula 1" expected input
     where input = map show fms
-          expected = ["(atomic (P \"p\")) .&. (atomic (P \"q\")) .|. (atomic (P \"r\"))",
-                      "(atomic (P \"p\")) .&. ((atomic (P \"q\")) .|. (atomic (P \"r\")))",
-                      "(atomic (P \"p\")) .&. (atomic (P \"q\")) .|. (atomic (P \"r\"))"]
+          expected = ["((P \"p\") .&. (P \"q\")) .|. (P \"r\")",
+                      "(P \"p\") .&. ((P \"q\") .|. (P \"r\"))",
+                      "((P \"p\") .&. (P \"q\")) .|. (P \"r\")"]
           fms :: [Formula Prop]
           fms = [p .&. q .|. r, p .&. (q .|. r), (p .&. q) .|. r]
           (p, q, r) = (Atom (P "p"), Atom (P "q"), Atom (P "r"))

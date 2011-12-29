@@ -33,7 +33,7 @@ module Data.Logic.Harrison.Prop
     ) where
 
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
-import Data.Logic.Classes.Constants (true, false)
+import Data.Logic.Classes.Constants (Constants(fromBool, true, false), asBool, ifElse)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Propositional
 import Data.Logic.Harrison.Formulas.Propositional (atom_union, on_atoms)
@@ -82,16 +82,14 @@ let print_prop_formula = print_qformula print_propvar;;
 
 eval :: PropositionalFormula formula atomic => formula -> (atomic -> Bool) -> Bool
 eval fm v =
-    foldPropositional c a fm
+    foldPropositional co id at fm
     where
-      c FALSE = False
-      c TRUE = True
-      c ((:~:) p) = not (eval p v)
-      c (BinOp p (:&:) q) = eval p v && eval q v
-      c (BinOp p (:|:) q) = eval p v || eval q v
-      c (BinOp p (:=>:) q) = not (eval p v) || eval q v
-      c (BinOp p (:<=>:) q) = eval p v == eval q v
-      a x = v x
+      co ((:~:) p) = not (eval p v)
+      co (BinOp p (:&:) q) = eval p v && eval q v
+      co (BinOp p (:|:) q) = eval p v || eval q v
+      co (BinOp p (:=>:) q) = not (eval p v) || eval q v
+      co (BinOp p (:<=>:) q) = eval p v == eval q v
+      at x = v x
 
 {-
 START_INTERACTIVE;;
@@ -172,29 +170,25 @@ pSubst subfn fm = on_atoms (\ p -> maybe (atomic p) id (fpf subfn p)) fm
 
 dual :: forall formula atomic. (PropositionalFormula formula atomic) => formula -> formula
 dual fm =
-    foldPropositional c a fm
+    foldPropositional co (fromBool . not) at fm
     where
-      c FALSE = true
-      c TRUE = false
-      c ((:~:) _) = fm
-      c (BinOp p (:&:) q) = dual p .|. dual q
-      c (BinOp p (:|:) q) = dual p .&. dual q
-      c _ = error "dual: Formula involves connectives ==> or <=>";;
-      a atom = atomic atom
+      co ((:~:) _) = fm
+      co (BinOp p (:&:) q) = dual p .|. dual q
+      co (BinOp p (:|:) q) = dual p .&. dual q
+      co _ = error "dual: Formula involves connectives ==> or <=>";;
+      at = atomic
 
 -- ------------------------------------------------------------------------- 
 -- Routine simplification.                                                   
 -- ------------------------------------------------------------------------- 
 
-psimplify1 :: PropositionalFormula r a => r -> r
+psimplify1 :: (PropositionalFormula r a, Eq r) => r -> r
 psimplify1 fm =
-    foldPropositional simplifyCombine (\ _ -> fm) fm
+    foldPropositional simplifyCombine (\ _ -> fm) (\ _ -> fm) fm
     where
-      simplifyCombine TRUE = fm
-      simplifyCombine FALSE = fm
-      simplifyCombine ((:~:) fm') = foldPropositional simplifyNotCombine (\ _ -> fm) fm'
+      simplifyCombine ((:~:) fm') = foldPropositional simplifyNotCombine (fromBool . not) (\ _ -> fm) fm'
       simplifyCombine (BinOp l op r) =
-          case (testBool l, op, testBool r) of
+          case (asBool l, op, asBool r) of
             (Just True,  (:&:), _         ) -> r
             (Just False, (:&:), _         ) -> false
             (_,          (:&:), Just True ) -> l
@@ -213,21 +207,16 @@ psimplify1 fm =
             (_,          (:<=>:), Just False) -> (.~.) l
             _ -> fm
 
-      simplifyNotCombine TRUE = false
-      simplifyNotCombine FALSE = true
       simplifyNotCombine ((:~:) p) = p
       simplifyNotCombine _ = fm
-      testBool = foldPropositional (\ x -> case x of TRUE -> Just True; FALSE -> Just False; _ -> Nothing) (const Nothing)
 
-psimplify :: forall formula atomic. PropositionalFormula formula atomic => formula -> formula
+psimplify :: forall formula atomic. (PropositionalFormula formula atomic, Eq formula) => formula -> formula
 psimplify fm =
-    foldPropositional c a fm
+    foldPropositional c (\ _ -> fm) (\ _ -> fm) fm
     where
       c :: Combination formula -> formula
       c ((:~:) p) = psimplify1 ((.~.) (psimplify p))
       c (BinOp p op q) = psimplify1 (binop (psimplify p) op (psimplify q))
-      c _ = fm
-      a _ = fm
 
 -- ------------------------------------------------------------------------- 
 -- Some operations on literals.                                              
@@ -235,10 +224,11 @@ psimplify fm =
 
 negative :: PropositionalFormula formula atomic => formula -> Bool
 negative lit =
-    foldPropositional c a lit
+    foldPropositional c tf a lit
     where
       c ((:~:) _) = True
       c _ = False
+      tf = not
       a _ = False
 
 positive :: PropositionalFormula formula atomic => formula -> Bool
@@ -246,7 +236,7 @@ positive = not . negative
 
 negate :: PropositionalFormula formula atomic => formula -> formula
 negate lit =
-    foldPropositional c a lit
+    foldPropositional c (fromBool . not) a lit
     where
       c ((:~:) p) = p
       c _ = (.~.) lit
@@ -258,20 +248,13 @@ negate lit =
 
 nnf' :: PropositionalFormula formula atomic => formula -> formula
 nnf' fm =
-    foldPropositional {-nnfQuant-} nnfCombine (\ _ -> fm) fm
+    foldPropositional nnfCombine (\ _ -> fm) (\ _ -> fm) fm
     where
-      -- nnfQuant op v p = quant op v (nnf' p)
-      nnfCombine TRUE = true
-      nnfCombine FALSE = false
-      nnfCombine ((:~:) p) = foldPropositional {-nnfNotQuant-} nnfNotCombine (\ _ -> fm) p
+      nnfCombine ((:~:) p) = foldPropositional nnfNotCombine (fromBool . not) (\ _ -> fm) p
       nnfCombine (BinOp p (:=>:) q) = nnf' ((.~.) p) .|. (nnf' q)
       nnfCombine (BinOp p (:<=>:) q) =  (nnf' p .&. nnf' q) .|. (nnf' ((.~.) p) .&. nnf' ((.~.) q))
       nnfCombine (BinOp p (:&:) q) = nnf' p .&. nnf' q
       nnfCombine (BinOp p (:|:) q) = nnf' p .|. nnf' q
-      -- nnfNotQuant All v p = exists v (nnf' ((.~.) p))
-      -- nnfNotQuant Exists v p = for_all v (nnf' ((.~.) p))
-      nnfNotCombine TRUE = false
-      nnfNotCombine FALSE = true
       nnfNotCombine ((:~:) p) = nnf' p
       nnfNotCombine (BinOp p (:&:) q) = nnf' ((.~.) p) .|. nnf' ((.~.) q)
       nnfNotCombine (BinOp p (:|:) q) = nnf' ((.~.) p) .&. nnf' ((.~.) q)
@@ -282,7 +265,7 @@ nnf' fm =
 -- Roll in simplification.                                                   
 -- ------------------------------------------------------------------------- 
 
-nnf :: PropositionalFormula formula atomic => formula -> formula
+nnf :: (PropositionalFormula formula atomic, Eq formula) => formula -> formula
 nnf = nnf' . psimplify
 
 -- ------------------------------------------------------------------------- 
@@ -291,22 +274,20 @@ nnf = nnf' . psimplify
 
 nenf' :: PropositionalFormula formula atomic => formula -> formula
 nenf' fm =
-    foldPropositional nenfCombine (\ _ -> fm) fm
+    foldPropositional nenfCombine (\ _ -> fm) (\ _ -> fm) fm
     where
-      nenfCombine ((:~:) p) = foldPropositional nenfNotCombine (\ _ -> fm) p
+      nenfCombine ((:~:) p) = foldPropositional nenfNotCombine (\ _ -> fm) (\ _ -> fm) p
       nenfCombine (BinOp p (:&:) q) = nenf' p .|. nenf' q
       nenfCombine (BinOp p (:|:) q) = nenf' p .|. nenf' q
       nenfCombine (BinOp p (:=>:) q) = nenf' ((.~.) p) .|. nenf' q
       nenfCombine (BinOp p (:<=>:) q) = nenf' p .<=>. nenf' q
-      nenfCombine _ = fm
       nenfNotCombine ((:~:) p) = p
       nenfNotCombine (BinOp p (:&:) q) = nenf' ((.~.) p) .|. nenf' ((.~.) q)
       nenfNotCombine (BinOp p (:|:) q) = nenf' ((.~.) p) .&. nenf' ((.~.) q)
       nenfNotCombine (BinOp p (:=>:) q) = nenf' p .&. nenf' ((.~.) q)
       nenfNotCombine (BinOp p (:<=>:) q) = nenf' p .<=>. nenf' ((.~.) q) -- really?  how is this asymmetrical?
-      nenfNotCombine _ = fm
 
-nenf :: PropositionalFormula formula atomic => formula -> formula
+nenf :: (PropositionalFormula formula atomic, Eq formula) => formula -> formula
 nenf = nenf' . psimplify
 
 -- ------------------------------------------------------------------------- 
@@ -343,25 +324,27 @@ dnf0 fm =
 
 distrib :: PropositionalFormula formula atomic => formula -> formula
 distrib fm =
-    foldPropositional c a fm
+    foldPropositional c tf a fm
     where
       c (BinOp p (:&:) s) =
-          foldPropositional c' a s
+          foldPropositional c' tf a s
           where c' (BinOp q (:|:) r) = distrib (p .&. q) .|. distrib (p .&. r)
                 c' _ =
-                    foldPropositional c'' a p
+                    foldPropositional c'' tf a p
                     where c'' (BinOp q (:|:) r) = distrib (q .&. s) .|. distrib (r .&. s)
                           c'' _ = fm
       c _ = fm
+      tf _ = fm
       a _ = fm
 
 rawdnf :: PropositionalFormula formula atomic => formula -> formula
 rawdnf fm =
-    foldPropositional c a fm
+    foldPropositional c tf a fm
     where
       c (BinOp p (:&:) q) = distrib (rawdnf p .&. rawdnf q)
       c (BinOp p (:|:) q) = rawdnf p .|. rawdnf q
       c _ = fm
+      tf _ = fm
       a _ = fm
 
 -- ------------------------------------------------------------------------- 
@@ -373,11 +356,12 @@ distrib' s1 s2 = allpairs (Set.union) s1 s2
 
 purednf :: (PropositionalFormula formula atomic, Ord formula) => formula -> Set.Set (Set.Set formula)
 purednf fm =
-    foldPropositional c a fm
+    foldPropositional c tf a fm
     where
       c (BinOp p (:&:) q) = distrib' (purednf p) (purednf q)
       c (BinOp p (:|:) q) = Set.union (purednf p) (purednf q)
       c _ = Set.singleton (Set.singleton fm)
+      tf _ = Set.singleton (Set.singleton fm)
       a _ = Set.singleton (Set.singleton fm)
 
 -- ------------------------------------------------------------------------- 
@@ -395,13 +379,12 @@ trivial lits =
 
 simpdnf :: forall formula atomic.  (PropositionalFormula formula atomic, Eq formula, Ord formula) => formula -> Set.Set (Set.Set formula)
 simpdnf fm =
-    foldPropositional c a fm
+    foldPropositional c tf a fm
     where
       c :: Combination formula -> Set.Set (Set.Set formula)
-      c FALSE = Set.empty
-      c TRUE = Set.singleton Set.empty
       c _ = Set.filter (\ d -> not (setAny (\ d' -> Set.isProperSubsetOf d' d) djs)) djs
           where djs = Set.filter (not . trivial) (purednf (nnf fm))
+      tf = ifElse (Set.singleton Set.empty) Set.empty
       a :: atomic -> Set.Set (Set.Set formula)
       a _ = Set.singleton (Set.singleton fm)
 
@@ -422,10 +405,9 @@ purecnf fm = Set.map (Set.map (psimplify . (.~.))) (purednf (nnf ((.~.) fm)))
 simpcnf :: (PropositionalFormula formula atomic, Ord formula) =>
            formula -> Set.Set (Set.Set formula)
 simpcnf fm =
-    foldPropositional c a fm
+    foldPropositional c tf a fm
     where
-      c FALSE = Set.singleton Set.empty
-      c TRUE = Set.empty
+      tf = ifElse Set.empty (Set.singleton Set.empty)
       c _ =
           -- Discard any clause that is the proper subset of another clause
           Set.filter (\ cj -> not (setAny (\ c' -> Set.isProperSubsetOf c' cj) cjs)) cjs

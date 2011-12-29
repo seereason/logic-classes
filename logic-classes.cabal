@@ -28,7 +28,19 @@ Library
                    Data.Logic.Classes.Skolem
                    Data.Logic.Classes.Term
                    Data.Logic.Classes.Variable
+                   Data.Logic.Harrison.Equal
+                   Data.Logic.Harrison.FOL
+                   Data.Logic.Harrison.Formulas.FirstOrder
+                   Data.Logic.Harrison.Formulas.Propositional
+                   Data.Logic.Harrison.Lib
+                   Data.Logic.Harrison.Meson
                    Data.Logic.Harrison.Normal
+                   Data.Logic.Harrison.Prolog
+                   Data.Logic.Harrison.Prop
+                   Data.Logic.Harrison.Resolution
+                   Data.Logic.Harrison.Skolem
+                   Data.Logic.Harrison.Tableaux
+                   Data.Logic.Harrison.Unif
                    Data.Logic.Instances.Chiou
                    Data.Logic.Instances.PropLogic
                    Data.Logic.Instances.SatSolver
@@ -52,6 +64,7 @@ Library
                    mtl, syb-with-class, text, PropLogic, pretty, safecopy, set-extra, syb
 
 Executable tests
+ GHC-Options: -Wall -O2
  Main-Is: Data/Logic/Tests/Main.hs
  Build-Depends: HUnit
  Other-Modules:    Data.Logic.Tests.Chiou0

@@ -30,7 +30,7 @@ unify_literals env f1 f2 =
     where
       co :: lit -> lit -> Maybe (Failing (Map.Map v term))
       co p q = Just $ unify_literals env p q
-      tf _ _ = Nothing
+      tf p q = if p == q then Just $ unify env [] else Nothing
       at :: atom -> atom -> Maybe (Failing (Map.Map v term))
       at a1 a2 =
           zipAtomsEq (\ p1 ts1 p2 ts2 -> 
@@ -168,7 +168,7 @@ deepen f n m =
     -- If no maximum depth limit is given print a trace of the
     -- levels tried.  The assumption is that we are running
     -- interactively.
-    let n' = maybe (trace ("Searching with depth limit " ++ show n ++ "/" ++ show m) n) (const n) m in
+    let n' = maybe (trace ("Searching with depth limit " ++ show n) n) (const n) m in
     case f n' of
       Failure _ -> deepen f (n + 1) m
       Success x -> Success (x, n)
