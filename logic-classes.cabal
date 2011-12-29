@@ -40,6 +40,15 @@ Library
                    Data.Logic.Normal.Skolem
                    Data.Logic.Resolution
                    Data.Logic.Satisfiable
+                   Data.Logic.Tests.Harrison.Equal
+                   Data.Logic.Tests.Harrison.FOL
+                   Data.Logic.Tests.Harrison.HUnit
+                   Data.Logic.Tests.Harrison.Meson
+                   Data.Logic.Tests.Harrison.Prop
+                   Data.Logic.Tests.Harrison.Resolution
+                   Data.Logic.Tests.Harrison.Skolem
+                   Data.Logic.Tests.Harrison.Main
+                   Data.Logic.Tests.Harrison.Unif
                    Data.Logic.Types.FirstOrder
                    Data.Logic.Types.FirstOrderPublic
                    -- Data.Logic.Types.Harrison.Equal
