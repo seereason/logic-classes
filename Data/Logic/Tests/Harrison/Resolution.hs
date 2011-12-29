@@ -11,6 +11,9 @@ import Data.Logic.Classes.Term (Term(vt, fApp))
 import Data.Logic.Harrison.Normal (simpcnf)
 import Data.Logic.Harrison.Resolution (resolution1, resolution2, presolution)
 import Data.Logic.Normal.Skolem (runSkolem, skolemize)
+import Data.Logic.Types.Harrison.Equal (FOLEQ)
+import Data.Logic.Types.Harrison.FOL (Function(Skolem))
+import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula)
 import qualified Data.Set as Set
 import Data.String (IsString(..))
 import Prelude hiding (negate)
@@ -18,25 +21,24 @@ import Prelude hiding (negate)
 import Data.Logic.Tests.Harrison.HUnit
 
 tests :: TestFormulaEq formula atom term v p f => Test formula
-tests = TestLabel "Data.Logic.Harrison.Resolution" $ TestList [test01, test02, test03, test04]
+tests = TestLabel "Data.Logic.Tests.Harrison.Resolution" $ TestList [test01, test02, test03, test04]
 
 -- ------------------------------------------------------------------------- 
 -- Barber's paradox is an example of why we need factoring.                  
 -- ------------------------------------------------------------------------- 
 
-test01 :: forall formula atom term v p f. TestFormulaEq formula atom term v p f => Test formula
+-- test01 :: forall formula atom term v p f. TestFormulaEq formula atom term v p f => Test formula
 test01 = TestCase $ assertEqual "Barber's paradox (p. 181)" expected input
     where input = simpcnf (runSkolem (skolemize((.~.)barb)))
-          barb :: formula
+          barb :: Formula FOLEQ
           barb = exists (fromString "b") (for_all (fromString "x") (shaves [b, x] .<=>. ((.~.)(shaves [x, x]))))
           -- This is not exactly what is in the book
           expected = Set.fromList [Set.fromList [shaves [b,     fx [b]], (.~.)(shaves [fx [b],fx [b]])],
                                    Set.fromList [shaves [fx [b],fx [b]], (.~.)(shaves [b,     fx [b]])]]
-          x = vt (fromString "x") :: term
-          b = vt (fromString "b") :: term
-          fx = fApp (fromString "f_x" :: f) :: [term] -> term
-          shaves :: [term] -> formula
-          shaves = pApp (fromString "shaves" :: p) 
+          x = vt (fromString "x")
+          b = vt (fromString "b")
+          fx = fApp (Skolem 1)
+          shaves = pApp (fromString "shaves") 
 
 -- ------------------------------------------------------------------------- 
 -- Simple example that works well.                                           

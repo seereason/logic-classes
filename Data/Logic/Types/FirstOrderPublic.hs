@@ -15,6 +15,7 @@ import Data.Data (Data)
 import Data.Logic.Classes.Arity (Arity)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..))
+import Data.Logic.Classes.Equals (PredicateEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import qualified Data.Logic.Types.FirstOrder as N
 import Data.Logic.Classes.Negate (Negatable(..))
@@ -74,7 +75,7 @@ instance (Constants (N.Formula v p f),
 instance (Constants (Formula v p f), Constants (N.Formula v p f),
           Combinable (Formula v p f), Term (N.PTerm v f) v f,
           Show v,
-          Arity p, Constants p, Ord p, Data p, Show p,
+          Arity p, Constants p, Ord p, Data p, Show p, PredicateEq p,
           Ord f, Show f) => FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v where
     for_all v x = public $ for_all v (intern x :: N.Formula v p f)
     exists v x = public $ exists v (intern x :: N.Formula v p f)
@@ -96,7 +97,7 @@ instance ({- FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
           Data v, Data f, Data p,
           Ord v, Ord p, Ord f,
           Show v, Show p, Show f,
-          Arity p, Constants p, Skolem f, Variable v,
+          Arity p, Constants p, Skolem f, Variable v, PredicateEq p,
           Ord (N.Formula v p f)) => Ord (Formula v p f) where
     compare a b =
         let (a' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm (intern a :: N.Formula v p f))
@@ -105,7 +106,7 @@ instance ({- FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
           EQ -> EQ
           x -> {- if isRenameOf a' b' then EQ else -} x
 
-instance (Arity p, Constants p, Skolem f, Show p, Show f, Ord p, Ord f, Data f, Data v, Data p,
+instance (Arity p, Constants p, Skolem f, Show p, Show f, Ord p, Ord f, Data f, Data v, Data p, PredicateEq p,
           FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v) => Eq (Formula v p f) where
     a == b = compare a b == EQ
 

@@ -5,8 +5,8 @@ module Data.Logic.Harrison.Meson where
 import Control.Applicative.Error (Failing(..))
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Constants (false)
+import Data.Logic.Classes.Equals (AtomEq(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term(..))
@@ -14,7 +14,8 @@ import Data.Logic.Harrison.FOL (generalize)
 import Data.Logic.Harrison.Lib (setAll, settryfind)
 import Data.Logic.Harrison.Normal (negative, negate, simpcnf, list_conj, simpdnf)
 import Data.Logic.Harrison.Prolog (renamerule)
-import Data.Logic.Harrison.Skolem (pnf, specialize, askolemize)
+import Data.Logic.Harrison.Skolem (pnf)
+import Data.Logic.Normal.Skolem (SkolemT, specialize, askolemize)
 import Data.Logic.Harrison.Tableaux (unify_literals, deepen)
 import Prelude hiding (negate)
 
@@ -49,7 +50,7 @@ END_INTERACTIVE;;
 -- Generation of contrapositives.                                            
 -- ------------------------------------------------------------------------- 
 
-contrapositives :: (FirstOrderFormula fof atom v, Atom atom p term, Term term v f, Eq fof, Ord fof) => Set.Set fof -> Set.Set (Set.Set fof, fof)
+contrapositives :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Eq fof, Ord fof) => Set.Set fof -> Set.Set (Set.Set fof, fof)
 contrapositives cls =
     if setAll negative cls then Set.insert (Set.map negate cls,false) base else base
     where base = Set.map (\ c -> (Set.map negate (Set.delete c cls), c)) cls
@@ -58,7 +59,7 @@ contrapositives cls =
 -- The core of MESON: ancestor unification or Prolog-style extension.        
 -- ------------------------------------------------------------------------- 
 
-mexpand :: forall fof atom term v p f. (FirstOrderFormula fof atom v, Atom atom p term, Term term v f, Ord fof, Eq p) =>
+mexpand :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof, Eq p) =>
            Set.Set (Set.Set fof, fof)
         -> Set.Set fof
         -> fof
@@ -72,10 +73,10 @@ mexpand rules ancestors g cont (env,n,k) =
            Failure _ -> settryfind doRule rules
     where
       doAncestor a =
-          do mp <- unify_literals env (g, negate a)
+          do mp <- unify_literals env g (negate a)
              cont (mp, n, k)
       doRule rule =
-          do mp <- unify_literals env (g, c)
+          do mp <- unify_literals env g c
              mexpand' (mp, n - Set.size asm, k')
           where
             mexpand' :: (Map.Map v term, Int, Int) -> Failing (Map.Map v term, Int, Int)
@@ -86,7 +87,7 @@ mexpand rules ancestors g cont (env,n,k) =
 -- Full MESON procedure.                                                     
 -- ------------------------------------------------------------------------- 
 
-puremeson :: forall fof atom term v p f. (FirstOrderFormula fof atom v, Atom atom p term, Term term v f,
+puremeson :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f,
                                           Ord fof, Eq p, Show fof) =>
              Maybe Int -> fof -> Failing ((Map.Map v term, Int, Int), Int)
 puremeson maxdl fm =
@@ -97,11 +98,11 @@ puremeson maxdl fm =
       rules = Set.fold (Set.union . contrapositives) Set.empty cls :: Set.Set (Set.Set fof, fof)
       cls = {-trace ("cls=" ++ show (Set.size cls))-} (simpcnf (specialize (pnf fm)))
 
-meson :: (FirstOrderFormula fof atom v, Atom atom p term, Term term v f, Ord term, Ord fof, Eq fof, Eq p, Show fof) =>
-         Maybe Int -> fof -> Set.Set (Failing ((Map.Map v term, Int, Int), Int))
+meson :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord term, Ord fof, Eq fof, Eq p, Show fof, Monad m) =>
+         Maybe Int -> fof -> SkolemT v term m (Set.Set (Failing ((Map.Map v term, Int, Int), Int)))
 meson maxdl fm =
-    Set.map (puremeson maxdl . list_conj) (simpdnf fm1)
-    where fm1 = askolemize ((.~.)(generalize fm))
+    askolemize ((.~.)(generalize fm)) >>=
+    return . Set.map (puremeson maxdl . list_conj) . simpdnf 
 
 {-
 -- ------------------------------------------------------------------------- 

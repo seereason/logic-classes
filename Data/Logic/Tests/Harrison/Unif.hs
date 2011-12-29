@@ -13,7 +13,7 @@ import Data.Logic.Tests.Harrison.HUnit ()
 import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual)
 
 tests :: Test
-tests = TestLabel "Data.Logic.Harrison.Unif" $ TestList [test01]
+tests = TestLabel "Data.Logic.Tests.Harrison.Unif" $ TestList [test01]
 
 -- ------------------------------------------------------------------------- 
 -- Examples.                                                                 

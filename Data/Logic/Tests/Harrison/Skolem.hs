@@ -14,11 +14,12 @@ import Data.Logic.Harrison.Skolem (simplify, nnf, pnf)
 import Data.Logic.Normal.Skolem (runSkolem, skolemize)
 import Data.Logic.Tests.Harrison.HUnit ()
 import Data.Logic.Types.Harrison.Equal (FOLEQ, PredName(..))
+import Data.Logic.Types.Harrison.FOL (Function(..))
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula)
 import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual)
 
 tests :: Test
-tests = TestLabel "Data.Logic.Harrison.Skolem" $ TestList [test01, test02, test03, test04, test05]
+tests = TestLabel "Data.Logic.Tests.Harrison.Skolem" $ TestList [test01, test02, test03, test04, test05]
 
 -- ------------------------------------------------------------------------- 
 -- Example.                                                                  
@@ -78,8 +79,8 @@ test04 = TestCase $ assertEqual "skolemize 1 (p. 150)" expected input
           fm :: Formula FOLEQ
           fm = exists "y" (pApp (Named "<") [vt "x", vt "y"] .=>.
                            for_all "u" (exists "v" (pApp (Named "<") [fApp "*" [vt "x", vt "u"],  fApp "*" [vt "y", vt "v"]])))
-          expected = ((.~.)(pApp (Named "<") [vt "x",fApp "f_y" [vt "x"]])) .|.
-                     (pApp (Named "<") [fApp "*" [vt "x",vt "u"],fApp "*" [fApp "f_y" [vt "x"],fApp "f_v" [vt "u",vt "x"]]])
+          expected = ((.~.)(pApp (Named "<") [vt "x",fApp (Skolem 1) [vt "x"]])) .|.
+                     (pApp (Named "<") [fApp "*" [vt "x",vt "u"],fApp "*" [fApp (Skolem 1) [vt "x"],fApp (Skolem 2) [vt "u",vt "x"]]])
 
 test05 :: Test
 test05 = TestCase $ assertEqual "skolemize 2 (p. 150)" expected input
@@ -91,6 +92,6 @@ test05 = TestCase $ assertEqual "skolemize 2 (p. 150)" expected input
                             (exists "y" (exists "z" ((pApp q [vt "y"]) .|.
                                                      ((.~.)(exists "z" ((pApp p [vt "z"]) .&. (pApp q [vt "z"]))))))))
           expected = ((.~.)(pApp p [vt "x"])) .|.
-                     ((pApp q [fApp "c_y" []]) .|.
+                     ((pApp q [fApp (Skolem 1) []]) .|.
                       (((.~.)(pApp p [vt "z"])) .|.
                        ((.~.)(pApp q [vt "z"]))))

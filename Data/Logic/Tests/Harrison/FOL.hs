@@ -31,11 +31,11 @@ import qualified Data.Set as Set
 import Prelude hiding (pred)
 
 tests1 :: TestFormula formula atom term v p f => Test formula
-tests1 = TestLabel "Data.Logic.Harrison.FOL" $
+tests1 = TestLabel "Data.Logic.Tests.Harrison.FOL" $
         TestList [test01, test02, test03, test04, test05,
                   test06, test07, test08, test09]
 tests2 :: TestFormulaEq formula atom term v p f => Test formula
-tests2 = TestLabel "Data.Logic.Harrison.FOL" $
+tests2 = TestLabel "Data.Logic.Tests.Harrison.FOL" $
          TestList [{-test10, test11, test12-}]
 
 -- ------------------------------------------------------------------------- 

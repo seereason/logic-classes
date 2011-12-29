@@ -30,7 +30,7 @@ import Data.Generics (Data, Typeable, listify)
 import Data.Logic.Classes.Arity (Arity(arity))
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(satisfiable))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.Equals (AtomEq)
+import Data.Logic.Classes.Equals (AtomEq, PredicateEq(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
 import Data.Logic.Classes.FirstOrderEq (convertFOFEq)
 import Data.Logic.Classes.Literal (Literal)
@@ -89,6 +89,9 @@ data Pr
     | F
     | Equals
     deriving (Eq, Ord, Data, Typeable)
+
+instance PredicateEq Pr where
+    eqp = Equals
 
 instance IsString Pr where
     fromString = Pr

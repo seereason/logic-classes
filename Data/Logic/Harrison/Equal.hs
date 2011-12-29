@@ -9,12 +9,11 @@ module Data.Logic.Harrison.Equal where
 -- ========================================================================= 
 
 import Control.Applicative.Error (Failing(..))
-import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine ((∧), (⇒))
-import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
+import Data.Logic.Classes.Constants (Constants(fromBool))
+import Data.Logic.Classes.Equals (AtomEq(..), (.=.), PredicateEq(eqp))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), (∀))
 import Data.Logic.Classes.Term (Term(..))
-import Data.Logic.Classes.Variable (Variable(..))
 import Data.Logic.Harrison.Formulas.FirstOrder (atom_union)
 import Data.Logic.Harrison.Lib ((∅))
 import Data.Logic.Harrison.Skolem (functions)
@@ -22,16 +21,16 @@ import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 
 is_eq :: (FirstOrderFormula fof atom v, AtomEq atom p term) => fof -> Bool
-is_eq = foldFirstOrder (\ _ _ _ -> False) (\ _ -> False) (foldAtomEq (\ _ _ -> False) (\ _ _ -> True))
+is_eq = foldFirstOrder (\ _ _ _ -> False) (\ _ -> False) (\ _ -> False) (foldAtomEq (\ _ _ -> False) (\ _ -> False) (\ _ _ -> True))
 
 mk_eq :: (FirstOrderFormula fof atom v, AtomEq atom p term) => term -> term -> fof
 mk_eq = (.=.)
 
 dest_eq :: (FirstOrderFormula fof atom v, AtomEq atom p term) => fof -> Failing (term, term)
 dest_eq fm =
-    foldFirstOrder (\ _ _ _ -> err) (\ _ -> err) pr fm
+    foldFirstOrder (\ _ _ _ -> err) (\ _ -> err) (\ _ -> err) at fm
     where
-      pr = foldAtomEq (\ _ _ -> err) (\ s t -> Success (s, t))
+      at = foldAtomEq (\ _ _ -> err) (\ _ -> err) (\ s t -> Success (s, t))
       err = Failure ["dest_eq: not an equation"]
 
 lhs :: (FirstOrderFormula fof atom v, AtomEq atom p term) => fof -> Failing term
@@ -47,7 +46,7 @@ predicates :: forall formula atom term v p. (FirstOrderFormula formula atom v, A
 predicates fm =
     atom_union pair fm
     where -- pair :: atom -> Set.Set (p, Int)
-          pair = foldAtomEq (\ p a -> Set.singleton (p, (length a))) (\ _ _ -> Set.singleton (eqp :: p, 2))
+          pair = foldAtomEq (\ p a -> Set.singleton (p, (length a))) (\ x -> Set.singleton (fromBool x, 0)) (\ _ _ -> Set.singleton (eqp :: p, 2))
 
 -- ------------------------------------------------------------------------- 
 -- Code to generate equality axioms for functions.                           
@@ -83,7 +82,7 @@ predicate_congruence (p,n) =
       args_x = map vt argnames_x
       args_y = map vt argnames_y
       ant = foldr1 (∧) (map (uncurry (.=.)) (zip args_x args_y))
-      con = atomic (apply p args_x) ⇒ atomic (apply p args_y)
+      con = atomic (applyEq p args_x) ⇒ atomic (applyEq p args_y)
 
 -- ------------------------------------------------------------------------- 
 -- Hence implement logic with equality just by adding equality "axioms".     
@@ -102,7 +101,7 @@ equivalence_axioms =
       z :: term
       z = vt (fromString "z")
 
-equalitize :: (FirstOrderFormula formula atom v, AtomEq atom t term, Term term v f, Ord t, Ord formula) =>
+equalitize :: (FirstOrderFormula formula atom v, AtomEq atom t term, Term term v f, Ord t, Ord formula, Ord f) =>
               formula -> formula
 equalitize fm =
     if not (Set.member (eqp, 2) allpreds)

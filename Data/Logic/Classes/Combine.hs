@@ -86,13 +86,13 @@ class ({- Constants formula, -} Negatable formula) => Combinable formula where
     (.~&.) :: formula -> formula -> formula
     x .~&. y = (.~.) (x .&. y)
 
-infixr 2  .<=>. ,  .=>. ,  .<~>.
+infixr 2  .<=>. ,  .=>. ,  .<~>., ⇒, ⇔, ==>, <=>
 -- We had been using a different precedence for & and |, I'm swapping
 -- 3 and 4 here to match Harrison and Haskell (and I assume most other
 -- languages.)  So a .|. b .&. c means a .|. (b .&. c).  And False &&
 -- True || True is True.
-infixl 3  .|.
-infixl 4  .&.
+infixl 3  .|., ∨
+infixl 4  .&., ∧
 
 -- |'Combination' is a helper type used in the signatures of the
 -- 'foldPropositional' and 'foldFirstOrder' methods so can represent

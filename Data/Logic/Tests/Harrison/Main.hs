@@ -5,8 +5,9 @@ import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
 import Data.Logic.Classes.Term (Term)
 import qualified Data.Logic.Harrison.Lib as Lib
--- import qualified Data.Logic.Tests.Harrison.Equal as Equal
+import qualified Data.Logic.Tests.Harrison.Equal as Equal
 import qualified Data.Logic.Tests.Harrison.FOL as FOL
+import qualified Data.Logic.Tests.Harrison.Meson as Meson
 import qualified Data.Logic.Tests.Harrison.Prop as Prop
 import qualified Data.Logic.Tests.Harrison.Resolution as Resolution
 import qualified Data.Logic.Tests.Harrison.Skolem as Skolem
@@ -33,5 +34,6 @@ tests =
          , Unif.tests
          , Skolem.tests
          , convert (Resolution.tests :: Test (Formula FOLEQ))
-         -- , convert (Equal.tests :: Test (Formula FOLEQ))
+         , convert (Equal.tests :: Test (Formula FOLEQ))
+         , convert (Meson.test01 :: Test (Formula FOLEQ))
          ]

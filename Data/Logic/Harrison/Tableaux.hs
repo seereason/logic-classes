@@ -168,7 +168,7 @@ deepen f n m =
     -- If no maximum depth limit is given print a trace of the
     -- levels tried.  The assumption is that we are running
     -- interactively.
-    let n' = maybe (trace ("Searching with depth limit " ++ show n) n) (const n) m in
+    let n' = maybe (trace ("Searching with depth limit " ++ show n ++ "/" ++ show m) n) (const n) m in
     case f n' of
       Failure _ -> deepen f (n + 1) m
       Success x -> Success (x, n)
