@@ -40,7 +40,7 @@ import Prelude hiding (pred)
 
 eval :: FirstOrderFormula formula atom v => formula -> (atom -> Bool) -> Bool
 eval fm v =
-    foldFirstOrder qu co tf at fm
+    foldFirstOrder qu co id at fm
     where
       qu _ _ p = eval p v
       co ((:~:) p) = not (eval p v)
@@ -48,7 +48,6 @@ eval fm v =
       co (BinOp p (:|:) q) = eval p v || eval q v
       co (BinOp p (:=>:) q) = not (eval p v) || eval q v
       co (BinOp p (:<=>:) q) = eval p v == eval q v
-      tf = id
       at = v
 
 list_conj :: (FirstOrderFormula formula atom v) => Set.Set formula -> formula

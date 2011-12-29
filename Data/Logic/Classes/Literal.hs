@@ -32,7 +32,9 @@ class ( Negatable lit
     -- equals :: term -> term -> lit
     -- pAppLiteral :: p -> [term] -> lit
     foldLiteral :: (lit -> r) -> (atom -> r) -> lit -> r
-    zipLiterals :: (lit -> lit -> Maybe r) -> (atom -> atom -> Maybe r) -> lit -> lit -> Maybe r
+    zipLiterals :: (lit -> lit -> Maybe r)
+                -> (atom -> atom -> Maybe r)
+                -> lit -> lit -> Maybe r
     atomic :: atom -> lit
 
 {-
