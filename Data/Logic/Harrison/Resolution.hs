@@ -1,249 +1,292 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Harrison.Resolution where
 
 import Control.Applicative.Error (Failing(..), failing)
-import qualified Data.Map as M
-import Data.Logic.Harrison.Tableaux (unifyLiterals)
+import Data.Logic.Classes.Combine (Combination(..))
+import Data.Logic.Classes.Equals (AtomEq, zipAtomsEq)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), zipFirstOrder)
+import Data.Logic.Classes.Negate ((.~.))
+import Data.Logic.Classes.Term (Term(vt, foldTerm))
+import Data.Logic.Classes.Variable (Variable(prefix))
+import Data.Logic.Harrison.FOL (subst, fv, generalize)
+import Data.Logic.Harrison.Lib (settryfind, allpairs, allsubsets, setAny, setAll,
+                                allnonemptysubsets, (|->), apply, defined)
+import Data.Logic.Harrison.Normal (positive, negate, simpdnf, list_disj, list_conj,
+                                   simpcnf, trivial)
+import Data.Logic.Harrison.Skolem (pnf)
+import Data.Logic.Normal.Skolem (SkolemT, askolemize, specialize)
+import Data.Logic.Harrison.Tableaux (unify_literals)
 import Data.Logic.Harrison.Unif (solve)
-import Data.Logic.Classes (Literal)
+import qualified Data.Map as Map
+import Data.Maybe (fromMaybe)
+import qualified Data.Set as Set
+import Prelude hiding (negate)
 
-{-
-(* ========================================================================= *)
-(* Resolution.                                                               *)
-(*                                                                           *)
-(* Copyright (c) 2003-2007, John Harrison. (See "LICENSE.txt" for details.)  *)
-(* ========================================================================= *)
+-- ========================================================================= 
+-- Resolution.                                                               
+--                                                                           
+-- Copyright (c) 2003-2007, John Harrison. (See "LICENSE.txt" for details.)  
+-- ========================================================================= 
 
-(* ------------------------------------------------------------------------- *)
-(* Barber's paradox is an example of why we need factoring.                  *)
-(* ------------------------------------------------------------------------- *)
+-- ------------------------------------------------------------------------- 
+-- MGU of a set of literals.                                                 
+-- ------------------------------------------------------------------------- 
 
-let barb = <<~(exists b. forall x. shaves(b,x) <=> ~shaves(x,x))>>;;
-
-START_INTERACTIVE;;
-simpcnf(skolemize(Not barb));;
-END_INTERACTIVE;;
-
-(* ------------------------------------------------------------------------- *)
-(* MGU of a set of literals.                                                 *)
-(* ------------------------------------------------------------------------- *)
-
-let rec mgu l env =
-  match l with
-    a::b::rest -> mgu (b::rest) (unify_literals env (a,b))
-  | _ -> solve env;;
-
--}
-mgu :: Literal lit term v p f => [lit] -> M.Map v term -> Failing (M.Map v term)
+mgu :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Eq term, Eq p) =>
+       Set.Set fof -> Map.Map v term -> Failing (Map.Map v term)
 mgu l env =
-    case l of
-      -- Using the monad instance of Failing
-      (a:b:rest) -> unifyLiterals env a b >>= mgu (b:rest)
+    case Set.minView l of
+      Just (a, rest) ->
+          case Set.minView rest of
+            Just (b, _) -> unify_literals env a b >>= mgu rest
+            _ -> Success (solve env)
       _ -> Success (solve env)
+
+unifiable :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Eq p) =>
+             fof -> fof -> Bool
+unifiable p q = failing (const False) (const True) (unify_literals Map.empty p q)
+
+-- ------------------------------------------------------------------------- 
+-- Rename a clause.                                                          
+-- ------------------------------------------------------------------------- 
+
+rename :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof) =>
+          (v -> v) -> Set.Set fof -> Set.Set fof
+rename pfx cls =
+    Set.map (subst (Map.fromList (zip fvs vvs))) cls
+    where
+      fvs :: [v]
+      fvs = Set.toList (fv (list_disj cls))
+      vvs :: [term]
+      vvs = map (vt . pfx) fvs
+
+-- ------------------------------------------------------------------------- 
+-- General resolution rule, incorporating factoring as in Robinson's paper.  
+-- ------------------------------------------------------------------------- 
+
+resolvents :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Variable v, Eq p, Eq term, Ord fof, Eq fof) =>
+              Set.Set fof -> Set.Set fof -> fof -> Set.Set fof -> Set.Set fof
+resolvents cl1 cl2 p acc =
+    if Set.null ps2 then acc else Set.fold doPair acc pairs
+    where
+      doPair (s1,s2) sof =
+          case mgu (Set.union s1 (Set.map negate s2)) Map.empty of
+            Success mp -> Set.union (Set.map (subst mp) (Set.union (Set.difference cl1 s1) (Set.difference cl2 s2))) sof
+            Failure _ -> sof
+      pairs :: Set.Set (Set.Set fof, Set.Set fof)
+      pairs = allpairs (,) (Set.map (Set.insert p) (allsubsets ps1)) (allnonemptysubsets ps2)
+      ps1 :: Set.Set fof
+      ps1 = Set.filter (\ q -> q /= p && unifiable p q) cl1
+      ps2 :: Set.Set fof
+      ps2 = Set.filter (unifiable (negate p)) cl2
+
+resolve_clauses :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof, Eq term, Eq p) =>
+                   Set.Set fof -> Set.Set fof -> Set.Set fof
+resolve_clauses cls1 cls2 =
+    let cls1' = rename (prefix "x") cls1
+        cls2' = rename (prefix "y") cls2 in
+    Set.fold (resolvents cls1' cls2') Set.empty cls1'
+
+-- ------------------------------------------------------------------------- 
+-- Basic "Argonne" loop.                                                     
+-- ------------------------------------------------------------------------- 
+
+resloop1 :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof, Eq p, Eq term) =>
+            Set.Set (Set.Set fof) -> Set.Set (Set.Set fof) -> Failing Bool
+resloop1 used unused =
+    maybe (Failure ["No proof found"]) step (Set.minView unused)
+    where
+      step (cl, ros) =
+          if Set.member Set.empty news then return True else resloop1 used' (Set.union ros news)
+          where
+            used' = Set.insert cl used
+            -- resolve_clauses is not in the Failing monad, so setmapfilter isn't appropriate.
+            news = Set.fold Set.insert Set.empty ({-setmapfilter-} Set.map (resolve_clauses cl) used')
+
+pure_resolution1 :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof, Eq p, Eq term) =>
+                    fof -> Failing Bool
+pure_resolution1 fm = resloop1 Set.empty (simpcnf (specialize (pnf fm)))
+
+resolution1 :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof, Eq term, Eq p, Monad m) =>
+               fof -> SkolemT v term m (Set.Set (Failing Bool))
+resolution1 fm =
+    askolemize ((.~.)(generalize fm)) >>=
+    return . Set.map (pure_resolution1 . list_conj) . simpdnf
+
+-- ------------------------------------------------------------------------- 
+-- Matching of terms and literals.                                           
+-- ------------------------------------------------------------------------- 
+
+term_match :: (Term term v f, Eq term, Eq f) => Map.Map v term -> [(term, term)] -> Failing (Map.Map v term)
+term_match env eqs =
+    case eqs of
+      [] -> Success env
+      (p, q) : oth ->
+          foldTerm v fn p
+          where
+            fn f fa =
+                foldTerm v' fn' q
+                where
+                  fn' g ga | f == g && length fa == length ga = term_match env (zip fa ga ++ oth)
+                  fn' _ _ = Failure ["term_match"]
+                  v' _ = Failure ["term_match"]
+            v x = if not (defined env x)
+                  then term_match ((x |-> q) env) oth
+                  else if apply env x == Just q
+                       then term_match env oth
+                       else Failure ["term_match"]
 {-
-
-let unifiable p q = can (unify_literals undefined) (p,q);;
-
-(* ------------------------------------------------------------------------- *)
-(* Rename a clause.                                                          *)
-(* ------------------------------------------------------------------------- *)
-
-let rename pfx cls =
-  let fvs = fv(list_disj cls) in
-  let vvs = map (fun s -> Var(pfx^s)) fvs  in
-  map (subst(fpf fvs vvs)) cls;;
-
-(* ------------------------------------------------------------------------- *)
-(* General resolution rule, incorporating factoring as in Robinson's paper.  *)
-(* ------------------------------------------------------------------------- *)
-
-let resolvents cl1 cl2 p acc =
-  let ps2 = filter (unifiable(negate p)) cl2 in
-  if ps2 = [] then acc else
-  let ps1 = filter (fun q -> q <> p & unifiable p q) cl1 in
-  let pairs = allpairs (fun s1 s2 -> s1,s2)
-                       (map (fun pl -> p::pl) (allsubsets ps1))
-                       (allnonemptysubsets ps2) in
-  itlist (fun (s1,s2) sof ->
-           try image (subst (mgu (s1 @ map negate s2) undefined))
-                     (union (subtract cl1 s1) (subtract cl2 s2)) :: sof
-           with Failure _ -> sof) pairs acc;;
-
-let resolve_clauses cls1 cls2 =
-  let cls1' = rename "x" cls1 and cls2' = rename "y" cls2 in
-  itlist (resolvents cls1' cls2') cls1' [];;
-
-(* ------------------------------------------------------------------------- *)
-(* Basic "Argonne" loop.                                                     *)
-(* ------------------------------------------------------------------------- *)
-
-let rec resloop (used,unused) =
-  match unused with
-    [] -> failwith "No proof found"
-  | cl::ros ->
-      print_string(string_of_int(length used) ^ " used; "^
-                   string_of_int(length unused) ^ " unused.");
-      print_newline();
-      let used' = insert cl used in
-      let news = itlist(@) (mapfilter (resolve_clauses cl) used') [] in
-      if mem [] news then true else resloop (used',ros@news);;
-
-let pure_resolution fm = resloop([],simpcnf(specialize(pnf fm)));;
-
-let resolution fm =
-  let fm1 = askolemize(Not(generalize fm)) in
-  map (pure_resolution ** list_conj) (simpdnf fm1);;
-
-(* ------------------------------------------------------------------------- *)
-(* Simple example that works well.                                           *)
-(* ------------------------------------------------------------------------- *)
-
-START_INTERACTIVE;;
-let davis_putnam_example = resolution
- <<exists x. exists y. forall z.
-        (F(x,y) ==> (F(y,z) /\ F(z,z))) /\
-        ((F(x,y) /\ G(x,y)) ==> (G(x,z) /\ G(z,z)))>>;;
-END_INTERACTIVE;;
-
-(* ------------------------------------------------------------------------- *)
-(* Matching of terms and literals.                                           *)
-(* ------------------------------------------------------------------------- *)
-
-let rec term_match env eqs =
-  match eqs with
-    [] -> env
-  | (Fn(f,fa),Fn(g,ga))::oth when f = g & length fa = length ga ->
-        term_match env (zip fa ga @ oth)
-  | (Var x,t)::oth ->
+  case eqs of
+    [] -> Success env
+    (Fn f fa, Fn g ga) : oth
+        | f == g && length fa == length ga ->
+           term_match env (zip fa ga ++ oth)
+    (Var x, t) : oth ->
         if not (defined env x) then term_match ((x |-> t) env) oth
-        else if apply env x = t then term_match env oth
-        else failwith "term_match"
-  | _ -> failwith "term_match";;
-
-let rec match_literals env tmp =
-  match tmp with
-    Atom(R(p,a1)),Atom(R(q,a2)) | Not(Atom(R(p,a1))),Not(Atom(R(q,a2))) ->
-       term_match env [Fn(p,a1),Fn(q,a2)]
-  | _ -> failwith "match_literals";;
-
-(* ------------------------------------------------------------------------- *)
-(* Test for subsumption                                                      *)
-(* ------------------------------------------------------------------------- *)
-
-let subsumes_clause cls1 cls2 =
-  let rec subsume env cls =
-    match cls with
-      [] -> env
-    | l1::clt ->
-        tryfind (fun l2 -> subsume (match_literals env (l1,l2)) clt)
-                cls2 in
-  can (subsume undefined) cls1;;
-
-(* ------------------------------------------------------------------------- *)
-(* With deletion of tautologies and bi-subsumption with "unused".            *)
-(* ------------------------------------------------------------------------- *)
-
-let rec replace cl lis =
-  match lis with
-    [] -> [cl]
-  | c::cls -> if subsumes_clause cl c then cl::cls
-              else c::(replace cl cls);;
-
-let incorporate gcl cl unused =
-  if trivial cl or
-     exists (fun c -> subsumes_clause c cl) (gcl::unused)
-  then unused else replace cl unused;;
-
-let rec resloop (used,unused) =
-  match unused with
-    [] -> failwith "No proof found"
-  | cl::ros ->
-      print_string(string_of_int(length used) ^ " used; "^
-                   string_of_int(length unused) ^ " unused.");
-      print_newline();
-      let used' = insert cl used in
-      let news = itlist(@) (mapfilter (resolve_clauses cl) used') [] in
-      if mem [] news then true
-      else resloop(used',itlist (incorporate cl) news ros);;
-
-let pure_resolution fm = resloop([],simpcnf(specialize(pnf fm)));;
-
-let resolution fm =
-  let fm1 = askolemize(Not(generalize fm)) in
-  map (pure_resolution ** list_conj) (simpdnf fm1);;
+        else if apply env x == t then term_match env oth
+        else Failure ["term_match"]
+    _ -> Failure ["term_match"]
 -}
-resloop used [] = Failure ["No proof found"]
-resloop used unused@(cl:ros) =
-    trace (show (length used) ++ " used; " ++ show (length unused) ++ " unused.")
-    let used' = insert cl used in
-    let news = foldr (@) [] (mapfilter (resolve_clauses cl) used')
-    
+
+match_literals :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Eq term, Eq p) =>
+                  Map.Map v term -> fof -> fof -> Failing (Map.Map v term)
+match_literals env t1 t2 =
+    fromMaybe err (zipFirstOrder qu co tf at t1 t2)
+    where
+      qu _ _ _ _ _ _ = Nothing
+      at :: atom -> atom -> Maybe (Failing (Map.Map v term))
+      at a1 a2 = zipAtomsEq ap tf eq a1 a2
+      ap :: p -> [term] -> p -> [term] -> Maybe (Failing (Map.Map v term))
+      ap p ts1 q ts2 = if p == q && length ts1 == length ts2
+                       then Just (term_match env (zip ts1 ts2))
+                       else Nothing
+      co ((:~:) p) ((:~:) q) = Just $ match_literals env p q
+      co _ _ = Nothing
+      tf a b = if a == b then Just (Success env) else Nothing
+      eq t1l t1r t2l t2r = Just (term_match env [(t1l, t2l), (t1r, t2r)])
+      err = Failure ["match_literals"]
 {-
+    case tmp of
+      (Atom (R p a1), Atom(R q a2)) -> term_match env [(Fn p a1, Fn q a2)]
+      (Not (Atom (R p a1)), Not (Atom (R q a2))) -> term_match env [(Fn p a1, Fn q a2)]
+      _ -> Failure ["match_literals"]
+-}
 
-(* ------------------------------------------------------------------------- *)
-(* This is now a lot quicker.                                                *)
-(* ------------------------------------------------------------------------- *)
+-- ------------------------------------------------------------------------- 
+-- Test for subsumption                                                      
+-- ------------------------------------------------------------------------- 
 
-START_INTERACTIVE;;
-let davis_putnam_example = resolution
- <<exists x. exists y. forall z.
-        (F(x,y) ==> (F(y,z) /\ F(z,z))) /\
-        ((F(x,y) /\ G(x,y)) ==> (G(x,z) /\ G(z,z)))>>;;
-END_INTERACTIVE;;
+subsumes_clause :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Eq term, Eq p) => Set.Set fof -> Set.Set fof -> Bool
+subsumes_clause cls1 cls2 =
+    failing (const False) (const True) (subsume Map.empty cls1)
+    where
+      subsume :: Map.Map v term -> Set.Set fof -> Failing (Map.Map v term)
+      subsume env cls =
+          case Set.minView cls of
+            Nothing -> Success env
+            Just (l1, clt) -> settryfind (\ l2 -> case (match_literals env l1 l2) of
+                                                    Success env' -> subsume env' clt
+                                                    Failure msgs -> Failure msgs) cls2
+-- ------------------------------------------------------------------------- 
+-- With deletion of tautologies and bi-subsumption with "unused".            
+-- ------------------------------------------------------------------------- 
 
-(* ------------------------------------------------------------------------- *)
-(* Positive (P1) resolution.                                                 *)
-(* ------------------------------------------------------------------------- *)
+replace :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof, Eq term, Eq p) =>
+           Set.Set fof
+        -> Set.Set (Set.Set fof)
+        -> Set.Set (Set.Set fof)
+replace cl st =
+    case Set.minView st of
+      Nothing -> Set.singleton cl
+      Just (c, st') -> if subsumes_clause cl c
+                       then Set.insert cl st'
+                       else Set.insert c (replace cl st')
 
-let presolve_clauses cls1 cls2 =
-  if forall positive cls1 or forall positive cls2
-  then resolve_clauses cls1 cls2 else [];;
+incorporate :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Eq fof, Ord fof, Eq term, Eq p) =>
+               Set.Set fof
+            -> Set.Set fof
+            -> Set.Set (Set.Set fof)
+            -> Set.Set (Set.Set fof)
+incorporate gcl cl unused =
+    if trivial cl || setAny (\ c -> subsumes_clause c cl) (Set.insert gcl unused)
+    then unused
+    else replace cl unused
 
-let rec presloop (used,unused) =
-  match unused with
-    [] -> failwith "No proof found"
-  | cl::ros ->
-      print_string(string_of_int(length used) ^ " used; "^
-                   string_of_int(length unused) ^ " unused.");
-      print_newline();
-      let used' = insert cl used in
-      let news = itlist(@) (mapfilter (presolve_clauses cl) used') [] in
-      if mem [] news then true else
-      presloop(used',itlist (incorporate cl) news ros);;
+resloop2 :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof, Eq p, Eq term) =>
+            Set.Set (Set.Set fof) -> Set.Set (Set.Set fof) -> Failing Bool
+resloop2 used unused =
+    case Set.minView unused of
+      Nothing -> Failure ["No proof found"]
+      Just (cl :: Set.Set fof, ros :: Set.Set (Set.Set fof)) ->
+          -- print_string(string_of_int(length used) ^ " used; "^ string_of_int(length unused) ^ " unused.");
+          -- print_newline();
+          let used' = Set.insert cl used in
+          let news = {-Set.fold Set.union Set.empty-} (Set.map (resolve_clauses cl) used') in
+          if Set.member Set.empty news then return True else resloop2 used' (Set.fold (incorporate cl) ros news)
 
-let pure_presolution fm = presloop([],simpcnf(specialize(pnf fm)));;
+pure_resolution2 :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof, Eq term, Eq p) =>
+                    fof -> Failing Bool
+pure_resolution2 fm = resloop2 Set.empty (simpcnf (specialize (pnf fm)))
 
-let presolution fm =
-  let fm1 = askolemize(Not(generalize fm)) in
-  map (pure_presolution ** list_conj) (simpdnf fm1);;
+resolution2 :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof, Eq p, Eq term, Monad m) =>
+               fof -> SkolemT v term m (Set.Set (Failing Bool))
+resolution2 fm =
+    askolemize ((.~.) (generalize fm)) >>= return . Set.map (pure_resolution2 . list_conj) . simpdnf
 
-(* ------------------------------------------------------------------------- *)
-(* Example: the (in)famous Los problem.                                      *)
-(* ------------------------------------------------------------------------- *)
+-- ------------------------------------------------------------------------- 
+-- Positive (P1) resolution.                                                 
+-- ------------------------------------------------------------------------- 
 
-START_INTERACTIVE;;
-let los = time presolution
- <<(forall x y z. P(x,y) ==> P(y,z) ==> P(x,z)) /\
-   (forall x y z. Q(x,y) ==> Q(y,z) ==> Q(x,z)) /\
-   (forall x y. Q(x,y) ==> Q(y,x)) /\
-   (forall x y. P(x,y) \/ Q(x,y))
-   ==> (forall x y. P(x,y)) \/ (forall x y. Q(x,y))>>;;
+presolve_clauses :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof, Eq p, Eq term) =>
+                    Set.Set fof -> Set.Set fof -> Set.Set fof
+presolve_clauses cls1 cls2 =
+    if setAll positive cls1 || setAll positive cls2
+    then resolve_clauses cls1 cls2
+    else Set.empty
 
-(* ------------------------------------------------------------------------- *)
-(* Introduce a set-of-support restriction.                                   *)
-(* ------------------------------------------------------------------------- *)
+presloop :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof, Eq term, Eq p) =>
+            Set.Set (Set.Set fof) -> Set.Set (Set.Set fof) -> Failing Bool
+presloop used unused =
+    case Set.minView unused of
+      Nothing -> Failure ["No proof found"]
+      Just (cl, ros) ->
+          -- print_string(string_of_int(length used) ^ " used; "^ string_of_int(length unused) ^ " unused.");
+          -- print_newline();
+          let used' = Set.insert cl used in
+          let news = Set.map (presolve_clauses cl) used' in
+          if Set.member Set.empty news
+          then Success True
+          else presloop used' (Set.fold (incorporate cl) ros news)
 
-let pure_resolution fm =
-  resloop(partition (exists positive) (simpcnf(specialize(pnf fm))));;
+pure_presolution :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof, Eq p, Eq term) =>
+                    fof -> Failing Bool
+pure_presolution fm = presloop Set.empty (simpcnf (specialize (pnf fm)))
 
-let resolution fm =
-  let fm1 = askolemize(Not(generalize fm)) in
-  map (pure_resolution ** list_conj) (simpdnf fm1);;
+presolution :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof, Eq p, Eq term, Monad m) =>
+               fof -> SkolemT v term m (Set.Set (Failing Bool))
+presolution fm =
+    askolemize ((.~.) (generalize fm)) >>= return . Set.map (pure_presolution . list_conj) . simpdnf
 
-(* ------------------------------------------------------------------------- *)
-(* The Pelletier examples again.                                             *)
-(* ------------------------------------------------------------------------- *)
+-- ------------------------------------------------------------------------- 
+-- Introduce a set-of-support restriction.                                   
+-- ------------------------------------------------------------------------- 
 
-(***********
+pure_resolution3 :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof, Eq p, Eq term) =>
+                    fof -> Failing Bool
+pure_resolution3 fm =
+    uncurry resloop2 (Set.partition (setAny positive) (simpcnf (specialize (pnf fm))))
+
+resolution3 :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof, Eq p, Eq term, Monad m) =>
+               fof -> SkolemT v term m (Set.Set (Failing Bool))
+resolution3 fm =
+    askolemize((.~.)(generalize fm)) >>= return . Set.map (pure_resolution3 . list_conj) . simpdnf
+{-
+-- ------------------------------------------------------------------------- 
+-- The Pelletier examples again.                                             
+-- ------------------------------------------------------------------------- 
+
+{- **********
 
 let p1 = time presolution
  <<p ==> q <=> ~q ==> ~p>>;;
@@ -296,9 +339,9 @@ let p16 = time presolution
 let p17 = time presolution
  <<p /\ (q ==> r) ==> s <=> (~p \/ q \/ s) /\ (~p \/ ~r \/ s)>>;;
 
-(* ------------------------------------------------------------------------- *)
-(* Monadic Predicate Logic.                                                  *)
-(* ------------------------------------------------------------------------- *)
+-- ------------------------------------------------------------------------- 
+-- Monadic Predicate Logic.                                                  
+-- ------------------------------------------------------------------------- 
 
 let p18 = time presolution
  <<exists y. forall x. P(y) ==> P(x)>>;;
@@ -387,9 +430,9 @@ let p34 = time presolution
 let p35 = time presolution
  <<exists x y. P(x,y) ==> (forall x y. P(x,y))>>;;
 
-(* ------------------------------------------------------------------------- *)
-(*  Full predicate logic (without Identity and Functions)                    *)
-(* ------------------------------------------------------------------------- *)
+-- ------------------------------------------------------------------------- 
+--  Full predicate logic (without Identity and Functions)                    
+-- ------------------------------------------------------------------------- 
 
 let p36 = time presolution
  <<(forall x. exists y. P(x,y)) /\
@@ -406,7 +449,7 @@ let p37 = time presolution
    ((exists x y. Q(x,y)) ==> (forall x. R(x,x))) ==>
    (forall x. exists y. R(x,y))>>;;
 
-(*** This one seems too slow
+{- ** This one seems too slow
 
 let p38 = time presolution
  <<(forall x.
@@ -417,7 +460,7 @@ let p38 = time presolution
      (~P(a) \/ ~(exists y. P(y) /\ R(x,y)) \/
      (exists z w. P(z) /\ R(x,w) /\ R(w,z))))>>;;
 
- ***)
+ ** -}
 
 let p39 = time presolution
  <<~(exists x. forall y. P(y,x) <=> ~P(y,y))>>;;
@@ -430,20 +473,20 @@ let p41 = time presolution
  <<(forall z. exists y. forall x. P(x,y) <=> P(x,z) /\ ~P(x,x))
   ==> ~(exists z. forall x. P(x,z))>>;;
 
-(*** Also very slow
+{- ** Also very slow
 
 let p42 = time presolution
  <<~(exists y. forall x. P(x,y) <=> ~(exists z. P(x,z) /\ P(z,x)))>>;;
 
- ***)
+ ** -}
 
-(*** and this one too..
+{- ** and this one too..
 
 let p43 = time presolution
  <<(forall x y. Q(x,y) <=> forall z. P(z,x) <=> P(z,y))
    ==> forall x y. Q(x,y) <=> Q(y,x)>>;;
 
- ***)
+ ** -}
 
 let p44 = time presolution
  <<(forall x. P(x) ==> (exists y. G(y) /\ H(x,y)) /\
@@ -451,7 +494,7 @@ let p44 = time presolution
    (exists x. J(x) /\ (forall y. G(y) ==> H(x,y))) ==>
    (exists x. J(x) /\ ~P(x))>>;;
 
-(*** and this...
+{- ** and this...
 
 let p45 = time presolution
  <<(forall x.
@@ -462,9 +505,9 @@ let p45 = time presolution
      L(y)) /\ (forall y. G(y) /\ H(x,y) ==> J(x,y))) ==>
    (exists x. P(x) /\ ~(exists y. G(y) /\ H(x,y)))>>;;
 
- ***)
+ ** -}
 
-(*** and this
+{- ** and this
 
 let p46 = time presolution
  <<(forall x. P(x) /\ (forall y. P(y) /\ H(y,x) ==> G(y)) ==> G(x)) /\
@@ -474,11 +517,11 @@ let p46 = time presolution
    (forall x y. P(x) /\ P(y) /\ H(x,y) ==> ~J(y,x)) ==>
    (forall x. P(x) ==> G(x))>>;;
 
- ***)
+ ** -}
 
-(* ------------------------------------------------------------------------- *)
-(* Example from Manthey and Bry, CADE-9.                                     *)
-(* ------------------------------------------------------------------------- *)
+-- ------------------------------------------------------------------------- 
+-- Example from Manthey and Bry, CADE-9.                                     
+-- ------------------------------------------------------------------------- 
 
 let p55 = time presolution
  <<lives(agatha) /\ lives(butler) /\ lives(charles) /\
@@ -500,9 +543,9 @@ let p57 = time presolution
    (forall (x) y z. P(x,y) /\ P(y,z) ==> P(x,z))
    ==> P(f(a,b),f(a,c))>>;;
 
-(* ------------------------------------------------------------------------- *)
-(* See info-hol, circa 1500.                                                 *)
-(* ------------------------------------------------------------------------- *)
+-- ------------------------------------------------------------------------- 
+-- See info-hol, circa 1500.                                                 
+-- ------------------------------------------------------------------------- 
 
 let p58 = time presolution
  <<forall P Q R. forall x. exists v. exists w. forall y. forall z.
@@ -515,9 +558,9 @@ let p60 = time presolution
  <<forall x. P(x,f(x)) <=>
             exists y. (forall z. P(z,y) ==> P(z,f(x))) /\ P(x,y)>>;;
 
-(* ------------------------------------------------------------------------- *)
-(* From Gilmore's classic paper.                                             *)
-(* ------------------------------------------------------------------------- *)
+-- ------------------------------------------------------------------------- 
+-- From Gilmore's classic paper.                                             
+-- ------------------------------------------------------------------------- 
 
 let gilmore_1 = time presolution
  <<exists x. forall y z.
@@ -526,14 +569,14 @@ let gilmore_1 = time presolution
       (((F(y) ==> G(y)) ==> H(y)) <=> H(x))
       ==> F(z) /\ G(z) /\ H(z)>>;;
 
-(*** This is not valid, according to Gilmore
+{- ** This is not valid, according to Gilmore
 
 let gilmore_2 = time presolution
  <<exists x y. forall z.
         (F(x,z) <=> F(z,y)) /\ (F(z,y) <=> F(z,z)) /\ (F(x,y) <=> F(y,x))
         ==> (F(x,y) <=> F(x,z))>>;;
 
- ***)
+ ** -}
 
 let gilmore_3 = time presolution
  <<exists x. forall y z.
@@ -570,7 +613,7 @@ let gilmore_8 = time presolution
         F(x,y)
         ==> F(z,z)>>;;
 
-(*** This one still isn't easy!
+{- ** This one still isn't easy!
 
 let gilmore_9 = time presolution
  <<forall x. exists y. forall z.
@@ -582,23 +625,23 @@ let gilmore_9 = time presolution
              ==> (forall u. exists v. F(y,u,v) /\ G(y,u) /\ ~H(y,x)) /\
                  (forall u. exists v. F(z,u,v) /\ G(y,u) /\ ~H(z,y)))>>;;
 
- ***)
+ ** -}
 
-(* ------------------------------------------------------------------------- *)
-(* Example from Davis-Putnam papers where Gilmore procedure is poor.         *)
-(* ------------------------------------------------------------------------- *)
+-- ------------------------------------------------------------------------- 
+-- Example from Davis-Putnam papers where Gilmore procedure is poor.         
+-- ------------------------------------------------------------------------- 
 
 let davis_putnam_example = time presolution
  <<exists x. exists y. forall z.
         (F(x,y) ==> (F(y,z) /\ F(z,z))) /\
         ((F(x,y) /\ G(x,y)) ==> (G(x,z) /\ G(z,z)))>>;;
 
-************)
+*********** -}
 END_INTERACTIVE;;
 
-(* ------------------------------------------------------------------------- *)
-(* Example                                                                   *)
-(* ------------------------------------------------------------------------- *)
+-- ------------------------------------------------------------------------- 
+-- Example                                                                   
+-- ------------------------------------------------------------------------- 
 
 START_INTERACTIVE;;
 let gilmore_1 = resolution
@@ -608,11 +651,11 @@ let gilmore_1 = resolution
       (((F(y) ==> G(y)) ==> H(y)) <=> H(x))
       ==> F(z) /\ G(z) /\ H(z)>>;;
 
-(* ------------------------------------------------------------------------- *)
-(* Pelletiers yet again.                                                     *)
-(* ------------------------------------------------------------------------- *)
+-- ------------------------------------------------------------------------- 
+-- Pelletiers yet again.                                                     
+-- ------------------------------------------------------------------------- 
 
-(************
+{- ************
 
 let p1 = time resolution
  <<p ==> q <=> ~q ==> ~p>>;;
@@ -973,6 +1016,6 @@ let los = time resolution
    (forall x y. P(x,y) \/ Q(x,y))
    ==> (forall x y. P(x,y)) \/ (forall x y. Q(x,y))>>;;
 
-**************)
+************* -}
 END_INTERACTIVE;;
 -}

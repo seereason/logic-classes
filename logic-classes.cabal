@@ -59,12 +59,12 @@ Executable tests
                    Data.Logic.Tests.Data
                    Data.Logic.Tests.Logic
                    Data.Logic.Tests.TPTP
-                   -- Data.Logic.Tests.Harrison.Equal
-                   -- Data.Logic.Tests.Harrison.FOL
-                   -- Data.Logic.Tests.Harrison.HUnit
-                   -- Data.Logic.Tests.Harrison.Meson
-                   -- Data.Logic.Tests.Harrison.Prop
-                   -- Data.Logic.Tests.Harrison.Resolution
-                   -- Data.Logic.Tests.Harrison.Skolem
-                   -- Data.Logic.Tests.Harrison.Main
-                   -- Data.Logic.Tests.Harrison.Unif
+                   Data.Logic.Tests.Harrison.Equal
+                   Data.Logic.Tests.Harrison.FOL
+                   Data.Logic.Tests.Harrison.HUnit
+                   Data.Logic.Tests.Harrison.Meson
+                   Data.Logic.Tests.Harrison.Prop
+                   Data.Logic.Tests.Harrison.Resolution
+                   Data.Logic.Tests.Harrison.Skolem
+                   Data.Logic.Tests.Harrison.Main
+                   Data.Logic.Tests.Harrison.Unif

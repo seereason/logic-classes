@@ -1,7 +1,8 @@
-{-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, UndecidableInstances #-}
 {-# OPTIONS -Wwarn #-}
 module Data.Logic.Classes.Literal
     ( Literal(..)
+    , zipLiterals
     , fromFirstOrder
     , prettyLit
     ) where
@@ -17,25 +18,29 @@ import Text.PrettyPrint (Doc, (<>), text, empty, parens, hcat)
 
 -- |Literals are the building blocks of the clause and implicative normal
 -- |forms.  They support negation and must include True and False elements.
-class ( Negatable lit
-      , Constants lit
-      , Show lit
-{-
-      , Ord lit
-      , Eq p
-      , Ord p
-      , Constants p
-      , Term term v f
-      , Data lit
--}
-      ) => Literal lit atom v | lit -> atom v where
-    -- equals :: term -> term -> lit
-    -- pAppLiteral :: p -> [term] -> lit
-    foldLiteral :: (lit -> r) -> (atom -> r) -> lit -> r
-    zipLiterals :: (lit -> lit -> Maybe r)
-                -> (atom -> atom -> Maybe r)
-                -> lit -> lit -> Maybe r
+class (Negatable lit, Constants lit) => Literal lit atom v | lit -> atom v where
+    foldLiteral :: (lit -> r) -> (Bool -> r) -> (atom -> r) -> lit -> r
     atomic :: atom -> lit
+
+zipLiterals :: Literal lit atom v =>
+               (lit -> lit -> Maybe r)
+            -> (Bool -> Bool -> Maybe r)
+            -> (atom -> atom -> Maybe r)
+            -> lit -> lit -> Maybe r
+zipLiterals neg tf at fm1 fm2 =
+    foldLiteral neg' tf' at' fm1
+    where
+      neg' p1 = foldLiteral (neg p1) (\ _ -> Nothing) (\ _ -> Nothing) fm2
+      tf' x1 = foldLiteral (\ _ -> Nothing) (tf x1) (\ _ -> Nothing) fm2
+      at' a1 = foldLiteral (\ _ -> Nothing) (\ _ -> Nothing) (at a1) fm2
+
+-- | We can use an fof type as a lit, but it must not use some constructs.
+instance FirstOrderFormula fof atom v => Literal fof atom v where
+    foldLiteral neg tf at fm = foldFirstOrder qu co tf at fm
+        where qu = error "instance Literal FirstOrderFormula"
+              co ((:~:) x) = neg x
+              co _ = error "instance Literal FirstOrderFormula"
+    atomic = Data.Logic.Classes.FirstOrder.atomic
 
 {-
 -- |Helper type to implement the fold function for 'Literal'.
@@ -70,10 +75,12 @@ prettyLit :: forall lit atom term v p f. (Literal lit atom v, Atom atom p term, 
            -> lit
            -> Doc
 prettyLit pv pp pf _prec lit =
-    foldLiteral c p lit
+    foldLiteral neg tf at lit
     where
-      c x = if negated x then text {-"¬"-} "~" <> prettyLit pv pp pf 5 x else prettyLit pv pp pf 5 x
-      p = foldAtom (\ pr ts -> 
+      neg :: lit -> Doc
+      neg x = if negated x then text {-"¬"-} "~" <> prettyLit pv pp pf 5 x else prettyLit pv pp pf 5 x
+      tf = text . ifElse "true" "false"
+      at = foldAtom (\ pr ts -> 
                         pp pr <> case ts of
                                    [] -> empty
                                    _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts))))

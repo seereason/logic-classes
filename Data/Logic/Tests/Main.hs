@@ -3,6 +3,7 @@ import Data.Logic.Tests.Common (TestFormula, TestProof, V, Pr, AtomicFunction, T
 import Data.Logic.Types.FirstOrder
 import System.Exit
 import Test.HUnit
+import qualified Data.Logic.Tests.Harrison.Main as Harrison
 import qualified Data.Logic.Tests.Logic as Logic
 import qualified Data.Logic.Tests.Chiou0 as Chiou0
 --import qualified Data.Logic.Tests.TPTP as TPTP
@@ -13,7 +14,8 @@ main =
     runTestTT (TestList [Logic.tests,
                          Chiou0.tests,
                          -- TPTP.tests,  -- This has a problem in the rendering code - it loops
-                         Data.tests formulas proofs]) >>=
+                         Data.tests formulas proofs,
+                         Harrison.tests]) >>=
     doCounts
     where
       doCounts counts' = exitWith (if errors counts' /= 0 || failures counts' /= 0 then ExitFailure 1 else ExitSuccess)

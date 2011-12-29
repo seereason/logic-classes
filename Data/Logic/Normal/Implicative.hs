@@ -14,7 +14,7 @@ import Data.Logic.Normal.Skolem (SkolemT)
 import "mtl" Control.Monad.State (MonadPlus, msum)
 import Data.Generics (Data, Typeable, listify)
 import Data.List (intersperse)
-import Data.Logic.Classes.Constants (Constants)
+import Data.Logic.Classes.Constants (Constants(true), ifElse)
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Skolem (Skolem(fromSkolem))
@@ -79,6 +79,7 @@ implicativeNormalForm formula =
       collect :: lit -> (Set.Set lit, Set.Set lit) -> (Set.Set lit, Set.Set lit)
       collect f (n, p) =
           foldLiteral (\ f' -> (Set.insert f' n, p))
+                      (ifElse (n, Set.insert true p) (Set.insert true n, p))
                       (\ _ -> (n, Set.insert f p))
                       f
       split :: (Set.Set lit, Set.Set lit) -> Set.Set (Set.Set lit, Set.Set lit)

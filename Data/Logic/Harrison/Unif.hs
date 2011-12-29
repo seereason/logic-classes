@@ -7,9 +7,9 @@ module Data.Logic.Harrison.Unif
     ) where
 
 import Control.Applicative.Error (Failing(..), failing)
-import Data.Logic.Classes (Term(..))
+import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Harrison.FOL (tsubst)
-import Data.Logic.Harrison.Lib (apply, defined)
+import Data.Logic.Harrison.Lib (apply)
 import qualified Data.Map as M
 {-
 (* ========================================================================= *)
@@ -25,14 +25,12 @@ let rec istriv env x t =
 -}
 isTrivial :: Term term v f => M.Map v term -> v -> term -> Failing Bool
 isTrivial env x t =
-    foldT v f t
+    foldTerm v f t
     where
       v y =
           if x == y
           then Success True
-          else if defined env y
-               then isTrivial env x (apply env y)
-               else Success False
+          else maybe (Success False) (isTrivial env x) (apply env y)
       f _ args =
           if any (failing (const False) id . isTrivial env x) args
           then Failure ["cyclic"]
@@ -62,13 +60,12 @@ let rec unify env eqs =
 unify :: Term term v f => M.Map v term -> [(term,term)] -> Failing (M.Map v term)
 unify env [] = Success env
 unify env ((a,b):oth) =
-    foldT (vr b) (\ f fargs -> foldT (vr a) (fn f fargs) b) a
+    foldTerm (vr b) (\ f fargs -> foldTerm (vr a) (fn f fargs) b) a
     where
       vr t x =
-          if defined env x
-          then unify env ((apply env x, t) : oth)
-          else isTrivial env x t >>=
-                   \ trivial -> unify (if trivial then env else M.insert x t env) oth
+          maybe (isTrivial env x t >>= \ trivial -> unify (if trivial then env else M.insert x t env) oth)
+                (\ y -> unify env ((y, t) : oth))
+                (apply env x)
       fn f fargs g gargs =
           if f == g && length fargs == length gargs
           then unify env (zip fargs gargs ++ oth)

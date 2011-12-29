@@ -4,6 +4,7 @@
 module Data.Logic.Types.Harrison.FOL
     ( TermType(..)
     , FOL(..)
+    , Function(..)
     ) where
 
 import Data.Generics (Data, Typeable)

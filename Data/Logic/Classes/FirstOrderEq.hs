@@ -162,14 +162,16 @@ prettyLitEq :: forall lit atom term v p f. (Literal lit atom v, AtomEq atom p te
            -> lit
            -> Doc
 prettyLitEq pv pp pf prec lit =
-    foldLiteral c p lit
+    foldLiteral co tf at lit
     where
-      c x = if negated x then text {-"¬"-} "~" <> prettyLitEq pv pp pf 5 x else prettyLitEq pv pp pf 5 x
-      p = foldAtomEq (\ pr ts -> 
-                          pp pr <> case ts of
-                                     [] -> empty
-                                     _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts))))
-                     (\ x -> text (if x then "true" else "false"))
-                     (\ t1 t2 -> parensIf (prec > 6) (prettyTerm pv pf t1 <+> text "=" <+> prettyTerm pv pf t2))
+      co :: lit -> Doc
+      co x = if negated x then text {-"¬"-} "~" <> prettyLitEq pv pp pf 5 x else prettyLitEq pv pp pf 5 x
+      tf x = text (if x then "true" else "false")
+      at = foldAtomEq (\ pr ts -> 
+                           pp pr <> case ts of
+                                      [] -> empty
+                                      _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts))))
+                      tf
+                      (\ t1 t2 -> parensIf (prec > 6) (prettyTerm pv pf t1 <+> text "=" <+> prettyTerm pv pf t2))
       parensIf False = id
       parensIf _ = parens . nest 1

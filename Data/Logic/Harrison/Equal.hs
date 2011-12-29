@@ -11,7 +11,7 @@ module Data.Logic.Harrison.Equal where
 import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine ((∧), (⇒))
-import Data.Logic.Classes.Equals (PredicateEq(..), AtomEq(..), (.=.))
+import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), (∀))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable(..))
@@ -19,6 +19,7 @@ import Data.Logic.Harrison.Formulas.FirstOrder (atom_union)
 import Data.Logic.Harrison.Lib ((∅))
 import Data.Logic.Harrison.Skolem (functions)
 import qualified Data.Set as Set
+import Data.String (IsString(fromString))
 
 is_eq :: (FirstOrderFormula fof atom v, AtomEq atom p term) => fof -> Bool
 is_eq = foldFirstOrder (\ _ _ _ -> False) (\ _ -> False) (foldAtomEq (\ _ _ -> False) (\ _ _ -> True))

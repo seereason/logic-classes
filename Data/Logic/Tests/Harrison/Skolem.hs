@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, ScopedTypeVariables, TypeFamilies #-}
+{-# LANGUAGE OverloadedStrings, RankNTypes, ScopedTypeVariables, TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Tests.Harrison.Skolem
     ( tests
@@ -12,6 +12,7 @@ import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Harrison.Skolem (simplify, nnf, pnf)
 import Data.Logic.Normal.Skolem (runSkolem, skolemize)
+import Data.Logic.Tests.Harrison.HUnit ()
 import Data.Logic.Types.Harrison.Equal (FOLEQ, PredName(..))
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula)
 import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual)

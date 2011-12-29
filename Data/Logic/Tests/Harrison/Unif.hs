@@ -1,4 +1,5 @@
-{-# OPTIONS_GHC -Wall -Werror #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -Wall -Wwarn #-}
 module Data.Logic.Tests.Harrison.Unif
     ( tests
     ) where
@@ -8,6 +9,7 @@ import Data.Logic.Classes.Term (Term(fApp, vt))
 import Data.Logic.Harrison.FOL (tsubst)
 import Data.Logic.Harrison.Unif (fullUnify)
 import Data.Logic.Types.Harrison.FOL (TermType)
+import Data.Logic.Tests.Harrison.HUnit ()
 import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual)
 
 tests :: Test

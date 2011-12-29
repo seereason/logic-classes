@@ -16,7 +16,10 @@ module Data.Logic.Classes.FirstOrder
     , for_all'
     , exists'
     , quant
-    , (!), (?)
+    , (!)
+    , (?)
+    , (∀)
+    , (∃)
     , quant'
     , convertFOF
     , toPropositional
@@ -149,6 +152,14 @@ exists' vs f = foldr for_all f vs
 (!) = for_all
 (?) :: FirstOrderFormula formula atom v => v -> formula -> formula
 (?) = exists
+
+infix 1 !, ?, ∀, ∃
+
+-- | ∀ can't be a function when -XUnicodeSyntax is enabled.
+(∀) :: FirstOrderFormula formula atom v => v -> formula -> formula
+(∀) = for_all
+(∃) :: FirstOrderFormula formula atom v => v -> formula -> formula
+(∃) = exists
 
 -- | Helper function for building folds.
 quant :: FirstOrderFormula formula atom v => 

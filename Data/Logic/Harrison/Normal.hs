@@ -3,8 +3,8 @@
 module Data.Logic.Harrison.Normal where
 
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (fromBool, true, false)
-import Data.Logic.Classes.Equals (AtomEq(foldAtomEq))
+import Data.Logic.Classes.Constants (Constants (fromBool, true, false))
+import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term(..))
@@ -60,7 +60,7 @@ purednf fm =
       co (BinOp p (:&:) q) = distrib' (purednf p) (purednf q)
       co (BinOp p (:|:) q) = Set.union (purednf p) (purednf q)
       co _ = Set.singleton (Set.singleton fm)
-      tf _ = Set.singleton (Set.singleton fm)
+      tf = Set.singleton . Set.singleton . fromBool
       at _ = Set.singleton (Set.singleton fm)
 
 -- ------------------------------------------------------------------------- 
@@ -82,7 +82,8 @@ simpdnf fm =
     where
       qu _ _ _ = def
       co _ = def
-      tf _ = def
+      tf False = Set.empty
+      tf True = Set.singleton Set.empty
       at _ = Set.singleton (Set.singleton fm)
       def =
           Set.filter (\ d -> not (setAny (\ d' -> Set.isProperSubsetOf d' d) djs)) djs
@@ -101,8 +102,9 @@ simpcnf fm =
     where
       qu _ _ _ = def
       co _ = def
-      tf x = if x then Set.empty else Set.singleton Set.empty
-      at = foldAtomEq (\ _ _ -> Set.singleton (Set.singleton fm)) tf (\ _ _ -> Set.singleton (Set.singleton fm))
+      tf False = Set.singleton Set.empty
+      tf True = Set.empty
+      at _ = Set.singleton (Set.singleton fm)
       def =
           -- Discard any clause that is the proper subset of another clause
           Set.filter (\ cj -> not (setAny (\ c' -> Set.isProperSubsetOf c' cj) cjs)) cjs
@@ -116,7 +118,6 @@ distrib :: (FirstOrderFormula fof atomic v) => fof -> fof
 distrib fm =
     foldFirstOrder qu co tf at fm
     where
-      qu _ _ _ = fm
       co (BinOp p (:&:) s) =
           foldFirstOrder qu co' tf at s
           where co' (BinOp q (:|:) r) = distrib (p .&. q) .|. distrib (p .&. r)
@@ -127,3 +128,4 @@ distrib fm =
       co _ = fm
       tf _ = fm
       at _ = fm
+      qu _ _ _ = fm

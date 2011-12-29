@@ -14,7 +14,7 @@ module Data.Logic.Resolution
 
 import Data.Logic.Classes.Constants (fromBool)
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq, applyEq, equals), zipAtomsEq)
-import Data.Logic.Classes.Literal (Literal(..))
+import Data.Logic.Classes.Literal (Literal(..), zipLiterals)
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF, neg, pos))
 import qualified Data.Set.Extra as S
@@ -111,6 +111,7 @@ getSubstSentence :: (Literal formula atom v, AtomEq atom p term, Term term v f) 
 getSubstSentence formula theta =
     foldLiteral
           (\ s -> getSubstSentence s theta)
+          (const theta)
           (foldAtomEq (\ _ ts -> getSubstsTerms ts theta) (const theta) (\ t1 t2 -> getSubstsTerms [t1, t2] theta))
           formula
 
@@ -146,11 +147,12 @@ isRenameOfSentences xs1 xs2 =
 isRenameOfSentence :: forall formula atom term v p f. (Literal formula atom v, AtomEq atom p term, Term term v f, Eq p) => formula -> formula -> Bool
 isRenameOfSentence f1 f2 =
     maybe False id $
-    zipLiterals (\ _ _ -> Just False) p f1 f2
-    where p :: atom -> atom -> Maybe Bool
-          p = zipAtomsEq (\ p1 ts1 p2 ts2 -> Just (p1 == p2 && isRenameOfTerms ts1 ts2))
-                         (\ x y -> Just (x == y))
-                         (\ t1l t1r t2l t2r -> Just (isRenameOfTerm t1l t2l && isRenameOfTerm t1r t2r))
+    zipLiterals (\ _ _ -> Just False) tf at f1 f2
+    where at :: atom -> atom -> Maybe Bool
+          at = zipAtomsEq (\ p1 ts1 p2 ts2 -> Just (p1 == p2 && isRenameOfTerms ts1 ts2))
+                          tf
+                          (\ t1l t1r t2l t2r -> Just (isRenameOfTerm t1l t2l && isRenameOfTerm t1r t2r))
+          tf x y = Just (x == y)
 
 isRenameOfTerm :: Term term v f => term -> term -> Bool
 isRenameOfTerm t1 t2 =
@@ -220,7 +222,7 @@ demodulate :: (Literal lit atom v, AtomEq atom p term, Term term v f, Eq lit, Or
 demodulate (inf1, theta1) (inf2, theta2) =
     case (S.null (neg inf1), S.toList (pos inf1)) of
       (True, [lit1]) ->
-          foldLiteral (\ _ -> error "demodulate") (foldAtomEq (\ _ _ -> Nothing) (\ _ -> Nothing) p) lit1
+          foldLiteral (\ _ -> error "demodulate") (\ _ -> Nothing) (foldAtomEq (\ _ _ -> Nothing) (\ _ -> Nothing) p) lit1
       _ -> Nothing
     where
       p t1 t2 =
@@ -245,6 +247,7 @@ unify' :: (Literal formula atom v, AtomEq atom p term, Term term v f, Eq p) =>
 unify' f1 f2 theta1 theta2 =
     zipLiterals
          (\ _ _ -> error "unify'")
+         (\ x y -> if x == y then unifyTerms [] [] theta1 theta2 else Nothing)
          (zipAtomsEq (\ p1 ts1 p2 ts2 -> if p1 == p2 then unifyTerms ts1 ts2 theta1 theta2 else Nothing)
                      (\ x y -> if x == y then unifyTerms [] [] theta1 theta2 else Nothing)
                      (\ l1 r1 l2 r2 -> unifyTerms [l1, r1] [l2, r2] theta1 theta2))
@@ -280,7 +283,7 @@ findUnify :: forall formula atom term v p f. (Literal formula atom v, AtomEq ato
              term -> term -> S.Set formula -> Maybe ((term, term), Subst v term, Subst v term)
 findUnify tl tr s =
     let
-      terms = concatMap (foldLiteral (\ (_ :: formula) -> error "getTerms") p) (S.toList s)
+      terms = concatMap (foldLiteral (\ (_ :: formula) -> error "getTerms") (\ _ -> []) p) (S.toList s)
       unifiedTerms' = map (\t -> unifyTerm tl t empty empty) terms
       unifiedTerms = filter isJust unifiedTerms'
     in
@@ -310,6 +313,7 @@ replaceTerm :: (Literal lit atom v, AtomEq atom p term, Term term v f, Eq term) 
 replaceTerm formula (tl', tr') =
     foldLiteral
           (\ _ -> error "error in replaceTerm")
+          (\ x -> Just (atomic (applyEq (fromBool x) [])))
           (foldAtomEq (\ p ts -> Just (atomic (applyEq p (map (\ t -> replaceTerm' t) ts))))
                       (\ x -> Just (atomic (applyEq (fromBool x) [])))
                       (\ t1 t2 -> 
@@ -329,6 +333,7 @@ subst :: (Literal formula atom v, AtomEq atom p term, Term term v f, Eq term) =>
 subst formula theta =
     foldLiteral
           (\ _ -> Just formula)
+          (\ x -> Just (atomic (applyEq (fromBool x) [])))
           (foldAtomEq (\ p ts -> Just (atomic (applyEq p (substTerms ts theta))))
                       (\ x -> Just (atomic (applyEq (fromBool x) [])))
                       (\ t1 t2 ->

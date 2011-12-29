@@ -171,21 +171,18 @@ instance (AtomEq (Predicate p (PTerm v f)) p (PTerm v f),
 -}
     atomic = Predicate
 
+{-
 instance (Constants (Formula v p f),
           Variable v, Ord v, Data v, Show v,
           Arity p, Constants p, Ord p, Data p, Show p,
           Skolem f, Ord f, Data f, Show f) => Literal (Formula v p f) (Predicate p (PTerm v f)) v where
-    foldLiteral c pr l =
+    foldLiteral co tf at l =
         case l of
-          (Combine ((:~:) x)) -> c x
-          (Predicate p) -> pr p
+          (Combine ((:~:) x)) -> co x
+          (Predicate p) -> at p
           _ -> error "Literal (Formula v p f)"
-    zipLiterals c pr l1 l2 =
-        case (l1, l2) of
-          (Combine ((:~:) x), Combine ((:~:) y)) -> c x y
-          (Predicate p1, Predicate p2) -> pr p1 p2
-          _ -> Nothing
     atomic = Predicate
+-}
 
 $(deriveSafeCopy 1 'base ''PTerm)
 $(deriveSafeCopy 1 'base ''Formula)

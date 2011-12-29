@@ -71,3 +71,6 @@ instance AtomEq FOLEQ PredName TermType where
     foldAtomEq pr tf _ (R p ts) = maybe (pr (Named p) ts) tf (asBool (Named p))
     foldAtomEq _ _ eq (EQUALS t1 t2) = eq t1 t2
     equals = EQUALS
+    applyEq' (Named s) ts = R s ts
+    applyEq' (:=:) [t1, t2] = EQUALS t1 t2
+    applyEq' _ _ = error "arity"

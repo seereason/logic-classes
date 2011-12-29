@@ -8,8 +8,10 @@ module Data.Logic.Normal.Skolem
     , NormalT
     , runNormalT
     , runNormal
+    , specialize
     , skolemize
     , literal
+    , askolemize
     , skolemNormalForm
     ) where
 
@@ -21,7 +23,7 @@ import Data.Logic.Classes.Constants (fromBool)
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
 import Data.Logic.Classes.FirstOrderEq (substituteEq)
-import Data.Logic.Classes.Literal (Literal(atomic))
+import Data.Logic.Classes.Literal (Literal(foldLiteral, atomic))
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term(vt, fApp))
 import Data.Logic.Classes.Skolem (Skolem(toSkolem))
@@ -132,17 +134,13 @@ skolemize fm = askolemize fm >>= return . specialize . pnf
 -- | Convert a first order formula into a disjunct of conjuncts of
 -- literals.  Note that this can convert any instance of
 -- FirstOrderFormula into any instance of Literal.
-literal :: forall fof atom term v p f lit. (FirstOrderFormula fof atom v, Atom atom p term, Term term v f, Literal lit atom v, Ord lit) =>
+literal :: forall fof atom term v p f lit. (Literal fof atom v, Atom atom p term, Term term v f, Literal lit atom v, Ord lit) =>
            fof -> Set.Set (Set.Set lit)
 literal fm =
-    foldFirstOrder (error "quantifier") co tf at fm
+    foldLiteral neg tf at fm
     where
-      co ((:~:) x) = Set.map (Set.map (.~.)) (literal x)
-      co (BinOp p (:|:) q) = Set.singleton (Set.unions (Set.toList (literal p) ++ Set.toList (literal q)))
-          -- Set.singleton (Set.union (flatten (literal p)) (flatten (literal q)))
-          -- where flatten = Set.fold Set.union Set.empty
-      co (BinOp p (:&:) q) = Set.union (literal p) (literal q)
-      co _ = error "literal"
+      neg :: fof -> Set.Set (Set.Set lit)
+      neg x = Set.map (Set.map (.~.)) (literal x)
       tf = Set.singleton . Set.singleton . fromBool
       at :: atom -> Set.Set (Set.Set lit)
       at x = foldAtom (\ _ _ -> Set.singleton (Set.singleton (Data.Logic.Classes.Literal.atomic x))) tf x

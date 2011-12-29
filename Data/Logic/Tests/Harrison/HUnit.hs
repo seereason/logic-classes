@@ -13,7 +13,8 @@ import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
 import Data.Logic.Classes.Term (Term)
--- import Data.String (IsString)
+import Data.Logic.Types.Harrison.FOL (Function(..))
+import Data.String (IsString(fromString))
 import qualified Test.HUnit as T
 
 type Assertion t = IO ()
@@ -34,18 +35,18 @@ convert (Test0 test) = test
 class (FirstOrderFormula formula atom v,
        Atom atom p term,
        Term term v f,
-       Eq formula, Ord formula,
+       Eq formula, Ord formula, Show formula,
        Eq p,
-       -- IsString p, IsString v, IsString f,
+       IsString v, IsString p, IsString f,
        Eq term, Show term, Ord term,
        Show v) => TestFormula formula atom term v p f
 
 class (FirstOrderFormula formula atom v,
        AtomEq atom p term,
        Term term v f,
-       Eq formula, Ord formula,
+       Eq formula, Ord formula, Show formula,
        Eq p,
-       -- IsString p, IsString v, IsString f,
+       IsString v, IsString p, IsString f,
        Eq term, Show term, Ord term,
        Show v) => TestFormulaEq formula atom term v p f
 
@@ -55,3 +56,6 @@ type Formula' = forall formula atom term v p f. TestFormula formula atom term v 
 type TestEq' = forall formula atom term v p f. TestFormulaEq formula atom term v p f => Test formula
 type FormulaEq' = forall formula atom term v p f. TestFormulaEq formula atom term v p f => formula
 -}
+
+instance IsString Function where
+    fromString = FName

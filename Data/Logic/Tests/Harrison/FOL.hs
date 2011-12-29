@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes,
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes,
              ScopedTypeVariables, TypeFamilies, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 module Data.Logic.Tests.Harrison.FOL
@@ -13,25 +13,21 @@ module Data.Logic.Tests.Harrison.FOL
 import Control.Applicative ((<$>), (<*>))
 import Control.Applicative.Error (Failing(..))
 import Control.Monad (filterM)
-import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(false))
-import Data.Logic.Classes.Equals (AtomEq(..), (.=.), pApp)
+import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import qualified Data.Logic.Classes.FirstOrder as C
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term(vt, fApp, foldTerm))
 import Data.Logic.Classes.Variable (Variable(..))
-import Data.Logic.Harrison.FOL (subst)
-import Data.Logic.Harrison.Lib ((|->), (|=>))
+import Data.Logic.Harrison.Lib ((|->))
 import Data.Logic.Tests.Harrison.HUnit
 import Data.Logic.Types.Harrison.Equal (FOLEQ, PredName(..))
-import Data.Logic.Types.Harrison.FOL (TermType(..), FOL(..))
+import Data.Logic.Types.Harrison.FOL (TermType(..), FOL(..), Function(..))
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
-import qualified Data.Logic.Types.Harrison.Formulas.FirstOrder as H
 import qualified Data.Map as Map
 import qualified Data.Set as Set
--- import Data.String (fromString)
 import Prelude hiding (pred)
 
 tests1 :: TestFormula formula atom term v p f => Test formula
@@ -63,7 +59,7 @@ holds :: forall formula atom term v p f a.
       -> formula
       -> Failing Bool
 holds m@(domain, _func, pred) v fm =
-    foldFirstOrder qu co at fm
+    foldFirstOrder qu co tf at fm
     where
       qu op x p = mapM (\ a -> holds m ((|->) x a v) p) domain >>= return . (asPred op) (== True)
       asPred C.Exists = any
@@ -73,6 +69,7 @@ holds m@(domain, _func, pred) v fm =
       co (BinOp p (:&:) q) = (&&) <$> (holds m v p) <*> (holds m v q)
       co (BinOp p (:=>:) q) = (||) <$> (not <$> (holds m v p)) <*> (holds m v q)
       co (BinOp p (:<=>:) q) = (==) <$> (holds m v p) <*> (holds m v q)
+      tf x = Success x
       at :: atom -> Failing Bool
       at = foldAtomEq (\ r args -> mapM (termval m v) args >>= return . pred r) return (\ t1 t2 -> return $ termval m v t1 == termval m v t2)
 
@@ -110,7 +107,7 @@ example4 = fApp "*" [fApp "2" [], vt "x"]
 -- Examples of particular interpretations.                                   
 -- ------------------------------------------------------------------------- 
 
-boolInterp :: ([Bool], String -> [Bool] -> Bool, PredName -> [Bool] -> Bool)
+boolInterp :: ([Bool], Function -> [Bool] -> Bool, PredName -> [Bool] -> Bool)
 boolInterp =
     ([False, True],func,pred)
     where
@@ -128,12 +125,12 @@ boolInterp =
 
 modInterp :: Integer
           -> ([Integer],
-              String -> [Integer] -> Integer,
+              Function -> [Integer] -> Integer,
               PredName -> [Integer] -> Bool)
 modInterp n =
     ([0..(n-1)],func,pred)
     where
-      func :: String -> [Integer] -> Integer
+      func :: Function -> [Integer] -> Integer
       func f args =
           case (f,args) of
             ("0",[]) -> 0
@@ -181,15 +178,15 @@ test06 = TestCase $ assertEqual "holds mod test 5 (p. 129)" expected input
 
 -- test07 :: forall formula atom term v p f. TestFormula formula atom term v p f => Test formula
 test07 = TestCase $ assertEqual "variant 1 (p. 133)" expected input
-    where input = variant "x" (Set.fromList ["y", "z"])
+    where input = variant "x" (Set.fromList ["y", "z"]) :: String
           expected = "x"
 -- test08 :: forall formula atom term v p f. TestFormula formula atom term v p f => Test formula
 test08 = TestCase $ assertEqual "variant 2 (p. 133)" expected input
-    where input = variant "x" (Set.fromList ["x", "y"])
+    where input = variant "x" (Set.fromList ["x", "y"]) :: String
           expected = "x'"
 -- test09 :: forall formula atom term v p f. TestFormula formula atom term v p f => Test formula
 test09 = TestCase $ assertEqual "variant 3 (p. 133)" expected input
-    where input = variant "x" (Set.fromList ["x", "x'"])
+    where input = variant "x" (Set.fromList ["x", "x'"]) :: String
           expected = "x''"
 
 -- ------------------------------------------------------------------------- 

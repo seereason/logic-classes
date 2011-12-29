@@ -162,14 +162,14 @@ let dest_imp fm =
 
 antecedent :: PropositionalFormula formula atomic => formula -> formula
 antecedent formula =
-    foldPropositional c (error "antecedent") formula
+    foldPropositional c (error "antecedent") (error "antecedent") formula
     where
       c (BinOp p (:=>:) _) = p
       c _ = error "antecedent"
 
 consequent :: PropositionalFormula formula atomic => formula -> formula
 consequent formula =
-    foldPropositional c (error "consequent") formula
+    foldPropositional c (error "consequent") (error "consequent") formula
     where
       c (BinOp _ (:=>:) q) = q
       c _ = error "consequent"
@@ -180,12 +180,12 @@ consequent formula =
 
 on_atoms :: PropositionalFormula formula atomic => (atomic -> formula) -> formula -> formula
 on_atoms f fm =
-    foldPropositional c a fm
+    foldPropositional co tf at fm
     where 
-      c ((:~:) fm') = (.~.) (on_atoms f fm')
-      c (BinOp f1 op f2) = binop (on_atoms f f1) op (on_atoms f f2)
-      c _ = fm
-      a x = f x
+      co ((:~:) fm') = (.~.) (on_atoms f fm')
+      co (BinOp f1 op f2) = binop (on_atoms f f1) op (on_atoms f f2)
+      tf _ = fm
+      at x = f x
 
 -- ------------------------------------------------------------------------- 
 -- Formula analog of list iterator "itlist".                                 
@@ -193,12 +193,12 @@ on_atoms f fm =
 
 over_atoms :: (PropositionalFormula formula atomic) => (atomic -> b -> b) -> formula -> b -> b
 over_atoms f fm b =
-    foldPropositional c a fm
+    foldPropositional co tf at fm
     where
-      c ((:~:) p) = over_atoms f p b
-      c (BinOp p _ q) = over_atoms f p (over_atoms f q b)
-      c _ = b
-      a x = f x b
+      co ((:~:) p) = over_atoms f p b
+      co (BinOp p _ q) = over_atoms f p (over_atoms f q b)
+      tf _ = b
+      at x = f x b
 
 -- ------------------------------------------------------------------------- 
 -- Special case of a union of the results of a function over the atoms.      
