@@ -2,7 +2,7 @@
 -- package test cases, and are exported for use in its clients.
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, RankNTypes, ScopedTypeVariables, TypeFamilies, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wwarn #-}
-module Data.Logic.Test
+module Data.Logic.Tests.Common
     ( myTest
       -- * Formula parameter types
     , V(..)
@@ -173,7 +173,7 @@ doTest :: (FirstOrderFormula formula atom v,
            AtomEq atom p term, atom ~ P.Predicate p (P.PTerm v f),
            Term term v f,
            Literal formula atom v,
-           Data formula, Show formula, Show term, Ord term, Constants p, Eq p, Show f) =>
+           Eq formula, Ord formula, Data formula, Show formula, Show term, Ord term, Constants p, Eq p, Show f) =>
           TestFormula formula atom v -> Test
 doTest f =
     TestLabel (name f) $ TestList $ 
@@ -244,7 +244,7 @@ doProof :: forall formula atom term v p f. (FirstOrderFormula formula atom v,
                                             AtomEq atom p term, atom ~ P.Predicate p (P.PTerm v f),
                                             Term term v f, term ~ P.PTerm v f,
                                             Literal formula atom v,
-                                            Eq term, Show term, Show v, Show formula, Constants p, Eq p, Show f) =>
+                                            Ord formula, Data formula, Eq term, Show term, Show v, Show formula, Constants p, Eq p, Show f) =>
            TestProof formula term v -> Test
 doProof p =
     TestLabel (proofName p) $ TestList $

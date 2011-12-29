@@ -107,11 +107,14 @@ instance (Ord v, Variable v, Data v, Show v,
     atomic (Predicate (NotEqual t1 t2)) = t1 .!=. t2
     atomic (Predicate (Apply p ts)) = pApp p ts
     atomic _ = error "atomic method of PropositionalFormula for Parameterized: invalid argument"
-    foldPropositional c a formula =
-        case formula of
-          Quant _ _ _ -> error "foldF0: quantifiers should not be present"
-          Combine x -> c x
-          Predicate x -> a (Predicate x)
+    foldPropositional co tf at formula =
+        maybe testFm tf (asBool formula)
+        where
+          testFm =
+              case formula of
+                Quant _ _ _ -> error "foldF0: quantifiers should not be present"
+                Combine x -> co x
+                Predicate x -> at (Predicate x)
 
 instance (Variable v, Data v, Skolem f, Data f, Ord f) => Term (PTerm v f) v f where
     foldTerm vf fn t =
@@ -142,14 +145,6 @@ instance (Constants p, Eq p, Arity p, Show p) => AtomEq (Predicate p (PTerm v f)
     -- foldAtomEq ap _ _ (Constant x) = ap (fromBool x) []
     foldAtomEq _ _ eq (Equal t1 t2) = eq t1 t2
     foldAtomEq _ _ _ _ = error "foldAtomEq Predicate"
-    zipAtomsEq ap tf _ (Apply p1 ts1) (Apply p2 ts2) =
-        case (asBool p1, asBool p2) of
-          (Just a, Just b) -> tf a b
-          (Nothing, Nothing) -> ap p1 ts1 p2 ts2
-          _ -> Nothing
-    -- zipAtomsEq ap _ (Constant x) (Constant y) = ap (fromBool x) [] (fromBool y) []
-    zipAtomsEq _ _ eq (Equal t1 t2) (Equal t3 t4) = eq t1 t2 t3 t4
-    zipAtomsEq _ _ _ _ _ = Nothing
     equals = Equal
     applyEq' = Apply
 
@@ -161,17 +156,19 @@ instance (AtomEq (Predicate p (PTerm v f)) p (PTerm v f),
          FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v where
     for_all v x = Quant Forall v x
     exists v x = Quant Exists v x
-    foldFirstOrder q c p f =
+    foldFirstOrder qu co tf at f =
         case f of
-          Quant op v f' -> q op v f'
-          Combine x -> c x
-          Predicate x -> p x
-    zipFirstOrder q c p f1 f2 =
+          Quant op v f' -> qu op v f'
+          Combine x -> co x
+          Predicate x -> at x
+{-
+    zipFirstOrder qu co tf at f1 f2 =
         case (f1, f2) of
-          (Quant q1 v1 f1', Quant q2 v2 f2') -> q q1 v1 (Quant q1 v1 f1') q2 v2 (Quant q2 v2 f2')
-          (Combine x, Combine y) -> c x y
-          (Predicate x, Predicate y) -> p x y
+          (Quant q1 v1 f1', Quant q2 v2 f2') -> qu q1 v1 (Quant q1 v1 f1') q2 v2 (Quant q2 v2 f2')
+          (Combine x, Combine y) -> co x y
+          (Predicate x, Predicate y) -> at x y
           _ -> Nothing
+-}
     atomic = Predicate
 
 instance (Constants (Formula v p f),

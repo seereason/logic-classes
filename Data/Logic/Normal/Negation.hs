@@ -12,7 +12,7 @@ import Data.Logic.Classes.Term (Term)
 import Data.Logic.Harrison.Skolem (nnf, simplify)
 
 -- | Simplify and recursively apply nnf.
-negationNormalForm :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> formula
+negationNormalForm :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Eq formula) => formula -> formula
 negationNormalForm = nnf . simplify
 {-
 -- |Eliminate => and <=> and move negations inwards:

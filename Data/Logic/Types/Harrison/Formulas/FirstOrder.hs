@@ -4,7 +4,7 @@ module Data.Logic.Types.Harrison.Formulas.FirstOrder
     ( Formula(..)
     ) where
 
-import Data.Logic.Classes.Combine (Combinable(..))
+import Data.Logic.Classes.Combine (Combinable(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 
@@ -31,6 +31,16 @@ instance Constants (Formula a) where
     fromBool False = F
 
 instance Combinable (Formula a) where
+    foldCombine binop neg tf fm =
+        case fm of
+          F -> tf False
+          T -> tf True
+          Not p -> neg p
+          And p q -> binop p (:&:) q
+          Or p q -> binop p (:|:) q
+          Imp p q -> binop p (:=>:) q
+          Iff p q -> binop p (:<=>:) q
+          _ -> error "foldCombine Data.Logic.Types.Harrison.Formulas.FirstOrder.Formula"
     a .<=>. b = Iff a b
     a .=>. b = Imp a b
     a .|. b = Or a b

@@ -67,7 +67,7 @@ prettyProof lit p = cat $ [text "["] ++ intersperse (text ", ") (map (prettyINF 
 -- @
 implicativeNormalForm :: forall m formula atom term v p f lit. 
                          (Monad m, FirstOrderFormula formula atom v, Data formula, Literal lit atom v, AtomEq atom p term, Term term v f,
-                          Eq lit, Ord lit, Data lit, Constants p, Eq p, Skolem f) =>
+                          Eq formula, Eq lit, Ord lit, Data lit, Constants p, Eq p, Skolem f) =>
                          formula -> SkolemT v term m (Set.Set (ImplicativeForm lit))
 implicativeNormalForm formula =
     do cnf <- clauseNormalForm formula

@@ -34,28 +34,28 @@ instance Ord a => Combinable (PropForm a) where
 
 instance (Combinable (PropForm a), Ord a) => PropositionalFormula (PropForm a) a where
     atomic = A
-    foldPropositional c a formula =
+    foldPropositional co tf at formula =
         case formula of
           -- EJ [x,y,z,...] -> CJ [EJ [x,y], EJ[y,z], ...]
           EJ [] -> error "Empty EJ"
-          EJ [x] -> foldPropositional c a x
-          EJ [x0, x1] -> c (BinOp x0 (:<=>:) x1)
-          EJ xs -> foldPropositional c a (CJ (map (\ (x0, x1) -> EJ [x0, x1]) (pairs xs)))
+          EJ [x] -> foldPropositional co tf at x
+          EJ [x0, x1] -> co (BinOp x0 (:<=>:) x1)
+          EJ xs -> foldPropositional co tf at (CJ (map (\ (x0, x1) -> EJ [x0, x1]) (pairs xs)))
           SJ [] -> error "Empty SJ"
-          SJ [x] -> foldPropositional c a x
-          SJ [x0, x1] -> c (BinOp x0 (:=>:) x1)
-          SJ xs -> foldPropositional c a (CJ (map (\ (x0, x1) -> SJ [x0, x1]) (pairs xs)))
+          SJ [x] -> foldPropositional co tf at x
+          SJ [x0, x1] -> co (BinOp x0 (:=>:) x1)
+          SJ xs -> foldPropositional co tf at (CJ (map (\ (x0, x1) -> SJ [x0, x1]) (pairs xs)))
           DJ [] -> error "Empty disjunct"
-          DJ [x] -> foldPropositional c a x
-          DJ (x0:xs) -> c (BinOp x0 (:|:) (DJ xs))
+          DJ [x] -> foldPropositional co tf at x
+          DJ (x0:xs) -> co (BinOp x0 (:|:) (DJ xs))
           CJ [] -> error "Empty conjunct"
-          CJ [x] -> foldPropositional c a x
-          CJ (x0:xs) -> c (BinOp x0 (:&:) (CJ xs))
-          N x -> c ((:~:) x)
+          CJ [x] -> foldPropositional co tf at x
+          CJ (x0:xs) -> co (BinOp x0 (:&:) (CJ xs))
+          N x -> co ((:~:) x)
           -- Not sure what to do about these - so far not an issue.
-          T -> error "foldPropositional method of PropForm: T"
-          F -> error "foldPropositional method of PropForm: F"
-          A x -> a x
+          T -> tf True
+          F -> tf False
+          A x -> at x
 
 instance Constants (PropForm formula) where
     fromBool True = T
@@ -81,16 +81,16 @@ flatten (SJ xs) = SJ (map flatten xs)
 flatten (N x) = N (flatten x)
 flatten x = x
 
-plSat0 :: (PropAlg a (PropForm formula), PropositionalFormula formula atom) => PropForm formula -> Bool
+plSat0 :: (PropAlg a (PropForm formula), PropositionalFormula formula atom, Ord formula) => PropForm formula -> Bool
 plSat0 f = satisfiable . (\ (x :: PropForm formula) -> x) . clauses0 $ f
 
-clauses0 :: PropositionalFormula formula atom => PropForm formula -> PropForm formula
+clauses0 :: (PropositionalFormula formula atom, Ord formula) => PropForm formula -> PropForm formula
 clauses0 f = CJ . map DJ . map S.toList . S.toList $ clauseNormalForm' f
 
 plSat :: forall m formula atom term v p f. (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Ord formula, Literal formula atom v, Constants p, Eq p) =>
                 formula -> SkolemT v term m Bool
 plSat f = clauses f >>= (\ (x :: PropForm formula) -> return x) >>= return . satisfiable
 
-clauses :: forall m formula atom term v p f. (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal formula atom v, Constants p, Eq p) =>
+clauses :: forall m formula atom term v p f. (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal formula atom v, Ord formula, Constants p, Eq p) =>
            formula -> SkolemT v term m (PropForm formula)
 clauses f = clauseNormalForm f >>= return . CJ . map (DJ . map (toPropositional (A :: formula -> PropForm formula))) . map S.toList . S.toList

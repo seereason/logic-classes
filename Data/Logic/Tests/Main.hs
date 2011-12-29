@@ -1,12 +1,12 @@
 import Data.Logic.Classes.FirstOrder (showFirstOrder)
-import Data.Logic.Test (TestFormula, TestProof, V, Pr, AtomicFunction, TFormula, TAtom, TTerm)
+import Data.Logic.Tests.Common (TestFormula, TestProof, V, Pr, AtomicFunction, TFormula, TAtom, TTerm)
 import Data.Logic.Types.FirstOrder
 import System.Exit
 import Test.HUnit
-import qualified Test.Logic as Logic
-import qualified Test.Chiou0 as Chiou0
---import qualified Test.TPTP as TPTP
-import qualified Test.Data as Data
+import qualified Data.Logic.Tests.Logic as Logic
+import qualified Data.Logic.Tests.Chiou0 as Chiou0
+--import qualified Data.Logic.Tests.TPTP as TPTP
+import qualified Data.Logic.Tests.Data as Data
 
 main :: IO ()
 main =

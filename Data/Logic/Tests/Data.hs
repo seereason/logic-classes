@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, MonoLocalBinds, NoMonomorphismRestriction, OverloadedStrings, RankNTypes, ScopedTypeVariables, TypeFamilies  #-}
 {-# OPTIONS -fno-warn-name-shadowing -fno-warn-missing-signatures #-}
-module Test.Data
+module Data.Logic.Tests.Data
     ( tests
     , allFormulas
     , proofs
@@ -15,7 +15,7 @@ module Test.Data
     ) where
 
 import Data.Boolean.SatSolver (Literal(..))
-import Data.Generics (Typeable)
+import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Combine (Combinable(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Equals (AtomEq, (.=.), pApp, pApp2)
@@ -27,7 +27,7 @@ import qualified Data.Logic.Classes.Literal as N
 import qualified Data.Logic.Instances.Chiou as C
 import Data.Logic.KnowledgeBase (WithId(WithId, wiItem, wiIdent), Proof(..), ProofResult(..))
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
-import Data.Logic.Test (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof)
+import Data.Logic.Tests.Common (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof)
 import Data.Logic.Types.FirstOrder (Predicate(..), PTerm(..))
 import Data.Map (fromList)
 import qualified Data.Set as S
@@ -46,7 +46,8 @@ prenexNormalForm true :: Formula V Pr AtomicFunction
 :m +Data.Logic.Normal.Negation
 -}
 
-tests :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, N.Literal formula atom v, Eq term, Show term, Show formula, Show v, Constants p, Eq p, Show f,
+tests :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, N.Literal formula atom v,
+          Eq formula, Ord formula, Data formula, Eq term, Show term, Show formula, Show v, Constants p, Eq p, Show f,
           atom ~ Predicate p (PTerm v f), term ~ PTerm v f) =>
          [TestFormula formula atom v] -> [TestProof formula term v] -> Test
 tests fs ps =

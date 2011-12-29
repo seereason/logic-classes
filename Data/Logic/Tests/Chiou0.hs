@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings, StandaloneDeriving #-}
 {-# OPTIONS -fno-warn-orphans #-}
 
-module Test.Chiou0 where
+module Data.Logic.Tests.Chiou0 where
 
 import Control.Monad.Identity (runIdentity)
 import Control.Monad.Trans (MonadIO, liftIO)
@@ -17,7 +17,7 @@ import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
 import Data.Logic.Normal.Skolem (SkolemT, runSkolem)
 import Data.Logic.Resolution (SetOfSupport)
-import Data.Logic.Test (V(..), Pr(..), AtomicFunction(..), TFormula, TTerm, myTest)
+import Data.Logic.Tests.Common (V(..), Pr(..), AtomicFunction(..), TFormula, TTerm, myTest)
 import Data.Logic.Types.FirstOrder (Formula, PTerm)
 import Data.Map (fromList)
 import qualified Data.Set as S

@@ -22,13 +22,42 @@ import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 
--- |A type class for logical formulas.  Minimal implementation:
+-- | Abbreviation for the type signature passed to the fold function.
+type CombineFold formula r =
+       (formula -> BinOp -> formula -> r)
+    -> (formula -> r)
+    -> (Bool -> r)
+    -> formula -> r
+
+-- | Abbreviation for the type signature passed to the zip function.
+type CombineZip formula r =
+       (formula -> BinOp -> formula -> formula -> BinOp -> formula -> Maybe r)
+    -> (formula -> formula -> Maybe r)
+    -> (Bool -> Bool -> Maybe r)
+    -> formula -> formula -> Maybe r
+
+-- | A type class for logical formulas.  Minimal implementation:
 -- @
---  (.|.), (.~.)
+--  (.|.)
 -- @
-class (Constants formula, Negatable formula, Ord formula) => Combinable formula where
-    -- foldCombine :: (formula -> BinOp -> formula -> r) -> (formula -> r) -> (Bool -> r) -> r
-    -- zipCombines :: (formula -> BinOp -> formula -> formula -> BinOp -> formula -> Maybe r) -> (formula -> formula -> Maybe r) -> (Bool -> Maybe r) -> Maybe r
+class ({- Constants formula, -} Negatable formula) => Combinable formula where
+    foldCombine :: CombineFold formula r
+    zipCombines :: CombineZip formula r
+    zipCombines bin neg tf fm1 fm2 =
+        foldCombine bin2 neg2 tf2 fm2
+        where
+          bin2 p2 op2 q2 = foldCombine (\ p1 op1 q1 -> bin p1 op1 q1 p2 op2 q2)
+                                       (\ _ -> Nothing)
+                                       (\ _ -> Nothing)
+                                       fm1
+          neg2 p2 = foldCombine (\ _ _ _ -> Nothing)
+                                (\ p1 -> neg p1 p2)
+                                (\ _ -> Nothing)
+                                fm1
+          tf2 b2 = foldCombine (\ _ _ _ -> Nothing)
+                               (\ _ -> Nothing)
+                               (\ b1 -> tf b1 b2)
+                               fm1
     -- | Disjunction/OR
     (.|.) :: formula -> formula -> formula
 

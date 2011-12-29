@@ -57,12 +57,12 @@ import Text.PrettyPrint (Doc, hcat, vcat, text, nest, ($$), brackets, render)
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-clauseNormalForm :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal lit atom v, Ord lit, Constants p, Eq p) =>
+clauseNormalForm :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal lit atom v, Eq formula, Ord lit, Constants p, Eq p) =>
        formula -> SkolemT v term m (Set.Set (Set.Set lit))
 clauseNormalForm fm = skolemNormalForm fm >>= return . simpcnf
 
 cnfTrace :: forall m formula atom term v p f lit.
-            (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal lit atom v, Ord lit, Constants p, Eq p) =>
+            (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal lit atom v, Eq formula, Ord lit, Constants p, Eq p) =>
             (v -> Doc)
          -> (p -> Doc)
          -> (f -> Doc)
@@ -88,10 +88,11 @@ cnfTrace pv pp pf f =
 simpcnf :: forall formula atom term v p f lit. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal lit atom v, Ord lit, Eq p, Constants p) =>
            formula -> Set.Set (Set.Set lit)
 simpcnf fm =
-    foldFirstOrder (\ _ _ _ -> cjs') co at fm
+    foldFirstOrder (\ _ _ _ -> cjs') co tf at fm
     where
       co _ = cjs'
-      at = foldAtomEq (\ _ _ -> cjs') (\ x -> if x then Set.singleton Set.empty else Set.empty) (\ _ _ -> cjs')
+      at = foldAtomEq (\ _ _ -> cjs') tf (\ _ _ -> cjs')
+      tf x = if x then Set.singleton Set.empty else Set.empty
       -- Discard any clause that is the proper subset of another clause
       cjs' = Set.filter keep cjs
       keep x = not (Set.or (Set.map (Set.isProperSubsetOf x) cjs))
@@ -111,11 +112,11 @@ purecnf fm = Set.map (Set.map (.~.)) (purednf (nnf ((.~.) fm)))
 purednf :: forall formula atom term v p f lit. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal lit atom v, Ord lit) =>
            formula -> Set.Set (Set.Set lit)
 purednf fm =
-    foldFirstOrder (\ _ _ _ -> x) c (\ _ -> x)  fm
+    foldFirstOrder (\ _ _ _ -> x) co (\ _ -> x) (\ _ -> x)  fm
     where
-      c :: Combination formula -> Set.Set (Set.Set lit)
-      c (BinOp p (:&:) q) = Set.distrib (purednf p) (purednf q)
-      c (BinOp p (:|:) q) = Set.union (purednf p) (purednf q)
-      c _ = x
+      co :: Combination formula -> Set.Set (Set.Set lit)
+      co (BinOp p (:&:) q) = Set.distrib (purednf p) (purednf q)
+      co (BinOp p (:|:) q) = Set.union (purednf p) (purednf q)
+      co _ = x
       x :: Set.Set (Set.Set lit)
       x = Set.singleton (Set.singleton (fromFirstOrderEq id id id fm)) :: Set.Set (Set.Set lit)

@@ -161,17 +161,19 @@ let dest_imp fm =
 
 antecedent :: FirstOrderFormula formula atom v => formula -> formula
 antecedent formula =
-    foldFirstOrder (error "antecedent") c (error "antecedent") formula
+    foldFirstOrder (\ _ _ _ -> err) c (\ _ -> err) (\ _ -> err) formula
     where
       c (BinOp p (:=>:) _) = p
-      c _ = error "antecedent"
+      c _ = err
+      err = error "antecedent"
 
 consequent :: FirstOrderFormula formula atom v => formula -> formula
 consequent formula =
-    foldFirstOrder (error "consequent") c (error "consequent") formula
+    foldFirstOrder (\ _ _ _ -> err) c (\ _ -> err) (\ _ -> err) formula
     where
       c (BinOp _ (:=>:) q) = q
-      c _ = error "consequent"
+      c _ = err
+      err = error "consequent"
 
 -- ------------------------------------------------------------------------- 
 -- Apply a function to the atoms, otherwise keeping structure.               
@@ -179,13 +181,13 @@ consequent formula =
 
 on_atoms :: forall formula atom v. FirstOrderFormula formula atom v => (atom -> formula) -> formula -> formula
 on_atoms f fm =
-    foldFirstOrder q c p fm
+    foldFirstOrder qu co tf at fm
     where 
-      q op v fm' = quant op v (on_atoms f fm')
-      c ((:~:) fm') = (.~.) (on_atoms f fm')
-      c (BinOp f1 op f2) = binop (on_atoms f f1) op (on_atoms f f2)
-      -- c _ = fm
-      p = f
+      qu op v fm' = quant op v (on_atoms f fm')
+      co ((:~:) fm') = (.~.) (on_atoms f fm')
+      co (BinOp f1 op f2) = binop (on_atoms f f1) op (on_atoms f f2)
+      tf _ = fm
+      at = f
 
 -- ------------------------------------------------------------------------- 
 -- Formula analog of list iterator "itlist".                                 
@@ -193,12 +195,12 @@ on_atoms f fm =
 
 over_atoms :: FirstOrderFormula formula atom v => (atom -> b -> b) -> formula -> b -> b
 over_atoms f fm b =
-    foldFirstOrder qu co pr fm
+    foldFirstOrder qu co tf pr fm
     where
       qu _ _ p = over_atoms f p b
       co ((:~:) p) = over_atoms f p b
       co (BinOp p _ q) = over_atoms f p (over_atoms f q b)
-      -- co _ = b
+      tf _ = b
       pr atom = f atom b
 
 -- ------------------------------------------------------------------------- 

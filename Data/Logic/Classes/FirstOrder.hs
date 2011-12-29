@@ -3,6 +3,7 @@
 module Data.Logic.Classes.FirstOrder
     ( FirstOrderFormula(..)
     , Quant(..)
+    , zipFirstOrder
     , pApp
     , pApp0
     , pApp1
@@ -72,7 +73,7 @@ class (Combinable formula, Constants p, Arity p) => Pred p term formula | formul
 -- instance for (FirstOrderFormula Formula term V p f)@ because the
 -- function doesn't mention the Term type.
 class ( Combinable formula  -- Basic logic operations
-      , Data formula        -- Allows us to use Data.Generics functions on formulas
+      , Constants formula
       , Variable v
       , Show v
       ) => FirstOrderFormula formula atom v | formula -> atom v where
@@ -87,14 +88,25 @@ class ( Combinable formula  -- Basic logic operations
     -- is a no op.  The argument order is taken from Logic-TPTP.
     foldFirstOrder :: (Quant -> v -> formula -> r)
                    -> (Combination formula -> r)
+                   -> (Bool -> r)
                    -> (atom -> r)
                    -> formula
                    -> r
-    zipFirstOrder :: (Quant -> v -> formula -> Quant -> v -> formula -> Maybe r)
-                  -> (Combination formula -> Combination formula -> Maybe r)
-                  -> (atom -> atom -> Maybe r)
-                  -> formula -> formula -> Maybe r
     atomic :: atom -> formula
+
+zipFirstOrder :: FirstOrderFormula formula atom v =>
+                 (Quant -> v -> formula -> Quant -> v -> formula -> Maybe r)
+              -> (Combination formula -> Combination formula -> Maybe r)
+              -> (Bool -> Bool -> Maybe r)
+              -> (atom -> atom -> Maybe r)
+              -> formula -> formula -> Maybe r
+zipFirstOrder qu co tf at fm1 fm2 =
+    foldFirstOrder qu' co' tf' at' fm1
+    where
+      qu' op1 v1 p1 = foldFirstOrder (qu op1 v1 p1) (\ _ -> Nothing) (\ _ -> Nothing) (\ _ -> Nothing) fm2
+      co' c1 = foldFirstOrder (\ _ _ _ -> Nothing) (co c1) (\ _ -> Nothing) (\ _ -> Nothing) fm2
+      tf' x1 = foldFirstOrder (\ _ _ _ -> Nothing) (\ _ -> Nothing) (tf x1) (\ _ -> Nothing) fm2
+      at' atom1 = foldFirstOrder (\ _ _ _ -> Nothing) (\ _ -> Nothing) (\ _ -> Nothing) (at atom1) fm2
 
 -- |The 'Quant' and 'InfixPred' types, like the BinOp type in
 -- 'Data.Logic.Propositional', could be additional parameters to the type
@@ -158,14 +170,15 @@ convertFOF :: forall formula1 atom1 term1 v1 p1 f1 formula2 atom2 term2 v2 p2 f2
                FirstOrderFormula formula2 atom2 v2, Atom atom2 p2 term2, Term term2 v2 f2) =>
               (v1 -> v2) -> (p1 -> p2) -> (f1 -> f2) -> formula1 -> formula2
 convertFOF convertV convertP convertF formula =
-    foldFirstOrder q c p formula
+    foldFirstOrder qu co tf at formula
     where
       convert' = convertFOF convertV convertP convertF
       convertTerm' = convertTerm convertV convertF
-      q x v f = quant x (convertV v) (convert' f)
-      c (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
-      c ((:~:) f) = combine ((:~:) (convert' f))
-      p = foldAtom (\ x ts -> pApp (convertP x) (map convertTerm' ts)) (pApp0 . fromBool)
+      qu x v f = quant x (convertV v) (convert' f)
+      co (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
+      co ((:~:) f) = combine ((:~:) (convert' f))
+      tf = fromBool
+      at = foldAtom (\ x ts -> pApp (convertP x) (map convertTerm' ts)) (pApp0 . fromBool)
 
 -- |Try to convert a first order logic formula to propositional.  This
 -- will return Nothing if there are any quantifiers, or if it runs
@@ -175,25 +188,28 @@ toPropositional :: forall formula1 atom v formula2 atom2.
                     PropositionalFormula formula2 atom2) =>
                    (formula1 -> formula2) -> formula1 -> formula2
 toPropositional convertAtom formula =
-    foldFirstOrder q c p formula
+    foldFirstOrder qu co tf at formula
     where
       convert' = toPropositional convertAtom
-      q _ _ _ = error "toPropositional: invalid argument"
-      c (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
-      c ((:~:) f) = combine ((:~:) (convert' f))
-      p _ = convertAtom formula
+      qu _ _ _ = error "toPropositional: invalid argument"
+      co (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
+      co ((:~:) f) = combine ((:~:) (convert' f))
+      tf = fromBool
+      at _ = convertAtom formula
 
 -- | Display a formula in a format that can be read into the interpreter.
 showFirstOrder :: forall formula atom term v p f. (FirstOrderFormula formula atom v, Atom atom p term, Term term v f, Show v, Show p, Show f) => 
                   formula -> String
 showFirstOrder formula =
-    foldFirstOrder q c a formula
+    foldFirstOrder qu co tf at formula
     where
-      q Forall v f = "(for_all " ++ show v ++ " " ++ showFirstOrder f ++ ")"
-      q Exists v f = "(exists " ++  show v ++ " " ++ showFirstOrder f ++ ")"
-      c (BinOp f1 op f2) = "(" ++ parenForm f1 ++ " " ++ showCombine op ++ " " ++ parenForm f2 ++ ")"
-      c ((:~:) f) = "((.~.) " ++ showFirstOrder f ++ ")"
-      a = foldAtom (\ p ts -> "(pApp" ++ show (length ts) ++ " (" ++ show p ++ ") (" ++ intercalate ") (" (map showTerm ts) ++ "))") (\ x -> if x then "true" else "false")
+      qu Forall v f = "(for_all " ++ show v ++ " " ++ showFirstOrder f ++ ")"
+      qu Exists v f = "(exists " ++  show v ++ " " ++ showFirstOrder f ++ ")"
+      co (BinOp f1 op f2) = "(" ++ parenForm f1 ++ " " ++ showCombine op ++ " " ++ parenForm f2 ++ ")"
+      co ((:~:) f) = "((.~.) " ++ showFirstOrder f ++ ")"
+      tf True = "true"
+      tf False = "false"
+      at = foldAtom (\ p ts -> "(pApp" ++ show (length ts) ++ " (" ++ show p ++ ") (" ++ intercalate ") (" (map showTerm ts) ++ "))") (\ x -> if x then "true" else "false")
       parenForm x = "(" ++ showFirstOrder x ++ ")"
       -- parenTerm :: term -> String
       -- parenTerm x = "(" ++ showTerm x ++ ")"
@@ -222,11 +238,12 @@ prettyFirstOrder pv pp pf prec formula =
                        (:|:) -> parensIf {-(prec > 4)-} True $ (prettyFirstOrder pv pp pf 4 f1 <+> formOp op <+> prettyFirstOrder pv pp pf 4 f2)
                  ((:~:) f) -> text {-"¬"-} "~" <> prettyFirstOrder pv pp pf 5 f
           )
-          pr
+          (\ x -> text (if x then "true" else "false"))
+          at
           formula
     where
-      pr :: atom -> Doc
-      pr = foldAtom (\ p ts ->
+      at :: atom -> Doc
+      at = foldAtom (\ p ts ->
                          pp p <> case ts of
                                    [] -> empty
                                    _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts))))
@@ -250,6 +267,7 @@ withUnivQuants fn formula =
       doFormula vs f =
           foldFirstOrder
                 (doQuant vs)
+                (\ _ -> fn (reverse vs) f)
                 (\ _ -> fn (reverse vs) f)
                 (\ _ -> fn (reverse vs) f)
                 f

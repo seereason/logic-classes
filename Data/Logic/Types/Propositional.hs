@@ -3,7 +3,7 @@ module Data.Logic.Types.Propositional where
 
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (Constants(..))
+import Data.Logic.Classes.Constants (Constants(..), asBool)
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 
@@ -33,16 +33,7 @@ instance Constants atom => Constants (Formula atom) where
 
 instance (Constants atom, Ord atom) => PropositionalFormula (Formula atom) atom where
     atomic a = Atom a
-    foldPropositional c a formula =
+    foldPropositional co tf at formula =
         case formula of
-          Combine x -> c x
-          Atom x -> a x
-{-
-    asBool (Atom x) =
-        if x == fromBool True
-        then Just True
-        else if x == fromBool False
-             then Just False
-             else Nothing
-    asBool (Combine _) = Nothing
--}
+          Combine x -> co x
+          Atom x -> maybe (at x) tf (asBool x)

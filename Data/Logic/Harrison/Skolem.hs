@@ -12,7 +12,7 @@ module Data.Logic.Harrison.Skolem
     ) where
 
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
-import Data.Logic.Classes.Constants (Constants(true, false))
+import Data.Logic.Classes.Constants (Constants(fromBool, true, false), asBool)
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(exists, for_all, foldFirstOrder), Quant(..), quant)
 import Data.Logic.Classes.Negate ((.~.))
@@ -32,14 +32,14 @@ import qualified Data.Set as Set
 -- Routine simplification. Like "psimplify" but with quantifier clauses.     
 -- ------------------------------------------------------------------------- 
 
-simplify1 :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Constants p, Eq p) => fof -> fof
+simplify1 :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Eq fof, Constants p, Eq p) => fof -> fof
 simplify1 fm =
-    foldFirstOrder qu co pr fm
+    foldFirstOrder qu co tf at fm
     where
       qu _ x p = if Set.member x (fv p) then fm else p
-      co ((:~:) p) = foldFirstOrder (\ _ _ _ -> fm) nco (\ _ -> fm) p
+      co ((:~:) p) = foldFirstOrder (\ _ _ _ -> fm) nco (fromBool . not) (\ _ -> fm) p
       co (BinOp l op r) =
-          case (testBool l, op, testBool r) of
+          case (asBool l, op, asBool r) of
             (Just True,  (:&:), _         ) -> r
             (Just False, (:&:), _         ) -> false
             (_,          (:&:), Just True ) -> l
@@ -59,17 +59,18 @@ simplify1 fm =
             _ -> fm
       nco ((:~:) p) = p
       nco _ = fm
-      testBool = foldFirstOrder (\ _ _ _ -> Nothing) (\ _ -> Nothing) (foldAtomEq (\ _ _ -> Nothing) Just (\ _ _ -> Nothing))
-      pr _ = fm
+      tf = fromBool
+      at _ = fm
 
-simplify :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Constants p, Eq p) => fof -> fof
+simplify :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Eq fof, Constants p, Eq p) => fof -> fof
 simplify fm =
-    foldFirstOrder q c p fm
+    foldFirstOrder qu co tf at fm
     where
-      q op x fm' = simplify1 (quant op x (simplify fm'))
-      c ((:~:) fm') = simplify1 ((.~.) (simplify fm'))
-      c (BinOp fm1 op fm2) = simplify1 (binop (simplify fm1) op (simplify fm2))
-      p _ = fm
+      qu op x fm' = simplify1 (quant op x (simplify fm'))
+      co ((:~:) fm') = simplify1 ((.~.) (simplify fm'))
+      co (BinOp fm1 op fm2) = simplify1 (binop (simplify fm1) op (simplify fm2))
+      tf = fromBool
+      at _ = fm
 
 -- ------------------------------------------------------------------------- 
 -- Negation normal form.                                                     
@@ -77,10 +78,10 @@ simplify fm =
 
 nnf :: FirstOrderFormula formula atom v => formula -> formula
 nnf fm =
-    foldFirstOrder nnfQuant nnfCombine (\ _ -> fm) fm
+    foldFirstOrder nnfQuant nnfCombine (\ _ -> fm) (\ _ -> fm) fm
     where
       nnfQuant op v p = quant op v (nnf p)
-      nnfCombine ((:~:) p) = foldFirstOrder nnfNotQuant nnfNotCombine (\ _ -> fm) p
+      nnfCombine ((:~:) p) = foldFirstOrder nnfNotQuant nnfNotCombine (fromBool . not) (\ _ -> fm) p
       nnfCombine (BinOp p (:=>:) q) = nnf ((.~.) p) .|. (nnf q)
       nnfCombine (BinOp p (:<=>:) q) =  (nnf p .&. nnf q) .|. (nnf ((.~.) p) .&. nnf ((.~.) q))
       nnfCombine (BinOp p (:&:) q) = nnf p .&. nnf q
@@ -99,9 +100,9 @@ nnf fm =
 
 pullQuants :: forall formula atom v term p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> formula
 pullQuants fm =
-    foldFirstOrder (\ _ _ _ -> fm) pullQuantsCombine (\ _ -> fm) fm
+    foldFirstOrder (\ _ _ _ -> fm) pullQuantsCombine (\ _ -> fm) (\ _ -> fm) fm
     where
-      getQuant = foldFirstOrder (\ op v f -> Just (op, v, f)) (\ _ -> Nothing) (\ _ -> Nothing)
+      getQuant = foldFirstOrder (\ op v f -> Just (op, v, f)) (\ _ -> Nothing) (\ _ -> Nothing) (\ _ -> Nothing)
       pullQuantsCombine ((:~:) _) = fm
       pullQuantsCombine (BinOp l op r) = 
           case (getQuant l, op, getQuant r) of
@@ -133,15 +134,15 @@ pullq l r fm mkq op x y p q =
 -- leftmost.
 prenex :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> formula 
 prenex fm =
-    foldFirstOrder q c (\ _ -> fm) fm
+    foldFirstOrder qu co (\ _ -> fm) (\ _ -> fm) fm
     where
-      q op x p = quant op x (prenex p)
-      c (BinOp l (:&:) r) = pullQuants (prenex l .&. prenex r)
-      c (BinOp l (:|:) r) = pullQuants (prenex l .|. prenex r)
-      c _ = fm
+      qu op x p = quant op x (prenex p)
+      co (BinOp l (:&:) r) = pullQuants (prenex l .&. prenex r)
+      co (BinOp l (:|:) r) = pullQuants (prenex l .|. prenex r)
+      co _ = fm
 
 -- |Convert to Prenex normal form, with all quantifiers at the left.
-pnf :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Constants p, Eq p) => formula -> formula
+pnf :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Eq formula, Constants p, Eq p) => formula -> formula
 pnf = prenex . nnf . simplify
 
 -- ------------------------------------------------------------------------- 
@@ -156,11 +157,12 @@ funcs tm =
 
 functions :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Eq f, Ord f) => fof -> Set.Set (f, Int)
 functions fm =
-    foldFirstOrder qu co pr fm
+    foldFirstOrder qu co tf pr fm
     where
       qu _ _ p = functions p
       co ((:~:) p) = functions p
       co (BinOp p _ q) = Set.union (functions p) (functions q)
+      tf _ = Set.empty
       pr = foldAtomEq (\ _ ts -> Set.unions (map funcs ts)) (const Set.empty) (\ t1 t2 -> Set.union (funcs t1) (funcs t2))
     -- atom_union (\ (R p a) -> foldr (Set.union . funcs) Set.empty a) fm
 {-

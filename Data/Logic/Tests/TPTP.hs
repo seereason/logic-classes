@@ -1,4 +1,4 @@
-module Test.TPTP where
+module Data.Logic.Tests.TPTP where
     
 import Codec.TPTP (Formula)
 import Data.Logic.FirstOrder (conj)

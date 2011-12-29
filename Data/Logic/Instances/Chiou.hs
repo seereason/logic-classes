@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
              RankNTypes, TypeSynonymInstances, UndecidableInstances #-}
-{-# OPTIONS -Wall -Werror -fno-warn-orphans -fno-warn-missing-signatures #-}
+{-# OPTIONS -Wall -Wwarn -fno-warn-orphans -fno-warn-missing-signatures #-}
 module Data.Logic.Instances.Chiou
     ( Sentence(..)
     , CTerm(..)
@@ -60,7 +60,10 @@ instance Negatable (Sentence v p f) where
     negated (Not x) = not (negated x)
     negated _ = False
 
-instance (Constants (Sentence v p f), Ord v, Ord p, Ord f) => Combinable (Sentence v p f) where
+instance Constants p => Constants (Sentence v p f) where
+    fromBool x = Predicate (fromBool x) []
+
+instance ({- Constants (Sentence v p f), -} Ord v, Ord p, Ord f) => Combinable (Sentence v p f) where
     x .<=>. y = Connective x Equiv y
     x .=>.  y = Connective x Imply y
     x .|.   y = Connective x Or y
@@ -68,24 +71,24 @@ instance (Constants (Sentence v p f), Ord v, Ord p, Ord f) => Combinable (Senten
 
 instance (Ord v, IsString v, Data v, Variable v, 
           Ord p, IsString p, Data p, Constants p, Arity p,
-          Ord f, IsString f, Data f, Skolem f, 
-          Constants (Sentence v p f), Combinable (Sentence v p f)) =>
+          Ord f, IsString f, Data f, Skolem f,
+          {- Constants (Sentence v p f), -} Combinable (Sentence v p f)) =>
          PropositionalFormula (Sentence v p f) (Sentence v p f) where
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Not _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic x@(Predicate _ _) = x
     atomic x@(Equal _ _) = x
-    foldPropositional c a formula =
+    foldPropositional co tf at formula =
         case formula of
-          Not x -> c ((:~:) x)
+          Not x -> co ((:~:) x)
           Quantifier _ _ _ -> error "Logic.Instance.Chiou.foldF0: unexpected"
-          Connective f1 Imply f2 -> c (BinOp f1 (:=>:) f2)
-          Connective f1 Equiv f2 -> c (BinOp f1 (:<=>:) f2)
-          Connective f1 And f2 -> c (BinOp f1 (:&:) f2)
-          Connective f1 Or f2 -> c (BinOp f1 (:|:) f2)
-          Predicate p ts -> a (Predicate p ts)
-          Equal t1 t2 -> a (Equal t1 t2)
+          Connective f1 Imply f2 -> co (BinOp f1 (:=>:) f2)
+          Connective f1 Equiv f2 -> co (BinOp f1 (:<=>:) f2)
+          Connective f1 And f2 -> co (BinOp f1 (:&:) f2)
+          Connective f1 Or f2 -> co (BinOp f1 (:|:) f2)
+          Predicate p ts -> at (Predicate p ts)
+          Equal t1 t2 -> at (Equal t1 t2)
 
 data AtomicFunction
     = AtomicFunction String
@@ -103,28 +106,15 @@ instance Skolem AtomicFunction where
     fromSkolem _ = Nothing
 
 -- The Atom type is not cleanly distinguished from the Sentence type, so we need an Atom instance for Sentence.
-instance (Constants (Sentence v p f), Ord v, Ord p, Arity p, Constants p, Ord f) => Atom (Sentence v p f) p (CTerm v f) where
+instance ({- Constants (Sentence v p f), -} Ord v, Ord p, Arity p, Constants p, Ord f) => Atom (Sentence v p f) p (CTerm v f) where
     foldAtom ap tf (Predicate p ts) = maybe (ap p ts) tf (asBool p)
     foldAtom _ _ _ = error "Data.Logic.Instances.Chiou: Invalid atom"
-    zipAtoms ap tf (Predicate p1 ts1) (Predicate p2 ts2) =
-        case (asBool p1, asBool p2) of
-          (Just a, Just b) -> tf a b
-          (Nothing, Nothing) -> ap p1 ts1 p2 ts2
-          _ -> Nothing
-    zipAtoms _ _ _ _ = Nothing
     apply' = Predicate
 
 instance (Arity p, Show p, Constants p, Eq p) => AtomEq (Sentence v p f) p (CTerm v f) where
     foldAtomEq ap tf _ (Predicate p ts) = if p == true then tf True else if p == false then tf False else ap p ts
     foldAtomEq _ _ eq (Equal t1 t2) = eq t1 t2
     foldAtomEq _ _ _ _ = error "Data.Logic.Instances.Chiou: Invalid atom"
-    zipAtomsEq ap tf _ (Predicate p1 ts1) (Predicate p2 ts2) =
-        case (asBool p1, asBool p2) of
-          (Just a, Just b) -> tf a b
-          (Nothing, Nothing) -> ap p1 ts1 p2 ts2
-          _ -> Nothing
-    zipAtomsEq _ _ eq (Equal t1 t2) (Equal t3 t4) = eq t1 t2 t3 t4
-    zipAtomsEq _ _ _ _ _ = Nothing
     equals = Equal
     applyEq' = Predicate
 
@@ -135,9 +125,9 @@ instance (Ord v, IsString v, Variable v, Data v, Show v,
           FirstOrderFormula (Sentence v p f) (Sentence v p f) v where
     for_all v x = Quantifier ForAll [v] x
     exists v x = Quantifier ExistsCh [v] x
-    foldFirstOrder q c p f =
+    foldFirstOrder qu co tf at f =
         case f of
-          Not x -> c ((:~:) x)
+          Not x -> co ((:~:) x)
           Quantifier op (v:vs) f' ->
               let op' = case op of
                           ForAll -> Forall
@@ -145,36 +135,38 @@ instance (Ord v, IsString v, Variable v, Data v, Show v,
               -- Use Logic.quant' here instead of the constructor
               -- Quantifier so as not to create quantifications with
               -- empty variable lists.
-              q op' v (quant' op' vs f')
-          Quantifier _ [] f' -> foldFirstOrder q c p f'
-          Connective f1 Imply f2 -> c (BinOp f1 (:=>:) f2)
-          Connective f1 Equiv f2 -> c (BinOp f1 (:<=>:) f2)
-          Connective f1 And f2 -> c (BinOp f1 (:&:) f2)
-          Connective f1 Or f2 -> c (BinOp f1 (:|:) f2)
-          Predicate _ _ -> p f
-          Equal _ _ -> p f
-    zipFirstOrder q c p f1 f2 =
+              qu op' v (quant' op' vs f')
+          Quantifier _ [] f' -> foldFirstOrder qu co tf at f'
+          Connective f1 Imply f2 -> co (BinOp f1 (:=>:) f2)
+          Connective f1 Equiv f2 -> co (BinOp f1 (:<=>:) f2)
+          Connective f1 And f2 -> co (BinOp f1 (:&:) f2)
+          Connective f1 Or f2 -> co (BinOp f1 (:|:) f2)
+          Predicate _ _ -> at f
+          Equal _ _ -> at f
+{-
+    zipFirstOrder qu co tf at f1 f2 =
         case (f1, f2) of
-          (Not f1', Not f2') -> c ((:~:) f1') ((:~:) f2')
+          (Not f1', Not f2') -> co ((:~:) f1') ((:~:) f2')
           (Quantifier op1 (v1:vs1) f1', Quantifier op2 (v2:vs2) f2') ->
               if op1 == op2
               then let op' = case op1 of
                                ForAll -> Forall
                                ExistsCh -> Exists in
-                   q op' v1 (Quantifier op1 vs1 f1') Forall v2 (Quantifier op2 vs2 f2')
+                   qu op' v1 (Quantifier op1 vs1 f1') Forall v2 (Quantifier op2 vs2 f2')
               else Nothing
           (Quantifier q1 [] f1', Quantifier q2 [] f2') ->
-              if q1 == q2 then zipFirstOrder q c p f1' f2' else Nothing
+              if q1 == q2 then zipFirstOrder qu co tf at f1' f2' else Nothing
           (Connective l1 op1 r1, Connective l2 op2 r2) ->
               case (op1, op2) of
-                (And, And) -> c (BinOp l1 (:&:) r1) (BinOp l2 (:&:) r2)
-                (Or, Or) -> c (BinOp l1 (:|:) r1) (BinOp l2 (:|:) r2)
-                (Imply, Imply) -> c (BinOp l1 (:=>:) r1) (BinOp l2 (:=>:) r2)
-                (Equiv, Equiv) -> c (BinOp l1 (:<=>:) r1) (BinOp l2 (:<=>:) r2)
+                (And, And) -> co (BinOp l1 (:&:) r1) (BinOp l2 (:&:) r2)
+                (Or, Or) -> co (BinOp l1 (:|:) r1) (BinOp l2 (:|:) r2)
+                (Imply, Imply) -> co (BinOp l1 (:=>:) r1) (BinOp l2 (:=>:) r2)
+                (Equiv, Equiv) -> co (BinOp l1 (:<=>:) r1) (BinOp l2 (:<=>:) r2)
                 _ -> Nothing
-          (Equal _ _, Equal _ _) -> p f1 f2
-          (Predicate _ _, Predicate _ _) -> p f1 f2
+          (Equal _ _, Equal _ _) -> at f1 f2
+          (Predicate _ _, Predicate _ _) -> at f1 f2
           _ -> Nothing
+-}
     atomic x@(Predicate _ _) = x
     atomic x@(Equal _ _) = x
     atomic _ = error "Chiou: atomic"
@@ -209,6 +201,9 @@ data NormalTerm v f
     | NormalVariable v
     deriving (Eq, Ord, Data, Typeable)
 
+instance Constants p => Constants (NormalSentence v p f) where
+    fromBool x = NFPredicate (fromBool x) []
+
 instance Negatable (NormalSentence v p f) where
     (.~.) (NFNot (NFNot x)) = ((.~.) x)
     (.~.) (NFNot x)= x
@@ -236,17 +231,19 @@ instance (Combinable (NormalSentence v p f), Term (NormalTerm v f) v f,
           Ord f, IsString f, Show f) => FirstOrderFormula (NormalSentence v p f) (NormalSentence v p f) v where
     for_all _ _ = error "FirstOrderFormula NormalSentence"
     exists _ _ = error "FirstOrderFormula NormalSentence"
-    foldFirstOrder _ c p f =
+    foldFirstOrder _ co tf at f =
         case f of
-          NFNot x -> c ((:~:) x)
-          NFEqual _ _ -> p f
-          NFPredicate _ _ -> p f
-    zipFirstOrder _ c p f1 f2 =
+          NFNot x -> co ((:~:) x)
+          NFEqual _ _ -> at f
+          NFPredicate _ _ -> at f
+{-
+    zipFirstOrder _ co tf at f1 f2 =
         case (f1, f2) of
-          (NFNot f1', NFNot f2') -> c ((:~:) f1') ((:~:) f2')
-          (NFEqual _ _, NFEqual _ _) -> p f1 f2
-          (NFPredicate _ _, NFPredicate _ _) -> p f1 f2
+          (NFNot f1', NFNot f2') -> co ((:~:) f1') ((:~:) f2')
+          (NFEqual _ _, NFEqual _ _) -> at f1 f2
+          (NFPredicate _ _, NFPredicate _ _) -> at f1 f2
           _ -> Nothing
+-}
     atomic x@(NFPredicate _ _) = x
     atomic x@(NFEqual _ _) = x
     atomic _ = error "Chiou: atomic"
@@ -282,6 +279,7 @@ fromSentence = foldFirstOrder
                       case cm of
                         ((:~:) f) -> NFNot (fromSentence f)
                         _ -> error "fromSentence 2")
+                 (\ x -> NFPredicate (fromBool x) [])
                  (foldAtomEq (\ p ts -> NFPredicate p (map fromTerm ts))
                              (\ x -> NFPredicate (fromBool x) [])
                              (\ t1 t2 -> NFEqual (fromTerm t1) (fromTerm t2)))

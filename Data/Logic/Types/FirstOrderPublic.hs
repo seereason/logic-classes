@@ -78,12 +78,14 @@ instance (Constants (Formula v p f), Constants (N.Formula v p f),
           Ord f, Show f) => FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v where
     for_all v x = public $ for_all v (intern x :: N.Formula v p f)
     exists v x = public $ exists v (intern x :: N.Formula v p f)
-    foldFirstOrder q c p f = foldFirstOrder q' c' p (intern f :: N.Formula v p f)
-        where q' quant v form = q quant v (public form)
-              c' x = c (public x)
+    foldFirstOrder qu co tf at f = foldFirstOrder qu' co' tf at (intern f :: N.Formula v p f)
+        where qu' quant v form = qu quant v (public form)
+              co' x = co (public x)
+{-
     zipFirstOrder q c p f1 f2 = zipFirstOrder q' c' p (intern f1 :: N.Formula v p f) (intern f2 :: N.Formula v p f)
         where q' q1 v1 f1' q2 v2 f2' = q q1 v1 (public f1') q2 v2 (public f2')
               c' combine1 combine2 = c (public combine1) (public combine2)
+-}
     atomic = Formula . atomic
 
 -- |Here are the magic Ord and Eq instances
@@ -103,7 +105,8 @@ instance ({- FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
           EQ -> EQ
           x -> {- if isRenameOf a' b' then EQ else -} x
 
-instance (FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v) => Eq (Formula v p f) where
+instance (Arity p, Constants p, Skolem f, Show p, Show f, Ord p, Ord f, Data f, Data v, Data p,
+          FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v) => Eq (Formula v p f) where
     a == b = compare a b == EQ
 
 $(deriveSafeCopy 1 'base ''Formula)

@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings,
              ScopedTypeVariables, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wall -Wwarn -fno-warn-name-shadowing -fno-warn-orphans #-}
-module Test.Logic (tests) where
+module Data.Logic.Tests.Logic (tests) where
 
 import Data.Logic.Classes.Arity (Arity(arity))
 import Data.Logic.Classes.Combine (Combinable(..))
@@ -18,7 +18,7 @@ import Data.Logic.Harrison.FOL (fv)
 import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Skolem (runNormal)
 import Data.Logic.Satisfiable (theorem, inconsistant)
-import Data.Logic.Test (TFormula, TTerm, myTest)
+import Data.Logic.Tests.Common (TFormula, TTerm, myTest)
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 import PropLogic (PropForm(..), TruthTable, truthTable)

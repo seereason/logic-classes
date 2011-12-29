@@ -78,12 +78,14 @@ runSkolemT action = (runStateT action) newSkolemState >>= return . fst
 
 -- |We get Skolem Normal Form by skolemizing and then converting to
 -- Prenex Normal Form, and finally eliminating the remaining quantifiers.
-skolemNormalForm :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> SkolemT v term m formula
+skolemNormalForm :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Eq formula) =>
+                    formula -> SkolemT v term m formula
 skolemNormalForm f = askolemize f >>= return . specialize . prenexNormalForm
 
 -- |I need to consult the Harrison book for the reasons why we don't
 -- |just Skolemize the result of prenexNormalForm.
-askolemize :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> SkolemT v term m formula
+askolemize :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Eq formula) =>
+              formula -> SkolemT v term m formula
 askolemize = skolem . negationNormalForm {- nnf . simplify -}
 
 -- |Skolemize the formula by removing the existential quantifiers and
@@ -95,19 +97,19 @@ askolemize = skolem . negationNormalForm {- nnf . simplify -}
 -- appeared.
 skolem :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> SkolemT v term m formula
 skolem fm =
-    foldFirstOrder q c (\ _ -> return fm) fm
+    foldFirstOrder qu co (\ _ -> return fm) (\ _ -> return fm) fm
     where
-      q Exists y p =
+      qu Exists y p =
           do let xs = fv fm
              state <- get
              let f = toSkolem (skolemCount state)
              put (state {skolemCount = skolemCount state + 1})
              let fx = fApp f (map vt (Set.toList xs))
              skolem (substituteEq y fx p)
-      q Forall x p = skolem p >>= return . for_all x
-      c (BinOp l (:&:) r) = skolem2 (.&.) l r
-      c (BinOp l (:|:) r) = skolem2 (.|.) l r
-      c _ = return fm
+      qu Forall x p = skolem p >>= return . for_all x
+      co (BinOp l (:&:) r) = skolem2 (.&.) l r
+      co (BinOp l (:|:) r) = skolem2 (.|.) l r
+      co _ = return fm
 
 skolem2 :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
            (formula -> formula -> formula) -> formula -> formula -> SkolemT v term m formula
@@ -118,12 +120,12 @@ skolem2 cons p q =
 
 specialize :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> formula
 specialize f =
-    foldFirstOrder q (\ _ -> f) (\ _ -> f) f
+    foldFirstOrder q (\ _ -> f) (\ _ -> f) (\ _ -> f) f
     where
       q Forall _ f' = specialize f'
       q _ _ _ = f
 
-skolemize :: (Monad m, FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f) => fof -> SkolemT v term m fof
+skolemize :: (Monad m, FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Eq fof) => fof -> SkolemT v term m fof
 -- skolemize fm = {- t1 $ -} specialize . pnf . askolemize $ fm
 skolemize fm = askolemize fm >>= return . specialize . pnf
 
@@ -133,15 +135,14 @@ skolemize fm = askolemize fm >>= return . specialize . pnf
 literal :: forall fof atom term v p f lit. (FirstOrderFormula fof atom v, Atom atom p term, Term term v f, Literal lit atom v, Ord lit) =>
            fof -> Set.Set (Set.Set lit)
 literal fm =
-    foldFirstOrder (error "quantifier") co at fm
+    foldFirstOrder (error "quantifier") co tf at fm
     where
-      at :: atom -> Set.Set (Set.Set lit)
-      at x = foldAtom (\ _ _ -> Set.singleton (Set.singleton (Data.Logic.Classes.Literal.atomic x))) 
-                      (Set.singleton . Set.singleton . fromBool)
-                      x
       co ((:~:) x) = Set.map (Set.map (.~.)) (literal x)
       co (BinOp p (:|:) q) = Set.singleton (Set.unions (Set.toList (literal p) ++ Set.toList (literal q)))
           -- Set.singleton (Set.union (flatten (literal p)) (flatten (literal q)))
           -- where flatten = Set.fold Set.union Set.empty
       co (BinOp p (:&:) q) = Set.union (literal p) (literal q)
       co _ = error "literal"
+      tf = Set.singleton . Set.singleton . fromBool
+      at :: atom -> Set.Set (Set.Set lit)
+      at x = foldAtom (\ _ _ -> Set.singleton (Set.singleton (Data.Logic.Classes.Literal.atomic x))) tf x

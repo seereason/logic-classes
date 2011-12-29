@@ -40,7 +40,7 @@ import Prelude hiding (pred)
 
 eval :: FirstOrderFormula formula atom v => formula -> (atom -> Bool) -> Bool
 eval fm v =
-    foldFirstOrder qu co pr fm
+    foldFirstOrder qu co tf at fm
     where
       qu _ _ p = eval p v
       co ((:~:) p) = not (eval p v)
@@ -48,7 +48,8 @@ eval fm v =
       co (BinOp p (:|:) q) = eval p v || eval q v
       co (BinOp p (:=>:) q) = not (eval p v) || eval q v
       co (BinOp p (:<=>:) q) = eval p v == eval q v
-      pr = v
+      tf = id
+      at = v
 
 list_conj :: (FirstOrderFormula formula atom v) => Set.Set formula -> formula
 list_conj l = maybe true (\ (x, xs) -> Set.fold (.&.) x xs) (Set.minView l)
@@ -204,21 +205,23 @@ fvt tm = C.foldTerm Set.singleton (\ _ args -> Set.unions (map fvt args)) tm
 
 var :: (FirstOrderFormula formula atom v, Ord v, Atom atom p term, Term term v f) => formula -> Set.Set v
 var fm =
-    foldFirstOrder qu co pr fm
+    foldFirstOrder qu co tf at fm
     where
       qu _ x p = Set.insert x (var p)
       co ((:~:) p) = var p
       co (BinOp p _ q) = Set.union (var p) (var q)
-      pr = foldAtom (\ _ args -> Set.unions (map fvt args)) (const Set.empty)
+      tf _ = Set.empty
+      at = foldAtom (\ _ args -> Set.unions (map fvt args)) (const Set.empty)
 
 fv :: (FirstOrderFormula formula atom v, Ord v, AtomEq atom p term, Term term v f) => formula -> Set.Set v
 fv fm =
-    foldFirstOrder qu co pr fm
+    foldFirstOrder qu co tf at fm
     where
       qu _ x p = Set.delete x (fv p)
       co ((:~:) p) = fv p
       co (BinOp p _ q) = Set.union (fv p) (fv q)
-      pr = foldAtomEq (\ _ args -> Set.unions (map fvt args)) (const Set.empty) (\ t1 t2 -> Set.union (fvt t1) (fvt t2))
+      tf _ = Set.empty
+      at = foldAtomEq (\ _ args -> Set.unions (map fvt args)) (const Set.empty) (\ t1 t2 -> Set.union (fvt t1) (fvt t2))
 
 -- ------------------------------------------------------------------------- 
 -- Universal closure of a formula.                                           
@@ -241,12 +244,13 @@ tsubst sfn tm = foldTerm (\ x -> fromMaybe tm (Map.lookup x sfn)) (\ fn args -> 
 subst :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
          Map.Map v term -> formula -> formula
 subst subfn fm =
-    foldFirstOrder qu co pr fm
+    foldFirstOrder qu co tf at fm
     where
       qu op x p = substq subfn op x p
       co ((:~:) p) = ((.~.) (subst subfn p))
       co (BinOp p op q) = binop (subst subfn p) op (subst subfn q)
-      pr = foldAtomEq (\ p args -> pApp p (map (tsubst subfn) args)) fromBool (\ t1 t2 -> tsubst subfn t1 .=. tsubst subfn t2)
+      tf = fromBool
+      at = foldAtomEq (\ p args -> pApp p (map (tsubst subfn) args)) fromBool (\ t1 t2 -> tsubst subfn t1 .=. tsubst subfn t2)
 
 substq :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
           Map.Map v term

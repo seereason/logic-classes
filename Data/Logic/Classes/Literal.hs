@@ -50,13 +50,14 @@ fromFirstOrder :: forall formula atom term v p f lit atom2 term2 v2 p2 f2.
                    Literal lit atom2 v2, Atom atom2 p2 term2, Term term2 v2 f2) =>
                   (v -> v2) -> (p -> p2) -> (f -> f2) -> formula -> lit
 fromFirstOrder cv cp cf formula =
-    foldFirstOrder (\ _ _ _ -> error "toLiteral q") c p formula
+    foldFirstOrder (\ _ _ _ -> error "toLiteral q") co tf at formula
     where
-      c :: Combination formula -> lit
-      c ((:~:) f) =  (.~.) (fromFirstOrder cv cp cf f)
-      c _ = error "FirstOrder -> Literal"
-      p :: atom -> lit
-      p = foldAtom (\ pr ts -> Data.Logic.Classes.Literal.atomic (apply (cp pr) (map ct ts))) fromBool
+      co :: Combination formula -> lit
+      co ((:~:) f) =  (.~.) (fromFirstOrder cv cp cf f)
+      co _ = error "FirstOrder -> Literal"
+      tf = fromBool
+      at :: atom -> lit
+      at = foldAtom (\ pr ts -> Data.Logic.Classes.Literal.atomic (apply (cp pr) (map ct ts))) fromBool
       ct = convertTerm cv cf
 
 prettyLit :: forall lit atom term v p f. (Literal lit atom v, Atom atom p term, Term term v f) =>

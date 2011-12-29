@@ -29,7 +29,17 @@ instance Constants (Formula a) where
     fromBool True = T
     fromBool False = F
 
-instance Ord a => Combinable (Formula a) where
+instance Combinable (Formula a) where
+    foldCombine bin neg tf fm =
+        case fm of
+          F -> tf False
+          T -> tf True
+          Not f -> neg f
+          And f g -> bin f (:&:) g
+          Or f g -> bin f (:|:) g
+          Imp f g -> bin f (:=>:) g
+          Iff f g -> bin f (:<=>:) g
+          Atom _ -> error "instance Combinable Harrison.Propositional"        
     a .<=>. b = Iff a b
     a .=>. b = Imp a b
     a .|. b = Or a b
@@ -38,13 +48,13 @@ instance Ord a => Combinable (Formula a) where
 instance Combinable (Formula atom) => PropositionalFormula (Formula atom) atom where
     -- The atom type for this formula is the same as its first type parameter.
     atomic = Atom
-    foldPropositional c a formula =
+    foldPropositional co tf at formula =
         case formula of
-          T -> c TRUE
-          F -> c FALSE
-          Atom x -> a x
-          Not f -> c ((:~:) f)
-          And f g -> c (BinOp f (:&:) g)
-          Or f g -> c (BinOp f (:|:) g)
-          Imp f g -> c (BinOp f (:=>:) g)
-          Iff f g -> c (BinOp f (:<=>:) g)
+          T -> tf True
+          F -> tf False
+          Not f -> co ((:~:) f)
+          And f g -> co (BinOp f (:&:) g)
+          Or f g -> co (BinOp f (:|:) g)
+          Imp f g -> co (BinOp f (:=>:) g)
+          Iff f g -> co (BinOp f (:<=>:) g)
+          Atom x -> at x

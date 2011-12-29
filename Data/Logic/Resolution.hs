@@ -13,7 +13,7 @@ module Data.Logic.Resolution
     where
 
 import Data.Logic.Classes.Constants (fromBool)
-import Data.Logic.Classes.Equals (AtomEq(foldAtomEq, zipAtomsEq, applyEq, equals))
+import Data.Logic.Classes.Equals (AtomEq(foldAtomEq, applyEq, equals), zipAtomsEq)
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF, neg, pos))

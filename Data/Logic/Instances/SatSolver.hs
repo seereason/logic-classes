@@ -38,7 +38,7 @@ instance ClauseNormalFormula CNF Literal where
     makeCNF = map S.toList . S.toList
     satisfiable cnf = return . not . null $ assertTrue' cnf newSatSolver >>= solve
 
-toCNF :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, N.Literal formula atom v, Constants p, Eq p) =>
+toCNF :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, N.Literal formula atom v, Ord formula, Constants p, Eq p) =>
          formula -> NormalT formula v term m CNF
 toCNF f = clauseNormalForm f >>= S.ssMapM (lift . toLiteral) >>= return . makeCNF
 

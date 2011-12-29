@@ -3,7 +3,7 @@
 module Data.Logic.Harrison.Normal where
 
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (true, false)
+import Data.Logic.Classes.Constants (fromBool, true, false)
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Negate ((.~.))
@@ -24,24 +24,26 @@ list_disj l = maybe false (\ (x, xs) -> Set.fold (.|.) x xs) (Set.minView l)
 
 negative :: FirstOrderFormula fof atomic v => fof -> Bool
 negative lit =
-    foldFirstOrder qu co pr lit
+    foldFirstOrder qu co tf at lit
     where
       qu _ _ _ = False
       co ((:~:) _) = True
       co _ = False
-      pr _ = False
+      tf = not
+      at _ = False
 
 positive :: FirstOrderFormula fof atomic v => fof -> Bool
 positive = not . negative
 
 negate :: FirstOrderFormula fof atomic v => fof -> fof
 negate lit =
-    foldFirstOrder qu co pr lit
+    foldFirstOrder qu co tf at lit
     where
       qu _ _ _ = (.~.) lit
       co ((:~:) p) = p
       co _ = (.~.) lit
-      pr _ = (.~.) lit
+      tf = fromBool . not
+      at _ = (.~.) lit
 
 -- ------------------------------------------------------------------------- 
 -- A version using a list representation.                                    
@@ -52,13 +54,14 @@ distrib' s1 s2 = allpairs (Set.union) s1 s2
 
 purednf :: (FirstOrderFormula fof atomic v, Ord fof) => fof -> Set.Set (Set.Set fof)
 purednf fm =
-    foldFirstOrder qu co pr fm
+    foldFirstOrder qu co tf at fm
     where
       qu _ _ _ = Set.singleton (Set.singleton fm)
       co (BinOp p (:&:) q) = distrib' (purednf p) (purednf q)
       co (BinOp p (:|:) q) = Set.union (purednf p) (purednf q)
       co _ = Set.singleton (Set.singleton fm)
-      pr _ = Set.singleton (Set.singleton fm)
+      tf _ = Set.singleton (Set.singleton fm)
+      at _ = Set.singleton (Set.singleton fm)
 
 -- ------------------------------------------------------------------------- 
 -- Filtering out trivial disjuncts (in this guise, contradictory).           
@@ -75,11 +78,12 @@ trivial lits =
 
 simpdnf :: (FirstOrderFormula fof atomic v, Eq fof, Ord fof) => fof -> Set.Set (Set.Set fof)
 simpdnf fm =
-    foldFirstOrder qu co pr fm
+    foldFirstOrder qu co tf at fm
     where
       qu _ _ _ = def
       co _ = def
-      pr _ = Set.singleton (Set.singleton fm)
+      tf _ = def
+      at _ = Set.singleton (Set.singleton fm)
       def =
           Set.filter (\ d -> not (setAny (\ d' -> Set.isProperSubsetOf d' d) djs)) djs
           where djs = Set.filter (not . trivial) (purednf (nnf fm))
@@ -93,11 +97,12 @@ purecnf fm = Set.map (Set.map (simplify . (.~.))) (purednf (nnf ((.~.) fm)))
 
 simpcnf :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Ord formula) => formula -> Set.Set (Set.Set formula)
 simpcnf fm =
-    foldFirstOrder qu co pr fm
+    foldFirstOrder qu co tf at fm
     where
       qu _ _ _ = def
       co _ = def
-      pr = foldAtomEq (\ _ _ -> Set.singleton (Set.singleton fm)) (\ x -> if x then Set.empty else Set.singleton Set.empty) (\ _ _ -> Set.singleton (Set.singleton fm))
+      tf x = if x then Set.empty else Set.singleton Set.empty
+      at = foldAtomEq (\ _ _ -> Set.singleton (Set.singleton fm)) tf (\ _ _ -> Set.singleton (Set.singleton fm))
       def =
           -- Discard any clause that is the proper subset of another clause
           Set.filter (\ cj -> not (setAny (\ c' -> Set.isProperSubsetOf c' cj) cjs)) cjs
@@ -109,15 +114,16 @@ cnf fm = list_conj (Set.map list_disj (simpcnf fm))
 
 distrib :: (FirstOrderFormula fof atomic v) => fof -> fof
 distrib fm =
-    foldFirstOrder qu co pr fm
+    foldFirstOrder qu co tf at fm
     where
+      qu _ _ _ = fm
       co (BinOp p (:&:) s) =
-          foldFirstOrder qu co' pr s
+          foldFirstOrder qu co' tf at s
           where co' (BinOp q (:|:) r) = distrib (p .&. q) .|. distrib (p .&. r)
                 co' _ =
-                    foldFirstOrder qu co'' pr p
+                    foldFirstOrder qu co'' tf at p
                     where co'' (BinOp q (:|:) r) = distrib (q .&. s) .|. distrib (r .&. s)
                           co'' _ = fm
       co _ = fm
-      pr _ = fm
-      qu _ _ _ = fm
+      tf _ = fm
+      at _ = fm

@@ -10,7 +10,7 @@ import Data.Logic.Classes.Term (Term)
 import Data.Logic.Harrison.Skolem (pnf)
 
 -- |Convert to Prenex normal form, with all quantifiers at the left.
-prenexNormalForm :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> formula
+prenexNormalForm :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Eq formula) => formula -> formula
 prenexNormalForm = pnf
 
 {-

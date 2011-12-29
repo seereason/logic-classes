@@ -11,7 +11,8 @@ module Data.Logic.Types.Harrison.Equal where
 import Data.Logic.Classes.Arity (Arity(..))
 import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
-import Data.Logic.Classes.Equals (PredicateEq(..), AtomEq(..), showFirstOrderFormulaEq)
+import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
+import Data.Logic.Classes.Equals (AtomEq(..), showFirstOrderFormulaEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import qualified Data.Logic.Classes.FirstOrder as C
 import Data.Logic.Types.Harrison.FOL (TermType(..))
@@ -32,49 +33,41 @@ instance IsString PredName where
     fromString "=" = (:=:)
     fromString s = Named s
 
+instance Constants PredName where
+    fromBool True = Named "true"
+    fromBool False = Named "false"
+
 -- | Using PredName for the predicate type is not quite appropriate
 -- here, but we need to implement this instance so we can use it as a
 -- superclass of AtomEq below.
 instance Atom FOLEQ PredName TermType where
-    foldAtom f (EQUALS t1 t2) = f (:=:) [t1, t2]
-    foldAtom f (R p ts) = f (Named p) ts
-    zipAtoms f (EQUALS t1 t2) (EQUALS t3 t4) = Just $ f (:=:) [t1, t2] (:=:) [t3, t4]
-    zipAtoms f (R p1 ts1) (R p2 ts2) = Just $ f (Named p1) ts1 (Named p2) ts2
-    zipAtoms _ _ _ = Nothing
+    foldAtom f _ (EQUALS t1 t2) = f (:=:) [t1, t2]
+    foldAtom f tf (R p ts) = maybe (f (Named p) ts) tf (asBool (Named p))
     apply' (Named p) ts = R p ts
     apply' (:=:) [t1, t2] = EQUALS t1 t2
     apply' (:=:) _ = error "arity"
 
 instance FirstOrderFormula (Formula FOLEQ) FOLEQ String where
-    quant C.Exists v fm = Exists v fm
-    quant C.Forall v fm = Forall v fm
-    foldFirstOrder q c p fm =
+    exists = Exists
+    for_all = Forall
+    foldFirstOrder qu co tf at fm =
         case fm of
-          F -> c FALSE
-          T -> c TRUE
-          Atom a -> p a
-          Not fm' -> c ((:~:) fm')
-          And fm1 fm2 -> c (BinOp fm1 (:&:) fm2)
-          Or fm1 fm2 -> c (BinOp fm1 (:|:) fm2)
-          Imp fm1 fm2 -> c (BinOp fm1 (:=>:) fm2)
-          Iff fm1 fm2 -> c (BinOp fm1 (:<=>:) fm2)
-          Forall v fm' -> q C.Forall v fm'
-          Exists v fm' -> q C.Exists v fm'
-    zipFirstOrder qu co pr fm1 fm2 =
-        foldFirstOrder qu' co' pr' fm1
-        where
-          qu' op v p = foldFirstOrder (\ op2 v2 p2 -> Just (qu op v p op2 v2 p2)) (\ _ -> Nothing) (\ _ -> Nothing) fm2
-          co' c = foldFirstOrder (\ _ _ _ -> Nothing) (\ c2 -> Just (co c c2)) (\ _ -> Nothing) fm2
-          pr' atom = foldFirstOrder (\ _ _ _ -> Nothing) (\ _ -> Nothing) (\ atom2 -> Just (pr atom atom2)) fm2
+          F -> tf False
+          T -> tf True
+          Atom a -> at a
+          Not fm' -> co ((:~:) fm')
+          And fm1 fm2 -> co (BinOp fm1 (:&:) fm2)
+          Or fm1 fm2 -> co (BinOp fm1 (:|:) fm2)
+          Imp fm1 fm2 -> co (BinOp fm1 (:=>:) fm2)
+          Iff fm1 fm2 -> co (BinOp fm1 (:<=>:) fm2)
+          Forall v fm' -> qu C.Forall v fm'
+          Exists v fm' -> qu C.Exists v fm'
     atomic = Atom
 
-instance PredicateEq PredName where
-    eqp = (:=:)
+-- instance PredicateEq PredName where
+--     eqp = (:=:)
 
 instance AtomEq FOLEQ PredName TermType where
-    foldAtomEq pr _ (R p ts) = pr (Named p) ts
-    foldAtomEq _ eq (EQUALS t1 t2) = eq t1 t2
-    zipAtomsEq pr _ (R p1 ts1) (R p2 ts2) = Just $ pr (Named p1) ts1 (Named p2) ts2
-    zipAtomsEq _ eq (EQUALS t1 t2) (EQUALS t3 t4) = Just $ eq t1 t2 t3 t4
-    zipAtomsEq _ _ _ _ = Nothing
+    foldAtomEq pr tf _ (R p ts) = maybe (pr (Named p) ts) tf (asBool (Named p))
+    foldAtomEq _ _ eq (EQUALS t1 t2) = eq t1 t2
     equals = EQUALS

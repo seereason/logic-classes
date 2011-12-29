@@ -4,6 +4,7 @@
 -- to zero or more terms.
 module Data.Logic.Classes.Atom
     ( Atom(..)
+    , zipAtoms
     , apply0, apply1, apply2, apply3, apply4, apply5, apply6, apply7
     ) where
 
@@ -12,9 +13,8 @@ import Data.Logic.Classes.Constants
 --import Data.Logic.Classes.Term
 import Data.Maybe (fromMaybe)
 
-class (Arity p, Constants p, Eq p) => Atom atom p term | atom -> p term, term -> atom p where
+class (Arity p, Constants p, Eq p) => Atom atom p term | atom -> p term where
     foldAtom :: (p -> [term] -> r) -> (Bool -> r) -> atom -> r
-    zipAtoms :: (p -> [term] -> p -> [term] -> Maybe r) -> (Bool -> Bool -> Maybe r) -> atom -> atom -> Maybe r
     apply' :: p -> [term] -> atom
     -- | apply' with an arity check - clients should always call this.
     apply :: p -> [term] -> atom
@@ -22,6 +22,16 @@ class (Arity p, Constants p, Eq p) => Atom atom p term | atom -> p term, term ->
         case arity p of
           Just n | n /= length ts -> error "arity"
           _ -> apply' p ts
+
+zipAtoms :: Atom atom p term =>
+            (p -> [term] -> p -> [term] -> Maybe r)
+         -> (Bool -> Bool -> Maybe r)
+         -> atom -> atom -> Maybe r
+zipAtoms ap tf a1 a2 =
+    foldAtom ap' tf' a1
+    where
+      ap' p1 ts1 = foldAtom (ap p1 ts1) (\ _ -> Nothing) a2
+      tf' x1 = foldAtom (\ _ _ -> Nothing) (tf x1) a2
 
 apply0 p = if fromMaybe 0 (arity p) == 0 then apply' p [] else error "arity"
 apply1 p a = if fromMaybe 1 (arity p) == 1 then apply' p [a] else error "arity"
