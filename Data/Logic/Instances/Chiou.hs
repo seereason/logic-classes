@@ -18,7 +18,7 @@ import Data.Logic.Classes.Arity (Arity)
 import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combinable(..), BinOp(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
-import Data.Logic.Classes.Equals (AtomEq(..), (.=.), PredicateEq)
+import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', pApp)
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Term (Term(..))
@@ -111,7 +111,7 @@ instance ({- Constants (Sentence v p f), -} Ord v, Ord p, Arity p, Constants p, 
     foldAtom _ _ _ = error "Data.Logic.Instances.Chiou: Invalid atom"
     apply' = Predicate
 
-instance (Arity p, Show p, Constants p, Eq p, PredicateEq p) => AtomEq (Sentence v p f) p (CTerm v f) where
+instance (Arity p, Show p, Constants p, Eq p) => AtomEq (Sentence v p f) p (CTerm v f) where
     foldAtomEq ap tf _ (Predicate p ts) = if p == true then tf True else if p == false then tf False else ap p ts
     foldAtomEq _ _ eq (Equal t1 t2) = eq t1 t2
     foldAtomEq _ _ _ _ = error "Data.Logic.Instances.Chiou: Invalid atom"
@@ -271,7 +271,7 @@ toTerm :: (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => NormalTe
 toTerm (NormalFunction f ts) = fApp f (map toTerm ts)
 toTerm (NormalVariable v) = vt v
 
-fromSentence :: forall v p f. (FirstOrderFormula (Sentence v p f) (Sentence v p f) v, Arity p, Constants p, Ord p, Ord f, Show p, PredicateEq p) =>
+fromSentence :: forall v p f. (FirstOrderFormula (Sentence v p f) (Sentence v p f) v, Arity p, Constants p, Ord p, Ord f, Show p) =>
                 Sentence v p f -> NormalSentence v p f
 fromSentence = foldFirstOrder 
                  (\ _ _ _ -> error "fromSentence 1")

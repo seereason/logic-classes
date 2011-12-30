@@ -15,7 +15,7 @@ import Data.Logic.Classes.Arity (Arity)
 -- import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
-import Data.Logic.Classes.Equals (AtomEq(..), (.=.), (.!=.), pApp, PredicateEq)
+import Data.Logic.Classes.Equals (AtomEq(..), (.=.), (.!=.), pApp)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
@@ -98,7 +98,7 @@ instance (Constants (Formula v p f), Ord v, Ord p, Ord f) => Combinable (Formula
     x .&.   y = Combine (BinOp  x (:&:)   y)
 
 instance (Ord v, Variable v, Data v, Show v,
-          Ord p, Constants p, Arity p, Data p, Show p, PredicateEq p,
+          Ord p, Constants p, Arity p, Data p, Show p,
           Ord f, Skolem f, Data f, Show f,
           Constants (Formula v p f), Combinable (Formula v p f)) =>
          PropositionalFormula (Formula v p f) (Formula v p f) where
@@ -139,7 +139,7 @@ instance (Arity p, Constants p) => Atom (Predicate p (PTerm v f)) p (PTerm v f) 
     apply' = Apply
 -}
 
-instance (Constants p, Eq p, Arity p, Show p, PredicateEq p) => AtomEq (Predicate p (PTerm v f)) p (PTerm v f) where
+instance (Constants p, Eq p, Arity p, Show p) => AtomEq (Predicate p (PTerm v f)) p (PTerm v f) where
     foldAtomEq ap tf _ (Apply p ts) = maybe (ap p ts) tf (asBool p)
     -- foldAtomEq ap _ _ (Constant x) = ap (fromBool x) []
     foldAtomEq _ _ eq (Equal t1 t2) = eq t1 t2

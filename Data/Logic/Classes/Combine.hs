@@ -19,45 +19,13 @@ module Data.Logic.Classes.Combine
     ) where
 
 import Data.Generics (Data, Typeable)
-import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Negate (Negatable(..))
-
--- | Abbreviation for the type signature passed to the fold function.
-type CombineFold formula r =
-       (formula -> BinOp -> formula -> r)
-    -> (formula -> r)
-    -> (Bool -> r)
-    -> formula -> r
-
--- | Abbreviation for the type signature passed to the zip function.
-type CombineZip formula r =
-       (formula -> BinOp -> formula -> formula -> BinOp -> formula -> Maybe r)
-    -> (formula -> formula -> Maybe r)
-    -> (Bool -> Bool -> Maybe r)
-    -> formula -> formula -> Maybe r
 
 -- | A type class for logical formulas.  Minimal implementation:
 -- @
 --  (.|.)
 -- @
-class ({- Constants formula, -} Negatable formula) => Combinable formula where
-    foldCombine :: CombineFold formula r
-    zipCombines :: CombineZip formula r
-    zipCombines bin neg tf fm1 fm2 =
-        foldCombine bin2 neg2 tf2 fm2
-        where
-          bin2 p2 op2 q2 = foldCombine (\ p1 op1 q1 -> bin p1 op1 q1 p2 op2 q2)
-                                       (\ _ -> Nothing)
-                                       (\ _ -> Nothing)
-                                       fm1
-          neg2 p2 = foldCombine (\ _ _ _ -> Nothing)
-                                (\ p1 -> neg p1 p2)
-                                (\ _ -> Nothing)
-                                fm1
-          tf2 b2 = foldCombine (\ _ _ _ -> Nothing)
-                               (\ _ -> Nothing)
-                               (\ b1 -> tf b1 b2)
-                               fm1
+class (Negatable formula) => Combinable formula where
     -- | Disjunction/OR
     (.|.) :: formula -> formula -> formula
 
@@ -102,20 +70,6 @@ data Combination formula
     = BinOp formula BinOp formula
     | (:~:) formula
     deriving (Eq,Ord,Data,Typeable,Show)
-
--- |We need to implement read manually here due to
--- <http://hackage.haskell.org/trac/ghc/ticket/4136>
-{-
-instance Read BinOp where
-    readsPrec _ s = 
-        map (\ (x, t) -> (x, drop (length t) s))
-            (take 1 (dropWhile (\ (_, t) -> not (isPrefixOf t s)) prs))
-        where
-          prs = [((:<=>:), ":<=>:"),
-                 ((:=>:), ":=>:"),
-                 ((:&:), ":&:"),
-                 ((:|:), ":|:")]
--}
 
 -- | A helper function for building folds:
 -- @

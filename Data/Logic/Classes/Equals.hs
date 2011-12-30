@@ -2,7 +2,7 @@
 -- | Support for equality.
 module Data.Logic.Classes.Equals
     ( AtomEq(..)
-    , PredicateEq(..)
+    , PredicateName(..)
     , zipAtomsEq
     , apply0, apply1, apply2, apply3, apply4, apply5, apply6, apply7
     , pApp, pApp0, pApp1, pApp2, pApp3, pApp4, pApp5, pApp6, pApp7
@@ -19,7 +19,7 @@ import Data.Logic.Classes.Negate ((.~.))
 import Data.Maybe (fromMaybe)
 
 -- | Its not safe to make Atom a superclass of AtomEq, because the Atom methods will fail on AtomEq instances.
-class (Arity p, Constants p, Eq p, Show p, PredicateEq p) => AtomEq atom p term | atom -> p term, term -> atom p where
+class (Arity p, Constants p, Eq p, Show p) => AtomEq atom p term | atom -> p term, term -> atom p where
     foldAtomEq :: (p -> [term] -> r) -> (Bool -> r) -> (term -> term -> r) -> atom -> r
     equals :: term -> term -> atom
     applyEq' :: p -> [term] -> atom
@@ -29,10 +29,10 @@ class (Arity p, Constants p, Eq p, Show p, PredicateEq p) => AtomEq atom p term 
           Just n | n /= length ts -> arityError p ts
           _ -> applyEq' p ts
 
--- | The equality algorithms require a way to obtain the name of the
--- equals predicate.
-class PredicateEq p where
-    eqp :: p
+-- | A way to represent any predicate's name.  Frequently the equality
+-- predicate has no standalone representation in the p type, it is
+-- just a constructor in the atom type, or even the formula type.
+data Ord p => PredicateName p = Named p Int | Equals deriving (Eq, Ord)
 
 zipAtomsEq :: AtomEq atom p term =>
               (p -> [term] -> p -> [term] -> Maybe r)

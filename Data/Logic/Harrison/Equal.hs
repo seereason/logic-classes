@@ -9,9 +9,10 @@ module Data.Logic.Harrison.Equal where
 -- ========================================================================= 
 
 import Control.Applicative.Error (Failing(..))
+import Data.Logic.Classes.Arity (Arity(..))
 import Data.Logic.Classes.Combine ((∧), (⇒))
 import Data.Logic.Classes.Constants (Constants(fromBool))
-import Data.Logic.Classes.Equals (AtomEq(..), (.=.), PredicateEq(eqp))
+import Data.Logic.Classes.Equals (AtomEq(..), (.=.), PredicateName(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), (∀))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Harrison.Formulas.FirstOrder (atom_union)
@@ -42,11 +43,33 @@ rhs eq = dest_eq eq >>= return . snd
 -- The set of predicates in a formula.                                       
 -- ------------------------------------------------------------------------- 
 
-predicates :: forall formula atom term v p. (FirstOrderFormula formula atom v, AtomEq atom p term, Ord p) => formula -> Set.Set (p, Int)
+predicates :: forall formula atom term v p. (FirstOrderFormula formula atom v, AtomEq atom p term, Ord p) => formula -> Set.Set (PredicateName p)
 predicates fm =
     atom_union pair fm
     where -- pair :: atom -> Set.Set (p, Int)
-          pair = foldAtomEq (\ p a -> Set.singleton (p, (length a))) (\ x -> Set.singleton (fromBool x, 0)) (\ _ _ -> Set.singleton (eqp :: p, 2))
+          pair = foldAtomEq (\ p a -> Set.singleton (Named p (maybe (length a)
+                                                                    (\ n -> if n /= length a then n else error "arity mismatch")
+                                                                    (arity p))))
+                            (\ x -> Set.singleton (Named (fromBool x) 0))
+                            (\ _ _ -> Set.singleton Equals)
+
+{-
+-- | Traverse a formula and pass all (predicates, arity) pairs to a function.
+-- To collect
+foldPredicates :: forall formula atom term v p r. (FirstOrderFormula formula atom v, AtomEq atom p term, Ord p) =>
+                  (PredicateName p -> Maybe Int -> r -> r) -> formula -> r -> r
+foldPredicates f fm acc =
+    foldFirstOrder qu co tf at fm
+    where
+      fold = foldPredicates f
+      qu _ _ p = fold p acc
+      co (BinOp l _ r) = fold r (fold l acc)
+      co ((:~:) p) = fold p acc
+      tf x = fold (fromBool x) acc
+      at = foldAtomEq ap tf eq
+      ap p _ = f (Name p) (arity p) acc
+      eq _ _ = f Equals (Just 2) acc
+-}
 
 -- ------------------------------------------------------------------------- 
 -- Code to generate equality axioms for functions.                           
@@ -71,10 +94,10 @@ function_congruence (f,n) =
 -- And for predicates.                                                       
 -- ------------------------------------------------------------------------- 
 
-predicate_congruence :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Num a, Enum a) =>
-                        (p, a) -> Set.Set fof
-predicate_congruence (_,0) = Set.empty
-predicate_congruence (p,n) =
+predicate_congruence :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord p) =>
+                        PredicateName p -> Set.Set fof
+predicate_congruence (Named _ 0) = Set.empty
+predicate_congruence (Named p n) =
     Set.singleton (foldr (∀) (ant ⇒ con) (argnames_x ++ argnames_y))
     where
       argnames_x = map (\ m -> fromString ("x" ++ show m)) [1..n]
@@ -104,13 +127,13 @@ equivalence_axioms =
 equalitize :: (FirstOrderFormula formula atom v, AtomEq atom t term, Term term v f, Ord t, Ord formula, Ord f) =>
               formula -> formula
 equalitize fm =
-    if not (Set.member (eqp, 2) allpreds)
+    if not (Set.member Equals allpreds)
     then fm
     else foldr1 (∧) (Set.toList axioms) ⇒ fm
     where
       axioms = Set.fold (Set.union . function_congruence) (Set.fold (Set.union . predicate_congruence) equivalence_axioms preds) funcs
       allpreds = predicates fm
-      preds = Set.delete (eqp, 2) allpreds
+      preds = Set.delete Equals allpreds
       funcs = functions fm
 
 -- ------------------------------------------------------------------------- 

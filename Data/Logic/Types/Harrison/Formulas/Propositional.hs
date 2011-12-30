@@ -30,16 +30,6 @@ instance Constants (Formula a) where
     fromBool False = F
 
 instance Combinable (Formula a) where
-    foldCombine bin neg tf fm =
-        case fm of
-          F -> tf False
-          T -> tf True
-          Not f -> neg f
-          And f g -> bin f (:&:) g
-          Or f g -> bin f (:|:) g
-          Imp f g -> bin f (:=>:) g
-          Iff f g -> bin f (:<=>:) g
-          Atom _ -> error "instance Combinable Harrison.Propositional"        
     a .<=>. b = Iff a b
     a .=>. b = Imp a b
     a .|. b = Or a b
