@@ -12,7 +12,6 @@ module Data.Logic.Types.FirstOrder
 
 import Data.Data (Data)
 import Data.Logic.Classes.Arity (Arity)
--- import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.), (.!=.), pApp)

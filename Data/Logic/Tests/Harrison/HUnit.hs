@@ -9,7 +9,7 @@ module Data.Logic.Tests.Harrison.HUnit
     , TestFormulaEq
     ) where
 
-import Data.Logic.Classes.Atom (Atom)
+import Data.Logic.Classes.Apply (Apply)
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
 import Data.Logic.Classes.Term (Term)
@@ -33,7 +33,7 @@ convert (TestLabel label test) = T.TestLabel label (convert test)
 convert (Test0 test) = test
 
 class (FirstOrderFormula formula atom v,
-       Atom atom p term,
+       Apply atom p term,
        Term term v f,
        Eq formula, Ord formula, Show formula,
        Eq p,

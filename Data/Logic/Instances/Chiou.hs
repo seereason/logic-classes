@@ -14,8 +14,8 @@ module Data.Logic.Instances.Chiou
     ) where
 
 import Data.Generics (Data, Typeable)
+import Data.Logic.Classes.Apply (Apply(..))
 import Data.Logic.Classes.Arity (Arity)
-import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combinable(..), BinOp(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
@@ -106,9 +106,9 @@ instance Skolem AtomicFunction where
     fromSkolem _ = Nothing
 
 -- The Atom type is not cleanly distinguished from the Sentence type, so we need an Atom instance for Sentence.
-instance ({- Constants (Sentence v p f), -} Ord v, Ord p, Arity p, Constants p, Ord f) => Atom (Sentence v p f) p (CTerm v f) where
-    foldAtom ap tf (Predicate p ts) = maybe (ap p ts) tf (asBool p)
-    foldAtom _ _ _ = error "Data.Logic.Instances.Chiou: Invalid atom"
+instance ({- Constants (Sentence v p f), -} Ord v, Ord p, Arity p, Constants p, Ord f) => Apply (Sentence v p f) p (CTerm v f) where
+    foldApply ap tf (Predicate p ts) = maybe (ap p ts) tf (asBool p)
+    foldApply _ _ _ = error "Data.Logic.Instances.Chiou: Invalid atom"
     apply' = Predicate
 
 instance (Arity p, Show p, Constants p, Eq p) => AtomEq (Sentence v p f) p (CTerm v f) where

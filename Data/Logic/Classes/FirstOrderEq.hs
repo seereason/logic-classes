@@ -11,7 +11,7 @@ module Data.Logic.Classes.FirstOrderEq
 import Data.List (intercalate, intersperse)
 import Data.Logic.Classes.Combine
 import Data.Logic.Classes.Constants (fromBool, ifElse)
-import Data.Logic.Classes.Equals (AtomEq(..), (.=.), pApp)
+import Data.Logic.Classes.Equals (AtomEq(..), applyEq, (.=.), pApp)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant)
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate

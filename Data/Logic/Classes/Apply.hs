@@ -1,10 +1,10 @@
 {-# LANGUAGE FlexibleContexts, FunctionalDependencies, MultiParamTypeClasses, TypeFamilies #-}
 {-# OPTIONS -fno-warn-missing-signatures #-}
--- | The Atom class represents the application of an atomic predicate
--- to zero or more terms.
-module Data.Logic.Classes.Atom
-    ( Atom(..)
-    , zipAtoms
+-- | The Apply class represents a type of atom the only supports predicate application.
+module Data.Logic.Classes.Apply
+    ( Apply(..)
+    , apply
+    , zipApplys
     , apply0, apply1, apply2, apply3, apply4, apply5, apply6, apply7
     ) where
 
@@ -13,25 +13,26 @@ import Data.Logic.Classes.Constants
 --import Data.Logic.Classes.Term
 import Data.Maybe (fromMaybe)
 
-class (Arity p, Constants p, Eq p) => Atom atom p term | atom -> p term where
-    foldAtom :: (p -> [term] -> r) -> (Bool -> r) -> atom -> r
+class (Arity p, Constants p, Eq p) => Apply atom p term | atom -> p term where
+    foldApply :: (p -> [term] -> r) -> (Bool -> r) -> atom -> r
     apply' :: p -> [term] -> atom
-    -- | apply' with an arity check - clients should always call this.
-    apply :: p -> [term] -> atom
-    apply p ts =
-        case arity p of
-          Just n | n /= length ts -> error "arity"
-          _ -> apply' p ts
 
-zipAtoms :: Atom atom p term =>
+-- | apply' with an arity check - clients should always call this.
+apply :: Apply atom p term => p -> [term] -> atom
+apply p ts =
+    case arity p of
+      Just n | n /= length ts -> error "arity"
+      _ -> apply' p ts
+
+zipApplys :: Apply atom p term =>
             (p -> [term] -> p -> [term] -> Maybe r)
          -> (Bool -> Bool -> Maybe r)
          -> atom -> atom -> Maybe r
-zipAtoms ap tf a1 a2 =
-    foldAtom ap' tf' a1
+zipApplys ap tf a1 a2 =
+    foldApply ap' tf' a1
     where
-      ap' p1 ts1 = foldAtom (ap p1 ts1) (\ _ -> Nothing) a2
-      tf' x1 = foldAtom (\ _ _ -> Nothing) (tf x1) a2
+      ap' p1 ts1 = foldApply (ap p1 ts1) (\ _ -> Nothing) a2
+      tf' x1 = foldApply (\ _ _ -> Nothing) (tf x1) a2
 
 apply0 p = if fromMaybe 0 (arity p) == 0 then apply' p [] else error "arity"
 apply1 p a = if fromMaybe 1 (arity p) == 1 then apply' p [a] else error "arity"

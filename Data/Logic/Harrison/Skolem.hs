@@ -17,7 +17,7 @@ module Data.Logic.Harrison.Skolem
 
 import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.State (StateT(runStateT), get, put)
-import Data.Logic.Classes.Atom (Atom(foldAtom))
+import Data.Logic.Classes.Apply (Apply(foldApply))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (Constants(fromBool, true, false), asBool)
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq))
@@ -299,7 +299,7 @@ skolemize fm = askolemize fm >>= return . specialize . pnf
 -- | Convert a first order formula into a disjunct of conjuncts of
 -- literals.  Note that this can convert any instance of
 -- FirstOrderFormula into any instance of Literal.
-literal :: forall fof atom term v p f lit. (Literal fof atom v, Atom atom p term, Term term v f, Literal lit atom v, Ord lit) =>
+literal :: forall fof atom term v p f lit. (Literal fof atom v, Apply atom p term, Term term v f, Literal lit atom v, Ord lit) =>
            fof -> Set.Set (Set.Set lit)
 literal fm =
     foldLiteral neg tf at fm
@@ -308,7 +308,7 @@ literal fm =
       neg x = Set.map (Set.map (.~.)) (literal x)
       tf = Set.singleton . Set.singleton . fromBool
       at :: atom -> Set.Set (Set.Set lit)
-      at x = foldAtom (\ _ _ -> Set.singleton (Set.singleton (Data.Logic.Classes.Literal.atomic x))) tf x
+      at x = foldApply (\ _ _ -> Set.singleton (Set.singleton (Data.Logic.Classes.Literal.atomic x))) tf x
 
 {-
 askolemize :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f) => fof -> fof

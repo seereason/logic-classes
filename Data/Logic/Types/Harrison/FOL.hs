@@ -9,7 +9,7 @@ module Data.Logic.Types.Harrison.FOL
 
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Arity
-import Data.Logic.Classes.Atom (Atom(..))
+import Data.Logic.Classes.Apply (Apply(..))
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder)
@@ -39,8 +39,8 @@ instance Show TermType where
     show (Var v) = "var " ++ show v
     show (Fn f ts) = "fApp " ++ show f ++ " " ++ show ts
 
-instance Atom FOL String TermType where
-    foldAtom f tf (R p ts) = maybe (f p ts) tf (asBool p)
+instance Apply FOL String TermType where
+    foldApply f tf (R p ts) = maybe (f p ts) tf (asBool p)
     apply' = R
 
 -- | This is probably dangerous.

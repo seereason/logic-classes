@@ -12,7 +12,7 @@ module Data.Logic.Harrison.FOL
     , generalize
     ) where
 
-import Data.Logic.Classes.Atom (Atom(..))
+import Data.Logic.Classes.Apply (Apply(..), apply)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (Constants (fromBool, true, false))
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq), (.=.), pApp)
@@ -64,8 +64,8 @@ mkLits pvs v = list_conj (Set.map (\ p -> if eval p v then p else (.~.) p) pvs)
 -- Special case of applying a subfunction to the top *terms*.               
 -- -------------------------------------------------------------------------
 
-on_formula :: (FirstOrderFormula fol atom v, Atom atom p term) => (term -> term) -> fol -> fol
-on_formula f = on_atoms (foldAtom (\ p ts -> atomic (apply p (map f ts))) fromBool)
+on_formula :: (FirstOrderFormula fol atom v, Apply atom p term) => (term -> term) -> fol -> fol
+on_formula f = on_atoms (foldApply (\ p ts -> atomic (apply p (map f ts))) fromBool)
 
 -- ------------------------------------------------------------------------- 
 -- Parsing of terms.                                                         
@@ -202,7 +202,7 @@ END_INTERACTIVE;;
 fvt :: (Term term v f, Ord v) => term -> Set.Set v
 fvt tm = C.foldTerm Set.singleton (\ _ args -> Set.unions (map fvt args)) tm
 
-var :: (FirstOrderFormula formula atom v, Ord v, Atom atom p term, Term term v f) => formula -> Set.Set v
+var :: (FirstOrderFormula formula atom v, Ord v, Apply atom p term, Term term v f) => formula -> Set.Set v
 var fm =
     foldFirstOrder qu co tf at fm
     where
@@ -210,7 +210,7 @@ var fm =
       co ((:~:) p) = var p
       co (BinOp p _ q) = Set.union (var p) (var q)
       tf _ = Set.empty
-      at = foldAtom (\ _ args -> Set.unions (map fvt args)) (const Set.empty)
+      at = foldApply (\ _ args -> Set.unions (map fvt args)) (const Set.empty)
 
 fv :: (FirstOrderFormula formula atom v, Ord v, AtomEq atom p term, Term term v f) => formula -> Set.Set v
 fv fm =

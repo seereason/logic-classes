@@ -9,7 +9,7 @@ module Data.Logic.Classes.Literal
     ) where
 
 import Data.List (intersperse)
-import Data.Logic.Classes.Atom (Atom(foldAtom))
+import Data.Logic.Classes.Apply (Apply(foldApply))
 import Data.Logic.Classes.Combine (Combination(..))
 import Data.Logic.Classes.Constants
 import qualified Data.Logic.Classes.FirstOrder as FOF
@@ -62,7 +62,7 @@ fromLiteral :: forall lit atom v fof atom2 v2. (Literal lit atom v, FOF.FirstOrd
                (atom -> atom2) -> lit -> fof
 fromLiteral ca lit = foldLiteral (\ p -> (.~.) (fromLiteral ca p)) fromBool (FOF.atomic . ca) lit
 
-prettyLit :: forall lit atom term v p f. (Literal lit atom v, Atom atom p term, Term term v f) =>
+prettyLit :: forall lit atom term v p f. (Literal lit atom v, Apply atom p term, Term term v f) =>
               (v -> Doc)
            -> (p -> Doc)
            -> (f -> Doc)
@@ -75,7 +75,7 @@ prettyLit pv pp pf _prec lit =
       neg :: lit -> Doc
       neg x = if negated x then text {-"¬"-} "~" <> prettyLit pv pp pf 5 x else prettyLit pv pp pf 5 x
       tf = text . ifElse "true" "false"
-      at = foldAtom (\ pr ts -> 
+      at = foldApply (\ pr ts -> 
                         pp pr <> case ts of
                                    [] -> empty
                                    _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts))))

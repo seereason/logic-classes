@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, RankNTypes, TypeSynonymInstances #-}
 module Data.Logic.Tests.Harrison.Main (tests) where
 
-import Data.Logic.Classes.Atom (Atom)
+import Data.Logic.Classes.Apply (Apply)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
 import Data.Logic.Classes.Term (Term)
 import qualified Data.Logic.Harrison.Lib as Lib

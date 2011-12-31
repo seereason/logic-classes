@@ -9,7 +9,7 @@ module Data.Logic.Types.Harrison.Equal where
 -- ========================================================================= 
 
 import Data.Logic.Classes.Arity (Arity(..))
-import Data.Logic.Classes.Atom (Atom(..))
+import Data.Logic.Classes.Apply (Apply(..))
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), showFirstOrderFormulaEq)
@@ -41,9 +41,9 @@ instance Constants PredName where
 -- | Using PredName for the predicate type is not quite appropriate
 -- here, but we need to implement this instance so we can use it as a
 -- superclass of AtomEq below.
-instance Atom FOLEQ PredName TermType where
-    foldAtom f _ (EQUALS t1 t2) = f (:=:) [t1, t2]
-    foldAtom f tf (R p ts) = maybe (f (Named p) ts) tf (asBool (Named p))
+instance Apply FOLEQ PredName TermType where
+    foldApply f _ (EQUALS t1 t2) = f (:=:) [t1, t2]
+    foldApply f tf (R p ts) = maybe (f (Named p) ts) tf (asBool (Named p))
     apply' (Named p) ts = R p ts
     apply' (:=:) [t1, t2] = EQUALS t1 t2
     apply' (:=:) _ = error "arity"

@@ -2,6 +2,7 @@
 -- | Support for equality.
 module Data.Logic.Classes.Equals
     ( AtomEq(..)
+    , applyEq
     , PredicateName(..)
     , zipAtomsEq
     , apply0, apply1, apply2, apply3, apply4, apply5, apply6, apply7
@@ -23,11 +24,13 @@ class (Arity p, Constants p, Eq p, Show p) => AtomEq atom p term | atom -> p ter
     foldAtomEq :: (p -> [term] -> r) -> (Bool -> r) -> (term -> term -> r) -> atom -> r
     equals :: term -> term -> atom
     applyEq' :: p -> [term] -> atom
-    applyEq :: p -> [term] -> atom
-    applyEq p ts =
-        case arity p of
-          Just n | n /= length ts -> arityError p ts
-          _ -> applyEq' p ts
+
+-- | applyEq' with an arity check - clients should always call this.
+applyEq :: AtomEq atom p term => p -> [term] -> atom
+applyEq p ts =
+    case arity p of
+      Just n | n /= length ts -> arityError p ts
+      _ -> applyEq' p ts
 
 -- | A way to represent any predicate's name.  Frequently the equality
 -- predicate has no standalone representation in the p type, it is
