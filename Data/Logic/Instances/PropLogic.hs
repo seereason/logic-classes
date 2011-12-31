@@ -14,8 +14,8 @@ import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..), clauseNormalForm')
 import Data.Logic.Classes.Term (Term)
+import Data.Logic.Harrison.Skolem (SkolemT)
 import Data.Logic.Normal.Clause (clauseNormalForm)
-import Data.Logic.Normal.Skolem (SkolemT)
 import qualified Data.Set.Extra as S
 import PropLogic
 

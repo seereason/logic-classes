@@ -15,7 +15,7 @@ import qualified Data.Logic.Classes.Literal as N
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Term (Term)
 import Data.Logic.Normal.Clause (clauseNormalForm)
-import Data.Logic.Normal.Skolem (LiteralMapT, NormalT)
+import Data.Logic.Normal.Implicative (LiteralMapT, NormalT)
 import qualified Data.Map as M
 
 instance Ord Literal where

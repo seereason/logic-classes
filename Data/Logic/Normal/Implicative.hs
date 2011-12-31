@@ -1,17 +1,19 @@
 {-# LANGUAGE DeriveDataTypeable, PackageImports, RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS -Wall #-}
 module Data.Logic.Normal.Implicative
-    ( ImplicativeForm(INF, neg, pos)
+    ( LiteralMapT
+    , NormalT
+    , runNormal
+    , runNormalT
+    , ImplicativeForm(INF, neg, pos)
     , makeINF'
     , implicativeNormalForm
     , prettyINF
     , prettyProof
     ) where
 
-import Data.Logic.Normal.Clause (clauseNormalForm)
-import Data.Logic.Normal.Skolem (SkolemT)
-
-import "mtl" Control.Monad.State (MonadPlus, msum)
+import Control.Monad.Identity (Identity(runIdentity))
+import Control.Monad.State (StateT(runStateT), MonadPlus, msum)
 import Data.Generics (Data, Typeable, listify)
 import Data.List (intersperse)
 import Data.Logic.Classes.Constants (Constants(true), ifElse)
@@ -21,9 +23,30 @@ import Data.Logic.Classes.Skolem (Skolem(fromSkolem))
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Term (Term)
+import Data.Logic.Harrison.Skolem (SkolemT, runSkolemT)
+import Data.Logic.Normal.Clause (clauseNormalForm)
 import qualified Data.Set.Extra as Set
+import qualified Data.Map as Map
 import Data.Maybe (isJust)
 import Text.PrettyPrint (Doc, cat, text, hsep)
+
+-- |Combination of Normal monad and LiteralMap monad
+type NormalT formula v term m a = SkolemT v term (LiteralMapT formula m) a
+
+runNormalT :: Monad m => NormalT formula v term m a -> m a
+runNormalT action = runLiteralMapM (runSkolemT action)
+
+runNormal :: NormalT formula v term Identity a -> a
+runNormal = runIdentity . runNormalT
+ 
+--type LiteralMap f = LiteralMapT f Identity
+type LiteralMapT f = StateT (Int, Map.Map f Int)
+
+--runLiteralMap :: LiteralMap p a -> a
+--runLiteralMap action = runIdentity (runLiteralMapM action)
+
+runLiteralMapM :: Monad m => LiteralMapT f m a -> m a
+runLiteralMapM action = (runStateT action) (1, Map.empty) >>= return . fst
 
 -- |A type to represent a formula in Implicative Normal Form.  Such a
 -- formula has the form @a & b & c .=>. d | e | f@, where a thru f are

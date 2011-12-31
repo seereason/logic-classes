@@ -9,13 +9,12 @@ module Data.Logic.Harrison.Normal
     , simpcnf
     ) where
 
-import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
+import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool))
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Negate (Negatable(negated), (.~.))
 import Data.Logic.Classes.Term (Term(..))
-import Data.Logic.Harrison.FOL (list_conj, list_disj)
 import Data.Logic.Harrison.Skolem (nnf, simplify)
 import Data.Logic.Harrison.Lib (setAny, allpairs)
 import qualified Data.Set as Set
@@ -25,17 +24,10 @@ import Prelude hiding (negate)
 -- Some operations on literals.                                              
 -- ------------------------------------------------------------------------- 
 
-negative :: FirstOrderFormula fof atomic v => fof -> Bool
-negative lit =
-    foldFirstOrder qu co tf at lit
-    where
-      qu _ _ _ = False
-      co ((:~:) _) = True
-      co _ = False
-      tf = not
-      at _ = False
+negative :: Negatable fof => fof -> Bool
+negative = negated
 
-positive :: FirstOrderFormula fof atomic v => fof -> Bool
+positive :: Negatable fof => fof -> Bool
 positive = not . negative
 
 negate :: FirstOrderFormula fof atomic v => fof -> fof
@@ -49,7 +41,7 @@ negate lit =
       at _ = (.~.) lit
 
 -- ------------------------------------------------------------------------- 
--- A version using a list representation.                                    
+-- A version using a list representation.  (dsf: now set)
 -- ------------------------------------------------------------------------- 
 
 distrib' :: (Eq formula, Ord formula) => Set.Set (Set.Set formula) -> Set.Set (Set.Set formula) -> Set.Set (Set.Set formula)
@@ -113,7 +105,7 @@ simpcnf fm =
           Set.filter (\ cj -> not (setAny (\ c' -> Set.isProperSubsetOf c' cj) cjs)) cjs
           where cjs = Set.filter (not . trivial) (purecnf fm)
 
-
+{-
 cnf :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof) => fof -> fof
 cnf fm = list_conj (Set.map list_disj (simpcnf fm))
 
@@ -132,3 +124,4 @@ distrib fm =
       tf _ = fm
       at _ = fm
       qu _ _ _ = fm
+-}

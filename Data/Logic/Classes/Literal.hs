@@ -4,12 +4,12 @@ module Data.Logic.Classes.Literal
     ( Literal(..)
     , zipLiterals
     , fromFirstOrder
-    , fromLiteralEq
+    , fromLiteral
     , prettyLit
     ) where
 
 import Data.List (intersperse)
-import Data.Logic.Classes.Atom (Atom(foldAtom, apply))
+import Data.Logic.Classes.Atom (Atom(foldAtom))
 import Data.Logic.Classes.Combine (Combination(..))
 import Data.Logic.Classes.Constants
 import qualified Data.Logic.Classes.FirstOrder as FOF
@@ -58,10 +58,9 @@ fromFirstOrder ca cv formula =
       co ((:~:) f) =  (.~.) (fromFirstOrder ca cv f)
       co _ = error "FirstOrder -> Literal"
 
-fromLiteralEq :: forall lit atom v fof atom2 v2. (Literal lit atom v, FOF.FirstOrderFormula fof atom2 v2) =>
-                 (atom -> atom2) -> lit -> fof
-fromLiteralEq ca lit =
-    foldLiteral (\ p -> (.~.) (fromLiteralEq ca p)) fromBool (FOF.atomic . ca) lit
+fromLiteral :: forall lit atom v fof atom2 v2. (Literal lit atom v, FOF.FirstOrderFormula fof atom2 v2) =>
+               (atom -> atom2) -> lit -> fof
+fromLiteral ca lit = foldLiteral (\ p -> (.~.) (fromLiteral ca p)) fromBool (FOF.atomic . ca) lit
 
 prettyLit :: forall lit atom term v p f. (Literal lit atom v, Atom atom p term, Term term v f) =>
               (v -> Doc)

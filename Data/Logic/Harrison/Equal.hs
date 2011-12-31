@@ -96,6 +96,7 @@ function_congruence (f,n) =
 
 predicate_congruence :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord p) =>
                         PredicateName p -> Set.Set fof
+predicate_congruence Equals = Set.empty
 predicate_congruence (Named _ 0) = Set.empty
 predicate_congruence (Named p n) =
     Set.singleton (foldr (∀) (ant ⇒ con) (argnames_x ++ argnames_y))
@@ -131,10 +132,9 @@ equalitize fm =
     then fm
     else foldr1 (∧) (Set.toList axioms) ⇒ fm
     where
-      axioms = Set.fold (Set.union . function_congruence) (Set.fold (Set.union . predicate_congruence) equivalence_axioms preds) funcs
+      axioms = Set.fold (Set.union . function_congruence) (Set.fold (Set.union . predicate_congruence) equivalence_axioms preds) (functions fm)
       allpreds = predicates fm
       preds = Set.delete Equals allpreds
-      funcs = functions fm
 
 -- ------------------------------------------------------------------------- 
 -- Other variants not mentioned in book.                                     

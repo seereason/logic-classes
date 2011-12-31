@@ -18,9 +18,9 @@ import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), toPropositional)
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term)
+import Data.Logic.Harrison.Skolem (SkolemT)
 import Data.Logic.Instances.PropLogic ()
 import Data.Logic.Normal.Clause (clauseNormalForm)
-import Data.Logic.Normal.Skolem (SkolemT)
 import qualified PropLogic as PL
 
 -- |Is there any variable assignment that makes the formula true?

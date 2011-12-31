@@ -1,8 +1,13 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
              MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TemplateHaskell, UndecidableInstances #-}
-module Data.Logic.Classes.FirstOrderEq where
+module Data.Logic.Classes.FirstOrderEq
+    ( substituteEq
+    , showFirstOrderEq
+    , prettyFirstOrderEq
+    , fromFirstOrderEq
+    , prettyLitEq
+    ) where
 
-import Data.Function (on)
 import Data.List (intercalate, intersperse)
 import Data.Logic.Classes.Combine
 import Data.Logic.Classes.Constants (fromBool, ifElse)
@@ -11,44 +16,11 @@ import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant)
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate
 import Data.Logic.Classes.Term (Term(..), showTerm, prettyTerm, convertTerm)
-import Data.Monoid (mappend)
-import qualified Data.Set as S
 import Text.PrettyPrint (Doc, (<>), (<+>), text, empty, parens, hcat, nest)
 
-
--- |Find the free (unquantified) variables in a formula.
-freeVarsEq :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> S.Set v
-freeVarsEq f =
-    foldFirstOrder
-          (\_ v x -> S.delete v (freeVarsEq x))                    
-          (\ cm ->
-               case cm of
-                 BinOp x _ y -> (mappend `on` freeVarsEq) x y
-                 (:~:) f' -> freeVarsEq f')
-          (\ _ -> S.empty)
-          (foldAtomEq (\ _ ts -> S.unions (fmap freeVarsOfTerm ts)) (const S.empty) (\ t1 t2 -> S.union (freeVarsOfTerm t1) (freeVarsOfTerm t2)))
-          f
-    where
-      freeVarsOfTerm = foldTerm S.singleton (\ _ args -> S.unions (fmap freeVarsOfTerm args))
-
--- |Find the free and quantified variables in a formula.
-allVarsEq :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> S.Set v
-allVarsEq f =
-    foldFirstOrder
-          (\_ v x -> S.insert v (allVarsEq x))
-          (\ cm ->
-               case cm of
-                 BinOp x _ y -> (mappend `on` allVarsEq) x y
-                 (:~:) f' -> freeVarsEq f')
-          (\ _ -> S.empty)
-          (foldAtomEq (\ _ ts -> S.unions (fmap allVarsOfTerm ts)) (const S.empty) (\ t1 t2 -> S.union (allVarsOfTerm t1) (allVarsOfTerm t2)))
-          f
-    where
-      allVarsOfTerm = foldTerm S.singleton (\ _ args -> S.unions (fmap allVarsOfTerm args))
-
 -- |Replace each free occurrence of variable old with term new.
-substituteEq :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => v -> term -> formula -> formula
-substituteEq old new formula =
+substitute :: forall formula atom term v f. (FirstOrderFormula formula atom v, Term term v f) => v -> term -> (atom -> formula) -> formula -> formula
+substitute old new atom formula =
     foldTerm (\ new' -> if old == new' then formula else substitute' formula)
              (\ _ _ -> substitute' formula)
              new
@@ -61,28 +33,17 @@ substituteEq old new formula =
                            ((:~:) f') -> combine ((:~:) (substitute' f'))
                            (BinOp f1 op f2) -> combine (BinOp (substitute' f1) op (substitute' f2)))
                 fromBool
-                (foldAtomEq (\ p ts -> pApp p (map st ts)) fromBool (\ t1 t2 -> st t1 .=. st t2))
+                atom
+
+-- |Replace each free occurrence of variable old with term new.
+substituteEq :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => v -> term -> formula -> formula
+substituteEq old new formula =
+    substitute old new atom formula
+    where 
+      atom = foldAtomEq (\ p ts -> pApp p (map st ts)) fromBool (\ t1 t2 -> st t1 .=. st t2)
       st :: term -> term
       st t = foldTerm sv (\ func ts -> fApp func (map st ts)) t
       sv v = if v == old then new else vt v
-
-{-
--- |Convert any instance of a first order logic expression to any other.
-convertFOFEq :: forall formula1 atom1 term1 v1 p1 f1 formula2 atom2 term2 v2 p2 f2.
-                (FirstOrderFormula formula1 atom1 v1, AtomEq atom1 p1 term1, Term term1 v1 f1,
-                 FirstOrderFormula formula2 atom2 v2, AtomEq atom2 p2 term2, Term term2 v2 f2) =>
-                (v1 -> v2) -> (p1 -> p2) -> (f1 -> f2) -> formula1 -> formula2
-convertFOFEq convertV convertP convertF formula =
-    foldFirstOrder qu co tf at formula
-    where
-      convert' = convertFOFEq convertV convertP convertF
-      convertTerm' = convertTerm convertV convertF
-      qu x v f = quant x (convertV v) (convert' f)
-      co (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
-      co ((:~:) f) = combine ((:~:) (convert' f))
-      tf = fromBool
-      at = foldAtomEq (\ x ts -> pApp (convertP x) (map convertTerm' ts)) fromBool (\ t1 t2 -> (convertTerm' t1) .=. (convertTerm' t2))
--}
 
 -- | Display a formula in a format that can be read into the interpreter.
 showFirstOrderEq :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Show v, Show p, Show f) => 

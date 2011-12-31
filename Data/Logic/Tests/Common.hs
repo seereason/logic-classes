@@ -38,14 +38,12 @@ import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term)
 import Data.Logic.Classes.Variable (Variable(..))
 import Data.Logic.Harrison.Normal (trivial)
+import Data.Logic.Harrison.Skolem (skolemNormalForm, runSkolem, pnf, nnf, simplify)
 import Data.Logic.Instances.PropLogic (plSat)
 import qualified Data.Logic.Instances.SatSolver as SS
 import Data.Logic.KnowledgeBase (WithId, runProver', Proof, loadKB, theoremKB, getKB)
 import Data.Logic.Normal.Clause (clauseNormalForm)
-import Data.Logic.Normal.Negation (negationNormalForm, simplify)
-import Data.Logic.Normal.Prenex (prenexNormalForm)
-import Data.Logic.Normal.Implicative (ImplicativeForm)
-import Data.Logic.Normal.Skolem (skolemNormalForm, runSkolem, runNormal, runNormalT)
+import Data.Logic.Normal.Implicative (ImplicativeForm, runNormal, runNormalT)
 import Data.Logic.Resolution (SetOfSupport)
 import qualified Data.Logic.Types.FirstOrder as P
 import qualified Data.Set as S
@@ -188,9 +186,9 @@ doTest f =
       doExpected (SimplifiedForm f') =
           myTest (name f ++ " simplified") (p f') (p (simplify (formula f)))
       doExpected (PrenexNormalForm f') =
-          myTest (name f ++ " prenex normal form") (p f') (p (prenexNormalForm (formula f)))
+          myTest (name f ++ " prenex normal form") (p f') (p (pnf (formula f)))
       doExpected (NegationNormalForm f') =
-          myTest (name f ++ " negation normal form") (p f') (p (negationNormalForm (formula f)))
+          myTest (name f ++ " negation normal form") (p f') (p (nnf . simplify $ (formula f)))
       doExpected (SkolemNormalForm f') =
           myTest (name f ++ " skolem normal form") (p f') (p (runSkolem (skolemNormalForm (formula f))))
       doExpected (SkolemNumbers f') =

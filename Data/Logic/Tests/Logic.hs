@@ -16,7 +16,7 @@ import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable)
 import Data.Logic.Harrison.FOL (fv)
 import Data.Logic.Normal.Clause (clauseNormalForm)
-import Data.Logic.Normal.Skolem (runNormal)
+import Data.Logic.Normal.Implicative (runNormal)
 import Data.Logic.Satisfiable (theorem, inconsistant)
 import Data.Logic.Tests.Common (TFormula, TTerm, myTest)
 import qualified Data.Set as Set

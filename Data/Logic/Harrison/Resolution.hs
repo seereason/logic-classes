@@ -15,8 +15,7 @@ import Data.Logic.Harrison.Lib (settryfind, allpairs, allsubsets, setAny, setAll
                                 allnonemptysubsets, (|->), apply, defined)
 import Data.Logic.Harrison.Normal (positive, negate, simpdnf,
                                    simpcnf, trivial)
-import Data.Logic.Harrison.Skolem (pnf)
-import Data.Logic.Normal.Skolem (SkolemT, askolemize, specialize)
+import Data.Logic.Harrison.Skolem (pnf, SkolemT, askolemize, specialize)
 import Data.Logic.Harrison.Tableaux (unify_literals)
 import Data.Logic.Harrison.Unif (solve)
 import qualified Data.Map as Map

@@ -10,9 +10,9 @@ import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
+import Data.Logic.Harrison.Skolem (SkolemT)
 import Data.Logic.KnowledgeBase (ProverT, runProver', Proof(..), ProofResult(..), loadKB, theoremKB {-, askKB, showKB-})
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
-import Data.Logic.Normal.Skolem (SkolemT)
 import Data.Logic.Resolution (SetOfSupport)
 import Data.Logic.Tests.Common (V(..), AtomicFunction(..), TFormula, TTerm, myTest)
 import Data.Map (fromList)
@@ -38,6 +38,7 @@ loadTest =
 proofTest1 :: Test
 proofTest1 = myTest "Chiuo0 - proof test 1" proof1 (runProver' Nothing (loadKB sentences >> theoremKB (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []] :: TFormula)))
 
+inf' :: (Negatable lit, Ord lit) => [lit] -> [lit] -> ImplicativeForm lit
 inf' l1 l2 = INF (S.fromList l1) (S.fromList l2)
 
 proof1 :: (Bool, SetOfSupport TFormula V TTerm)

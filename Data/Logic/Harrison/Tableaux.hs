@@ -6,7 +6,7 @@ module Data.Logic.Harrison.Tableaux
     ) where
 
 import Control.Applicative.Error (Failing(..))
-import Data.Logic.Classes.Equals (AtomEq, zipAtomsEq)
+import Data.Logic.Classes.Equals (zipAtomsEq)
 import Data.Logic.Classes.Literal (Literal, zipLiterals)
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Harrison.Unif (unify)

@@ -32,10 +32,6 @@ module Data.Logic.Normal.Clause
     , cnfTrace
     ) where
 
-import Data.Logic.Normal.Negation (negationNormalForm, nnf, simplify)
-import Data.Logic.Normal.Prenex (prenexNormalForm)
-import Data.Logic.Normal.Skolem (skolemNormalForm, SkolemT)
-
 import Data.List (intersperse)
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
@@ -46,6 +42,7 @@ import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Term (Term)
 import Data.Logic.Harrison.Normal (trivial)
+import Data.Logic.Harrison.Skolem (skolemNormalForm, SkolemT, pnf, nnf, simplify)
 import qualified Data.Set.Extra as Set
 import Text.PrettyPrint (Doc, hcat, vcat, text, nest, ($$), brackets, render)
 
@@ -69,15 +66,13 @@ cnfTrace :: forall m formula atom term v p f lit.
          -> formula
          -> SkolemT v term m (String, Set.Set (Set.Set lit))
 cnfTrace pv pp pf f =
-    do let simplified = simplify f
-           pnf = prenexNormalForm f
-       snf <- skolemNormalForm f
+    do snf <- skolemNormalForm f
        cnf <- clauseNormalForm f
        return (render (vcat
                        [text "Original:" $$ nest 2 (prettyFirstOrderEq pv pp pf 0 f),
-                        text "Simplified:" $$ nest 2 (prettyFirstOrderEq pv pp pf 0 simplified),
-                        text "Negation Normal Form:" $$ nest 2 (prettyFirstOrderEq pv pp pf 0 (negationNormalForm f)),
-                        text "Prenex Normal Form:" $$ nest 2 (prettyFirstOrderEq pv pp pf 0 pnf),
+                        text "Simplified:" $$ nest 2 (prettyFirstOrderEq pv pp pf 0 (simplify f)),
+                        text "Negation Normal Form:" $$ nest 2 (prettyFirstOrderEq pv pp pf 0 (nnf . simplify $ f)),
+                        text "Prenex Normal Form:" $$ nest 2 (prettyFirstOrderEq pv pp pf 0 (pnf f)),
                         text "Skolem Normal Form:" $$ nest 2 (prettyFirstOrderEq pv pp pf 0 snf),
                         text "Clause Normal Form:" $$ vcat (map prettyClause (fromSS cnf))]), cnf)
     where

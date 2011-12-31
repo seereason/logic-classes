@@ -8,7 +8,7 @@ import qualified Data.Set as Set
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(vt, fApp))
 import Data.Logic.Harrison.Meson(meson)
-import Data.Logic.Normal.Skolem (runSkolem)
+import Data.Logic.Harrison.Skolem (runSkolem)
 import Data.Logic.Tests.Harrison.Resolution (dpExampleFm)
 import Data.Logic.Tests.Harrison.HUnit
 import Data.Logic.Types.Harrison.Equal (FOLEQ)

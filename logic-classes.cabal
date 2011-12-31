@@ -48,9 +48,6 @@ Library
                    Data.Logic.KnowledgeBase
                    Data.Logic.Normal.Clause
                    Data.Logic.Normal.Implicative
-                   Data.Logic.Normal.Negation
-                   Data.Logic.Normal.Prenex
-                   Data.Logic.Normal.Skolem
                    Data.Logic.Resolution
                    Data.Logic.Satisfiable
                    Data.Logic.Types.FirstOrder

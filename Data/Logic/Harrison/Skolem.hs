@@ -5,17 +5,27 @@ module Data.Logic.Harrison.Skolem
     , nnf
     , pnf
     , functions
-    -- , skolemize
-    -- , specialize
-    -- , askolemize
-    -- , literal
+    , SkolemT
+    , runSkolem
+    , runSkolemT
+    , specialize
+    , skolemize
+    , literal
+    , askolemize
+    , skolemNormalForm
     ) where
 
+import Control.Monad.Identity (Identity(runIdentity))
+import Control.Monad.State (StateT(runStateT), get, put)
+import Data.Logic.Classes.Atom (Atom(foldAtom))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (Constants(fromBool, true, false), asBool)
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(exists, for_all, foldFirstOrder), Quant(..), quant)
+import Data.Logic.Classes.FirstOrderEq (substituteEq)
+import Data.Logic.Classes.Literal (Literal(foldLiteral, atomic))
 import Data.Logic.Classes.Negate ((.~.))
+import Data.Logic.Classes.Skolem (Skolem(toSkolem))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable(variant))
 import Data.Logic.Harrison.FOL (fv, subst)
@@ -165,11 +175,80 @@ functions fm =
       tf _ = Set.empty
       pr = foldAtomEq (\ _ ts -> Set.unions (map funcs ts)) (const Set.empty) (\ t1 t2 -> Set.union (funcs t1) (funcs t2))
     -- atom_union (\ (R p a) -> foldr (Set.union . funcs) Set.empty a) fm
-{-
+
+-- ------------------------------------------------------------------------- 
+-- State monad for generating Skolem functions and constants.
+-- ------------------------------------------------------------------------- 
+
+-- | Harrison's code generated skolem functions by adding a prefix to
+-- the variable name they are based on.  Here we have a more general
+-- and type safe solution: we require that variables be instances of
+-- class Skolem which creates Skolem functions based on an integer.
+-- This state value exists in the SkolemT monad during skolemization
+-- and tracks the next available number and the current list of
+-- universally quantified variables.
+
+data SkolemState v term
+    = SkolemState
+      { skolemCount :: Int
+        -- ^ The next available Skolem number.
+      -- , skolemMap :: Map.Map v term
+      --   -- ^ Map from variables to applications of a Skolem function
+      , univQuant :: [v]
+        -- ^ The variables which are universally quantified in the
+        -- current scope, in the order they were encountered.  During
+        -- Skolemization these are the parameters passed to the Skolem
+        -- function.
+      }
+
+newSkolemState :: SkolemState v term
+newSkolemState = SkolemState { skolemCount = 1
+                             -- , skolemMap = Map.empty
+                             , univQuant = [] }
+
+type SkolemT v term m = StateT (SkolemState v term) m
+
+runSkolem :: SkolemT v term Identity a -> a
+runSkolem = runIdentity . runSkolemT
+
+runSkolemT :: Monad m => SkolemT v term m a -> m a
+runSkolemT action = (runStateT action) newSkolemState >>= return . fst
+
 -- ------------------------------------------------------------------------- 
 -- Core Skolemization function.                                              
 -- ------------------------------------------------------------------------- 
 
+-- |Skolemize the formula by removing the existential quantifiers and
+-- replacing the variables they quantify with skolem functions (and
+-- constants, which are functions of zero variables.)  The Skolem
+-- functions are new functions (obtained from the SkolemT monad) which
+-- are applied to the list of variables which are universally
+-- quantified in the context where the existential quantifier
+-- appeared.
+skolem :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> SkolemT v term m formula
+skolem fm =
+    foldFirstOrder qu co (\ _ -> return fm) (\ _ -> return fm) fm
+    where
+      qu Exists y p =
+          do let xs = fv fm
+             state <- get
+             let f = toSkolem (skolemCount state)
+             put (state {skolemCount = skolemCount state + 1})
+             let fx = fApp f (map vt (Set.toList xs))
+             skolem (substituteEq y fx p)
+      qu Forall x p = skolem p >>= return . for_all x
+      co (BinOp l (:&:) r) = skolem2 (.&.) l r
+      co (BinOp l (:|:) r) = skolem2 (.|.) l r
+      co _ = return fm
+
+skolem2 :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
+           (formula -> formula -> formula) -> formula -> formula -> SkolemT v term m formula
+skolem2 cons p q =
+    skolem p >>= \ p' ->
+    skolem q >>= \ q' ->
+    return (cons p' q')
+
+{-
 skolem :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord f) => fof -> Set.Set f -> (fof, Set.Set f)
 skolem fm fns =
     foldFirstOrder qu co pr fm
@@ -194,11 +273,44 @@ skolem fm fns =
           let (p',fns'') = skolem p fns' in
           let (q',fns''') = skolem q fns'' in
           (cons p' q', fns''')
+-}
 
 -- ------------------------------------------------------------------------- 
 -- Overall Skolemization function.                                           
 -- ------------------------------------------------------------------------- 
 
+-- |I need to consult the Harrison book for the reasons why we don't
+-- |just Skolemize the result of prenexNormalForm.
+askolemize :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Eq formula) =>
+              formula -> SkolemT v term m formula
+askolemize = skolem . nnf . simplify
+
+specialize :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> formula
+specialize f =
+    foldFirstOrder q (\ _ -> f) (\ _ -> f) (\ _ -> f) f
+    where
+      q Forall _ f' = specialize f'
+      q _ _ _ = f
+
+skolemize :: (Monad m, FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Eq fof) => fof -> SkolemT v term m fof
+-- skolemize fm = {- t1 $ -} specialize . pnf . askolemize $ fm
+skolemize fm = askolemize fm >>= return . specialize . pnf
+
+-- | Convert a first order formula into a disjunct of conjuncts of
+-- literals.  Note that this can convert any instance of
+-- FirstOrderFormula into any instance of Literal.
+literal :: forall fof atom term v p f lit. (Literal fof atom v, Atom atom p term, Term term v f, Literal lit atom v, Ord lit) =>
+           fof -> Set.Set (Set.Set lit)
+literal fm =
+    foldLiteral neg tf at fm
+    where
+      neg :: fof -> Set.Set (Set.Set lit)
+      neg x = Set.map (Set.map (.~.)) (literal x)
+      tf = Set.singleton . Set.singleton . fromBool
+      at :: atom -> Set.Set (Set.Set lit)
+      at x = foldAtom (\ _ _ -> Set.singleton (Set.singleton (Data.Logic.Classes.Literal.atomic x))) tf x
+
+{-
 askolemize :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f) => fof -> fof
 askolemize fm =
   fst(skolem (nnf(simplify fm)) (Set.map fst (functions fm)));;
@@ -231,3 +343,9 @@ literal fm =
       co (BinOp p (:&:) q) = Set.union (literal p) (literal q)
       co _ = error "literal"
 -}
+
+-- |We get Skolem Normal Form by skolemizing and then converting to
+-- Prenex Normal Form, and finally eliminating the remaining quantifiers.
+skolemNormalForm :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Eq formula) =>
+                    formula -> SkolemT v term m formula
+skolemNormalForm f = askolemize f >>= return . specialize . pnf

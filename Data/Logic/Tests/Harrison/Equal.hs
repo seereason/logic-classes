@@ -16,7 +16,7 @@ import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Harrison.Equal (equalitize, function_congruence)
 import Data.Logic.Harrison.Meson (meson)
-import Data.Logic.Normal.Skolem (runSkolem)
+import Data.Logic.Harrison.Skolem (runSkolem)
 import Data.Logic.Types.Harrison.FOL (FOL, TermType(..), Function)
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
 import Data.Logic.Types.Harrison.Equal (FOLEQ(..), PredName)
@@ -128,7 +128,7 @@ test03 = TestLabel "equalitize 2" $ TestCase $ assertEqual "equalitize 2 (p. 241
 test04 :: Test (Formula FOLEQ)
 test04 = test "equalitize 3 (p. 248)" expected input
     where
-      input = runSkolem (meson Nothing . equalitize $ fm)
+      input = runSkolem (meson (Just 20) . equalitize $ fm)
       fm :: Formula FOLEQ
       fm = ((∀) "x" . (∀) "y" . (∀) "z") ((*) [x', (*) [y', z']] .=. (*) [((*) [x', y']), z']) ∧
            (∀) "x" ((*) [one, x'] .=. x') ∧
