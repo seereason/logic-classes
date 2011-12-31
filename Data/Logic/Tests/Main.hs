@@ -1,6 +1,4 @@
-import Data.Logic.Classes.FirstOrder (showFirstOrder)
-import Data.Logic.Tests.Common (TestFormula, TestProof, V, Pr, AtomicFunction, TFormula, TAtom, TTerm)
-import Data.Logic.Types.FirstOrder
+import Data.Logic.Tests.Common (TestFormula, TestProof, V, TFormula, TAtom, TTerm)
 import System.Exit
 import Test.HUnit
 import qualified Data.Logic.Tests.Harrison.Main as Harrison

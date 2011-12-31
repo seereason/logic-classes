@@ -47,7 +47,7 @@ allVarsEq f =
       allVarsOfTerm = foldTerm S.singleton (\ _ args -> S.unions (fmap allVarsOfTerm args))
 
 -- |Replace each free occurrence of variable old with term new.
-substituteEq :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => v -> term -> formula -> formula
+substituteEq :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => v -> term -> formula -> formula
 substituteEq old new formula =
     foldTerm (\ new' -> if old == new' then formula else substitute' formula)
              (\ _ _ -> substitute' formula)
@@ -61,10 +61,12 @@ substituteEq old new formula =
                            ((:~:) f') -> combine ((:~:) (substitute' f'))
                            (BinOp f1 op f2) -> combine (BinOp (substitute' f1) op (substitute' f2)))
                 fromBool
-                (foldAtomEq (\ p ts -> pApp p (map st ts)) fromBool (\ t1 t2 -> (st t1) .=. (st t2)))
+                (foldAtomEq (\ p ts -> pApp p (map st ts)) fromBool (\ t1 t2 -> st t1 .=. st t2))
+      st :: term -> term
       st t = foldTerm sv (\ func ts -> fApp func (map st ts)) t
       sv v = if v == old then new else vt v
 
+{-
 -- |Convert any instance of a first order logic expression to any other.
 convertFOFEq :: forall formula1 atom1 term1 v1 p1 f1 formula2 atom2 term2 v2 p2 f2.
                 (FirstOrderFormula formula1 atom1 v1, AtomEq atom1 p1 term1, Term term1 v1 f1,
@@ -80,6 +82,7 @@ convertFOFEq convertV convertP convertF formula =
       co ((:~:) f) = combine ((:~:) (convert' f))
       tf = fromBool
       at = foldAtomEq (\ x ts -> pApp (convertP x) (map convertTerm' ts)) fromBool (\ t1 t2 -> (convertTerm' t1) .=. (convertTerm' t2))
+-}
 
 -- | Display a formula in a format that can be read into the interpreter.
 showFirstOrderEq :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Show v, Show p, Show f) => 

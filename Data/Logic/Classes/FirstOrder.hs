@@ -44,7 +44,7 @@ import Data.Logic.Classes.Atom (Atom(..), apply0, apply1, apply2, apply3, apply4
 import Data.Logic.Classes.Constants
 import Data.Logic.Classes.Combine
 import Data.Logic.Classes.Propositional (PropositionalFormula)
-import Data.Logic.Classes.Term (Term(..), showTerm, prettyTerm, convertTerm)
+import Data.Logic.Classes.Term (Term(..), showTerm, prettyTerm)
 import Data.Logic.Classes.Variable (Variable)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Happstack.Data (deriveNewData)
@@ -175,21 +175,32 @@ quant' :: FirstOrderFormula formula atom v =>
 quant' Forall = for_all'
 quant' Exists = exists'
 
--- |Convert any instance of a first order logic expression to any other.
-convertFOF :: forall formula1 atom1 term1 v1 p1 f1 formula2 atom2 term2 v2 p2 f2.
-              (FirstOrderFormula formula1 atom1 v1, Atom atom1 p1 term1, Term term1 v1 f1,
-               FirstOrderFormula formula2 atom2 v2, Atom atom2 p2 term2, Term term2 v2 f2) =>
-              (v1 -> v2) -> (p1 -> p2) -> (f1 -> f2) -> formula1 -> formula2
-convertFOF convertV convertP convertF formula =
-    foldFirstOrder qu co tf at formula
+convertFOF :: (FirstOrderFormula formula1 atom1 v1, FirstOrderFormula formula2 atom2 v2) =>
+              (atom1 -> atom2) -> (v1 -> v2) -> formula1 -> formula2
+convertFOF convertA convertV  formula =
+    foldFirstOrder qu co tf (atomic . convertA) formula
     where
-      convert' = convertFOF convertV convertP convertF
-      convertTerm' = convertTerm convertV convertF
+      convert' = convertFOF convertA convertV
       qu x v f = quant x (convertV v) (convert' f)
       co (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
       co ((:~:) f) = combine ((:~:) (convert' f))
       tf = fromBool
-      at = foldAtom (\ x ts -> pApp (convertP x) (map convertTerm' ts)) (pApp0 . fromBool)
+
+-- -- |Convert any instance of a first order logic expression to any other.
+-- convertFOF :: forall formula1 atom1 term1 v1 p1 f1 formula2 atom2 term2 v2 p2 f2.
+--               (FirstOrderFormula formula1 atom1 v1, Atom atom1 p1 term1, Term term1 v1 f1,
+--                FirstOrderFormula formula2 atom2 v2, Atom atom2 p2 term2, Term term2 v2 f2) =>
+--               (v1 -> v2) -> (p1 -> p2) -> (f1 -> f2) -> formula1 -> formula2
+-- convertFOF convertV convertP convertF formula =
+--     foldFirstOrder qu co tf at formula
+--     where
+--       convert' = convertFOF convertV convertP convertF
+--       convertTerm' = convertTerm convertV convertF
+--       qu x v f = quant x (convertV v) (convert' f)
+--       co (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
+--       co ((:~:) f) = combine ((:~:) (convert' f))
+--       tf = fromBool
+--       at = foldAtom (\ x ts -> pApp (convertP x) (map convertTerm' ts)) (pApp0 . fromBool)
 
 -- |Try to convert a first order logic formula to propositional.  This
 -- will return Nothing if there are any quantifiers, or if it runs

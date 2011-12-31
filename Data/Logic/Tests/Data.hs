@@ -19,12 +19,11 @@ import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Combine (Combinable(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Equals (AtomEq, (.=.), pApp, pApp2)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), for_all', exists', convertFOF)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), for_all', exists')
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Skolem (Skolem(toSkolem))
 import Data.Logic.Classes.Negate (Negatable(..))
 import qualified Data.Logic.Classes.Literal as N
-import qualified Data.Logic.Instances.Chiou as C
 import Data.Logic.KnowledgeBase (WithId(WithId, wiItem, wiIdent), Proof(..), ProofResult(..))
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
 import Data.Logic.Tests.Common (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof)

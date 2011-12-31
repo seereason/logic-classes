@@ -17,6 +17,7 @@ import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.), (.!=.), pApp)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
+import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
@@ -182,6 +183,19 @@ instance (Constants (Formula v p f),
           _ -> error "Literal (Formula v p f)"
     atomic = Predicate
 -}
+
+instance (Constants p, Eq v, Eq p, Eq f, Constants (Predicate p (PTerm v f))) => Literal (Formula v p f) (Predicate p (PTerm v f)) v where
+    atomic = Predicate
+    foldLiteral neg tf at f =
+        case f of
+          Quant _ _ _ -> error "Invalid literal"
+          Combine ((:~:) p) -> neg p
+          Combine _ -> error "Invalid literal"
+          Predicate p -> if p == fromBool True
+                         then tf True
+                         else if p == fromBool False
+                              then tf False
+                              else at p
 
 $(deriveSafeCopy 1 'base ''PTerm)
 $(deriveSafeCopy 1 'base ''Formula)

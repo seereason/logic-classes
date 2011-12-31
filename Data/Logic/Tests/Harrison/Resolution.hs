@@ -20,7 +20,7 @@ import Prelude hiding (negate)
 -- import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual, Assertion)
 import Data.Logic.Tests.Harrison.HUnit
 
-tests :: TestFormulaEq formula atom term v p f => Test formula
+tests :: Test (Formula FOLEQ)
 tests = TestLabel "Data.Logic.Tests.Harrison.Resolution" $ TestList [test01, test02, test03, test04]
 
 -- ------------------------------------------------------------------------- 
@@ -44,19 +44,19 @@ test01 = TestCase $ assertEqual "Barber's paradox (p. 181)" expected input
 -- Simple example that works well.                                           
 -- ------------------------------------------------------------------------- 
 
-test02 :: forall formula atom term v p f. TestFormulaEq formula atom term v p f => Test formula
+test02 :: Test (Formula FOLEQ)
 test02 = TestCase $ assertEqual "Davis-Putnam example" expected input
-    where input = runSkolem (resolution1 (dpExampleFm :: formula))
+    where input = runSkolem (resolution1 (dpExampleFm :: Formula FOLEQ))
           expected = Set.singleton (Success True)
 
-dpExampleFm :: forall formula atom term v p f. TestFormulaEq formula atom term v p f => formula
+dpExampleFm :: Formula FOLEQ
 dpExampleFm = exists x . exists y .for_all z $
               (f [vt x, vt y] .=>. (f [vt y, vt z] .&. f [vt z, vt z])) .&.
               ((f [vt x, vt y] .&. g [vt x, vt y]) .=>. (g [vt x, vt z] .&. g [vt z, vt z]))
     where
-      x = fromString "x" :: v
-      y = fromString "y" :: v
-      z = fromString "z" :: v
+      x = fromString "x"
+      y = fromString "y"
+      z = fromString "z"
       g = pApp (fromString "G")
       f = pApp (fromString "F")
 
@@ -64,28 +64,21 @@ dpExampleFm = exists x . exists y .for_all z $
 -- This is now a lot quicker.                                                
 -- ------------------------------------------------------------------------- 
 
-test03 :: forall formula atom v p term f. TestFormulaEq formula atom term v p f => Test formula
+test03 :: Test (Formula FOLEQ)
 test03 = TestCase $ assertEqual "Davis-Putnam example 2" expected input
-    where input = runSkolem (resolution2 (dpExampleFm :: formula))
+    where input = runSkolem (resolution2 (dpExampleFm :: Formula FOLEQ))
           expected = Set.singleton (Success True)
 
 -- ------------------------------------------------------------------------- 
 -- Example: the (in)famous Los problem.                                      
 -- ------------------------------------------------------------------------- 
 
-test04 :: forall formula atom v p term f. (FirstOrderFormula formula atom v,
-                                           AtomEq atom p term,
-                                           Term term v f, Eq formula, Ord formula, Eq p, Eq term,
-                                           IsString v, IsString p, IsString f) =>
-          Test formula
+test04 :: Test (Formula FOLEQ)
 test04 = TestCase $ assertEqual "Los problem (p. 198)" expected input
-    where input = runSkolem (presolution (losFm :: formula))
+    where input = runSkolem (presolution losFm)
           expected = Set.fromList [Success True]
 
-losFm :: forall formula atom v p term f. (FirstOrderFormula formula atom v,
-                                          AtomEq atom p term,
-                                          Term term v f, Eq formula, Ord formula, Eq p, Eq term,
-                                          IsString v, IsString p, IsString f) => formula
+losFm :: Formula FOLEQ
 losFm = (for_all x (for_all y (for_all z (p [vt x, vt y] .=>. p [vt y, vt z] .=>. p [vt x, vt z])))) .&.
         (for_all x (for_all y (for_all z (q [vt x, vt y] .=>. q [vt y, vt z] .=>. q [vt x, vt z])))) .&.
         (for_all x (for_all y (q [vt x, vt y] .=>. q [vt y, vt x]))) .&.
@@ -93,8 +86,8 @@ losFm = (for_all x (for_all y (for_all z (p [vt x, vt y] .=>. p [vt y, vt z] .=>
         (for_all x (for_all y (p [vt x, vt y]))) .|.
         (for_all x (for_all y (q [vt x, vt y])))
     where
-      x = fromString "x" :: v
-      y = fromString "y" :: v
-      z = fromString "z" :: v
+      x = fromString "x"
+      y = fromString "y"
+      z = fromString "z"
       p = pApp (fromString "P")
       q = pApp (fromString "Q")

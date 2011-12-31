@@ -15,6 +15,7 @@ import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), showFirstOrderFormulaEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import qualified Data.Logic.Classes.FirstOrder as C
+import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Types.Harrison.FOL (TermType(..))
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
 import Data.String (IsString(..))
@@ -63,6 +64,16 @@ instance FirstOrderFormula (Formula FOLEQ) FOLEQ String where
           Forall v fm' -> qu C.Forall v fm'
           Exists v fm' -> qu C.Exists v fm'
     atomic = Atom
+
+instance Literal (Formula FOLEQ) FOLEQ String where
+    atomic = Atom
+    foldLiteral neg tf at lit =
+        case lit of
+          F -> tf False
+          T -> tf True
+          Atom a -> at a
+          Not fm' -> neg fm'
+          _ -> error "Literal (Formula FOLEQ)"
 
 -- instance PredicateEq PredName where
 --     eqp = (:=:)

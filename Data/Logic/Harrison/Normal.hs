@@ -1,22 +1,25 @@
 {-# OPTIONS_GHC -Wall #-}
 -- | Versions of the normal form functions in Prop for FirstOrderFormula.
-module Data.Logic.Harrison.Normal where
+module Data.Logic.Harrison.Normal
+    ( positive
+    , negative
+    , negate
+    , trivial
+    , simpdnf
+    , simpcnf
+    ) where
 
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (Constants (fromBool, true, false))
+import Data.Logic.Classes.Constants (Constants(fromBool))
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
-import Data.Logic.Classes.Negate ((.~.))
+import Data.Logic.Classes.Negate (Negatable(negated), (.~.))
 import Data.Logic.Classes.Term (Term(..))
+import Data.Logic.Harrison.FOL (list_conj, list_disj)
 import Data.Logic.Harrison.Skolem (nnf, simplify)
 import Data.Logic.Harrison.Lib (setAny, allpairs)
 import qualified Data.Set as Set
-
-list_conj :: (FirstOrderFormula fof atomic v, Ord fof) => Set.Set fof -> fof
-list_conj l = maybe true (\ (x, xs) -> Set.fold (.&.) x xs) (Set.minView l)
-
-list_disj :: (FirstOrderFormula fof atomic v, Ord fof) => Set.Set fof -> fof
-list_disj l = maybe false (\ (x, xs) -> Set.fold (.|.) x xs) (Set.minView l)
+import Prelude hiding (negate)
 
 -- ------------------------------------------------------------------------- 
 -- Some operations on literals.                                              
@@ -67,10 +70,10 @@ purednf fm =
 -- Filtering out trivial disjuncts (in this guise, contradictory).           
 -- ------------------------------------------------------------------------- 
 
-trivial :: (FirstOrderFormula fof atomic v, Ord fof) => Set.Set fof -> Bool
+trivial :: (Negatable lit, Ord lit) => Set.Set lit -> Bool
 trivial lits =
     not . Set.null $ Set.intersection neg (Set.map (.~.) pos)
-    where (pos, neg) = Set.partition positive lits
+    where (neg, pos) = Set.partition negated lits
 
 -- ------------------------------------------------------------------------- 
 -- With subsumption checking, done very naively (quadratic).                 

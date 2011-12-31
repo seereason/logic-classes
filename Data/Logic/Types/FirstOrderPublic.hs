@@ -92,6 +92,7 @@ instance (Constants (Formula v p f), Constants (N.Formula v p f),
 instance ({- FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
           Literal (N.Formula v p f) (N.PTerm v f) v p f,
           FirstOrderFormula (N.Formula v p f) (N.PTerm v f) v p f, -}
+          Constants (N.Predicate p (N.PTerm v f)),
           Constants (Formula v p f), Constants (N.Formula v p f),
           Data v, Data f, Data p,
           Ord v, Ord p, Ord f,
@@ -105,7 +106,7 @@ instance ({- FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
           EQ -> EQ
           x -> {- if isRenameOf a' b' then EQ else -} x
 
-instance (Arity p, Constants p, Skolem f, Show p, Show f, Ord p, Ord f, Data f, Data v, Data p,
+instance (Arity p, Constants p, Skolem f, Show p, Show f, Ord p, Ord f, Data f, Data v, Data p, Constants (N.Predicate p (N.PTerm v f)),
           FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v) => Eq (Formula v p f) where
     a == b = compare a b == EQ
 

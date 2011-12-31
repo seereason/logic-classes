@@ -14,7 +14,7 @@ module Data.Logic.Harrison.FOL
 
 import Data.Logic.Classes.Atom (Atom(..))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
-import Data.Logic.Classes.Constants (fromBool, true, false)
+import Data.Logic.Classes.Constants (Constants (fromBool, true, false))
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq), (.=.), pApp)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant, quant)
 import Data.Logic.Classes.Negate ((.~.))
@@ -50,10 +50,10 @@ eval fm v =
       co (BinOp p (:<=>:) q) = eval p v == eval q v
       at = v
 
-list_conj :: (FirstOrderFormula formula atom v) => Set.Set formula -> formula
+list_conj :: (Constants formula, Combinable formula) => Set.Set formula -> formula
 list_conj l = maybe true (\ (x, xs) -> Set.fold (.&.) x xs) (Set.minView l)
 
-list_disj :: (FirstOrderFormula formula atom v) => Set.Set formula -> formula
+list_disj :: (Constants formula, Combinable formula) => Set.Set formula -> formula
 list_disj l = maybe false (\ (x, xs) -> Set.fold (.|.) x xs) (Set.minView l)
 
 mkLits :: (FirstOrderFormula formula atom v, Ord formula) =>

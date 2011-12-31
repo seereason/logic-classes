@@ -17,26 +17,29 @@ import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Harrison.Equal (equalitize, function_congruence)
 import Data.Logic.Harrison.Meson (meson)
 import Data.Logic.Normal.Skolem (runSkolem)
-import Data.Logic.Types.Harrison.FOL (TermType(..))
+import Data.Logic.Types.Harrison.FOL (FOL, TermType(..), Function)
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
-import Data.Logic.Types.Harrison.Equal (FOLEQ(..))
+import Data.Logic.Types.Harrison.Equal (FOLEQ(..), PredName)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 -- import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual)
 import Data.Logic.Tests.Harrison.HUnit
 
-tests :: TestFormulaEq formula atom term v p f => Test formula
+-- type TF = TestFormula (Formula FOL) FOL TermType String String Function
+-- type TFE = TestFormulaEq (Formula FOLEQ) FOLEQ TermType String String Function
+
+tests :: Test (Formula FOLEQ)
 tests = TestLabel "Data.Logic.Tests.Harrison.Equal" $ TestList [test01, test02, test03, test04]
 
 -- ------------------------------------------------------------------------- 
 -- Example.                                                                  
 -- ------------------------------------------------------------------------- 
 
-test01 :: forall formula atom term v p f. TestFormulaEq formula atom term v p f => Test formula
+test01 :: Test (Formula FOLEQ)
 test01 = TestCase $ assertEqual "function_congruence" expected input
     where input = map function_congruence [(fromString "f", 3 :: Int), (fromString "+",2)]
-          expected :: [Set.Set formula]
+          expected :: [Set.Set (Formula FOLEQ)]
           expected = [Set.fromList
                       [(∀) x1
                        ((∀) x2
@@ -62,15 +65,15 @@ test01 = TestCase $ assertEqual "function_congruence" expected input
 -- A simple example (see EWD1266a and the application to Morley's theorem).  
 -- ------------------------------------------------------------------------- 
 
-test :: forall formula atom term v p f a. (TestFormulaEq formula atom term v p f, Show a, Eq a) => String -> a -> a -> Test formula
+test :: (Show a, Eq a) => String -> a -> a -> Test (Formula FOLEQ)
 test label expected input = TestLabel label $ TestCase $ assertEqual label expected input
 
-test02 :: forall formula atom term v p f. TestFormulaEq formula atom term v p f => Test formula
+test02 :: Test (Formula FOLEQ)
 test02 = test "equalitize 1 (p. 241)" expected input
     where input = runSkolem (meson (Just 5) ewd)
-          ewd :: formula
+          ewd :: Formula FOLEQ
           ewd = equalitize fm
-          fm :: formula
+          fm :: Formula FOLEQ
           fm = ((∀) x (fx ⇒ gx)) ∧ ((∃) x fx) ∧ ((∀) x ((∀) y (gx ∧ gy ⇒ vt x .=. vt y))) ⇒
                (∀) y gy ⇒ fy
           fx = pApp' "f" [vt x]
@@ -94,16 +97,16 @@ test02 = test "equalitize 1 (p. 241)" expected input
           for_all' s = for_all (fromString s)
           exists' s = exists (fromString s)
 -}
-          pApp' :: String -> [term] -> formula
-          pApp' s ts = pApp (fromString s :: p) ts
-          vt' :: String -> term
+          pApp' :: String -> [TermType] -> Formula FOLEQ
+          pApp' s ts = pApp (fromString s :: PredName) ts
+          vt' :: String -> TermType
           vt' s = vt (fromString s)
 
 -- ------------------------------------------------------------------------- 
 -- Wishnu Prasetya's example (even nicer with an "exists unique" primitive). 
 -- ------------------------------------------------------------------------- 
 
-test03 :: forall formula atom term v p f. TestFormulaEq formula atom term v p f => Test formula
+test03 :: Test (Formula FOLEQ)
 test03 = TestLabel "equalitize 2" $ TestCase $ assertEqual "equalitize 2 (p. 241)" expected input
     where input = runSkolem (meson (Just 1) wishnu)
           wishnu = equalitize fm
@@ -122,7 +125,7 @@ test03 = TestLabel "equalitize 2" $ TestCase $ assertEqual "equalitize 2 (p. 241
 -- More challenging equational problems. (Size 18, 61814 seconds.)           
 -- ------------------------------------------------------------------------- 
 
-test04 :: forall formula atom term v p f. TestFormulaEq formula atom term v p f => Test formula
+test04 :: Test (Formula FOLEQ)
 test04 = test "equalitize 3 (p. 248)" expected input
     where
       input = runSkolem (meson Nothing . equalitize $ fm)
@@ -137,6 +140,7 @@ test04 = test "equalitize 3 (p. 248)" expected input
       (*) = fApp (fromString "*")
       i = fApp (fromString "i")
       one = fApp (fromString "1") []
+      expected :: Set.Set (Failing ((Map.Map String TermType, Int, Int), Int))
       expected =
           Set.fromList
                  [Success ((Map.fromList

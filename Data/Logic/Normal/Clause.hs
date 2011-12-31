@@ -29,7 +29,6 @@
 {-# OPTIONS -Wall #-}
 module Data.Logic.Normal.Clause
     ( clauseNormalForm
-    , trivial
     , cnfTrace
     ) where
 
@@ -46,6 +45,7 @@ import Data.Logic.Classes.FirstOrderEq (prettyFirstOrderEq, prettyLitEq, fromFir
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Term (Term)
+import Data.Logic.Harrison.Normal (trivial)
 import qualified Data.Set.Extra as Set
 import Text.PrettyPrint (Doc, hcat, vcat, text, nest, ($$), brackets, render)
 
@@ -97,12 +97,6 @@ simpcnf fm =
       cjs' = Set.filter keep cjs
       keep x = not (Set.or (Set.map (Set.isProperSubsetOf x) cjs))
       cjs = Set.filter (not . trivial) (purecnf (nnf fm)) :: Set.Set (Set.Set lit)
-
--- |Harrison page 59.  Look for complementary pairs in a clause.
-trivial :: (Negatable lit, Ord lit) => Set.Set lit -> Bool
-trivial lits =
-    not . Set.null $ Set.intersection (Set.map (.~.) n) p
-    where (n, p) = Set.partition negated lits
 
 -- | CNF: (a | b | c) & (d | e | f)
 purecnf :: forall formula atom term v p f lit. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal lit atom v, Eq lit, Ord lit) =>

@@ -1,6 +1,6 @@
 -- |Types to use for creating test cases.  These are used in the Logic
 -- package test cases, and are exported for use in its clients.
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, RankNTypes, ScopedTypeVariables, TypeFamilies, TypeSynonymInstances, UndecidableInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, RankNTypes, ScopedTypeVariables, TypeFamilies, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wwarn #-}
 module Data.Logic.Tests.Common
     ( myTest
@@ -31,16 +31,17 @@ import Data.Logic.Classes.Arity (Arity(arity))
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(satisfiable))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Equals (AtomEq)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
-import Data.Logic.Classes.FirstOrderEq (convertFOFEq)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula, convertFOF)
+import Data.Logic.Classes.FirstOrderEq ()
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term)
 import Data.Logic.Classes.Variable (Variable(..))
+import Data.Logic.Harrison.Normal (trivial)
 import Data.Logic.Instances.PropLogic (plSat)
 import qualified Data.Logic.Instances.SatSolver as SS
 import Data.Logic.KnowledgeBase (WithId, runProver', Proof, loadKB, theoremKB, getKB)
-import Data.Logic.Normal.Clause (clauseNormalForm, trivial)
+import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Negation (negationNormalForm, simplify)
 import Data.Logic.Normal.Prenex (prenexNormalForm)
 import Data.Logic.Normal.Implicative (ImplicativeForm)
@@ -108,6 +109,9 @@ instance Show Pr where
     show F = "fromBool False"
     show Equals = ".=."
     show (Pr s) = show s            -- Because Pr is an instance of IsString
+
+instance Constants (P.Predicate Pr (P.PTerm V AtomicFunction)) where
+    fromBool x = P.Apply (fromBool x) []
 
 prettyP :: Pr -> Doc
 prettyP T = text "True"
@@ -196,7 +200,7 @@ doTest f =
       doExpected (TrivialClauses flags) =
           myTest (name f ++ " trivial clauses") flags (map (\ x -> (trivial x, x)) (S.toList (runSkolem (clauseNormalForm (formula f)))))
       doExpected (ConvertToChiou result) =
-          myTest (name f ++ " converted to Chiou") result (convertFOFEq id id id (formula f))
+          myTest (name f ++ " converted to Chiou") result (convertFOF id id (formula f))
       doExpected (ChiouKB1 result) =
           myTest (name f ++ " Chiou KB") result (runProver' Nothing (loadKB [formula f] >>= return . head))
       doExpected (PropLogicSat result) =

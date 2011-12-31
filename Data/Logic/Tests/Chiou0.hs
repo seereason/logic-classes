@@ -3,25 +3,20 @@
 
 module Data.Logic.Tests.Chiou0 where
 
-import Control.Monad.Identity (runIdentity)
 import Control.Monad.Trans (MonadIO, liftIO)
 import Data.Logic.Classes.Combine (Combinable(..))
-import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Equals (pApp)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.KnowledgeBase (ProverT, runProver', Proof(..), ProofResult(..), loadKB, theoremKB {-, askKB, showKB-})
-import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
-import Data.Logic.Normal.Skolem (SkolemT, runSkolem)
+import Data.Logic.Normal.Skolem (SkolemT)
 import Data.Logic.Resolution (SetOfSupport)
-import Data.Logic.Tests.Common (V(..), Pr(..), AtomicFunction(..), TFormula, TTerm, myTest)
-import Data.Logic.Types.FirstOrder (Formula, PTerm)
+import Data.Logic.Tests.Common (V(..), AtomicFunction(..), TFormula, TTerm, myTest)
 import Data.Map (fromList)
 import qualified Data.Set as S
-import Data.String (IsString(..))
 import Test.HUnit
 
 tests :: Test

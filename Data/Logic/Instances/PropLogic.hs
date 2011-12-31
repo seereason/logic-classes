@@ -37,18 +37,18 @@ instance (Combinable (PropForm a), Ord a) => PropositionalFormula (PropForm a) a
     foldPropositional co tf at formula =
         case formula of
           -- EJ [x,y,z,...] -> CJ [EJ [x,y], EJ[y,z], ...]
-          EJ [] -> error "Empty EJ"
+          EJ [] -> error "Empty equijunct"
           EJ [x] -> foldPropositional co tf at x
           EJ [x0, x1] -> co (BinOp x0 (:<=>:) x1)
           EJ xs -> foldPropositional co tf at (CJ (map (\ (x0, x1) -> EJ [x0, x1]) (pairs xs)))
-          SJ [] -> error "Empty SJ"
+          SJ [] -> error "Empty subjunct"
           SJ [x] -> foldPropositional co tf at x
           SJ [x0, x1] -> co (BinOp x0 (:=>:) x1)
           SJ xs -> foldPropositional co tf at (CJ (map (\ (x0, x1) -> SJ [x0, x1]) (pairs xs)))
-          DJ [] -> error "Empty disjunct"
+          DJ [] -> tf False
           DJ [x] -> foldPropositional co tf at x
           DJ (x0:xs) -> co (BinOp x0 (:|:) (DJ xs))
-          CJ [] -> error "Empty conjunct"
+          CJ [] -> tf True
           CJ [x] -> foldPropositional co tf at x
           CJ (x0:xs) -> co (BinOp x0 (:&:) (CJ xs))
           N x -> co ((:~:) x)

@@ -11,6 +11,8 @@ import Data.Logic.Harrison.Meson(meson)
 import Data.Logic.Normal.Skolem (runSkolem)
 import Data.Logic.Tests.Harrison.Resolution (dpExampleFm)
 import Data.Logic.Tests.Harrison.HUnit
+import Data.Logic.Types.Harrison.Equal (FOLEQ)
+import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula)
 import Data.String (IsString(fromString))
 import Prelude hiding (negate)
 -- import Test.HUnit (Test(TestCase, TestLabel), assertEqual)
@@ -19,9 +21,9 @@ import Prelude hiding (negate)
 -- Example.                                                                  
 -- ------------------------------------------------------------------------- 
 
-test01 :: forall formula atom term v p f. TestFormulaEq formula atom term v p f => Test formula
+test01 :: Test (Formula FOLEQ)
 test01 = TestLabel "Data.Logic.Tests.Harrison.Meson" $ TestCase $ assertEqual "meson dp example (p. 220)" expected input
-    where input = runSkolem (meson (Just 10) (dpExampleFm :: formula))
+    where input = runSkolem (meson (Just 10) (dpExampleFm :: Formula FOLEQ))
           expected = Set.singleton (
                                     -- Success ((Map.empty, 0, 0), 8)
                                     Success ((Map.fromList [(fromString "_0",vt' "_6"),
