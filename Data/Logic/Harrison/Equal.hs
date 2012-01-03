@@ -75,8 +75,8 @@ foldPredicates f fm acc =
 -- Code to generate equality axioms for functions.                           
 -- ------------------------------------------------------------------------- 
 
-function_congruence :: forall fof atom term v p f a. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Num a, Enum a) =>
-                       (f, a) -> Set.Set fof
+function_congruence :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f) =>
+                       (f, Int) -> Set.Set fof
 function_congruence (_,0) = (∅)
 function_congruence (f,n) =
     Set.singleton (foldr (∀) (ant ⇒ con) (argnames_x ++ argnames_y))

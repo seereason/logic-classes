@@ -1,6 +1,6 @@
 -- |Types to use for creating test cases.  These are used in the Logic
 -- package test cases, and are exported for use in its clients.
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, RankNTypes, ScopedTypeVariables, TypeFamilies, TypeSynonymInstances, UndecidableInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, RankNTypes, ScopedTypeVariables, StandaloneDeriving, TypeFamilies, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wwarn #-}
 module Data.Logic.Tests.Common
     ( myTest
@@ -11,6 +11,7 @@ module Data.Logic.Tests.Common
     , TFormula
     , TAtom
     , TTerm
+    , TTestFormula
     , prettyV
     , prettyP
     , prettyF
@@ -19,6 +20,7 @@ module Data.Logic.Tests.Common
     , Expected(..)
     , doTest
     , TestProof(..)
+    , TTestProof
     , ProofExpected(..)
     , doProof
     ) where
@@ -35,10 +37,11 @@ import Data.Logic.Classes.FirstOrder (FirstOrderFormula, convertFOF)
 import Data.Logic.Classes.FirstOrderEq ()
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Skolem (Skolem(..))
-import Data.Logic.Classes.Term (Term)
+import Data.Logic.Classes.Term (Term(vt, fApp, foldTerm))
 import Data.Logic.Classes.Variable (Variable(..))
 import Data.Logic.Harrison.Normal (trivial)
 import Data.Logic.Harrison.Skolem (skolemNormalForm, runSkolem, pnf, nnf, simplify)
+import qualified Data.Logic.Instances.Chiou as C
 import Data.Logic.Instances.PropLogic (plSat)
 import qualified Data.Logic.Instances.SatSolver as SS
 import Data.Logic.KnowledgeBase (WithId, runProver', Proof, loadKB, theoremKB, getKB)
@@ -147,15 +150,15 @@ type TTerm = P.PTerm V AtomicFunction
 instance Eq Doc where
     a == b = show a == show b
 
-data TestFormula formula atom v
+data (formula ~ TFormula, atom ~ TAtom, v ~ V) => TestFormula formula atom v
     = TestFormula
       { formula :: formula
       , name :: String
       , expected :: [Expected formula atom v]
-      } deriving (Data, Typeable)
+      } -- deriving (Data, Typeable)
 
 -- |Some values that we might expect after transforming the formula.
-data (FirstOrderFormula formula atom v) => Expected formula atom v
+data (FirstOrderFormula formula atom v, formula ~ TFormula, atom ~ TAtom, v ~ V) => Expected formula atom v
     = FirstOrderFormula formula
     | SimplifiedForm formula
     | NegationNormalForm formula
@@ -164,19 +167,19 @@ data (FirstOrderFormula formula atom v) => Expected formula atom v
     | SkolemNumbers (S.Set Int)
     | ClauseNormalForm (S.Set (S.Set formula))
     | TrivialClauses [(Bool, (S.Set formula))]
-    | ConvertToChiou formula
+    | ConvertToChiou (C.Sentence V Pr AtomicFunction)
     | ChiouKB1 (Proof formula)
     | PropLogicSat Bool
     | SatSolverCNF CNF
     | SatSolverSat Bool
-    deriving (Data, Typeable)
+    -- deriving (Data, Typeable)
 
-doTest :: (FirstOrderFormula formula atom v,
-           AtomEq atom p term, atom ~ P.Predicate p (P.PTerm v f),
-           Term term v f,
-           Literal formula atom v,
-           Eq formula, Ord formula, Data formula, Show formula, Show term, Ord term, Constants p, Eq p, Show f) =>
-          TestFormula formula atom v -> Test
+deriving instance Show (C.Sentence V Pr AtomicFunction)
+deriving instance Show (C.CTerm V AtomicFunction)
+
+type TTestFormula = TestFormula TFormula TAtom V
+
+doTest :: TTestFormula -> Test
 doTest f =
     TestLabel (name f) $ TestList $ 
     map doExpected (expected f)
@@ -196,9 +199,21 @@ doTest f =
       doExpected (ClauseNormalForm fss) =
           myTest (name f ++ " clause normal form") fss (S.map (S.map p) (runSkolem (clauseNormalForm (formula f))))
       doExpected (TrivialClauses flags) =
-          myTest (name f ++ " trivial clauses") flags (map (\ x -> (trivial x, x)) (S.toList (runSkolem (clauseNormalForm (formula f)))))
+          myTest (name f ++ " trivial clauses") flags (map (\ (x :: S.Set TFormula) -> (trivial x, x)) (S.toList (runSkolem (clauseNormalForm (formula f :: TFormula)))))
       doExpected (ConvertToChiou result) =
-          myTest (name f ++ " converted to Chiou") result (convertFOF id id (formula f))
+          -- We need to convert (formula f) to Chiou and see if it matches result.
+          let ca :: TAtom -> C.Sentence V Pr AtomicFunction
+              -- ca = undefined
+              ca (P.Apply p ts) = C.Predicate p (map ct ts)
+              ca (P.Equal t1 t2) = C.Equal (ct t1) (ct t2)
+              ca _ = error "ConvertToChiou - unexpected atom"
+              ct :: TTerm -> C.CTerm V AtomicFunction
+              ct = foldTerm cv fn
+              cv :: V -> C.CTerm V AtomicFunction
+              cv = vt
+              fn :: AtomicFunction -> [TTerm] -> C.CTerm V AtomicFunction
+              fn f ts = fApp f (map ct ts) in
+          myTest (name f ++ " converted to Chiou") result (convertFOF ca id (formula f) :: C.Sentence V Pr AtomicFunction)
       doExpected (ChiouKB1 result) =
           myTest (name f ++ " Chiou KB") result (runProver' Nothing (loadKB [formula f] >>= return . head))
       doExpected (PropLogicSat result) =
@@ -236,6 +251,8 @@ data TestProof formula term v
       , conjecture :: formula
       , proofExpected :: [ProofExpected formula v term]
       } deriving (Data, Typeable)
+
+type TTestProof = TestProof TFormula TTerm V
 
 data ProofExpected formula v term
     = ChiouResult (Bool, SetOfSupport formula v term)
