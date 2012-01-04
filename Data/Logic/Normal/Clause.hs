@@ -90,7 +90,7 @@ simpcnf fm =
       tf x = if x then Set.singleton Set.empty else Set.empty
       -- Discard any clause that is the proper subset of another clause
       cjs' = Set.filter keep cjs
-      keep x = not (Set.or (Set.map (Set.isProperSubsetOf x) cjs))
+      keep x = not (Set.or (Set.map (`Set.isProperSubsetOf` x) cjs))
       cjs = Set.filter (not . trivial) (purecnf (nnf fm)) :: Set.Set (Set.Set lit)
 
 -- | CNF: (a | b | c) & (d | e | f)
