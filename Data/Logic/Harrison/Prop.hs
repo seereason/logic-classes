@@ -408,10 +408,10 @@ simpcnf fm =
     foldPropositional c tf a fm
     where
       tf = ifElse Set.empty (Set.singleton Set.empty)
-      c _ =
-          -- Discard any clause that is the proper subset of another clause
-          Set.filter (\ cj -> not (setAny (\ c' -> Set.isProperSubsetOf c' cj) cjs)) cjs
-          where cjs = Set.filter (not . trivial) (purecnf fm)
+      -- Discard any clause that is the proper subset of another clause
+      c _ = Set.filter keep cjs
+      keep x = not (setAny (`Set.isProperSubsetOf` x) cjs)
+      cjs = Set.filter (not . trivial) (purecnf fm)
       a _ = Set.singleton (Set.singleton fm)
 
 cnf :: (PropositionalFormula formula atomic, Ord formula) => formula -> formula

@@ -80,9 +80,9 @@ simpdnf fm =
       tf False = Set.empty
       tf True = Set.singleton Set.empty
       at _ = Set.singleton (Set.singleton fm)
-      def =
-          Set.filter (\ d -> not (setAny (\ d' -> Set.isProperSubsetOf d' d) djs)) djs
-          where djs = Set.filter (not . trivial) (purednf (nnf fm))
+      def = Set.filter keep djs
+      keep x = not (setAny (`Set.isProperSubsetOf` x) djs)
+      djs = Set.filter (not . trivial) (purednf (nnf fm))
 
 -- ------------------------------------------------------------------------- 
 -- Conjunctive normal form (CNF) by essentially the same code.               
@@ -99,11 +99,11 @@ simpcnf fm =
       co _ = def
       tf False = Set.singleton Set.empty
       tf True = Set.empty
-      at _ = Set.singleton (Set.singleton fm)
-      def =
-          -- Discard any clause that is the proper subset of another clause
-          Set.filter (\ cj -> not (setAny (\ c' -> Set.isProperSubsetOf c' cj) cjs)) cjs
-          where cjs = Set.filter (not . trivial) (purecnf fm)
+      at x = Set.singleton (Set.singleton (atomic x))
+      -- Discard any clause that is the proper subset of another clause
+      def = Set.filter keep cjs
+      keep x = not (setAny (`Set.isProperSubsetOf` x) cjs)
+      cjs = Set.filter (not . trivial) (purecnf fm)
 
 {-
 cnf :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof) => fof -> fof
