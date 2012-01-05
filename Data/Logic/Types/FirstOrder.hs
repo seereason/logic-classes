@@ -156,10 +156,11 @@ instance (AtomEq (Predicate p (PTerm v f)) p (PTerm v f),
     for_all v x = Quant Forall v x
     exists v x = Quant Exists v x
     foldFirstOrder qu co tf at f =
-        case f of
-          Quant op v f' -> qu op v f'
-          Combine x -> co x
-          Predicate x -> at x
+        maybe testFm tf (asBool f)
+            where testFm = case f of
+                             Quant op v f' -> qu op v f'
+                             Combine x -> co x
+                             Predicate x -> at x
 {-
     zipFirstOrder qu co tf at f1 f2 =
         case (f1, f2) of

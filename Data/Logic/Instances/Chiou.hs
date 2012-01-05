@@ -87,7 +87,7 @@ instance (Ord v, IsString v, Data v, Variable v,
           Connective f1 Equiv f2 -> co (BinOp f1 (:<=>:) f2)
           Connective f1 And f2 -> co (BinOp f1 (:&:) f2)
           Connective f1 Or f2 -> co (BinOp f1 (:|:) f2)
-          Predicate p ts -> at (Predicate p ts)
+          Predicate p ts -> maybe (at (Predicate p ts)) tf (asBool p)
           Equal t1 t2 -> at (Equal t1 t2)
 
 data AtomicFunction
@@ -235,7 +235,7 @@ instance (Combinable (NormalSentence v p f), Term (NormalTerm v f) v f,
         case f of
           NFNot x -> co ((:~:) x)
           NFEqual _ _ -> at f
-          NFPredicate _ _ -> at f
+          NFPredicate p _ -> maybe (at f) tf (asBool p)
 {-
     zipFirstOrder _ co tf at f1 f2 =
         case (f1, f2) of
