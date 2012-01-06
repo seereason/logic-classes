@@ -1,3 +1,9 @@
+haskell-logic-classes (1.0.2) unstable; urgency=low
+
+  * Two important fixes in the old version of simpcnf.
+
+ -- David Fox <dsf@seereason.com>  Fri, 06 Jan 2012 05:37:12 -0800
+
 haskell-logic-classes (1.0.1) unstable; urgency=low
 
   * Fixes for ghc 7.4.

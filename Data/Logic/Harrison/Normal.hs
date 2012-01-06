@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wall #-}
 -- | Versions of the normal form functions in Prop for FirstOrderFormula.
 module Data.Logic.Harrison.Normal
@@ -30,7 +31,7 @@ negative = negated
 positive :: Negatable fof => fof -> Bool
 positive = not . negative
 
-negate :: FirstOrderFormula fof atomic v => fof -> fof
+negate :: FirstOrderFormula fof atom v => fof -> fof
 negate lit =
     foldFirstOrder qu co tf at lit
     where
@@ -47,7 +48,7 @@ negate lit =
 distrib' :: (Eq formula, Ord formula) => Set.Set (Set.Set formula) -> Set.Set (Set.Set formula) -> Set.Set (Set.Set formula)
 distrib' s1 s2 = allpairs (Set.union) s1 s2
 
-purednf :: (FirstOrderFormula fof atomic v, Ord fof) => fof -> Set.Set (Set.Set fof)
+purednf :: (FirstOrderFormula fof atom v, Ord fof) => fof -> Set.Set (Set.Set fof)
 purednf fm =
     foldFirstOrder qu co tf at fm
     where
@@ -71,7 +72,7 @@ trivial lits =
 -- With subsumption checking, done very naively (quadratic).                 
 -- ------------------------------------------------------------------------- 
 
-simpdnf :: (FirstOrderFormula fof atomic v, Eq fof, Ord fof) => fof -> Set.Set (Set.Set fof)
+simpdnf :: (FirstOrderFormula fof atom v, Eq fof, Ord fof) => fof -> Set.Set (Set.Set fof)
 simpdnf fm =
     foldFirstOrder qu co tf at fm
     where

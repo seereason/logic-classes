@@ -2,6 +2,7 @@
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Harrison.Skolem
     ( simplify
+    , lsimplify
     , nnf
     , pnf
     , functions
@@ -81,6 +82,14 @@ simplify fm =
       co (BinOp fm1 op fm2) = simplify1 (binop (simplify fm1) op (simplify fm2))
       tf = fromBool
       at _ = fm
+
+-- | Just looks for double negatives and negated constants.
+lsimplify :: Literal lit atom v => lit -> lit
+lsimplify fm = foldLiteral (lsimplify1 . (.~.) . lsimplify) fromBool (const fm) fm
+
+lsimplify1 :: Literal lit atom v => lit -> lit
+lsimplify1 fm = foldLiteral (foldLiteral id (fromBool . not) (const fm)) fromBool (const fm) fm
+
 
 -- ------------------------------------------------------------------------- 
 -- Negation normal form.                                                     
