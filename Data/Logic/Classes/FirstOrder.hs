@@ -77,6 +77,7 @@ class (Combinable formula, Constants p, Arity p) => Pred p term formula | formul
 -- function doesn't mention the Term type.
 class ( Combinable formula  -- Basic logic operations
       , Constants formula
+      , Constants atom
       , Variable v
       , Show v
       ) => FirstOrderFormula formula atom v | formula -> atom v where

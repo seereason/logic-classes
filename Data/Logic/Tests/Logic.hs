@@ -14,7 +14,7 @@ import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable)
-import Data.Logic.Harrison.FOL (fv)
+import Data.Logic.Harrison.FOL (fv, varAtomEq)
 import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Implicative (runNormal)
 import Data.Logic.Satisfiable (theorem, inconsistant)
@@ -58,7 +58,7 @@ precTests =
                ((a .&. b) .&. c) -- infixl, with infixr we get (a .&. (b .&. c))
                (a .&. b .&. c :: TFormula)
     , TestCase (assertEqual "Logic - Find a free variable"
-                (fv (for_all "x" (x .=. y) :: TFormula))
+                (fv varAtomEq (for_all "x" (x .=. y) :: TFormula))
                 (Set.singleton "y"))
     , TestCase (assertEqual "Logic - Substitute a variable"
                 (map sub
@@ -68,7 +68,7 @@ precTests =
                 , for_all "y" (z .=. y) :: TFormula ])
     ]
     where
-      sub f = substituteEq (head . Set.toList . fv $ f) (vt "z") f
+      sub f = substituteEq (head . Set.toList . fv varAtomEq $ f) (vt "z") f
       a = pApp ("a") []
       b = pApp ("b") []
       c = pApp ("c") []

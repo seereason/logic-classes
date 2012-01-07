@@ -48,6 +48,9 @@ instance Constants String where
     fromBool True = "true"
     fromBool False = "false"
 
+instance Constants FOL where
+    fromBool x = R (fromBool x) []
+
 instance FirstOrderFormula (Formula FOL) FOL String where
     -- type C.Term (Formula FOL) = Term
     -- type V (Formula FOL) = String

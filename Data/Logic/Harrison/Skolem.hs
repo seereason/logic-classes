@@ -29,8 +29,9 @@ import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Skolem (Skolem(toSkolem))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable(variant))
-import Data.Logic.Harrison.FOL (fv, subst)
+import Data.Logic.Harrison.FOL (fv, subst, varAtomEq, substAtomEq)
 import Data.Logic.Harrison.Lib ((|=>))
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 
 -- =========================================================================
@@ -47,7 +48,7 @@ simplify1 :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, E
 simplify1 fm =
     foldFirstOrder qu co tf at fm
     where
-      qu _ x p = if Set.member x (fv p) then fm else p
+      qu _ x p = if Set.member x (fv varAtomEq p) then fm else p
       co ((:~:) p) = foldFirstOrder (\ _ _ _ -> fm) nco (fromBool . not) (\ _ -> fm) p
       co (BinOp l op r) =
           case (asBool l, op, asBool r) of
@@ -117,36 +118,45 @@ nnf fm =
 -- Prenex normal form.                                                       
 -- ------------------------------------------------------------------------- 
 
-pullQuants :: forall formula atom v term p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> formula
-pullQuants fm =
+pullQuants :: forall formula atom v term p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
+              (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> formula -> formula
+pullQuants va sa fm =
     foldFirstOrder (\ _ _ _ -> fm) pullQuantsCombine (\ _ -> fm) (\ _ -> fm) fm
     where
       getQuant = foldFirstOrder (\ op v f -> Just (op, v, f)) (\ _ -> Nothing) (\ _ -> Nothing) (\ _ -> Nothing)
       pullQuantsCombine ((:~:) _) = fm
       pullQuantsCombine (BinOp l op r) = 
           case (getQuant l, op, getQuant r) of
-            (Just (Forall, vl, l'), (:&:), Just (Forall, vr, r')) -> pullq True  True  fm for_all (.&.) vl vr l' r'
-            (Just (Exists, vl, l'), (:|:), Just (Exists, vr, r')) -> pullq True  True  fm exists  (.|.) vl vr l' r'
-            (Just (Forall, vl, l'), (:&:), _)                     -> pullq True  False fm for_all (.&.) vl vl l' r
-            (_,                     (:&:), Just (Forall, vr, r')) -> pullq False True  fm for_all (.&.) vr vr l  r'
-            (Just (Forall, vl, l'), (:|:), _)                     -> pullq True  False fm for_all (.|.) vl vl l' r
-            (_,                     (:|:), Just (Forall, vr, r')) -> pullq False True  fm for_all (.|.) vr vr l  r'
-            (Just (Exists, vl, l'), (:&:), _)                     -> pullq True  False fm exists  (.&.) vl vl l' r
-            (_,                     (:&:), Just (Exists, vr, r')) -> pullq False True  fm exists  (.&.) vr vr l  r'
-            (Just (Exists, vl, l'), (:|:), _)                     -> pullq True  False fm exists  (.|.) vl vl l' r
-            (_,                     (:|:), Just (Exists, vr, r')) -> pullq False True  fm exists  (.|.) vr vr l  r'
+            (Just (Forall, vl, l'), (:&:), Just (Forall, vr, r')) -> pullq va sa True  True  fm for_all (.&.) vl vr l' r'
+            (Just (Exists, vl, l'), (:|:), Just (Exists, vr, r')) -> pullq va sa True  True  fm exists  (.|.) vl vr l' r'
+            (Just (Forall, vl, l'), (:&:), _)                     -> pullq va sa True  False fm for_all (.&.) vl vl l' r
+            (_,                     (:&:), Just (Forall, vr, r')) -> pullq va sa False True  fm for_all (.&.) vr vr l  r'
+            (Just (Forall, vl, l'), (:|:), _)                     -> pullq va sa True  False fm for_all (.|.) vl vl l' r
+            (_,                     (:|:), Just (Forall, vr, r')) -> pullq va sa False True  fm for_all (.|.) vr vr l  r'
+            (Just (Exists, vl, l'), (:&:), _)                     -> pullq va sa True  False fm exists  (.&.) vl vl l' r
+            (_,                     (:&:), Just (Exists, vr, r')) -> pullq va sa False True  fm exists  (.&.) vr vr l  r'
+            (Just (Exists, vl, l'), (:|:), _)                     -> pullq va sa True  False fm exists  (.|.) vl vl l' r
+            (_,                     (:|:), Just (Exists, vr, r')) -> pullq va sa False True  fm exists  (.|.) vr vr l  r'
             _                                                     -> fm
 
 -- |Helper function to rename variables when we want to enclose a
 -- formula containing a free occurrence of that variable a quantifier
 -- that quantifies it.
 pullq :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
-         Bool -> Bool -> formula -> (v -> formula -> formula) -> (formula -> formula -> formula) -> v -> v -> formula -> formula -> formula
-pullq l r fm mkq op x y p q =
-    let z = variant x (fv fm)
-        p' = if l then subst (x |=> vt z) p else p
-        q' = if r then subst (y |=> vt z) q else q
-        fm' = pullQuants (op p' q') in
+         (atom -> Set.Set v)
+      -> (Map.Map v term -> atom -> atom)
+      -> Bool -> Bool
+      -> formula
+      -> (v -> formula -> formula)
+      -> (formula -> formula -> formula)
+      -> v -> v
+      -> formula -> formula
+      -> formula
+pullq va sa l r fm mkq op x y p q =
+    let z = variant x (fv va fm)
+        p' = if l then subst va sa (x |=> vt z) p else p
+        q' = if r then subst va sa (y |=> vt z) q else q
+        fm' = pullQuants va sa (op p' q') in
     mkq z fm'
 
 -- |Recursivly apply pullQuants anywhere a quantifier might not be
@@ -156,8 +166,8 @@ prenex fm =
     foldFirstOrder qu co (\ _ -> fm) (\ _ -> fm) fm
     where
       qu op x p = quant op x (prenex p)
-      co (BinOp l (:&:) r) = pullQuants (prenex l .&. prenex r)
-      co (BinOp l (:|:) r) = pullQuants (prenex l .|. prenex r)
+      co (BinOp l (:&:) r) = pullQuants varAtomEq substAtomEq (prenex l .&. prenex r)
+      co (BinOp l (:|:) r) = pullQuants varAtomEq substAtomEq (prenex l .|. prenex r)
       co _ = fm
 
 -- |Convert to Prenex normal form, with all quantifiers at the left.
@@ -239,7 +249,7 @@ skolem fm =
     foldFirstOrder qu co (\ _ -> return fm) (\ _ -> return fm) fm
     where
       qu Exists y p =
-          do let xs = fv fm
+          do let xs = fv varAtomEq fm
              state <- get
              let f = toSkolem (skolemCount state)
              put (state {skolemCount = skolemCount state + 1})

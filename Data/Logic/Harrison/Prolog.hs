@@ -6,7 +6,7 @@ import Data.Logic.Classes.Equals (AtomEq(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
 import Data.Logic.Classes.Term (Term(vt))
 import Data.String (IsString (fromString))
-import Data.Logic.Harrison.FOL (fv, subst, list_conj)
+import Data.Logic.Harrison.FOL (fv, subst, varAtomEq, substAtomEq, list_conj)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 
@@ -23,9 +23,9 @@ renamerule :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq 
 renamerule k (asm,c) =
     ((Set.map inst asm, inst c), k + Set.size fvs)
     where
-      fvs = fv (list_conj(Set.insert c asm)) :: Set.Set v
+      fvs = fv varAtomEq (list_conj (Set.insert c asm)) :: Set.Set v
       vvs = Map.fromList (map (\ (v, i) -> (v, vt (fromString ("_" ++ show i)))) (zip (Set.toList fvs) [k..])) :: Map.Map v term
-      inst = subst vvs :: fof -> fof
+      inst = subst varAtomEq substAtomEq vvs :: fof -> fof
 
 {-
 

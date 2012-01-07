@@ -5,13 +5,13 @@ module Data.Logic.Harrison.Meson where
 import Control.Applicative.Error (Failing(..))
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import Data.Logic.Classes.Constants (false)
+import Data.Logic.Classes.Constants (Constants, false)
 import Data.Logic.Classes.Equals (AtomEq(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Literal (Literal)
-import Data.Logic.Classes.Negate ((.~.))
+import Data.Logic.Classes.Negate (Negatable, (.~.))
 import Data.Logic.Classes.Term (Term(..))
-import Data.Logic.Harrison.FOL (generalize, list_conj)
+import Data.Logic.Harrison.FOL (generalize, list_conj, varAtomEq)
 import Data.Logic.Harrison.Lib (setAll, settryfind)
 import Data.Logic.Harrison.Normal (negative, negate, simpcnf, simpdnf)
 import Data.Logic.Harrison.Prolog (renamerule)
@@ -50,7 +50,7 @@ END_INTERACTIVE;;
 -- Generation of contrapositives.                                            
 -- ------------------------------------------------------------------------- 
 
--- contrapositives :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Eq fof, Ord fof) => Set.Set fof -> Set.Set (Set.Set fof, fof)
+contrapositives :: forall fof atom v. (FirstOrderFormula fof atom v, Ord fof) => Set.Set fof -> Set.Set (Set.Set fof, fof)
 contrapositives cls =
     if setAll negative cls then Set.insert (Set.map negate cls,false) base else base
     where base = Set.map (\ c -> (Set.map negate (Set.delete c cls), c)) cls
@@ -115,7 +115,7 @@ meson :: forall m lit atom term v p f.
           Monad m) =>
          Maybe Int -> lit -> SkolemT v term m (Set.Set (Failing ((Map.Map v term, Int, Int), Int)))
 meson maxdl fm =
-    askolemize ((.~.)(generalize fm)) >>=
+    askolemize ((.~.)(generalize varAtomEq fm)) >>=
     return . Set.map (puremeson maxdl . list_conj) . simpdnf 
 
 {-

@@ -10,7 +10,7 @@ import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term(vt, foldTerm))
 import Data.Logic.Classes.Variable (Variable(prefix))
-import Data.Logic.Harrison.FOL (subst, fv, generalize, list_disj, list_conj)
+import Data.Logic.Harrison.FOL (subst, fv, varAtomEq, substAtomEq, generalize, list_disj, list_conj)
 import Data.Logic.Harrison.Lib (settryfind, allpairs, allsubsets, setAny, setAll,
                                 allnonemptysubsets, (|->), apply, defined)
 import Data.Logic.Harrison.Normal (positive, negate, simpdnf,
@@ -58,10 +58,10 @@ rename :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom
           (v -> v) -> Set.Set fof -> Set.Set fof
 -}
 rename pfx cls =
-    Set.map (subst (Map.fromList (zip fvs vvs))) cls
+    Set.map (subst varAtomEq substAtomEq (Map.fromList (zip fvs vvs))) cls
     where
       -- fvs :: [v]
-      fvs = Set.toList (fv (list_disj cls))
+      fvs = Set.toList (fv varAtomEq (list_disj cls))
       -- vvs :: [term]
       vvs = map (vt . pfx) fvs
 
@@ -78,7 +78,7 @@ resolvents cl1 cl2 p acc =
     where
       doPair (s1,s2) sof =
           case mgu (Set.union s1 (Set.map negate s2)) Map.empty of
-            Success mp -> Set.union (Set.map (subst mp) (Set.union (Set.difference cl1 s1) (Set.difference cl2 s2))) sof
+            Success mp -> Set.union (Set.map (subst varAtomEq substAtomEq mp) (Set.union (Set.difference cl1 s1) (Set.difference cl2 s2))) sof
             Failure _ -> sof
       -- pairs :: Set.Set (Set.Set fof, Set.Set fof)
       pairs = allpairs (,) (Set.map (Set.insert p) (allsubsets ps1)) (allnonemptysubsets ps2)
@@ -125,7 +125,7 @@ resolution1 :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f,
                fof -> SkolemT v term m (Set.Set (Failing Bool))
 -}
 resolution1 fm =
-    askolemize ((.~.)(generalize fm)) >>=
+    askolemize ((.~.)(generalize varAtomEq fm)) >>=
     return . Set.map (pure_resolution1 . list_conj) . simpdnf
 
 -- ------------------------------------------------------------------------- 
@@ -258,7 +258,7 @@ resolution2 :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f,
                fof -> SkolemT v term m (Set.Set (Failing Bool))
 -}
 resolution2 fm =
-    askolemize ((.~.) (generalize fm)) >>= return . Set.map (pure_resolution2 . list_conj) . simpdnf
+    askolemize ((.~.) (generalize varAtomEq fm)) >>= return . Set.map (pure_resolution2 . list_conj) . simpdnf
 
 -- ------------------------------------------------------------------------- 
 -- Positive (P1) resolution.                                                 
@@ -300,7 +300,7 @@ presolution :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f,
                fof -> SkolemT v term m (Set.Set (Failing Bool))
 -}
 presolution fm =
-    askolemize ((.~.) (generalize fm)) >>= return . Set.map (pure_presolution . list_conj) . simpdnf
+    askolemize ((.~.) (generalize varAtomEq fm)) >>= return . Set.map (pure_presolution . list_conj) . simpdnf
 
 -- ------------------------------------------------------------------------- 
 -- Introduce a set-of-support restriction.                                   
@@ -318,7 +318,7 @@ resolution3 :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f,
                fof -> SkolemT v term m (Set.Set (Failing Bool))
 -}
 resolution3 fm =
-    askolemize((.~.)(generalize fm)) >>= return . Set.map (pure_resolution3 . list_conj) . simpdnf
+    askolemize((.~.)(generalize varAtomEq fm)) >>= return . Set.map (pure_resolution3 . list_conj) . simpdnf
 {-
 -- ------------------------------------------------------------------------- 
 -- The Pelletier examples again.                                             

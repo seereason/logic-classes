@@ -7,16 +7,20 @@ module Data.Logic.Harrison.FOL
     , var
     , fvt
     , fv
+    , varApply
+    , varAtomEq
     , tsubst
     , subst
     , generalize
+    , substAtomEq
+    , substApply
     ) where
 
 import Data.Logic.Classes.Apply (Apply(..), apply)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (Constants (fromBool, true, false))
-import Data.Logic.Classes.Equals (AtomEq(foldAtomEq), (.=.), pApp)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant, quant)
+import Data.Logic.Classes.Equals (AtomEq(foldAtomEq, equals), applyEq)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), quant)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term(vt, foldTerm, fApp))
 import Data.Logic.Classes.Variable (Variable(..))
@@ -202,32 +206,40 @@ END_INTERACTIVE;;
 fvt :: (Term term v f, Ord v) => term -> Set.Set v
 fvt tm = C.foldTerm Set.singleton (\ _ args -> Set.unions (map fvt args)) tm
 
-var :: (FirstOrderFormula formula atom v, Ord v, Apply atom p term, Term term v f) => formula -> Set.Set v
-var fm =
+-- | Return all variables occurring in a formula.
+var :: forall formula atom v. FirstOrderFormula formula atom v => (atom -> Set.Set v) -> formula -> Set.Set v
+var at fm =
     foldFirstOrder qu co tf at fm
     where
-      qu _ x p = Set.insert x (var p)
-      co ((:~:) p) = var p
-      co (BinOp p _ q) = Set.union (var p) (var q)
+      qu _ x p = Set.insert x (var at p)
+      co ((:~:) p) = var at p
+      co (BinOp p _ q) = Set.union (var at p) (var at q)
       tf _ = Set.empty
-      at = foldApply (\ _ args -> Set.unions (map fvt args)) (const Set.empty)
 
-fv :: (FirstOrderFormula formula atom v, Ord v, AtomEq atom p term, Term term v f) => formula -> Set.Set v
-fv fm =
+-- | Return the variables that occur free in a formula.
+fv :: forall formula atom v. FirstOrderFormula formula atom v => (atom -> Set.Set v) -> formula -> Set.Set v
+fv at fm =
     foldFirstOrder qu co tf at fm
     where
-      qu _ x p = Set.delete x (fv p)
-      co ((:~:) p) = fv p
-      co (BinOp p _ q) = Set.union (fv p) (fv q)
+      qu _ x p = Set.delete x (fv at p)
+      co ((:~:) p) = fv at p
+      co (BinOp p _ q) = Set.union (fv at p) (fv at q)
       tf _ = Set.empty
-      at = foldAtomEq (\ _ args -> Set.unions (map fvt args)) (const Set.empty) (\ t1 t2 -> Set.union (fvt t1) (fvt t2))
+
+-- | Return the variables that occur in an instance of AtomEq.
+varAtomEq :: forall atom term v p f. (AtomEq atom p term, Term term v f) => atom -> Set.Set v
+varAtomEq = foldAtomEq (\ _ args -> Set.unions (map fvt args)) (const Set.empty) (\ t1 t2 -> Set.union (fvt t1) (fvt t2))
+
+-- | Return the variables that occur in an instance of Apply.
+varApply :: forall atom term v p f. (Apply atom p term, Term term v f) => atom -> Set.Set v
+varApply = foldApply (\ _ args -> Set.unions (map fvt args)) (const Set.empty)
 
 -- ------------------------------------------------------------------------- 
 -- Universal closure of a formula.                                           
 -- ------------------------------------------------------------------------- 
 
-generalize :: (FirstOrderFormula formula atom v, Ord v, AtomEq atom p term, Term term v f) => formula -> formula
-generalize fm = Set.fold for_all fm (fv fm)
+generalize :: FirstOrderFormula formula atom v => (atom -> Set.Set v) -> formula -> formula
+generalize at fm = Set.fold for_all fm (fv at fm)
 
 -- ------------------------------------------------------------------------- 
 -- Substitution within terms.                                                
@@ -240,27 +252,27 @@ tsubst sfn tm = foldTerm (\ x -> fromMaybe tm (Map.lookup x sfn)) (\ fn args -> 
 -- Substitution in formulas, with variable renaming.                         
 -- ------------------------------------------------------------------------- 
 
-subst :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
-         Map.Map v term -> formula -> formula
-subst subfn fm =
+subst :: (FirstOrderFormula formula atom v, Term term v f) =>
+         (atom -> Set.Set v)
+      -> (Map.Map v term -> atom -> atom)
+      -> Map.Map v term -> formula -> formula
+subst va sa env fm =
     foldFirstOrder qu co tf at fm
     where
-      qu op x p = substq subfn op x p
-      co ((:~:) p) = ((.~.) (subst subfn p))
-      co (BinOp p op q) = binop (subst subfn p) op (subst subfn q)
+      qu op x p = quant op x' (subst va sa ((x |-> vt x') env) p)
+          where
+            x' = if setAny (\ y -> Set.member x (fvt (fromMaybe (vt y) (Map.lookup y env)))) (Set.delete x (fv va p))
+                 then variant x (fv va (subst va sa (Map.delete x env) p))
+                 else x
+      co ((:~:) p) = ((.~.) (subst va sa env p))
+      co (BinOp p op q) = binop (subst va sa env p) op (subst va sa env q)
       tf = fromBool
-      at = foldAtomEq (\ p args -> pApp p (map (tsubst subfn) args)) fromBool (\ t1 t2 -> tsubst subfn t1 .=. tsubst subfn t2)
+      at = atomic . sa env
 
-substq :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
-          Map.Map v term
-       -> Quant
-       -> v
-       -> formula
-       -> formula
-substq subfn op x p =
-    quant op x' (subst ((x |-> vt x') subfn) p)
-    where
-      x' :: v
-      x' = if setAny (\ y -> Set.member x (fvt (fromMaybe (vt y) (Map.lookup y subfn)))) (Set.delete x (fv p))
-           then variant x (fv (subst (Map.delete x subfn) p))
-           else x
+substAtomEq :: (AtomEq atom p term, Constants atom, Term term v f) =>
+               Map.Map v term -> atom -> atom
+substAtomEq env = foldAtomEq (\ p args -> applyEq p (map (tsubst env) args)) fromBool (\ t1 t2 -> equals (tsubst env t1) (tsubst env t2))
+
+substApply :: (Apply atom p term, Constants atom, Term term v f) =>
+              Map.Map v term -> atom -> atom
+substApply env = foldApply (\ p args -> apply p (map (tsubst env) args)) fromBool

@@ -38,6 +38,9 @@ instance Constants PredName where
     fromBool True = Named "true"
     fromBool False = Named "false"
 
+instance Constants FOLEQ where
+    fromBool x = R (fromBool x) []
+
 -- | Using PredName for the predicate type is not quite appropriate
 -- here, but we need to implement this instance so we can use it as a
 -- superclass of AtomEq below.

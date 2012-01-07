@@ -111,9 +111,6 @@ instance Show Pr where
     show Equals = ".=."
     show (Pr s) = show s            -- Because Pr is an instance of IsString
 
-instance Constants (P.Predicate Pr (P.PTerm V AtomicFunction)) where
-    fromBool x = P.Apply (fromBool x) []
-
 prettyP :: Pr -> Doc
 prettyP T = text "True"
 prettyP F = text "False"

@@ -62,7 +62,10 @@ instance Negatable (Formula v p f) where
     negated _ = False
 
 instance Constants p => Constants (Formula v p f) where
-    fromBool x = Predicate (Apply (fromBool x) [])
+    fromBool = Predicate . fromBool
+
+instance Constants p => Constants (Predicate p (PTerm v f)) where
+    fromBool x = Apply (fromBool x) []
 
 instance (Constants (Formula v p f), Ord v, Ord p, Ord f) => Combinable (Formula v p f) where
     x .<=>. y = Combine (BinOp  x (:<=>:) y)
