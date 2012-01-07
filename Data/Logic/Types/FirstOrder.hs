@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
-             GeneralizedNewtypeDeriving, MultiParamTypeClasses, TemplateHaskell, UndecidableInstances #-}
+             GeneralizedNewtypeDeriving, MultiParamTypeClasses, TemplateHaskell, TypeFamilies, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-missing-signatures -fno-warn-orphans #-}
 -- |Data types which are instances of the Logic type class for use
 -- when you just want to use the classes and you don't have a
@@ -14,7 +14,7 @@ import Data.Data (Data)
 import Data.Logic.Classes.Arity (Arity)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
-import Data.Logic.Classes.Equals (AtomEq(..), (.=.), (.!=.), pApp)
+import Data.Logic.Classes.Equals (AtomEq(..), (.=.), pApp)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
@@ -22,7 +22,7 @@ import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable(..))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
-import Data.SafeCopy (base, deriveSafeCopy)
+import Data.SafeCopy (SafeCopy, base, deriveSafeCopy, extension, MigrateFrom(..))
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
 
@@ -41,8 +41,6 @@ data Formula v p f
 -- mapping of the different instances to the class methods.
 data Predicate p term
     = Equal term term
-    | NotEqual term term
-    | Constant Bool
     | Apply p [term]
     deriving (Eq,Ord,Data,Typeable,Show,Read)
 
@@ -56,26 +54,6 @@ data PTerm v f
                                     -- is another term.
     deriving (Eq,Ord,Data,Typeable,Show,Read)
 
--- data InfixPred = (:=:) | (:!=:) deriving (Eq,Ord,Show,Data,Typeable,Enum,Bounded)
-
--- |We need to implement read manually here due to
--- <http://hackage.haskell.org/trac/ghc/ticket/4136>
-{-
-instance Read InfixPred where
-    readsPrec _ s =
-        map (\ (x, t) -> (x, drop (length t) s))
-            (take 1 (dropWhile (\ (_, t) -> not (isPrefixOf t s)) prs))
-        where
-          prs = [((:=:), ":=:"),
-                 ((:!=:), ":!=:")]
--}
-{-
-instance (FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v, Show v, Show p, Show f, Arity p, Skolem f, Data v, Data f, Constants p, Ord f) => Show (Formula v p f) where
-    show = showFirstOrderEq
-
-instance (FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v, Show v, Show p, Show f, Skolem f, Data v, Data f, Ord f) => Show (PTerm v f) where
-    show = showTerm
--}
 instance Negatable (Formula v p f) where
     (.~.) (Combine ((:~:) (Combine ((:~:) x)))) = (.~.) x
     (.~.) (Combine ((:~:) x)) = x
@@ -85,11 +63,6 @@ instance Negatable (Formula v p f) where
 
 instance Constants p => Constants (Formula v p f) where
     fromBool x = Predicate (Apply (fromBool x) [])
-
-{-
-instance (Constants p, Arity p, Ord p, Ord v, Ord f, Variable v, Skolem f, Show p, Show v, Show f, Data f, Data v, Data p) => Constants (Formula v p f) where
-    fromBool x = pApp0 (fromBool x)
--}
 
 instance (Constants (Formula v p f), Ord v, Ord p, Ord f) => Combinable (Formula v p f) where
     x .<=>. y = Combine (BinOp  x (:<=>:) y)
@@ -103,7 +76,6 @@ instance (Ord v, Variable v, Data v, Show v,
           Constants (Formula v p f), Combinable (Formula v p f)) =>
          PropositionalFormula (Formula v p f) (Formula v p f) where
     atomic (Predicate (Equal t1 t2)) = t1 .=. t2
-    atomic (Predicate (NotEqual t1 t2)) = t1 .!=. t2
     atomic (Predicate (Apply p ts)) = pApp p ts
     atomic _ = error "atomic method of PropositionalFormula for Parameterized: invalid argument"
     foldPropositional co tf at formula =
@@ -141,9 +113,7 @@ instance (Arity p, Constants p) => Atom (Predicate p (PTerm v f)) p (PTerm v f) 
 
 instance (Constants p, Eq p, Arity p, Show p) => AtomEq (Predicate p (PTerm v f)) p (PTerm v f) where
     foldAtomEq ap tf _ (Apply p ts) = maybe (ap p ts) tf (asBool p)
-    -- foldAtomEq ap _ _ (Constant x) = ap (fromBool x) []
     foldAtomEq _ _ eq (Equal t1 t2) = eq t1 t2
-    foldAtomEq _ _ _ _ = error "foldAtomEq Predicate"
     equals = Equal
     applyEq' = Apply
 
@@ -199,6 +169,24 @@ instance (Constants p, Eq v, Eq p, Eq f, Constants (Predicate p (PTerm v f))) =>
 
 $(deriveSafeCopy 1 'base ''PTerm)
 $(deriveSafeCopy 1 'base ''Formula)
-$(deriveSafeCopy 1 'base ''Predicate)
+$(deriveSafeCopy 2 'extension ''Predicate)
 
 $(deriveNewData [''PTerm, ''Formula, ''Predicate])
+
+-- Migration --
+
+data Predicate_v1 p term
+    = Equal_v1 term term
+    | NotEqual_v1 term term
+    | Constant_v1 Bool
+    | Apply_v1 p [term]
+    deriving (Eq,Ord,Data,Typeable,Show,Read)
+
+$(deriveSafeCopy 1 'base ''Predicate_v1)
+
+instance (SafeCopy p, SafeCopy term) => Migrate (Predicate p term) where
+    type MigrateFrom (Predicate p term) = (Predicate_v1 p term)
+    migrate (Equal_v1 t1 t2) = Equal t1 t2
+    migrate (Apply_v1 p ts) = Apply p ts
+    migrate (NotEqual_v1 _ _) = error "Failure migrating Predicate NotEqual"
+    migrate (Constant_v1 _) = error "Failure migrating Predicate Constant"
