@@ -87,7 +87,8 @@ simpcnf fm =
     where
       co _ = cjs'
       at = foldAtomEq (\ _ _ -> cjs') tf (\ _ _ -> cjs')
-      tf x = if x then Set.singleton Set.empty else Set.empty
+      tf False = Set.singleton Set.empty
+      tf True = Set.empty
       -- Discard any clause that is the proper subset of another clause
       cjs' = Set.filter keep cjs
       keep x = not (Set.or (Set.map (`Set.isProperSubsetOf` x) cjs))

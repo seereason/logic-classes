@@ -81,11 +81,11 @@ formulas =
     , TestFormula
       { formula = pApp (fromBool True) []
       , name = "True"
-      , expected = [ClauseNormalForm  (toSS [[]])] }
+      , expected = [ClauseNormalForm  (toSS [])] }
     , TestFormula
       { formula = pApp (fromBool False) []
       , name = "False"
-      , expected = [ClauseNormalForm  (toSS [])] }
+      , expected = [ClauseNormalForm  (toSS [[]])] }
     , TestFormula
       { formula = pApp "p" []
       , name = "p"
