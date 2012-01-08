@@ -41,7 +41,7 @@ import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Literal (Literal(..), prettyLit, fromFirstOrder)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term)
-import Data.Logic.Harrison.Normal (trivial)
+import Data.Logic.Harrison.Normal (trivial, simpcnf')
 import Data.Logic.Harrison.Skolem (skolemNormalForm, SkolemT, pnf, nnf, simplify)
 import qualified Data.Set.Extra as Set
 import Text.PrettyPrint (Doc, hcat, vcat, text, nest, ($$), brackets, render)
@@ -56,7 +56,7 @@ import Text.PrettyPrint (Doc, hcat, vcat, text, nest, ($$), brackets, render)
 -- 
 clauseNormalForm :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, Literal lit atom v, Eq formula, Ord lit, Constants p, Eq p) =>
        formula -> SkolemT v term m (Set.Set (Set.Set lit))
-clauseNormalForm fm = skolemNormalForm fm >>= return . simpcnf
+clauseNormalForm fm = skolemNormalForm fm >>= return . simpcnf'
 
 cnfTrace :: forall m formula atom term v p f lit.
             (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, Literal lit atom v, Eq formula, Ord lit, Constants p, Eq p) =>
@@ -79,34 +79,3 @@ cnfTrace pv pp pf f =
       prettyClause (clause :: [lit]) =
           nest 2 . brackets . hcat . intersperse (text ", ") . map (nest 2 . brackets . prettyLit (prettyAtomEq pv pp pf) pv 0) $ clause
       fromSS = (map Set.toList) . Set.toList 
-
-simpcnf :: forall formula atom term v p f lit. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal lit atom v, Ord lit, Eq p, Constants p) =>
-           formula -> Set.Set (Set.Set lit)
-simpcnf fm =
-    foldFirstOrder (\ _ _ _ -> cjs') co tf at fm
-    where
-      co _ = cjs'
-      at = foldAtomEq (\ _ _ -> cjs') tf (\ _ _ -> cjs')
-      tf False = Set.singleton Set.empty
-      tf True = Set.empty
-      -- Discard any clause that is the proper subset of another clause
-      cjs' = Set.filter keep cjs
-      keep x = not (Set.or (Set.map (`Set.isProperSubsetOf` x) cjs))
-      cjs = Set.filter (not . trivial) (purecnf (nnf fm)) :: Set.Set (Set.Set lit)
-
--- | CNF: (a | b | c) & (d | e | f)
-purecnf :: forall formula atom term v p f lit. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal lit atom v, Eq lit, Ord lit) =>
-           formula -> Set.Set (Set.Set lit)
-purecnf fm = Set.map (Set.map (.~.)) (purednf (nnf ((.~.) fm)))
-
-purednf :: forall formula atom term v p f lit. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal lit atom v, Ord lit) =>
-           formula -> Set.Set (Set.Set lit)
-purednf fm =
-    foldFirstOrder (\ _ _ _ -> x) co (\ _ -> x) (\ _ -> x)  fm
-    where
-      co :: Combination formula -> Set.Set (Set.Set lit)
-      co (BinOp p (:&:) q) = Set.distrib (purednf p) (purednf q)
-      co (BinOp p (:|:) q) = Set.union (purednf p) (purednf q)
-      co _ = x
-      x :: Set.Set (Set.Set lit)
-      x = Set.singleton (Set.singleton (fromFirstOrder (fromAtomEq id id id) id fm)) :: Set.Set (Set.Set lit)
