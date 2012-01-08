@@ -33,15 +33,13 @@ module Data.Logic.Normal.Clause
     ) where
 
 import Data.List (intersperse)
-import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.Equals (AtomEq(foldAtomEq), prettyAtomEq, fromAtomEq)
+import Data.Logic.Classes.Equals (AtomEq, prettyAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder)
 import Data.Logic.Classes.Formula (Formula)
-import Data.Logic.Classes.Literal (Literal(..), prettyLit, fromFirstOrder)
-import Data.Logic.Classes.Negate ((.~.))
+import Data.Logic.Classes.Literal (Literal(..), prettyLit)
 import Data.Logic.Classes.Term (Term)
-import Data.Logic.Harrison.Normal (trivial, simpcnf')
+import Data.Logic.Harrison.Normal (simpcnf')
 import Data.Logic.Harrison.Skolem (skolemNormalForm, SkolemT, pnf, nnf, simplify)
 import qualified Data.Set.Extra as Set
 import Text.PrettyPrint (Doc, hcat, vcat, text, nest, ($$), brackets, render)

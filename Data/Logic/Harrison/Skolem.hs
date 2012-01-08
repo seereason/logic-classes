@@ -14,6 +14,7 @@ module Data.Logic.Harrison.Skolem
     , literal
     , askolemize
     , skolemNormalForm
+    , substituteEq
     ) where
 
 import Control.Monad.Identity (Identity(runIdentity))
@@ -21,7 +22,7 @@ import Control.Monad.State (StateT(runStateT), get, put)
 import Data.Logic.Classes.Apply (Apply(foldApply))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (Constants(fromBool, true, false), asBool)
-import Data.Logic.Classes.Equals (AtomEq(foldAtomEq))
+import Data.Logic.Classes.Equals (AtomEq(foldAtomEq), varAtomEq, substAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(exists, for_all, foldFirstOrder), Quant(..), quant)
 import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Literal (Literal(foldLiteral, atomic))
@@ -29,7 +30,7 @@ import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Skolem (Skolem(toSkolem))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable(variant))
-import Data.Logic.Harrison.FOL (fv, subst, varAtomEq, substAtomEq, substituteEq)
+import Data.Logic.Harrison.FOL (fv, subst)
 import Data.Logic.Harrison.Lib ((|=>))
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -368,3 +369,7 @@ literal fm =
 skolemNormalForm :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, Eq formula) =>
                     formula -> SkolemT v term m formula
 skolemNormalForm f = askolemize f >>= return . specialize . pnf
+
+-- |Replace each free occurrence of variable old with term new.
+substituteEq :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => v -> term -> formula -> formula
+substituteEq old new formula = subst varAtomEq substAtomEq (Map.singleton old new) formula

@@ -13,6 +13,8 @@ module Data.Logic.Classes.Equals
     , fromAtomEq
     , showAtomEq
     , prettyAtomEq
+    , varAtomEq
+    , substAtomEq
     ) where
 
 import Data.List (intercalate, intersperse)
@@ -184,3 +186,11 @@ prettyAtomEq pv pp pf prec atom =
     where
       parensIf False = id
       parensIf _ = parens . nest 1
+
+-- | Return the variables that occur in an instance of AtomEq.
+varAtomEq :: forall atom term v p f. (AtomEq atom p term, Term term v f) => atom -> Set.Set v
+varAtomEq = foldAtomEq (\ _ args -> Set.unions (map fvt args)) (const Set.empty) (\ t1 t2 -> Set.union (fvt t1) (fvt t2))
+
+substAtomEq :: (AtomEq atom p term, Constants atom, Term term v f) =>
+               Map.Map v term -> atom -> atom
+substAtomEq env = foldAtomEq (\ p args -> applyEq p (map (tsubst env) args)) fromBool (\ t1 t2 -> equals (tsubst env t1) (tsubst env t2))

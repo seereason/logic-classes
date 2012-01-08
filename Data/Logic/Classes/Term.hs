@@ -5,14 +5,17 @@ module Data.Logic.Classes.Term
     , convertTerm
     , showTerm
     , prettyTerm
+    , fvt
+    , tsubst
     ) where
 
 import Data.Generics (Data)
 import Data.List (intercalate, intersperse)
 import Data.Logic.Classes.Skolem
 import Data.Logic.Classes.Variable
---import qualified Data.Set as Set
---import Data.String (IsString)
+import qualified Data.Map as Map
+import Data.Maybe (fromMaybe)
+import qualified Data.Set as Set
 import Text.PrettyPrint (Doc, (<>), brackets, hcat, text)
 
 -- class (Ord f, IsString f) => Function f where
@@ -66,3 +69,13 @@ prettyTerm :: forall v f term. (Term term v f) =>
            -> term
            -> Doc
 prettyTerm pv pf t = foldTerm pv (\ fn ts -> pf fn <> brackets (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts)))) t
+
+fvt :: (Term term v f, Ord v) => term -> Set.Set v
+fvt tm = foldTerm Set.singleton (\ _ args -> Set.unions (map fvt args)) tm
+
+-- ------------------------------------------------------------------------- 
+-- Substitution within terms.                                                
+-- ------------------------------------------------------------------------- 
+
+tsubst :: (Term term v f, Ord v) => Map.Map v term -> term -> term
+tsubst sfn tm = foldTerm (\ x -> fromMaybe tm (Map.lookup x sfn)) (\ fn args -> fApp fn (map (tsubst sfn) args)) tm

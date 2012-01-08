@@ -1,6 +1,9 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wall #-}
-module Data.Logic.Harrison.Equal where
+module Data.Logic.Harrison.Equal
+    ( function_congruence
+    , equalitize
+    ) where
 
 -- ========================================================================= 
 -- First order logic with equality.                                          

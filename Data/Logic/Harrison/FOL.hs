@@ -5,16 +5,9 @@ module Data.Logic.Harrison.FOL
     , list_disj
     , list_conj
     , var
-    , fvt
     , fv
-    , varApply
-    , varAtomEq
-    , tsubst
     , subst
     , generalize
-    , substAtomEq
-    , substApply
-    , substituteEq
     ) where
 
 import Data.Logic.Classes.Apply (Apply(..), apply)
@@ -24,7 +17,7 @@ import Data.Logic.Classes.Equals (AtomEq(foldAtomEq, equals), applyEq, pApp, (.=
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), quant)
 import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Term (Term(vt, foldTerm, fApp))
+import Data.Logic.Classes.Term (Term(vt, foldTerm, fApp), fvt)
 import Data.Logic.Classes.Variable (Variable(..))
 import qualified Data.Logic.Classes.Term as C
 import Data.Logic.Harrison.Formulas.FirstOrder (on_atoms)
@@ -205,9 +198,6 @@ END_INTERACTIVE;;
 -- Free variables in terms and formulas.                                     
 -- ------------------------------------------------------------------------- 
 
-fvt :: (Term term v f, Ord v) => term -> Set.Set v
-fvt tm = C.foldTerm Set.singleton (\ _ args -> Set.unions (map fvt args)) tm
-
 -- | Return all variables occurring in a formula.
 var :: forall formula atom v. FirstOrderFormula formula atom v => (atom -> Set.Set v) -> formula -> Set.Set v
 var at fm =
@@ -228,27 +218,12 @@ fv at fm =
       co (BinOp p _ q) = Set.union (fv at p) (fv at q)
       tf _ = Set.empty
 
--- | Return the variables that occur in an instance of AtomEq.
-varAtomEq :: forall atom term v p f. (AtomEq atom p term, Term term v f) => atom -> Set.Set v
-varAtomEq = foldAtomEq (\ _ args -> Set.unions (map fvt args)) (const Set.empty) (\ t1 t2 -> Set.union (fvt t1) (fvt t2))
-
--- | Return the variables that occur in an instance of Apply.
-varApply :: forall atom term v p f. (Apply atom p term, Term term v f) => atom -> Set.Set v
-varApply = foldApply (\ _ args -> Set.unions (map fvt args)) (const Set.empty)
-
 -- ------------------------------------------------------------------------- 
 -- Universal closure of a formula.                                           
 -- ------------------------------------------------------------------------- 
 
 generalize :: (FirstOrderFormula formula atom v, Formula atom term v) => (atom -> Set.Set v) -> formula -> formula
 generalize at fm = Set.fold for_all fm (fv at fm)
-
--- ------------------------------------------------------------------------- 
--- Substitution within terms.                                                
--- ------------------------------------------------------------------------- 
-
-tsubst :: (Term term v f, Ord v) => (Map.Map v term) -> term -> term
-tsubst sfn tm = foldTerm (\ x -> fromMaybe tm (Map.lookup x sfn)) (\ fn args -> fApp fn (map (tsubst sfn) args)) tm
 
 -- ------------------------------------------------------------------------- 
 -- Substitution in formulas, with variable renaming.                         
@@ -271,14 +246,6 @@ subst va sa env fm =
       tf = fromBool
       at = atomic . sa env
 
-substAtomEq :: (AtomEq atom p term, Constants atom, Term term v f) =>
-               Map.Map v term -> atom -> atom
-substAtomEq env = foldAtomEq (\ p args -> applyEq p (map (tsubst env) args)) fromBool (\ t1 t2 -> equals (tsubst env t1) (tsubst env t2))
-
-substApply :: (Apply atom p term, Constants atom, Term term v f) =>
-              Map.Map v term -> atom -> atom
-substApply env = foldApply (\ p args -> apply p (map (tsubst env) args)) fromBool
-
 {-
 -- |Replace each free occurrence of variable old with term new.
 substitute :: forall formula atom term v f. (FirstOrderFormula formula atom v, Term term v f) => v -> term -> (atom -> formula) -> formula -> formula
@@ -297,10 +264,6 @@ substitute old new atom formula =
                 fromBool
                 atom
 -}
-
--- |Replace each free occurrence of variable old with term new.
-substituteEq :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => v -> term -> formula -> formula
-substituteEq old new formula = subst varAtomEq substAtomEq (Map.singleton old new) formula
 {-
     substitute old new atom formula
     where 

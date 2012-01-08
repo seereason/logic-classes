@@ -4,13 +4,13 @@ module Data.Logic.Harrison.Resolution where
 
 import Control.Applicative.Error (Failing(..), failing)
 import Data.Logic.Classes.Combine (Combination(..))
-import Data.Logic.Classes.Equals (AtomEq, zipAtomsEq)
+import Data.Logic.Classes.Equals (AtomEq, zipAtomsEq, varAtomEq, substAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), zipFirstOrder)
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Negate ((.~.), positive)
 import Data.Logic.Classes.Term (Term(vt, foldTerm))
 import Data.Logic.Classes.Variable (Variable(prefix))
-import Data.Logic.Harrison.FOL (subst, fv, varAtomEq, substAtomEq, generalize, list_disj, list_conj)
+import Data.Logic.Harrison.FOL (subst, fv, generalize, list_disj, list_conj)
 import Data.Logic.Harrison.Lib (settryfind, allpairs, allsubsets, setAny, setAll,
                                 allnonemptysubsets, (|->), apply, defined)
 import Data.Logic.Harrison.Normal (simpdnf, simpcnf, trivial)

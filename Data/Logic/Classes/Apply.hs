@@ -8,13 +8,17 @@ module Data.Logic.Classes.Apply
     , apply0, apply1, apply2, apply3, apply4, apply5, apply6, apply7
     , showApply
     , prettyApply
+    , varApply
+    , substApply
     ) where
 
 import Data.Logic.Classes.Arity
 import Data.Logic.Classes.Constants
-import Data.Logic.Classes.Term (Term, showTerm, prettyTerm)
+import Data.Logic.Classes.Term (Term, showTerm, prettyTerm, fvt, tsubst)
 import Data.List (intercalate, intersperse)
 import Data.Maybe (fromMaybe)
+import qualified Data.Map as Map
+import qualified Data.Set as Set
 import Text.PrettyPrint (Doc, (<>), text, empty, parens, hcat)
 
 class (Arity p, Constants p, Eq p) => Apply atom p term | atom -> p term where
@@ -60,3 +64,10 @@ prettyApply pv pp pf prec atom =
                              _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts))))
               (\ x -> text (if x then "true" else "false"))
               atom
+
+-- | Return the variables that occur in an instance of Apply.
+varApply :: (Apply atom p term, Term term v f) => atom -> Set.Set v
+varApply = foldApply (\ _ args -> Set.unions (map fvt args)) (const Set.empty)
+
+substApply :: (Apply atom p term, Constants atom, Term term v f) => Map.Map v term -> atom -> atom
+substApply env = foldApply (\ p args -> apply p (map (tsubst env) args)) fromBool

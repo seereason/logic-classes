@@ -7,7 +7,7 @@ module Data.Logic.Harrison.Tableaux
 
 import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Equals (zipAtomsEq)
-import Data.Logic.Classes.Literal (Literal, zipLiterals)
+import Data.Logic.Classes.Literal (zipLiterals)
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Harrison.Unif (unify)
 import qualified Data.Map as Map

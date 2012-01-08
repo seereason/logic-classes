@@ -10,10 +10,10 @@ module Data.Logic.Harrison.Normal
 
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.Equals (AtomEq(foldAtomEq), fromAtomEq)
+import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Formula (Formula)
-import Data.Logic.Classes.Literal (Literal, fromFirstOrder)
+import Data.Logic.Classes.Literal (Literal(atomic), fromFirstOrder)
 import Data.Logic.Classes.Negate (Negatable, negated, (.~.))
 import Data.Logic.Classes.Term (Term)
 import Data.Logic.Harrison.Lib (setAny, allpairs)
@@ -39,7 +39,7 @@ purednf fm =
       tf = Set.singleton . Set.singleton . fromBool
       at _ = Set.singleton (Set.singleton fm)
 
-purednf' :: forall formula atom term v p f lit. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal lit atom v, Ord lit) =>
+purednf' :: forall formula atom term v f lit. (FirstOrderFormula formula atom v, Formula atom term v, {- AtomEq atom p term, -} Term term v f, Literal lit atom v, Ord lit) =>
            formula -> Set.Set (Set.Set lit)
 purednf' fm =
     foldFirstOrder (\ _ _ _ -> x) co (\ _ -> x) (\ _ -> x)  fm
@@ -49,7 +49,8 @@ purednf' fm =
       co (BinOp p (:|:) q) = Set.union (purednf' p) (purednf' q)
       co _ = x
       x :: Set.Set (Set.Set lit)
-      x = Set.singleton (Set.singleton (fromFirstOrder (fromAtomEq id id id) id fm)) :: Set.Set (Set.Set lit)
+      x = Set.singleton (Set.singleton (fromFirstOrder id id fm)) :: Set.Set (Set.Set lit)
+      -- fa = (fromAtomEq id id id)
 
 -- ------------------------------------------------------------------------- 
 -- Filtering out trivial disjuncts (in this guise, contradictory).           
@@ -85,7 +86,7 @@ purecnf :: (FirstOrderFormula fof atom v, Formula atom term v, AtomEq atom p ter
 purecnf fm = Set.map (Set.map (simplify . (.~.))) (purednf (nnf ((.~.) fm)))
 
 -- | CNF: (a | b | c) & (d | e | f)
-purecnf' :: forall formula atom term v p f lit. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal lit atom v, Eq lit, Ord lit) =>
+purecnf' :: forall formula atom term v f lit. (FirstOrderFormula formula atom v, Formula atom term v, {- AtomEq atom p term, -} Term term v f, Literal lit atom v, Eq lit, Ord lit) =>
            formula -> Set.Set (Set.Set lit)
 purecnf' fm = Set.map (Set.map (.~.)) (purednf' (nnf ((.~.) fm)))
 
@@ -97,7 +98,7 @@ simpcnf fm =
       co _ = def
       tf False = Set.singleton Set.empty
       tf True = Set.empty
-      at x = Set.singleton (Set.singleton (atomic x))
+      at x = Set.singleton (Set.singleton (Data.Logic.Classes.FirstOrder.atomic x))
       -- Discard any clause that is the proper subset of another clause
       def = Set.filter keep cjs
       keep x = not (setAny (`Set.isProperSubsetOf` x) cjs)
@@ -126,13 +127,13 @@ distrib fm =
 
 -- Alternative versions, these should be merged
 
-simpcnf' :: forall formula atom term v p f lit. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal lit atom v, Ord lit, Eq p, Constants p) =>
-           formula -> Set.Set (Set.Set lit)
+simpcnf' :: forall formula atom term v p f lit. (FirstOrderFormula formula atom v, Formula atom term v, {-AtomEq atom p term,-} Term term v f, Literal lit atom v, Ord lit) =>
+            formula -> Set.Set (Set.Set lit)
 simpcnf' fm =
     foldFirstOrder (\ _ _ _ -> cjs') co tf at fm
     where
       co _ = cjs'
-      at = foldAtomEq (\ _ _ -> cjs') tf (\ _ _ -> cjs')
+      at = Set.singleton . Set.singleton . Data.Logic.Classes.Literal.atomic -- foldAtomEq (\ _ _ -> cjs') tf (\ _ _ -> cjs')
       tf False = Set.singleton Set.empty
       tf True = Set.empty
       -- Discard any clause that is the proper subset of another clause

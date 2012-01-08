@@ -2,12 +2,12 @@
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Harrison.Prolog where
 
-import Data.Logic.Classes.Equals (AtomEq(..))
+import Data.Logic.Classes.Equals (AtomEq(..), varAtomEq, substAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
 import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Term (Term(vt))
 import Data.String (IsString (fromString))
-import Data.Logic.Harrison.FOL (fv, subst, varAtomEq, substAtomEq, list_conj)
+import Data.Logic.Harrison.FOL (fv, subst, list_conj)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 
