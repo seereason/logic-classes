@@ -20,11 +20,9 @@ import qualified Data.Set.Extra as S
 import PropLogic
 
 instance Negatable (PropForm a) where
-    (.~.) (N (N x)) = (.~.) x
-    (.~.) (N x) = x
-    (.~.) x = N x
-    negated (N x) = not (negated x)
-    negated _ = False
+    negatePrivate = N
+    foldNegation normal inverted (N x) = foldNegation inverted normal x
+    foldNegation normal _ x = normal x
 
 instance Ord a => Combinable (PropForm a) where
     x .<=>. y = EJ [x, y]

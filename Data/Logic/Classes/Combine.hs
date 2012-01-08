@@ -19,7 +19,7 @@ module Data.Logic.Classes.Combine
     ) where
 
 import Data.Generics (Data, Typeable)
-import Data.Logic.Classes.Negate (Negatable(..))
+import Data.Logic.Classes.Negate (Negatable, (.~.))
 
 -- | A type class for logical formulas.  Minimal implementation:
 -- @

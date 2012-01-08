@@ -11,7 +11,7 @@ module Data.Logic.Harrison.Formulas.FirstOrder
 import qualified Data.Set as Set
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), quant)
-import Data.Logic.Classes.Negate (Negatable(..))
+import Data.Logic.Classes.Negate ((.~.))
 
 -- ------------------------------------------------------------------------- 
 -- General parsing of iterated infixes.                                      

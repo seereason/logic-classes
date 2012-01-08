@@ -16,11 +16,9 @@ data Formula atom
     deriving (Eq,Ord,Data,Typeable)
 
 instance Negatable (Formula atom) where
-    (.~.) (Combine ((:~:) (Combine ((:~:) x)))) = (.~.) x
-    (.~.) (Combine ((:~:) x)) = x
-    (.~.) x = Combine ((:~:) x)
-    negated (Combine ((:~:) x)) = not (negated x)
-    negated _ = False
+    negatePrivate x = Combine ((:~:) x)
+    foldNegation normal inverted (Combine ((:~:) x)) = foldNegation inverted normal x
+    foldNegation normal _ x = normal x
 
 instance (Constants atom, Ord atom) => Combinable (Formula atom) where
     x .<=>. y = Combine (BinOp  x (:<=>:) y)

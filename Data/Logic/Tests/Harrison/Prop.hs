@@ -55,7 +55,7 @@ test01 = TestCase $ assertEqual "Build Formula 1" expected input
                           (Iff (Atom (P {pname = "q"}))
                                (Or (And (Atom (P {pname = "r"})) (Atom (P {pname = "s"})))
                                    (Iff (Atom (P {pname = "t"}))
-                                        (And (Not (Not (Atom (P {pname = "u"})))) (Atom (P {pname = "v"})))))))
+                                        (And ({-Not-} ({-Not-} (Atom (P {pname = "u"})))) (Atom (P {pname = "v"})))))))
           (p, q, r, s, t, u, v) = (Atom (P "p"), Atom (P "q"), Atom (P "r"), Atom (P "s"), Atom (P "t"), Atom (P "u"), Atom (P "v"))
 
 test02 :: Test

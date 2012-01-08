@@ -12,7 +12,7 @@ import Data.Logic.Classes.Constants (Constants)
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import qualified Data.Logic.Classes.Literal as N
-import Data.Logic.Classes.Negate (Negatable(..))
+import Data.Logic.Classes.Negate (Negatable(..), negated, (.~.))
 import Data.Logic.Classes.Term (Term)
 import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Implicative (LiteralMapT, NormalT)
@@ -25,10 +25,10 @@ instance Ord Literal where
     compare (Neg m) (Neg n) = compare m n
 
 instance Negatable Literal where
-    (.~.) (Pos n) = Neg n
-    (.~.) (Neg n) = Pos n
-    negated (Pos _) = False
-    negated (Neg _) = True
+    negatePrivate (Neg x) = Pos x
+    negatePrivate (Pos x) = Neg x
+    foldNegation _ inverted (Neg x) = inverted (Pos x)
+    foldNegation normal _ (Pos x) = normal (Pos x)
 
 deriving instance Data Literal
 deriving instance Typeable Literal

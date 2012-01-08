@@ -20,7 +20,7 @@ import Data.Logic.Classes.Combine (Combinable(..), BinOp(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', pApp)
-import Data.Logic.Classes.Negate (Negatable(..))
+import Data.Logic.Classes.Negate (Negatable(..), (.~.))
 import Data.Logic.Classes.Term (Term(..))
 import qualified Data.Logic.Classes.FirstOrder as L
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
@@ -54,11 +54,9 @@ data Quantifier
     deriving (Eq, Ord, Show, Data, Typeable)
 
 instance Negatable (Sentence v p f) where
-    (.~.) (Not (Not x)) = (.~.) x
-    (.~.) (Not x) = x
-    (.~.) x   = Not x
-    negated (Not x) = not (negated x)
-    negated _ = False
+    negatePrivate = Not
+    foldNegation normal inverted (Not x) = foldNegation inverted normal x
+    foldNegation normal _ x = normal x
 
 instance Constants p => Constants (Sentence v p f) where
     fromBool x = Predicate (fromBool x) []
@@ -205,11 +203,9 @@ instance Constants p => Constants (NormalSentence v p f) where
     fromBool x = NFPredicate (fromBool x) []
 
 instance Negatable (NormalSentence v p f) where
-    (.~.) (NFNot (NFNot x)) = ((.~.) x)
-    (.~.) (NFNot x)= x
-    (.~.) x   = NFNot x
-    negated (NFNot x) = not (negated x)
-    negated _ = False
+    negatePrivate = NFNot
+    foldNegation normal inverted (NFNot x) = foldNegation inverted normal x
+    foldNegation normal _ x = normal x
 
 {-
 instance (Arity p, Constants p, Combinable (NormalSentence v p f)) => Pred p (NormalTerm v f) (NormalSentence v p f) where

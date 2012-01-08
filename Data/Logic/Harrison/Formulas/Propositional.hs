@@ -11,7 +11,7 @@ module Data.Logic.Harrison.Formulas.Propositional
 import qualified Data.Set as Set
 --import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..), binop)
-import Data.Logic.Classes.Negate (Negatable(..))
+import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 
 -- ------------------------------------------------------------------------- 

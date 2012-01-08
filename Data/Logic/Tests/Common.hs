@@ -203,7 +203,6 @@ doTest f =
               -- ca = undefined
               ca (P.Apply p ts) = C.Predicate p (map ct ts)
               ca (P.Equal t1 t2) = C.Equal (ct t1) (ct t2)
-              ca _ = error "ConvertToChiou - unexpected atom"
               ct :: TTerm -> C.CTerm V AtomicFunction
               ct = foldTerm cv fn
               cv :: V -> C.CTerm V AtomicFunction

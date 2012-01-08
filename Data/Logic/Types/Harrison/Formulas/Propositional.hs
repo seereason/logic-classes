@@ -21,9 +21,11 @@ data Formula a
     deriving (Eq, Ord)
 
 instance Negatable (Formula atom) where
-    (.~.) = Not
-    negated (Not _) = True
-    negated _ = False
+    negatePrivate T = F
+    negatePrivate F = T
+    negatePrivate x = Not x
+    foldNegation normal inverted (Not x) = foldNegation inverted normal x
+    foldNegation normal _ x = normal x
 
 instance Constants (Formula a) where
     fromBool True = T

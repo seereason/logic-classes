@@ -48,8 +48,8 @@ instance Bijection (Combination (Formula v p f)) (Combination (N.Formula v p f))
     intern ((:~:) x) = (:~:) (intern x)
 
 instance Negatable (Formula v p f) where
-    negated = negated . unFormula
-    (.~.) = Formula . (.~.) . unFormula
+    negatePrivate = Formula . negatePrivate . unFormula
+    foldNegation normal inverted = foldNegation (normal . Formula) (inverted . Formula) . unFormula
 
 instance (Constants (N.Formula v p f), Arity p, Constants p, Ord v, Ord p, Ord f, Variable v, Skolem f, Show v, Show p, Show f, Data v, Data f, Data p) => Constants (Formula v p f) where
     fromBool = Formula . fromBool
