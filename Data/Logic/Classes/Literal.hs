@@ -62,6 +62,7 @@ fromLiteral :: forall lit atom v fof atom2 v2. (Literal lit atom v, FOF.FirstOrd
                (atom -> atom2) -> lit -> fof
 fromLiteral ca lit = foldLiteral (\ p -> (.~.) (fromLiteral ca p)) fromBool (FOF.atomic . ca) lit
 
+{-
 prettyLit :: forall lit atom term v p f. (Literal lit atom v, Apply atom p term, Term term v f) =>
               (v -> Doc)
            -> (p -> Doc)
@@ -82,3 +83,18 @@ prettyLit pv pp pf _prec lit =
                    (\ x -> text $ if x then "true" else "false")
       -- parensIf False = id
       -- parensIf _ = parens . nest 1
+-}
+
+prettyLit :: forall lit atom v. (Literal lit atom v) =>
+              (Int -> atom -> Doc)
+           -> (v -> Doc)
+           -> Int
+           -> lit
+           -> Doc
+prettyLit pa pv prec lit =
+    foldLiteral co tf at lit
+    where
+      co :: lit -> Doc
+      co x = if negated x then text {-"¬"-} "~" <> prettyLit pa pv 5 x else prettyLit pa pv 5 x
+      tf x = text (if x then "true" else "false")
+      at = pa 6

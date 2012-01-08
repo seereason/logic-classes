@@ -25,6 +25,7 @@ module Data.Logic.Classes.FirstOrder
     , toPropositional
     , showFirstOrder
     , prettyFirstOrder
+    , prettyApply
     , withUnivQuants
 {-
     , freeVars
@@ -241,36 +242,24 @@ showFirstOrder formula =
       showCombine (:&:) = ".&."
       showCombine (:|:) = ".|."
 
-prettyFirstOrder :: forall formula atom term v p f. (FirstOrderFormula formula atom v, Apply atom p term, Term term v f) =>
-                    (v -> Doc)
-                 -> (p -> Doc)
-                 -> (f -> Doc)
-                 -> Int
-                 -> formula
-                 -> Doc
-prettyFirstOrder pv pp pf prec formula =
+prettyFirstOrder :: forall formula atom v. (FirstOrderFormula formula atom v) =>
+                      (Int -> atom -> Doc) -> (v -> Doc) -> Int -> formula -> Doc
+prettyFirstOrder pa pv prec formula =
     foldFirstOrder
-          (\ qop v f -> parensIf (prec > 1) $ prettyQuant qop <> pv v <+> prettyFirstOrder pv pp pf 1 f)
+          (\ qop v f -> parensIf (prec > 1) $ prettyQuant qop <> pv v <+> prettyFirstOrder pa pv 1 f)
           (\ cm ->
                case cm of
                  (BinOp f1 op f2) ->
                      case op of
-                       (:=>:) -> parensIf (prec > 2) $ (prettyFirstOrder pv pp pf 2 f1 <+> formOp op <+> prettyFirstOrder pv pp pf 2 f2)
-                       (:<=>:) -> parensIf (prec > 2) $ (prettyFirstOrder pv pp pf 2 f1 <+> formOp op <+> prettyFirstOrder pv pp pf 2 f2)
-                       (:&:) -> parensIf (prec > 3) $ (prettyFirstOrder pv pp pf 3 f1 <+> formOp op <+> prettyFirstOrder pv pp pf 3 f2)
-                       (:|:) -> parensIf {-(prec > 4)-} True $ (prettyFirstOrder pv pp pf 4 f1 <+> formOp op <+> prettyFirstOrder pv pp pf 4 f2)
-                 ((:~:) f) -> text {-"¬"-} "~" <> prettyFirstOrder pv pp pf 5 f
-          )
-          (\ x -> text (if x then "true" else "false"))
-          at
+                       (:=>:) -> parensIf (prec > 2) $ (prettyFirstOrder pa pv 2 f1 <+> formOp op <+> prettyFirstOrder pa pv 2 f2)
+                       (:<=>:) -> parensIf (prec > 2) $ (prettyFirstOrder pa pv 2 f1 <+> formOp op <+> prettyFirstOrder pa pv 2 f2)
+                       (:&:) -> parensIf (prec > 3) $ (prettyFirstOrder pa pv 3 f1 <+> formOp op <+> prettyFirstOrder pa pv 3 f2)
+                       (:|:) -> parensIf {-(prec > 4)-} True $ (prettyFirstOrder pa pv 4 f1 <+> formOp op <+> prettyFirstOrder pa pv 4 f2)
+                 ((:~:) f) -> text {-"¬"-} "~" <> prettyFirstOrder pa pv 5 f)
+          (text . ifElse "true" "false")
+          (pa 6)
           formula
     where
-      at :: atom -> Doc
-      at = foldApply (\ p ts ->
-                         pp p <> case ts of
-                                   [] -> empty
-                                   _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts))))
-                    (\ x -> text (if x then "true" else "false"))
       parensIf False = id
       parensIf _ = parens . nest 1
       prettyQuant Forall = text {-"∀"-} "!"
@@ -279,6 +268,15 @@ prettyFirstOrder pv pp pf prec formula =
       formOp (:=>:) = text "=>"
       formOp (:&:) = text "&"
       formOp (:|:) = text "|"
+
+prettyApply :: (Apply atom p term, Term term v f) => (v -> Doc) -> (p -> Doc) -> (f -> Doc) -> Int -> atom -> Doc
+prettyApply pv pp pf prec atom =
+    foldApply (\ p ts ->
+                   pp p <> case ts of
+                             [] -> empty
+                             _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts))))
+              (\ x -> text (if x then "true" else "false"))
+              atom
 
 -- | Examine the formula to find the list of outermost universally
 -- quantified variables, and call a function with that list and the

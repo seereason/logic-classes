@@ -23,14 +23,13 @@ import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), b
 import Data.Logic.Classes.Constants (Constants(fromBool, true, false), asBool)
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(exists, for_all, foldFirstOrder), Quant(..), quant)
-import Data.Logic.Classes.FirstOrderEq (substituteEq)
 import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Literal (Literal(foldLiteral, atomic))
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Skolem (Skolem(toSkolem))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable(variant))
-import Data.Logic.Harrison.FOL (fv, subst, varAtomEq, substAtomEq)
+import Data.Logic.Harrison.FOL (fv, subst, varAtomEq, substAtomEq, substituteEq)
 import Data.Logic.Harrison.Lib ((|=>))
 import qualified Data.Map as Map
 import qualified Data.Set as Set

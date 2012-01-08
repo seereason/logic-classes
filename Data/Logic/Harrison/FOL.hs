@@ -14,12 +14,13 @@ module Data.Logic.Harrison.FOL
     , generalize
     , substAtomEq
     , substApply
+    , substituteEq
     ) where
 
 import Data.Logic.Classes.Apply (Apply(..), apply)
-import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
+import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), combine, binop)
 import Data.Logic.Classes.Constants (Constants (fromBool, true, false))
-import Data.Logic.Classes.Equals (AtomEq(foldAtomEq, equals), applyEq)
+import Data.Logic.Classes.Equals (AtomEq(foldAtomEq, equals), applyEq, pApp, (.=.))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), quant)
 import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Negate ((.~.))
@@ -277,3 +278,30 @@ substAtomEq env = foldAtomEq (\ p args -> applyEq p (map (tsubst env) args)) fro
 substApply :: (Apply atom p term, Constants atom, Term term v f) =>
               Map.Map v term -> atom -> atom
 substApply env = foldApply (\ p args -> apply p (map (tsubst env) args)) fromBool
+
+-- |Replace each free occurrence of variable old with term new.
+substitute :: forall formula atom term v f. (FirstOrderFormula formula atom v, Term term v f) => v -> term -> (atom -> formula) -> formula -> formula
+substitute old new atom formula =
+    foldTerm (\ new' -> if old == new' then formula else substitute' formula)
+             (\ _ _ -> substitute' formula)
+             new
+    where
+      substitute' =
+          foldFirstOrder -- If the old variable appears in a quantifier
+                -- we can stop doing the substitution.
+                (\ q v f' -> quant q v (if old == v then f' else substitute' f'))
+                (\ cm -> case cm of
+                           ((:~:) f') -> combine ((:~:) (substitute' f'))
+                           (BinOp f1 op f2) -> combine (BinOp (substitute' f1) op (substitute' f2)))
+                fromBool
+                atom
+
+-- |Replace each free occurrence of variable old with term new.
+substituteEq :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => v -> term -> formula -> formula
+substituteEq old new formula =
+    substitute old new atom formula
+    where 
+      atom = foldAtomEq (\ p ts -> pApp p (map st ts)) fromBool (\ t1 t2 -> st t1 .=. st t2)
+      st :: term -> term
+      st t = foldTerm sv (\ func ts -> fApp func (map st ts)) t
+      sv v = if v == old then new else vt v

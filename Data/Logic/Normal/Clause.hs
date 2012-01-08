@@ -36,11 +36,11 @@ import Data.List (intersperse)
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
-import Data.Logic.Classes.FirstOrderEq (prettyFirstOrderEq, prettyLitEq, fromFirstOrderEq)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder)
+import Data.Logic.Classes.FirstOrderEq (fromFirstOrderEq, prettyAtomEq)
 import Data.Logic.Classes.Formula (Formula)
+import Data.Logic.Classes.Literal (Literal(..), prettyLit)
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Term (Term)
 import Data.Logic.Harrison.Normal (trivial)
 import Data.Logic.Harrison.Skolem (skolemNormalForm, SkolemT, pnf, nnf, simplify)
@@ -70,15 +70,15 @@ cnfTrace pv pp pf f =
     do snf <- skolemNormalForm f
        cnf <- clauseNormalForm f
        return (render (vcat
-                       [text "Original:" $$ nest 2 (prettyFirstOrderEq pv pp pf 0 f),
-                        text "Simplified:" $$ nest 2 (prettyFirstOrderEq pv pp pf 0 (simplify f)),
-                        text "Negation Normal Form:" $$ nest 2 (prettyFirstOrderEq pv pp pf 0 (nnf . simplify $ f)),
-                        text "Prenex Normal Form:" $$ nest 2 (prettyFirstOrderEq pv pp pf 0 (pnf f)),
-                        text "Skolem Normal Form:" $$ nest 2 (prettyFirstOrderEq pv pp pf 0 snf),
+                       [text "Original:" $$ nest 2 (prettyFirstOrder (prettyAtomEq pv pp pf) pv 0 f),
+                        text "Simplified:" $$ nest 2 (prettyFirstOrder (prettyAtomEq pv pp pf) pv 0 (simplify f)),
+                        text "Negation Normal Form:" $$ nest 2 (prettyFirstOrder (prettyAtomEq pv pp pf) pv 0 (nnf . simplify $ f)),
+                        text "Prenex Normal Form:" $$ nest 2 (prettyFirstOrder (prettyAtomEq pv pp pf) pv 0 (pnf f)),
+                        text "Skolem Normal Form:" $$ nest 2 (prettyFirstOrder (prettyAtomEq pv pp pf) pv 0 snf),
                         text "Clause Normal Form:" $$ vcat (map prettyClause (fromSS cnf))]), cnf)
     where
       prettyClause (clause :: [lit]) =
-          nest 2 . brackets . hcat . intersperse (text ", ") . map (nest 2 . brackets . prettyLitEq pv pp pf 0) $ clause
+          nest 2 . brackets . hcat . intersperse (text ", ") . map (nest 2 . brackets . prettyLit (prettyAtomEq pv pp pf) pv 0) $ clause
       fromSS = (map Set.toList) . Set.toList 
 
 simpcnf :: forall formula atom term v p f lit. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal lit atom v, Ord lit, Eq p, Constants p) =>
