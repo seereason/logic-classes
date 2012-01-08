@@ -279,6 +279,7 @@ substApply :: (Apply atom p term, Constants atom, Term term v f) =>
               Map.Map v term -> atom -> atom
 substApply env = foldApply (\ p args -> apply p (map (tsubst env) args)) fromBool
 
+{-
 -- |Replace each free occurrence of variable old with term new.
 substitute :: forall formula atom term v f. (FirstOrderFormula formula atom v, Term term v f) => v -> term -> (atom -> formula) -> formula -> formula
 substitute old new atom formula =
@@ -295,13 +296,17 @@ substitute old new atom formula =
                            (BinOp f1 op f2) -> combine (BinOp (substitute' f1) op (substitute' f2)))
                 fromBool
                 atom
+-}
 
 -- |Replace each free occurrence of variable old with term new.
 substituteEq :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => v -> term -> formula -> formula
-substituteEq old new formula =
+substituteEq old new formula = subst varAtomEq substAtomEq (Map.singleton old new) formula
+{-
     substitute old new atom formula
     where 
       atom = foldAtomEq (\ p ts -> pApp p (map st ts)) fromBool (\ t1 t2 -> st t1 .=. st t2)
       st :: term -> term
       st t = foldTerm sv (\ func ts -> fApp func (map st ts)) t
       sv v = if v == old then new else vt v
+-}
+

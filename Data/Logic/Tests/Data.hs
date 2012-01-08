@@ -367,9 +367,9 @@ formulas =
       , expected = [ClauseNormalForm
                     (toSS 
                      [[(pApp ("p") [vt ("x"),fApp (toSkolem 1) [vt ("x")]]),
-                       (pApp ("q") [fApp (toSkolem 1) [fApp (toSkolem 2) []],fApp (toSkolem 2) [],fApp (toSkolem 3) []])],
+                       (pApp ("q") [fApp (toSkolem 1) [vt "x"],fApp (toSkolem 2) [vt "x"],fApp (toSkolem 3) [vt "x"]])],
                       [(pApp ("p") [vt ("x"),fApp (toSkolem 1) [vt ("x")]]),
-                       ((.~.) (pApp ("r") [fApp (toSkolem 1) [fApp (toSkolem 2) []]]))]])
+                       ((.~.) (pApp ("r") [fApp (toSkolem 1) [vt "x"]]))]])
                    ]
       }
     , TestFormula
