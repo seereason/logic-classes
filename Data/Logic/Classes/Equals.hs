@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, FunctionalDependencies, MultiParamTypeClasses, TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, TypeFamilies, UndecidableInstances #-}
 -- | Support for equality.
 module Data.Logic.Classes.Equals
     ( AtomEq(..)
@@ -14,10 +14,15 @@ module Data.Logic.Classes.Equals
 
 import Data.Logic.Classes.Arity (Arity(..))
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (Constants)
+import Data.Logic.Classes.Constants (Constants(fromBool))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
+import Data.Logic.Classes.Formula (Formula(..))
 import Data.Logic.Classes.Negate ((.~.))
+import Data.Logic.Classes.Term (Term(foldTerm, fApp))
+import Data.Logic.Classes.Variable (Variable)
+import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
+import qualified Data.Set as Set
 
 -- | Its not safe to make Atom a superclass of AtomEq, because the Atom methods will fail on AtomEq instances.
 class (Arity p, Constants p, Eq p, Show p) => AtomEq atom p term | atom -> p term, term -> atom p where
@@ -131,3 +136,14 @@ a .!=. b = (.~.) (a .=. b)
 
 (≢) :: (FirstOrderFormula fof atom v, AtomEq atom p term) => term -> term -> fof
 (≢) = (.!=.)
+
+instance (AtomEq atom p term, Constants atom, Variable v, Term term v f) => Formula atom term v where
+    substitute env = foldAtomEq (\ p args -> applyEq p (map (tsubst env) args)) fromBool (\ t1 t2 -> equals (tsubst env t1) (tsubst env t2))
+    allVariables = foldAtomEq (\ _ args -> Set.unions (map fvt args)) (const Set.empty) (\ t1 t2 -> Set.union (fvt t1) (fvt t2))
+    freeVariables = allVariables
+
+fvt :: (Term term v f, Ord v) => term -> Set.Set v
+fvt tm = foldTerm Set.singleton (\ _ args -> Set.unions (map fvt args)) tm
+
+tsubst :: (Term term v f, Ord v) => (Map.Map v term) -> term -> term
+tsubst env tm = foldTerm (\ x -> fromMaybe tm (Map.lookup x env)) (\ fn args -> fApp fn (map (tsubst env) args)) tm

@@ -38,6 +38,7 @@ import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.FirstOrderEq (prettyFirstOrderEq, prettyLitEq, fromFirstOrderEq)
+import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Term (Term)
@@ -54,12 +55,12 @@ import Text.PrettyPrint (Doc, hcat, vcat, text, nest, ($$), brackets, render)
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-clauseNormalForm :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal lit atom v, Eq formula, Ord lit, Constants p, Eq p) =>
+clauseNormalForm :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, Literal lit atom v, Eq formula, Ord lit, Constants p, Eq p) =>
        formula -> SkolemT v term m (Set.Set (Set.Set lit))
 clauseNormalForm fm = skolemNormalForm fm >>= return . simpcnf
 
 cnfTrace :: forall m formula atom term v p f lit.
-            (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal lit atom v, Eq formula, Ord lit, Constants p, Eq p) =>
+            (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, Literal lit atom v, Eq formula, Ord lit, Constants p, Eq p) =>
             (v -> Doc)
          -> (p -> Doc)
          -> (f -> Doc)

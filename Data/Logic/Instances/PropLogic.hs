@@ -10,6 +10,7 @@ import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool))
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula, toPropositional)
+import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..), clauseNormalForm')
@@ -85,10 +86,10 @@ plSat0 f = satisfiable . (\ (x :: PropForm formula) -> x) . clauses0 $ f
 clauses0 :: (PropositionalFormula formula atom, Ord formula) => PropForm formula -> PropForm formula
 clauses0 f = CJ . map DJ . map S.toList . S.toList $ clauseNormalForm' f
 
-plSat :: forall m formula atom term v p f. (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Ord formula, Literal formula atom v, Constants p, Eq p) =>
+plSat :: forall m formula atom term v p f. (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, Ord formula, Literal formula atom v, Constants p, Eq p) =>
                 formula -> SkolemT v term m Bool
 plSat f = clauses f >>= (\ (x :: PropForm formula) -> return x) >>= return . satisfiable
 
-clauses :: forall m formula atom term v p f. (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal formula atom v, Ord formula, Constants p, Eq p) =>
+clauses :: forall m formula atom term v p f. (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, Literal formula atom v, Ord formula, Constants p, Eq p) =>
            formula -> SkolemT v term m (PropForm formula)
 clauses f = clauseNormalForm f >>= return . CJ . map (DJ . map (toPropositional (A :: formula -> PropForm formula))) . map S.toList . S.toList

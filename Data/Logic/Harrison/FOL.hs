@@ -21,6 +21,7 @@ import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), b
 import Data.Logic.Classes.Constants (Constants (fromBool, true, false))
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq, equals), applyEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), quant)
+import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term(vt, foldTerm, fApp))
 import Data.Logic.Classes.Variable (Variable(..))
@@ -217,7 +218,7 @@ var at fm =
       tf _ = Set.empty
 
 -- | Return the variables that occur free in a formula.
-fv :: forall formula atom v. FirstOrderFormula formula atom v => (atom -> Set.Set v) -> formula -> Set.Set v
+fv :: forall formula atom term v. (FirstOrderFormula formula atom v, Formula atom term v) => (atom -> Set.Set v) -> formula -> Set.Set v
 fv at fm =
     foldFirstOrder qu co tf at fm
     where
@@ -238,7 +239,7 @@ varApply = foldApply (\ _ args -> Set.unions (map fvt args)) (const Set.empty)
 -- Universal closure of a formula.                                           
 -- ------------------------------------------------------------------------- 
 
-generalize :: FirstOrderFormula formula atom v => (atom -> Set.Set v) -> formula -> formula
+generalize :: (FirstOrderFormula formula atom v, Formula atom term v) => (atom -> Set.Set v) -> formula -> formula
 generalize at fm = Set.fold for_all fm (fv at fm)
 
 -- ------------------------------------------------------------------------- 
@@ -252,7 +253,7 @@ tsubst sfn tm = foldTerm (\ x -> fromMaybe tm (Map.lookup x sfn)) (\ fn args -> 
 -- Substitution in formulas, with variable renaming.                         
 -- ------------------------------------------------------------------------- 
 
-subst :: (FirstOrderFormula formula atom v, Term term v f) =>
+subst :: (FirstOrderFormula formula atom v, Formula atom term v, Term term v f) =>
          (atom -> Set.Set v)
       -> (Map.Map v term -> atom -> atom)
       -> Map.Map v term -> formula -> formula

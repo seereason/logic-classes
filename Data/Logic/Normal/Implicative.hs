@@ -19,6 +19,7 @@ import Data.List (intersperse)
 import Data.Logic.Classes.Constants (Constants(true), ifElse)
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
+import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Skolem (Skolem(fromSkolem))
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
@@ -89,7 +90,7 @@ prettyProof lit p = cat $ [text "["] ++ intersperse (text ", ") (map (prettyINF 
 --    a | b | c => f
 -- @
 implicativeNormalForm :: forall m formula atom term v p f lit. 
-                         (Monad m, FirstOrderFormula formula atom v, Data formula, Literal lit atom v, AtomEq atom p term, Term term v f,
+                         (Monad m, FirstOrderFormula formula atom v, Formula atom term v, Data formula, Literal lit atom v, AtomEq atom p term, Term term v f,
                           Eq formula, Eq lit, Ord lit, Data lit, Constants p, Eq p, Skolem f) =>
                          formula -> SkolemT v term m (Set.Set (ImplicativeForm lit))
 implicativeNormalForm formula =

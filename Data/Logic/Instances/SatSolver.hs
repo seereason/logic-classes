@@ -11,6 +11,7 @@ import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(..))
 import Data.Logic.Classes.Constants (Constants)
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
+import Data.Logic.Classes.Formula (Formula)
 import qualified Data.Logic.Classes.Literal as N
 import Data.Logic.Classes.Negate (Negatable(..), negated, (.~.))
 import Data.Logic.Classes.Term (Term)
@@ -38,7 +39,7 @@ instance ClauseNormalFormula CNF Literal where
     makeCNF = map S.toList . S.toList
     satisfiable cnf = return . not . null $ assertTrue' cnf newSatSolver >>= solve
 
-toCNF :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, N.Literal formula atom v, Ord formula, Constants p, Eq p) =>
+toCNF :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, N.Literal formula atom v, Ord formula, Constants p, Eq p) =>
          formula -> NormalT formula v term m CNF
 toCNF f = clauseNormalForm f >>= S.ssMapM (lift . toLiteral) >>= return . makeCNF
 

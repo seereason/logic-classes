@@ -11,6 +11,7 @@ import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool))
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
+import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Negate (Negatable, negated, (.~.))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Harrison.Skolem (nnf, simplify)
@@ -66,10 +67,10 @@ simpdnf fm =
 -- Conjunctive normal form (CNF) by essentially the same code.               
 -- ------------------------------------------------------------------------- 
 
-purecnf :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof) => fof -> Set.Set (Set.Set fof)
+purecnf :: (FirstOrderFormula fof atom v, Formula atom term v, AtomEq atom p term, Term term v f, Ord fof) => fof -> Set.Set (Set.Set fof)
 purecnf fm = Set.map (Set.map (simplify . (.~.))) (purednf (nnf ((.~.) fm)))
 
-simpcnf :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Ord formula) => formula -> Set.Set (Set.Set formula)
+simpcnf :: (FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, Ord formula) => formula -> Set.Set (Set.Set formula)
 simpcnf fm =
     foldFirstOrder qu co tf at fm
     where

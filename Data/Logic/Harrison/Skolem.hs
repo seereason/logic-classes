@@ -24,6 +24,7 @@ import Data.Logic.Classes.Constants (Constants(fromBool, true, false), asBool)
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(exists, for_all, foldFirstOrder), Quant(..), quant)
 import Data.Logic.Classes.FirstOrderEq (substituteEq)
+import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Literal (Literal(foldLiteral, atomic))
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Skolem (Skolem(toSkolem))
@@ -44,7 +45,7 @@ import qualified Data.Set as Set
 -- Routine simplification. Like "psimplify" but with quantifier clauses.     
 -- ------------------------------------------------------------------------- 
 
-simplify1 :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Eq fof, Constants p, Eq p) => fof -> fof
+simplify1 :: (FirstOrderFormula fof atom v, Formula atom term v, AtomEq atom p term, Term term v f, Eq fof, Constants p, Eq p) => fof -> fof
 simplify1 fm =
     foldFirstOrder qu co tf at fm
     where
@@ -74,7 +75,7 @@ simplify1 fm =
       tf = fromBool
       at _ = fm
 
-simplify :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Eq fof, Constants p, Eq p) => fof -> fof
+simplify :: (FirstOrderFormula fof atom v, Formula atom term v, AtomEq atom p term, Term term v f, Eq fof, Constants p, Eq p) => fof -> fof
 simplify fm =
     foldFirstOrder qu co tf at fm
     where
@@ -118,7 +119,7 @@ nnf fm =
 -- Prenex normal form.                                                       
 -- ------------------------------------------------------------------------- 
 
-pullQuants :: forall formula atom v term p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
+pullQuants :: forall formula atom v term p f. (FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f) =>
               (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> formula -> formula
 pullQuants va sa fm =
     foldFirstOrder (\ _ _ _ -> fm) pullQuantsCombine (\ _ -> fm) (\ _ -> fm) fm
@@ -142,7 +143,7 @@ pullQuants va sa fm =
 -- |Helper function to rename variables when we want to enclose a
 -- formula containing a free occurrence of that variable a quantifier
 -- that quantifies it.
-pullq :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
+pullq :: (FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f) =>
          (atom -> Set.Set v)
       -> (Map.Map v term -> atom -> atom)
       -> Bool -> Bool
@@ -161,7 +162,7 @@ pullq va sa l r fm mkq op x y p q =
 
 -- |Recursivly apply pullQuants anywhere a quantifier might not be
 -- leftmost.
-prenex :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> formula 
+prenex :: (FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f) => formula -> formula 
 prenex fm =
     foldFirstOrder qu co (\ _ -> fm) (\ _ -> fm) fm
     where
@@ -171,7 +172,7 @@ prenex fm =
       co _ = fm
 
 -- |Convert to Prenex normal form, with all quantifiers at the left.
-pnf :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Eq formula, Constants p, Eq p) => formula -> formula
+pnf :: (FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, Eq formula, Constants p, Eq p) => formula -> formula
 pnf = prenex . nnf . simplify
 
 -- ------------------------------------------------------------------------- 
@@ -244,7 +245,7 @@ runSkolemT action = (runStateT action) newSkolemState >>= return . fst
 -- are applied to the list of variables which are universally
 -- quantified in the context where the existential quantifier
 -- appeared.
-skolem :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> SkolemT v term m formula
+skolem :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f) => formula -> SkolemT v term m formula
 skolem fm =
     foldFirstOrder qu co (\ _ -> return fm) (\ _ -> return fm) fm
     where
@@ -260,7 +261,7 @@ skolem fm =
       co (BinOp l (:|:) r) = skolem2 (.|.) l r
       co _ = return fm
 
-skolem2 :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
+skolem2 :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f) =>
            (formula -> formula -> formula) -> formula -> formula -> SkolemT v term m formula
 skolem2 cons p q =
     skolem p >>= \ p' ->
@@ -300,7 +301,7 @@ skolem fm fns =
 
 -- |I need to consult the Harrison book for the reasons why we don't
 -- |just Skolemize the result of prenexNormalForm.
-askolemize :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Eq formula) =>
+askolemize :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, Eq formula) =>
               formula -> SkolemT v term m formula
 askolemize = skolem . nnf . simplify
 
@@ -311,7 +312,7 @@ specialize f =
       q Forall _ f' = specialize f'
       q _ _ _ = f
 
-skolemize :: (Monad m, FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Eq fof) => fof -> SkolemT v term m fof
+skolemize :: (Monad m, FirstOrderFormula fof atom v, Formula atom term v, AtomEq atom p term, Term term v f, Eq fof) => fof -> SkolemT v term m fof
 -- skolemize fm = {- t1 $ -} specialize . pnf . askolemize $ fm
 skolemize fm = askolemize fm >>= return . specialize . pnf
 
@@ -365,6 +366,6 @@ literal fm =
 
 -- |We get Skolem Normal Form by skolemizing and then converting to
 -- Prenex Normal Form, and finally eliminating the remaining quantifiers.
-skolemNormalForm :: (Monad m, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Eq formula) =>
+skolemNormalForm :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, Eq formula) =>
                     formula -> SkolemT v term m formula
 skolemNormalForm f = askolemize f >>= return . specialize . pnf

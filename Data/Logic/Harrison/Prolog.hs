@@ -4,6 +4,7 @@ module Data.Logic.Harrison.Prolog where
 
 import Data.Logic.Classes.Equals (AtomEq(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
+import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Term (Term(vt))
 import Data.String (IsString (fromString))
 import Data.Logic.Harrison.FOL (fv, subst, varAtomEq, substAtomEq, list_conj)
@@ -18,7 +19,7 @@ import qualified Data.Set as Set
 -- Rename a rule.                                                            
 -- ------------------------------------------------------------------------- 
 
-renamerule :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof) =>
+renamerule :: forall fof atom term v p f. (FirstOrderFormula fof atom v, Formula atom term v, AtomEq atom p term, Term term v f, Ord fof) =>
               Int -> (Set.Set fof, fof) -> ((Set.Set fof, fof), Int)
 renamerule k (asm,c) =
     ((Set.map inst asm, inst c), k + Set.size fvs)

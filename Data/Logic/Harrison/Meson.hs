@@ -8,6 +8,7 @@ import qualified Data.Set as Set
 import Data.Logic.Classes.Constants (Constants, false)
 import Data.Logic.Classes.Equals (AtomEq(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
+import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Negate (Negatable, (.~.), negative)
 import Data.Logic.Classes.Term (Term(..))
@@ -109,6 +110,7 @@ meson :: forall m lit atom term v p f.
          (AtomEq atom p term,
           Literal lit atom v,
           FirstOrderFormula lit atom v,
+          Formula atom term v,
           Term term v f,
           Ord lit,
           Monad m) =>
