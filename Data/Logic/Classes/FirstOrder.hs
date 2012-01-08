@@ -23,10 +23,9 @@ module Data.Logic.Classes.FirstOrder
     , quant'
     , convertFOF
     , toPropositional
+    , withUnivQuants
     , showFirstOrder
     , prettyFirstOrder
-    , prettyApply
-    , withUnivQuants
 {-
     , freeVars
     , quantVars
@@ -45,29 +44,11 @@ import Data.Logic.Classes.Apply (Apply(..), apply, apply0, apply1, apply2, apply
 import Data.Logic.Classes.Constants
 import Data.Logic.Classes.Combine
 import Data.Logic.Classes.Propositional (PropositionalFormula)
-import Data.Logic.Classes.Term (Term(..), showTerm, prettyTerm)
+import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Happstack.Data (deriveNewData)
 import Text.PrettyPrint (Doc, (<>), (<+>), text, empty, parens, hcat, nest)
-
-{-
--- |A class of predicates
-class (Combinable formula, Constants p, Arity p) => Pred p term formula | formula -> p, formula -> term where
-    pApp0 :: p  -> formula
-    pApp1 :: p -> term -> formula
-    pApp2 :: p -> term -> term -> formula
-    pApp3 :: p -> term -> term -> term -> formula
-    pApp4 :: p -> term -> term -> term -> term -> formula
-    pApp5 :: p -> term -> term -> term -> term -> term -> formula
-    pApp6 :: p -> term -> term -> term -> term -> term -> term -> formula
-    pApp7 :: p -> term -> term -> term -> term -> term -> term -> term -> formula
-    -- | Equality of Terms
-    (.=.) :: term -> term -> formula
-    -- | Inequality of Terms
-    (.!=.) :: term -> term -> formula
-    a .!=. b = (.~.) (a .=. b)
--}
 
 -- |The 'FirstOrderFormula' type class.  Minimal implementation:
 -- @for_all, exists, foldFirstOrder, foldTerm, (.=.), pApp0-pApp7, fApp, var@.  The
@@ -179,7 +160,7 @@ quant' Exists = exists'
 
 convertFOF :: (FirstOrderFormula formula1 atom1 v1, FirstOrderFormula formula2 atom2 v2) =>
               (atom1 -> atom2) -> (v1 -> v2) -> formula1 -> formula2
-convertFOF convertA convertV  formula =
+convertFOF convertA convertV formula =
     foldFirstOrder qu co tf (atomic . convertA) formula
     where
       convert' = convertFOF convertA convertV
@@ -187,22 +168,6 @@ convertFOF convertA convertV  formula =
       co (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
       co ((:~:) f) = combine ((:~:) (convert' f))
       tf = fromBool
-
--- -- |Convert any instance of a first order logic expression to any other.
--- convertFOF :: forall formula1 atom1 term1 v1 p1 f1 formula2 atom2 term2 v2 p2 f2.
---               (FirstOrderFormula formula1 atom1 v1, Apply atom1 p1 term1, Term term1 v1 f1,
---                FirstOrderFormula formula2 atom2 v2, Apply atom2 p2 term2, Term term2 v2 f2) =>
---               (v1 -> v2) -> (p1 -> p2) -> (f1 -> f2) -> formula1 -> formula2
--- convertFOF convertV convertP convertF formula =
---     foldFirstOrder qu co tf at formula
---     where
---       convert' = convertFOF convertV convertP convertF
---       convertTerm' = convertTerm convertV convertF
---       qu x v f = quant x (convertV v) (convert' f)
---       co (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
---       co ((:~:) f) = combine ((:~:) (convert' f))
---       tf = fromBool
---       at = foldApply (\ x ts -> pApp (convertP x) (map convertTerm' ts)) (pApp0 . fromBool)
 
 -- |Try to convert a first order logic formula to propositional.  This
 -- will return Nothing if there are any quantifiers, or if it runs
@@ -222,21 +187,18 @@ toPropositional convertAtom formula =
       at _ = convertAtom formula
 
 -- | Display a formula in a format that can be read into the interpreter.
-showFirstOrder :: forall formula atom term v p f. (FirstOrderFormula formula atom v, Apply atom p term, Term term v f, Show v, Show p, Show f) => 
-                  formula -> String
-showFirstOrder formula =
+showFirstOrder :: forall formula atom v. (FirstOrderFormula formula atom v) => (atom -> String) -> formula -> String
+showFirstOrder sa formula =
     foldFirstOrder qu co tf at formula
     where
-      qu Forall v f = "(for_all " ++ show v ++ " " ++ showFirstOrder f ++ ")"
-      qu Exists v f = "(exists " ++  show v ++ " " ++ showFirstOrder f ++ ")"
+      qu Forall v f = "(for_all " ++ show v ++ " " ++ showFirstOrder sa f ++ ")"
+      qu Exists v f = "(exists " ++  show v ++ " " ++ showFirstOrder sa f ++ ")"
       co (BinOp f1 op f2) = "(" ++ parenForm f1 ++ " " ++ showCombine op ++ " " ++ parenForm f2 ++ ")"
-      co ((:~:) f) = "((.~.) " ++ showFirstOrder f ++ ")"
-      tf True = "true"
-      tf False = "false"
-      at = foldApply (\ p ts -> "(pApp" ++ show (length ts) ++ " (" ++ show p ++ ") (" ++ intercalate ") (" (map showTerm ts) ++ "))") (\ x -> if x then "true" else "false")
-      parenForm x = "(" ++ showFirstOrder x ++ ")"
-      -- parenTerm :: term -> String
-      -- parenTerm x = "(" ++ showTerm x ++ ")"
+      co ((:~:) f) = "((.~.) " ++ showFirstOrder sa f ++ ")"
+      tf x = if x then "true" else "false"
+      at :: atom -> String
+      at = sa
+      parenForm x = "(" ++ showFirstOrder sa x ++ ")"
       showCombine (:<=>:) = ".<=>."
       showCombine (:=>:) = ".=>."
       showCombine (:&:) = ".&."
@@ -269,15 +231,6 @@ prettyFirstOrder pa pv prec formula =
       formOp (:&:) = text "&"
       formOp (:|:) = text "|"
 
-prettyApply :: (Apply atom p term, Term term v f) => (v -> Doc) -> (p -> Doc) -> (f -> Doc) -> Int -> atom -> Doc
-prettyApply pv pp pf prec atom =
-    foldApply (\ p ts ->
-                   pp p <> case ts of
-                             [] -> empty
-                             _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts))))
-              (\ x -> text (if x then "true" else "false"))
-              atom
-
 -- | Examine the formula to find the list of outermost universally
 -- quantified variables, and call a function with that list and the
 -- formula after the quantifiers are removed.
@@ -294,94 +247,6 @@ withUnivQuants fn formula =
                 f
       doQuant vs Forall v f = doFormula (v : vs) f
       doQuant vs Exists v f = fn (reverse vs) (exists v f)
-
-{-
--- | Functions to disjunct or conjunct a list.
-disj :: FirstOrderFormula formula atom v => [formula] -> formula
-disj [] = false
-disj [x] = x
-disj (x:xs) = x .|. disj xs
-
-conj :: FirstOrderFormula formula atom v => [formula] -> formula
-conj [] = true
-conj [x] = x
-conj (x:xs) = x .&. conj xs
-
--- |Find the free (unquantified) variables in a formula.
-freeVars :: (FirstOrderFormula formula atom v, Atom atom p term, Term term v f) => formula -> S.Set v
-freeVars f =
-    foldFirstOrder
-          (\_ v x -> S.delete v (freeVars x))                    
-          (\ cm ->
-               case cm of
-                 BinOp x _ y -> (mappend `on` freeVars) x y
-                 (:~:) f' -> freeVars f')
-          (foldAtom (\ _ ts -> S.unions (fmap freeVarsOfTerm ts)))
-          f
-    where
-      freeVarsOfTerm = foldTerm S.singleton (\ _ args -> S.unions (fmap freeVarsOfTerm args))
-
-{-
-withImplication :: FirstOrderFormula formula atom v => r -> (formula -> formula -> r) -> formula -> r
-withImplication def fn formula =
-    foldFirstOrder (\ _ _ _ -> def) c (\ _ -> def) formula
-    where
-      c (BinOp a (:=>:) b) = fn a b
-      c _ = def
--}
-
--- |Find the variables that are quantified in a formula
-quantVars :: FirstOrderFormula formula atom v => formula -> S.Set v
-quantVars =
-    foldFirstOrder
-          (\ _ v x -> S.insert v (quantVars x))
-          (\ cm ->
-               case cm of
-                 BinOp x _ y -> (mappend `on` quantVars) x y
-                 ((:~:) f) -> quantVars f)
-          (\ _ -> S.empty)
-
--- |Find the free and quantified variables in a formula.
-allVars :: (FirstOrderFormula formula atom v, Atom atom p term, Term term v f) => formula -> S.Set v
-allVars f =
-    foldFirstOrder
-          (\_ v x -> S.insert v (allVars x))
-          (\ cm ->
-               case cm of
-                 BinOp x _ y -> (mappend `on` allVars) x y
-                 (:~:) f' -> freeVars f')
-          (foldAtom (\ _ ts -> S.unions (fmap allVarsOfTerm ts)))
-          f
-    where
-      allVarsOfTerm = foldTerm S.singleton (\ _ args -> S.unions (fmap allVarsOfTerm args))
-
--- | Universally quantify all free variables in the formula (Name comes from TPTP)
-univquant_free_vars :: (FirstOrderFormula formula atom v, Atom atom p term, Term term v f) => formula -> formula
-univquant_free_vars cnf' =
-    if S.null free then cnf' else foldr for_all cnf' (S.toList free)
-    where free = freeVars cnf'
-
--- |Replace each free occurrence of variable old with term new.
-substitute :: (FirstOrderFormula formula atom v, Atom atom p term, Term term v f) => v -> term -> formula -> formula
-substitute old new formula =
-    foldTerm (\ new' -> if old == new' then formula else substitute' formula)
-             (\ _ _ -> substitute' formula)
-             new
-    where
-      substitute' =
-          foldFirstOrder -- If the old variable appears in a quantifier
-                -- we can stop doing the substitution.
-                (\ q v f' -> quant q v (if old == v then f' else substitute' f'))
-                (\ cm -> case cm of
-                           ((:~:) f') -> combine ((:~:) (substitute' f'))
-                           (BinOp f1 op f2) -> combine (BinOp (substitute' f1) op (substitute' f2)))
-                (foldAtom (\ p ts -> pApp p (map st ts)))
-      st t = foldTerm sv (\ func ts -> fApp func (map st ts)) t
-      sv v = if v == old then new else vt v
-
-substitutePairs :: (FirstOrderFormula formula atom v, Atom atom p term, Term term v f) => [(v, term)] -> formula -> formula
-substitutePairs pairs formula = foldr (\ (old, new) f -> substitute old new f) formula pairs 
--}
 
 $(deriveSafeCopy 1 'base ''Quant)
 

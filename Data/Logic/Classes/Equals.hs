@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, TypeFamilies, UndecidableInstances #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TypeFamilies, UndecidableInstances #-}
 -- | Support for equality.
 module Data.Logic.Classes.Equals
     ( AtomEq(..)
@@ -10,19 +10,24 @@ module Data.Logic.Classes.Equals
     , showFirstOrderFormulaEq
     , (.=.), (≡)
     , (.!=.), (≢)
+    , fromAtomEq
+    , showAtomEq
+    , prettyAtomEq
     ) where
 
+import Data.List (intercalate, intersperse)
 import Data.Logic.Classes.Arity (Arity(..))
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (Constants(fromBool))
+import Data.Logic.Classes.Constants (Constants(fromBool), ifElse)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
 import Data.Logic.Classes.Formula (Formula(..))
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Term (Term(foldTerm, fApp))
+import Data.Logic.Classes.Term (Term(foldTerm, fApp), convertTerm, showTerm, prettyTerm)
 import Data.Logic.Classes.Variable (Variable)
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
+import Text.PrettyPrint (Doc, (<>), (<+>), text, empty, parens, hcat, nest)
 
 -- | Its not safe to make Atom a superclass of AtomEq, because the Atom methods will fail on AtomEq instances.
 class (Arity p, Constants p, Eq p, Show p) => AtomEq atom p term | atom -> p term, term -> atom p where
@@ -147,3 +152,35 @@ fvt tm = foldTerm Set.singleton (\ _ args -> Set.unions (map fvt args)) tm
 
 tsubst :: (Term term v f, Ord v) => (Map.Map v term) -> term -> term
 tsubst env tm = foldTerm (\ x -> fromMaybe tm (Map.lookup x env)) (\ fn args -> fApp fn (map (tsubst env) args)) tm
+
+fromAtomEq :: (AtomEq atom1 p1 term1, Term term1 v1 f1,
+               AtomEq atom2 p2 term2, Term term2 v2 f2, Constants atom2) =>
+              (v1 -> v2) -> (p1 -> p2) -> (f1 -> f2) -> atom1 -> atom2
+fromAtomEq cv cp cf atom =
+    foldAtomEq (\ pr ts -> applyEq (cp pr) (map ct ts))
+               fromBool
+               (\ a b -> ct a `equals` ct b)
+               atom
+    where
+      ct = convertTerm cv cf
+
+showAtomEq :: forall atom term v p f. (AtomEq atom p term, Term term v f, Show v, Show f) => atom -> String
+showAtomEq =
+    foldAtomEq (\ p ts -> "(pApp" ++ show (length ts) ++ " (" ++ show p ++ ") (" ++ intercalate ") (" (map showTerm ts) ++ "))")
+               (\ x -> if x then "true" else "false")
+               (\ t1 t2 -> "(" ++ parenTerm t1 ++ " .=. " ++ parenTerm t2 ++ ")")
+    where
+      parenTerm :: term -> String
+      parenTerm x = "(" ++ showTerm x ++ ")"
+
+prettyAtomEq :: (AtomEq atom p term, Term term v f) => (v -> Doc) -> (p -> Doc) -> (f -> Doc) -> Int -> atom -> Doc
+prettyAtomEq pv pp pf prec atom =
+    foldAtomEq (\ p ts -> pp p <> case ts of
+                                    [] -> empty
+                                    _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts))))
+               (text . ifElse "true" "false")
+               (\ t1 t2 -> parensIf (prec > 6) (prettyTerm pv pf t1 <+> text "=" <+> prettyTerm pv pf t2))
+               atom
+    where
+      parensIf False = id
+      parensIf _ = parens . nest 1

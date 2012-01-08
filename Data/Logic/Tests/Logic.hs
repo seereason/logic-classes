@@ -6,9 +6,8 @@ module Data.Logic.Tests.Logic (tests) where
 import Data.Logic.Classes.Arity (Arity(arity))
 import Data.Logic.Classes.Combine (Combinable(..))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.Equals (AtomEq, (.=.), pApp, pApp1)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
-import Data.Logic.Classes.FirstOrderEq (showFirstOrderEq)
+import Data.Logic.Classes.Equals (AtomEq, (.=.), pApp, pApp1, showAtomEq)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder)
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Negate (negated, (.~.))
 import Data.Logic.Classes.Skolem (Skolem(..))
@@ -382,7 +381,7 @@ theorem5 =
 -}
 
 instance TD.Display TFormula where
-    textFrame x = [showFirstOrderEq x]
+    textFrame x = [showFirstOrder showAtomEq x]
 {-
     textFrame x = [quickShow x]
         where

@@ -8,14 +8,11 @@ module Data.Logic.Classes.Literal
     , prettyLit
     ) where
 
-import Data.List (intersperse)
-import Data.Logic.Classes.Apply (Apply(foldApply))
 import Data.Logic.Classes.Combine (Combination(..))
 import Data.Logic.Classes.Constants
 import qualified Data.Logic.Classes.FirstOrder as FOF
 import Data.Logic.Classes.Negate
-import Data.Logic.Classes.Term
-import Text.PrettyPrint (Doc, (<>), text, empty, parens, hcat)
+import Text.PrettyPrint (Doc, (<>), text)
 
 -- |Literals are the building blocks of the clause and implicative normal
 -- |forms.  They support negation and must include True and False elements.

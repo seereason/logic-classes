@@ -7,7 +7,6 @@ import Distribution.Simple.LocalBuildInfo (LocalBuildInfo(buildDir))
 import Distribution.Simple.Program
 import System.Cmd
 import System.Exit
-import System.Posix.Files (fileExist)
 
 main :: IO ()
 main = defaultMainWithHooks simpleUserHooks {

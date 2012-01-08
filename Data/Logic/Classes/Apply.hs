@@ -6,12 +6,16 @@ module Data.Logic.Classes.Apply
     , apply
     , zipApplys
     , apply0, apply1, apply2, apply3, apply4, apply5, apply6, apply7
+    , showApply
+    , prettyApply
     ) where
 
 import Data.Logic.Classes.Arity
 import Data.Logic.Classes.Constants
---import Data.Logic.Classes.Term
+import Data.Logic.Classes.Term (Term, showTerm, prettyTerm)
+import Data.List (intercalate, intersperse)
 import Data.Maybe (fromMaybe)
+import Text.PrettyPrint (Doc, (<>), text, empty, parens, hcat)
 
 class (Arity p, Constants p, Eq p) => Apply atom p term | atom -> p term where
     foldApply :: (p -> [term] -> r) -> (Bool -> r) -> atom -> r
@@ -42,3 +46,17 @@ apply4 p a b c d = if fromMaybe 4 (arity p) == 4 then apply' p [a,b,c,d] else er
 apply5 p a b c d e = if fromMaybe 5 (arity p) == 5 then apply' p [a,b,c,d,e] else error "arity"
 apply6 p a b c d e f = if fromMaybe 6 (arity p) == 6 then apply' p [a,b,c,d,e,f] else error "arity"
 apply7 p a b c d e f g = if fromMaybe 7 (arity p) == 7 then apply' p [a,b,c,d,e,f,g] else error "arity"
+
+showApply :: (Apply atom p term, Term term v f, Show v, Show p, Show f) => atom -> String
+showApply =
+    foldApply (\ p ts -> "(pApp" ++ show (length ts) ++ " (" ++ show p ++ ") (" ++ intercalate ") (" (map showTerm ts) ++ "))")
+              (\ x -> if x then "true" else "false")
+
+prettyApply :: (Apply atom p term, Term term v f) => (v -> Doc) -> (p -> Doc) -> (f -> Doc) -> Int -> atom -> Doc
+prettyApply pv pp pf prec atom =
+    foldApply (\ p ts ->
+                   pp p <> case ts of
+                             [] -> empty
+                             _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts))))
+              (\ x -> text (if x then "true" else "false"))
+              atom

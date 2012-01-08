@@ -9,7 +9,7 @@ module Data.Logic.Types.Harrison.FOL
 
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Arity
-import Data.Logic.Classes.Apply (Apply(..))
+import Data.Logic.Classes.Apply (Apply(..), showApply)
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder)
@@ -105,4 +105,4 @@ instance Variable String where
     prettyVariable = text
 
 instance Show (Formula FOL) where
-    show = showFirstOrder
+    show = showFirstOrder showApply
