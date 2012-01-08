@@ -2,10 +2,7 @@
 {-# OPTIONS_GHC -Wall #-}
 -- | Versions of the normal form functions in Prop for FirstOrderFormula.
 module Data.Logic.Harrison.Normal
-    ( positive
-    , negative
-    , negate
-    , trivial
+    ( trivial
     , simpdnf
     , simpcnf
     ) where
@@ -20,26 +17,6 @@ import Data.Logic.Harrison.Skolem (nnf, simplify)
 import Data.Logic.Harrison.Lib (setAny, allpairs)
 import qualified Data.Set as Set
 import Prelude hiding (negate)
-
--- ------------------------------------------------------------------------- 
--- Some operations on literals.                                              
--- ------------------------------------------------------------------------- 
-
-negative :: Negatable fof => fof -> Bool
-negative = negated
-
-positive :: Negatable fof => fof -> Bool
-positive = not . negative
-
-negate :: FirstOrderFormula fof atom v => fof -> fof
-negate lit =
-    foldFirstOrder qu co tf at lit
-    where
-      qu _ _ _ = (.~.) lit
-      co ((:~:) p) = p
-      co _ = (.~.) lit
-      tf = fromBool . not
-      at _ = (.~.) lit
 
 -- ------------------------------------------------------------------------- 
 -- A version using a list representation.  (dsf: now set)

@@ -9,15 +9,14 @@ import Data.Logic.Classes.Constants (Constants, false)
 import Data.Logic.Classes.Equals (AtomEq(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Literal (Literal)
-import Data.Logic.Classes.Negate (Negatable, (.~.))
+import Data.Logic.Classes.Negate (Negatable, (.~.), negative)
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Harrison.FOL (generalize, list_conj, varAtomEq)
 import Data.Logic.Harrison.Lib (setAll, settryfind)
-import Data.Logic.Harrison.Normal (negative, negate, simpcnf, simpdnf)
+import Data.Logic.Harrison.Normal (simpcnf, simpdnf)
 import Data.Logic.Harrison.Prolog (renamerule)
 import Data.Logic.Harrison.Skolem (pnf, SkolemT, specialize, askolemize)
 import Data.Logic.Harrison.Tableaux (unify_literals, deepen)
-import Prelude hiding (negate)
 
 -- =========================================================================
 -- Model elimination procedure (MESON version, based on Stickel's PTTP).     
@@ -52,8 +51,8 @@ END_INTERACTIVE;;
 
 contrapositives :: forall fof atom v. (FirstOrderFormula fof atom v, Ord fof) => Set.Set fof -> Set.Set (Set.Set fof, fof)
 contrapositives cls =
-    if setAll negative cls then Set.insert (Set.map negate cls,false) base else base
-    where base = Set.map (\ c -> (Set.map negate (Set.delete c cls), c)) cls
+    if setAll negative cls then Set.insert (Set.map (.~.) cls,false) base else base
+    where base = Set.map (\ c -> (Set.map (.~.) (Set.delete c cls), c)) cls
 
 -- ------------------------------------------------------------------------- 
 -- The core of MESON: ancestor unification or Prolog-style extension.        
@@ -75,7 +74,7 @@ mexpand rules ancestors g cont (env,n,k) =
            Failure _ -> settryfind doRule rules
     where
       doAncestor a =
-          do mp <- unify_literals env g (negate a)
+          do mp <- unify_literals env g ((.~.) a)
              cont (mp, n, k)
       doRule rule =
           do mp <- unify_literals env g c

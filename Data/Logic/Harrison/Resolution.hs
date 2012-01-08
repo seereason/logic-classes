@@ -7,21 +7,19 @@ import Data.Logic.Classes.Combine (Combination(..))
 import Data.Logic.Classes.Equals (AtomEq, zipAtomsEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), zipFirstOrder)
 import Data.Logic.Classes.Literal (Literal)
-import Data.Logic.Classes.Negate ((.~.))
+import Data.Logic.Classes.Negate ((.~.), positive)
 import Data.Logic.Classes.Term (Term(vt, foldTerm))
 import Data.Logic.Classes.Variable (Variable(prefix))
 import Data.Logic.Harrison.FOL (subst, fv, varAtomEq, substAtomEq, generalize, list_disj, list_conj)
 import Data.Logic.Harrison.Lib (settryfind, allpairs, allsubsets, setAny, setAll,
                                 allnonemptysubsets, (|->), apply, defined)
-import Data.Logic.Harrison.Normal (positive, negate, simpdnf,
-                                   simpcnf, trivial)
+import Data.Logic.Harrison.Normal (simpdnf, simpcnf, trivial)
 import Data.Logic.Harrison.Skolem (pnf, SkolemT, askolemize, specialize)
 import Data.Logic.Harrison.Tableaux (unify_literals)
 import Data.Logic.Harrison.Unif (solve)
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
-import Prelude hiding (negate)
 
 -- ========================================================================= 
 -- Resolution.                                                               
@@ -77,7 +75,7 @@ resolvents cl1 cl2 p acc =
     if Set.null ps2 then acc else Set.fold doPair acc pairs
     where
       doPair (s1,s2) sof =
-          case mgu (Set.union s1 (Set.map negate s2)) Map.empty of
+          case mgu (Set.union s1 (Set.map (.~.) s2)) Map.empty of
             Success mp -> Set.union (Set.map (subst varAtomEq substAtomEq mp) (Set.union (Set.difference cl1 s1) (Set.difference cl2 s2))) sof
             Failure _ -> sof
       -- pairs :: Set.Set (Set.Set fof, Set.Set fof)
@@ -85,7 +83,7 @@ resolvents cl1 cl2 p acc =
       -- ps1 :: Set.Set fof
       ps1 = Set.filter (\ q -> q /= p && unifiable p q) cl1
       -- ps2 :: Set.Set fof
-      ps2 = Set.filter (unifiable (negate p)) cl2
+      ps2 = Set.filter (unifiable ((.~.) p)) cl2
 
 {-
 resolve_clauses :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof, Eq term, Eq p) =>

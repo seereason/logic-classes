@@ -3,6 +3,8 @@ module Data.Logic.Classes.Negate
      , negated
      , (.~.)
      , (¬)
+     , negative
+     , positive
      ) where
 
 -- |The class of formulas that can be negated.  There are some types
@@ -28,3 +30,13 @@ negated = foldNegation (const False) (not . negated)
 (¬) = (.~.)
 
 infix 5 .~., ¬
+
+-- ------------------------------------------------------------------------- 
+-- Some operations on literals.  (These names are used in Harrison's code.)
+-- ------------------------------------------------------------------------- 
+
+negative :: Negatable formula => formula -> Bool
+negative = negated
+
+positive :: Negatable formula => formula -> Bool
+positive = not . negative
