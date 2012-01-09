@@ -6,7 +6,7 @@ module Data.Logic.Tests.Logic (tests) where
 import Data.Logic.Classes.Arity (Arity(arity))
 import Data.Logic.Classes.Combine (Combinable(..))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.Equals (AtomEq, (.=.), pApp, pApp1, showAtomEq, varAtomEq, substAtomEq)
+import Data.Logic.Classes.Equals (AtomEq, (.=.), pApp, pApp1, showAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder)
 import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Literal (Literal)
@@ -59,7 +59,7 @@ precTests =
                ((a .&. b) .&. c) -- infixl, with infixr we get (a .&. (b .&. c))
                (a .&. b .&. c :: TFormula)
     , TestCase (assertEqual "Logic - Find a free variable"
-                (fv varAtomEq (for_all "x" (x .=. y) :: TFormula))
+                (fv (for_all "x" (x .=. y) :: TFormula))
                 (Set.singleton "y"))
     , TestCase (assertEqual "Logic - Substitute a variable"
                 (map sub
@@ -69,7 +69,7 @@ precTests =
                 , for_all "y" (z .=. y) :: TFormula ])
     ]
     where
-      sub f = subst varAtomEq substAtomEq (Map.singleton (head . Set.toList . fv varAtomEq $ f) (vt "z")) f
+      sub f = subst (Map.singleton (head . Set.toList . fv $ f) (vt "z")) f
       a = pApp ("a") []
       b = pApp ("b") []
       c = pApp ("c") []
@@ -330,7 +330,7 @@ theoremTests =
                                       (h [x] .=>. m [x]) .&.
                                       (m [x] .=>. ((.~.) (s [x])))) .&.
                          (s [fApp "socrates" []]) in
-                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula, runNormal (clauseNormalForm varAtomEq substAtomEq formula) :: Set.Set (Set.Set TFormula)))
+                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula, runNormal (clauseNormalForm formula) :: Set.Set (Set.Set TFormula)))
     , let (formula :: TFormula) =
               (for_all "x" (pApp "L" [vt "x"] .=>. pApp "F" [vt "x"]) .&. -- All logicians are funny
                exists "x" (pApp "L" [vt "x"])) .=>.                            -- Someone is a logician
@@ -436,6 +436,6 @@ table f =
       cnf' :: PropForm formula
       cnf' = CJ (map (DJ . map n) cnf)
       cnf :: [[formula]]
-      cnf = fromSS (runNormal (clauseNormalForm varAtomEq substAtomEq f))
+      cnf = fromSS (runNormal (clauseNormalForm f))
       fromSS = map Set.toList . Set.toList
       n f = (if negated f then N . A . (.~.) else A) $ f

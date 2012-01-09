@@ -5,12 +5,10 @@ module Data.Logic.Tests.Harrison.Meson where
 import Control.Applicative.Error (Failing(..))
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import Data.Logic.Classes.Equals (varAtomEq, substAtomEq)
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(vt, fApp))
 import Data.Logic.Harrison.Meson(meson)
 import Data.Logic.Harrison.Skolem (runSkolem)
-import Data.Logic.Harrison.Tableaux (unifyAtomsEq)
 import Data.Logic.Tests.Harrison.Resolution (dpExampleFm)
 import Data.Logic.Tests.Harrison.HUnit
 import Data.Logic.Types.Harrison.Equal (FOLEQ)
@@ -25,7 +23,7 @@ import Prelude hiding (negate)
 
 test01 :: Test (Formula FOLEQ)
 test01 = TestLabel "Data.Logic.Tests.Harrison.Meson" $ TestCase $ assertEqual "meson dp example (p. 220)" expected input
-    where input = runSkolem (meson unifyAtomsEq varAtomEq substAtomEq (Just 10) (dpExampleFm :: Formula FOLEQ))
+    where input = runSkolem (meson (Just 10) (dpExampleFm :: Formula FOLEQ))
           expected = Set.singleton (
                                     -- Success ((Map.empty, 0, 0), 8)
                                     Success ((Map.fromList [(fromString "_0",vt' "_6"),

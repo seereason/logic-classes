@@ -4,7 +4,7 @@ module Data.Logic.Tests.Harrison.Resolution where
 
 import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Combine (Combinable(..))
-import Data.Logic.Classes.Equals (pApp, varAtomEq, substAtomEq)
+import Data.Logic.Classes.Equals (pApp)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term(vt, fApp))
@@ -30,7 +30,7 @@ tests = TestLabel "Data.Logic.Tests.Harrison.Resolution" $ TestList [test01, tes
 
 test01 :: Test (Formula FOLEQ)
 test01 = TestCase $ assertEqual "Barber's paradox (p. 181)" expected input
-    where input = simpcnf varAtomEq (runSkolem (skolemize varAtomEq substAtomEq ((.~.)barb)))
+    where input = simpcnf (runSkolem (skolemize ((.~.)barb)))
           barb :: Formula FOLEQ
           barb = exists (fromString "b") (for_all (fromString "x") (shaves [b, x] .<=>. ((.~.)(shaves [x, x]))))
           -- This is not exactly what is in the book
@@ -47,7 +47,7 @@ test01 = TestCase $ assertEqual "Barber's paradox (p. 181)" expected input
 
 test02 :: Test (Formula FOLEQ)
 test02 = TestCase $ assertEqual "Davis-Putnam example" expected input
-    where input = runSkolem (resolution1 unifyAtomsEq varAtomEq substAtomEq (dpExampleFm :: Formula FOLEQ))
+    where input = runSkolem (resolution1 unifyAtomsEq (dpExampleFm :: Formula FOLEQ))
           expected = Set.singleton (Success True)
 
 dpExampleFm :: Formula FOLEQ

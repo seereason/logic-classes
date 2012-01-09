@@ -91,9 +91,9 @@ prettyProof lit p = cat $ [text "["] ++ intersperse (text ", ") (map (prettyINF 
 implicativeNormalForm :: forall m formula atom term v f lit. 
                          (Monad m, FirstOrderFormula formula atom v, Formula atom term v, Data formula, Literal lit atom v, Term term v f,
                           Eq formula, Eq lit, Ord lit, Data lit, Skolem f) =>
-                         (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> formula -> SkolemT v term m (Set.Set (ImplicativeForm lit))
-implicativeNormalForm va sa formula =
-    do cnf <- clauseNormalForm va sa formula
+                         formula -> SkolemT v term m (Set.Set (ImplicativeForm lit))
+implicativeNormalForm formula =
+    do cnf <- clauseNormalForm formula
        let pairs = Set.map (Set.fold collect (Set.empty, Set.empty)) cnf :: Set.Set (Set.Set lit, Set.Set lit)
            pairs' = Set.flatten (Set.map split pairs) :: Set.Set (Set.Set lit, Set.Set lit)
        return (Set.map (\ (n,p) -> INF n p) pairs')

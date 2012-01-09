@@ -17,6 +17,9 @@ import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import qualified Data.Logic.Classes.FirstOrder as C
 import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (Literal(..))
+import Data.Logic.Harrison.Resolution (matchAtomsEq)
+import Data.Logic.Harrison.Tableaux (unifyAtomsEq)
+import Data.Logic.Resolution (isRenameOfAtomEq, getSubstAtomEq)
 import Data.Logic.Types.Harrison.FOL (TermType(..))
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
 import Data.String (IsString(..))
@@ -94,4 +97,9 @@ instance C.Formula FOLEQ TermType String where
     substitute = substAtomEq
     freeVariables = varAtomEq
     allVariables = varAtomEq
-    
+    unify = unifyAtomsEq
+    match = matchAtomsEq
+    foldTerms f r (R _ ts) = foldr f r ts
+    foldTerms f r (EQUALS t1 t2) = f t2 (f t1 r)
+    isRename = isRenameOfAtomEq
+    getSubst = getSubstAtomEq

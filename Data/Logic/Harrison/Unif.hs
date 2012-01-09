@@ -8,8 +8,7 @@ module Data.Logic.Harrison.Unif
 
 import Control.Applicative.Error (Failing(..), failing)
 import Data.Logic.Classes.Term (Term(..), tsubst)
-import Data.Logic.Harrison.Lib (apply)
-import qualified Data.Map as M
+import qualified Data.Map as Map
 {-
 (* ========================================================================= *)
 (* Unification for first order terms.                                        *)
@@ -22,14 +21,14 @@ let rec istriv env x t =
     Var y -> y = x or defined env y & istriv env x (apply env y)
   | Fn(f,args) -> exists (istriv env x) args & failwith "cyclic";;
 -}
-isTrivial :: Term term v f => M.Map v term -> v -> term -> Failing Bool
+isTrivial :: Term term v f => Map.Map v term -> v -> term -> Failing Bool
 isTrivial env x t =
     foldTerm v f t
     where
       v y =
           if x == y
           then Success True
-          else maybe (Success False) (isTrivial env x) (apply env y)
+          else maybe (Success False) (isTrivial env x) (Map.lookup y env)
       f _ args =
           if any (failing (const False) id . isTrivial env x) args
           then Failure ["cyclic"]
@@ -56,15 +55,15 @@ let rec unify env eqs =
         if defined env x then unify env ((apply env x,t)::oth)
         else unify (if istriv env x t then env else (x|->t) env) oth;;
 -}
-unify :: Term term v f => M.Map v term -> [(term,term)] -> Failing (M.Map v term)
+unify :: Term term v f => Map.Map v term -> [(term,term)] -> Failing (Map.Map v term)
 unify env [] = Success env
 unify env ((a,b):oth) =
     foldTerm (vr b) (\ f fargs -> foldTerm (vr a) (fn f fargs) b) a
     where
       vr t x =
-          maybe (isTrivial env x t >>= \ trivial -> unify (if trivial then env else M.insert x t env) oth)
+          maybe (isTrivial env x t >>= \ trivial -> unify (if trivial then env else Map.insert x t env) oth)
                 (\ y -> unify env ((y, t) : oth))
-                (apply env x)
+                (Map.lookup x env)
       fn f fargs g gargs =
           if f == g && length fargs == length gargs
           then unify env (zip fargs gargs ++ oth)
@@ -79,10 +78,10 @@ let rec solve env =
   let env' = mapf (tsubst env) env in
   if env' = env then env else solve env';;
 -}
-solve :: Term term v f => M.Map v term -> M.Map v term
+solve :: Term term v f => Map.Map v term -> Map.Map v term
 solve env =
     if env' == env then env else solve env'
-    where env' = M.map (tsubst env) env
+    where env' = Map.map (tsubst env) env
 {-
 
 (* ------------------------------------------------------------------------- *)
@@ -91,8 +90,8 @@ solve env =
 
 let fullunify eqs = solve (unify undefined eqs);;
 -}
-fullUnify :: Term term v f => [(term,term)] -> Failing (M.Map v term)
-fullUnify eqs = failing Failure (Success . solve) (unify M.empty eqs)
+fullUnify :: Term term v f => [(term,term)] -> Failing (Map.Map v term)
+fullUnify eqs = failing Failure (Success . solve) (unify Map.empty eqs)
 {-
 
 (* ------------------------------------------------------------------------- *)

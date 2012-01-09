@@ -14,7 +14,7 @@ import Data.Logic.Classes.Apply (Apply(..), apply)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (Constants (fromBool, true, false))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), quant)
-import Data.Logic.Classes.Formula (Formula)
+import Data.Logic.Classes.Formula (Formula(allVariables, substitute))
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term(vt), fvt)
 import Data.Logic.Classes.Variable (Variable(..))
@@ -197,52 +197,50 @@ END_INTERACTIVE;;
 -- ------------------------------------------------------------------------- 
 
 -- | Return all variables occurring in a formula.
-var :: forall formula atom v. FirstOrderFormula formula atom v => (atom -> Set.Set v) -> formula -> Set.Set v
-var va fm =
-    foldFirstOrder qu co tf va fm
+var :: forall formula atom term v. (FirstOrderFormula formula atom v, Formula atom term v) => formula -> Set.Set v
+var fm =
+    foldFirstOrder qu co tf allVariables fm
     where
-      qu _ x p = Set.insert x (var va p)
-      co ((:~:) p) = var va p
-      co (BinOp p _ q) = Set.union (var va p) (var va q)
+      qu _ x p = Set.insert x (var p)
+      co ((:~:) p) = var p
+      co (BinOp p _ q) = Set.union (var p) (var q)
       tf _ = Set.empty
 
 -- | Return the variables that occur free in a formula.
-fv :: forall formula atom term v. (FirstOrderFormula formula atom v, Formula atom term v) => (atom -> Set.Set v) -> formula -> Set.Set v
-fv va fm =
-    foldFirstOrder qu co tf va fm
+fv :: forall formula atom term v. (FirstOrderFormula formula atom v, Formula atom term v) => formula -> Set.Set v
+fv fm =
+    foldFirstOrder qu co tf allVariables fm
     where
-      qu _ x p = Set.delete x (fv va p)
-      co ((:~:) p) = fv va p
-      co (BinOp p _ q) = Set.union (fv va p) (fv va q)
+      qu _ x p = Set.delete x (fv p)
+      co ((:~:) p) = fv p
+      co (BinOp p _ q) = Set.union (fv p) (fv q)
       tf _ = Set.empty
 
 -- ------------------------------------------------------------------------- 
 -- Universal closure of a formula.                                           
 -- ------------------------------------------------------------------------- 
 
-generalize :: (FirstOrderFormula formula atom v, Formula atom term v) => (atom -> Set.Set v) -> formula -> formula
-generalize at fm = Set.fold for_all fm (fv at fm)
+generalize :: (FirstOrderFormula formula atom v, Formula atom term v) => formula -> formula
+generalize fm = Set.fold for_all fm (fv fm)
 
 -- ------------------------------------------------------------------------- 
 -- Substitution in formulas, with variable renaming.                         
 -- ------------------------------------------------------------------------- 
 
 subst :: (FirstOrderFormula formula atom v, Formula atom term v, Term term v f) =>
-         (atom -> Set.Set v)
-      -> (Map.Map v term -> atom -> atom)
-      -> Map.Map v term -> formula -> formula
-subst va sa env fm =
+         Map.Map v term -> formula -> formula
+subst env fm =
     foldFirstOrder qu co tf at fm
     where
-      qu op x p = quant op x' (subst va sa ((x |-> vt x') env) p)
+      qu op x p = quant op x' (subst ((x |-> vt x') env) p)
           where
-            x' = if setAny (\ y -> Set.member x (fvt (fromMaybe (vt y) (Map.lookup y env)))) (Set.delete x (fv va p))
-                 then variant x (fv va (subst va sa (Map.delete x env) p))
+            x' = if setAny (\ y -> Set.member x (fvt (fromMaybe (vt y) (Map.lookup y env)))) (Set.delete x (fv p))
+                 then variant x (fv (subst (Map.delete x env) p))
                  else x
-      co ((:~:) p) = ((.~.) (subst va sa env p))
-      co (BinOp p op q) = binop (subst va sa env p) op (subst va sa env q)
+      co ((:~:) p) = ((.~.) (subst env p))
+      co (BinOp p op q) = binop (subst env p) op (subst env q)
       tf = fromBool
-      at = atomic . sa env
+      at = atomic . substitute env
 
 {-
 -- |Replace each free occurrence of variable old with term new.

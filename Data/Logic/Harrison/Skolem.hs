@@ -45,11 +45,11 @@ import qualified Data.Set as Set
 -- ------------------------------------------------------------------------- 
 
 simplify1 :: (FirstOrderFormula fof atom v, Formula atom term v, Term term v f, Eq fof) =>
-             (atom -> Set.Set v) -> fof -> fof
-simplify1 va fm =
+             fof -> fof
+simplify1 fm =
     foldFirstOrder qu co tf at fm
     where
-      qu _ x p = if Set.member x (fv va p) then fm else p
+      qu _ x p = if Set.member x (fv p) then fm else p
       co ((:~:) p) = foldFirstOrder (\ _ _ _ -> fm) nco (fromBool . not) (\ _ -> fm) p
       co (BinOp l op r) =
           case (asBool l, op, asBool r) of
@@ -76,13 +76,13 @@ simplify1 va fm =
       at _ = fm
 
 simplify :: (FirstOrderFormula fof atom v, Formula atom term v, Term term v f, Eq fof) =>
-            (atom -> Set.Set v) -> fof -> fof
-simplify va fm =
+            fof -> fof
+simplify fm =
     foldFirstOrder qu co tf at fm
     where
-      qu op x fm' = simplify1 va (quant op x (simplify va fm'))
-      co ((:~:) fm') = simplify1 va ((.~.) (simplify va fm'))
-      co (BinOp fm1 op fm2) = simplify1 va (binop (simplify va fm1) op (simplify va fm2))
+      qu op x fm' = simplify1 (quant op x (simplify fm'))
+      co ((:~:) fm') = simplify1 ((.~.) (simplify fm'))
+      co (BinOp fm1 op fm2) = simplify1 (binop (simplify fm1) op (simplify fm2))
       tf = fromBool
       at _ = fm
 
@@ -121,62 +121,60 @@ nnf fm =
 -- ------------------------------------------------------------------------- 
 
 pullQuants :: forall formula atom v term f. (FirstOrderFormula formula atom v, Formula atom term v, Term term v f) =>
-              (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> formula -> formula
-pullQuants va sa fm =
+              formula -> formula
+pullQuants fm =
     foldFirstOrder (\ _ _ _ -> fm) pullQuantsCombine (\ _ -> fm) (\ _ -> fm) fm
     where
       getQuant = foldFirstOrder (\ op v f -> Just (op, v, f)) (\ _ -> Nothing) (\ _ -> Nothing) (\ _ -> Nothing)
       pullQuantsCombine ((:~:) _) = fm
       pullQuantsCombine (BinOp l op r) = 
           case (getQuant l, op, getQuant r) of
-            (Just (Forall, vl, l'), (:&:), Just (Forall, vr, r')) -> pullq va sa True  True  fm for_all (.&.) vl vr l' r'
-            (Just (Exists, vl, l'), (:|:), Just (Exists, vr, r')) -> pullq va sa True  True  fm exists  (.|.) vl vr l' r'
-            (Just (Forall, vl, l'), (:&:), _)                     -> pullq va sa True  False fm for_all (.&.) vl vl l' r
-            (_,                     (:&:), Just (Forall, vr, r')) -> pullq va sa False True  fm for_all (.&.) vr vr l  r'
-            (Just (Forall, vl, l'), (:|:), _)                     -> pullq va sa True  False fm for_all (.|.) vl vl l' r
-            (_,                     (:|:), Just (Forall, vr, r')) -> pullq va sa False True  fm for_all (.|.) vr vr l  r'
-            (Just (Exists, vl, l'), (:&:), _)                     -> pullq va sa True  False fm exists  (.&.) vl vl l' r
-            (_,                     (:&:), Just (Exists, vr, r')) -> pullq va sa False True  fm exists  (.&.) vr vr l  r'
-            (Just (Exists, vl, l'), (:|:), _)                     -> pullq va sa True  False fm exists  (.|.) vl vl l' r
-            (_,                     (:|:), Just (Exists, vr, r')) -> pullq va sa False True  fm exists  (.|.) vr vr l  r'
+            (Just (Forall, vl, l'), (:&:), Just (Forall, vr, r')) -> pullq True  True  fm for_all (.&.) vl vr l' r'
+            (Just (Exists, vl, l'), (:|:), Just (Exists, vr, r')) -> pullq True  True  fm exists  (.|.) vl vr l' r'
+            (Just (Forall, vl, l'), (:&:), _)                     -> pullq True  False fm for_all (.&.) vl vl l' r
+            (_,                     (:&:), Just (Forall, vr, r')) -> pullq False True  fm for_all (.&.) vr vr l  r'
+            (Just (Forall, vl, l'), (:|:), _)                     -> pullq True  False fm for_all (.|.) vl vl l' r
+            (_,                     (:|:), Just (Forall, vr, r')) -> pullq False True  fm for_all (.|.) vr vr l  r'
+            (Just (Exists, vl, l'), (:&:), _)                     -> pullq True  False fm exists  (.&.) vl vl l' r
+            (_,                     (:&:), Just (Exists, vr, r')) -> pullq False True  fm exists  (.&.) vr vr l  r'
+            (Just (Exists, vl, l'), (:|:), _)                     -> pullq True  False fm exists  (.|.) vl vl l' r
+            (_,                     (:|:), Just (Exists, vr, r')) -> pullq False True  fm exists  (.|.) vr vr l  r'
             _                                                     -> fm
 
 -- |Helper function to rename variables when we want to enclose a
 -- formula containing a free occurrence of that variable a quantifier
 -- that quantifies it.
 pullq :: (FirstOrderFormula formula atom v, Formula atom term v, Term term v f) =>
-         (atom -> Set.Set v)
-      -> (Map.Map v term -> atom -> atom)
-      -> Bool -> Bool
+         Bool -> Bool
       -> formula
       -> (v -> formula -> formula)
       -> (formula -> formula -> formula)
       -> v -> v
       -> formula -> formula
       -> formula
-pullq va sa l r fm mkq op x y p q =
-    let z = variant x (fv va fm)
-        p' = if l then subst va sa (x |=> vt z) p else p
-        q' = if r then subst va sa (y |=> vt z) q else q
-        fm' = pullQuants va sa (op p' q') in
+pullq l r fm mkq op x y p q =
+    let z = variant x (fv fm)
+        p' = if l then subst (x |=> vt z) p else p
+        q' = if r then subst (y |=> vt z) q else q
+        fm' = pullQuants (op p' q') in
     mkq z fm'
 
 -- |Recursivly apply pullQuants anywhere a quantifier might not be
 -- leftmost.
 prenex :: (FirstOrderFormula formula atom v, Formula atom term v, Term term v f) =>
-          (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> formula -> formula 
-prenex va sa fm =
+          formula -> formula 
+prenex fm =
     foldFirstOrder qu co (\ _ -> fm) (\ _ -> fm) fm
     where
-      qu op x p = quant op x (prenex va sa p)
-      co (BinOp l (:&:) r) = pullQuants va sa (prenex va sa l .&. prenex va sa r)
-      co (BinOp l (:|:) r) = pullQuants va sa (prenex va sa l .|. prenex va sa r)
+      qu op x p = quant op x (prenex p)
+      co (BinOp l (:&:) r) = pullQuants (prenex l .&. prenex r)
+      co (BinOp l (:|:) r) = pullQuants (prenex l .|. prenex r)
       co _ = fm
 
 -- |Convert to Prenex normal form, with all quantifiers at the left.
 pnf :: (FirstOrderFormula formula atom v, Formula atom term v, Term term v f, Eq formula) =>
-       (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> formula -> formula
-pnf va sa = prenex va sa . nnf . simplify va
+       formula -> formula
+pnf = prenex . nnf . simplify
 
 -- ------------------------------------------------------------------------- 
 -- Get the functions in a term and formula.                                  
@@ -241,27 +239,27 @@ runSkolemT action = (runStateT action) newSkolemState >>= return . fst
 -- quantified in the context where the existential quantifier
 -- appeared.
 skolem :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, Term term v f) =>
-          (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> formula -> SkolemT v term m formula
-skolem va sa fm =
+          formula -> SkolemT v term m formula
+skolem fm =
     foldFirstOrder qu co (\ _ -> return fm) (\ _ -> return fm) fm
     where
       qu Exists y p =
-          do let xs = fv va fm
+          do let xs = fv fm
              state <- get
              let f = toSkolem (skolemCount state)
              put (state {skolemCount = skolemCount state + 1})
              let fx = fApp f (map vt (Set.toList xs))
-             skolem va sa (subst va sa (Map.singleton y fx) p)
-      qu Forall x p = skolem va sa p >>= return . for_all x
-      co (BinOp l (:&:) r) = skolem2 va sa (.&.) l r
-      co (BinOp l (:|:) r) = skolem2 va sa (.|.) l r
+             skolem (subst (Map.singleton y fx) p)
+      qu Forall x p = skolem p >>= return . for_all x
+      co (BinOp l (:&:) r) = skolem2 (.&.) l r
+      co (BinOp l (:|:) r) = skolem2 (.|.) l r
       co _ = return fm
 
 skolem2 :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, Term term v f) =>
-           (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> (formula -> formula -> formula) -> formula -> formula -> SkolemT v term m formula
-skolem2 va sa cons p q =
-    skolem va sa p >>= \ p' ->
-    skolem va sa q >>= \ q' ->
+           (formula -> formula -> formula) -> formula -> formula -> SkolemT v term m formula
+skolem2 cons p q =
+    skolem p >>= \ p' ->
+    skolem q >>= \ q' ->
     return (cons p' q')
 
 -- ------------------------------------------------------------------------- 
@@ -271,8 +269,8 @@ skolem2 va sa cons p q =
 -- |I need to consult the Harrison book for the reasons why we don't
 -- |just Skolemize the result of prenexNormalForm.
 askolemize :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, Term term v f, Eq formula) =>
-              (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> formula -> SkolemT v term m formula
-askolemize va sa = skolem va sa . nnf . simplify va
+              formula -> SkolemT v term m formula
+askolemize = skolem . nnf . simplify
 
 specialize :: forall fof atom v. FirstOrderFormula fof atom v => fof -> fof
 specialize f =
@@ -282,8 +280,8 @@ specialize f =
       q _ _ _ = f
 
 skolemize :: (Monad m, FirstOrderFormula fof atom v, Formula atom term v, Term term v f, Eq fof) =>
-             (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> fof -> SkolemT v term m fof
-skolemize va sa fm = askolemize va sa fm >>= return . specialize . pnf va sa
+             fof -> SkolemT v term m fof
+skolemize fm = askolemize fm >>= return . specialize . pnf
 
 -- | Convert a first order formula into a disjunct of conjuncts of
 -- literals.  Note that this can convert any instance of
@@ -305,5 +303,5 @@ skolemNormalForm :: (FirstOrderFormula fof atom v,
                      Formula atom term v,
                      Term term v f,
                      Monad m, Eq fof) =>
-                    (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> fof -> SkolemT v term m fof
-skolemNormalForm va sa f = askolemize va sa f >>= return . specialize . pnf va sa
+                    fof -> SkolemT v term m fof
+skolemNormalForm f = askolemize f >>= return . specialize . pnf

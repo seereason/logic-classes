@@ -20,6 +20,7 @@ import Data.Logic.Classes.Combine (Combinable(..), BinOp(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', pApp)
+import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Negate (Negatable(..), (.~.))
 import Data.Logic.Classes.Term (Term(..))
 import qualified Data.Logic.Classes.FirstOrder as L
@@ -257,7 +258,7 @@ instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (Nor
           (NormalFunction f1 ts1, NormalFunction f2 ts2) -> fn f1 ts1 f2 ts2
           _ -> Nothing
 
-toSentence :: (FirstOrderFormula (Sentence v p f) (Sentence v p f) v, AtomEq (Sentence v p f) p (CTerm v f), Skolem f, Ord f, Data f, Data v, Constants p, Ord p) =>
+toSentence :: (FirstOrderFormula (Sentence v p f) (Sentence v p f) v, Formula (Sentence v p f) (CTerm v f) v, Skolem f, Ord f, Data f, Data v, Constants p, Ord p, Show p, Arity p) =>
               NormalSentence v p f -> Sentence v p f
 toSentence (NFNot s) = (.~.) (toSentence s)
 toSentence (NFEqual t1 t2) = toTerm t1 .=. toTerm t2

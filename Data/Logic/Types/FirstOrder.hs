@@ -23,6 +23,9 @@ import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable(..))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
+import Data.Logic.Harrison.Resolution (matchAtomsEq)
+import Data.Logic.Harrison.Tableaux (unifyAtomsEq)
+import Data.Logic.Resolution (isRenameOfAtomEq, getSubstAtomEq)
 import Data.SafeCopy (SafeCopy, base, deriveSafeCopy, extension, MigrateFrom(..))
 import Data.Typeable (Typeable)
 import Happstack.Data (deriveNewData)
@@ -173,6 +176,12 @@ instance (Arity p, Constants p, Variable v, Skolem f, Show p, Ord f, Data v, Dat
     substitute = substAtomEq
     freeVariables = varAtomEq
     allVariables = varAtomEq
+    unify = unifyAtomsEq
+    match = matchAtomsEq
+    foldTerms f r (Apply _ ts) = foldr f r ts
+    foldTerms f r (Equal t1 t2) = f t2 (f t1 r)
+    isRename = isRenameOfAtomEq
+    getSubst = getSubstAtomEq
 
 $(deriveSafeCopy 1 'base ''PTerm)
 $(deriveSafeCopy 1 'base ''Formula)

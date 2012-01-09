@@ -8,6 +8,7 @@ module Data.Logic.Harrison.Tableaux
 
 import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Equals (AtomEq, zipAtomsEq)
+import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (Literal, zipLiterals)
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Harrison.Unif (unify)
@@ -24,21 +25,16 @@ import Debug.Trace (trace)
 -- Unify literals (just pretend the toplevel relation is a function).        
 -- ------------------------------------------------------------------------- 
 
-{-
-unify_literals :: forall lit term atom v p f. (Literal lit atom v, AtomEq atom p term, Term term v f) =>
-                 Map.Map v term -> lit -> lit -> Failing (Map.Map v term)
--}
-unify_literals :: forall lit atom term v f. (Literal lit atom v, Term term v f) =>
-                  (Map.Map v term -> atom -> atom -> Failing (Map.Map v term))
-               -> Map.Map v term -> lit -> lit -> Failing (Map.Map v term)
-unify_literals ua env f1 f2 =
+unify_literals :: forall lit atom term v f. (Literal lit atom v, Term term v f, C.Formula atom term v) =>
+                  Map.Map v term -> lit -> lit -> Failing (Map.Map v term)
+unify_literals env f1 f2 =
     maybe err id (zipLiterals co tf at f1 f2)
     where
       -- co :: lit -> lit -> Maybe (Failing (Map.Map v term))
-      co p q = Just $ unify_literals ua env p q
+      co p q = Just $ unify_literals env p q
       tf p q = if p == q then Just $ unify env [] else Nothing
       -- at :: atom -> atom -> Maybe (Failing (Map.Map v term))
-      at a1 a2 = Just $ ua env a1 a2
+      at a1 a2 = Just $ C.unify env a1 a2
       err = Failure ["Can't unify literals"]
 
 unifyAtomsEq :: forall v f atom p term.

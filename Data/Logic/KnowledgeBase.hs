@@ -29,7 +29,7 @@ import "mtl" Control.Monad.State (StateT, evalStateT, MonadState(get, put))
 import "mtl" Control.Monad.Trans (lift)
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Constants (Constants)
-import Data.Logic.Classes.Equals (AtomEq, varAtomEq, substAtomEq)
+import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
 import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Negate ((.~.))
@@ -134,7 +134,7 @@ inconsistantKB :: forall m formula atom term v p f lit.
                   formula -> ProverT' v term (ImplicativeForm lit) m (Bool, SetOfSupport lit v term)
 inconsistantKB s =
     get >>= \ st ->
-    lift (implicativeNormalForm varAtomEq substAtomEq s) >>=
+    lift (implicativeNormalForm s) >>=
     return . getSetOfSupport >>= \ sos ->
     getKB >>=
     return . prove (recursionLimit st) S.empty sos . S.map wiItem
@@ -173,7 +173,7 @@ tellKB :: (FirstOrderFormula formula atom v, Literal lit atom v, Formula atom te
           formula -> ProverT' v term (ImplicativeForm lit) m (Proof lit)
 tellKB s =
     do st <- get
-       inf <- lift (implicativeNormalForm varAtomEq substAtomEq s)
+       inf <- lift (implicativeNormalForm s)
        let inf' = S.map (withId (sentenceCount st)) inf
        (valid, _, _) <- validKB s
        case valid of

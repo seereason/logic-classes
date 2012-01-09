@@ -19,13 +19,13 @@ import qualified Data.Set as Set
 -- ------------------------------------------------------------------------- 
 
 renamerule :: forall fof atom term v f. (FirstOrderFormula fof atom v, Formula atom term v, Term term v f, Ord fof) =>
-              (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> Int -> (Set.Set fof, fof) -> ((Set.Set fof, fof), Int)
-renamerule va sa k (asm,c) =
+              Int -> (Set.Set fof, fof) -> ((Set.Set fof, fof), Int)
+renamerule k (asm,c) =
     ((Set.map inst asm, inst c), k + Set.size fvs)
     where
-      fvs = fv va (list_conj (Set.insert c asm)) :: Set.Set v
+      fvs = fv (list_conj (Set.insert c asm)) :: Set.Set v
       vvs = Map.fromList (map (\ (v, i) -> (v, vt (fromString ("_" ++ show i)))) (zip (Set.toList fvs) [k..])) :: Map.Map v term
-      inst = subst va sa vvs :: fof -> fof
+      inst = subst vvs :: fof -> fof
 
 {-
 
