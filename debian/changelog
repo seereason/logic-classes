@@ -1,3 +1,10 @@
+haskell-logic-classes (1.1) unstable; urgency=low
+
+  * Use the Formula class to abstract out the two different types of Atom
+    functionality (with and without equality.)
+
+ -- David Fox <dsf@seereason.com>  Mon, 09 Jan 2012 10:45:09 -0800
+
 haskell-logic-classes (1.0.2) unstable; urgency=low
 
   * Two important fixes in the old version of simpcnf.
