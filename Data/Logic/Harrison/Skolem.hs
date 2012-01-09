@@ -14,7 +14,7 @@ module Data.Logic.Harrison.Skolem
     , literal
     , askolemize
     , skolemNormalForm
-    , substituteEq
+    -- , substituteEq
     ) where
 
 import Control.Monad.Identity (Identity(runIdentity))
@@ -22,7 +22,6 @@ import Control.Monad.State (StateT(runStateT), get, put)
 import Data.Logic.Classes.Apply (Apply(foldApply))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (Constants(fromBool, true, false), asBool)
-import Data.Logic.Classes.Equals (AtomEq(foldAtomEq), varAtomEq, substAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(exists, for_all, foldFirstOrder), Quant(..), quant)
 import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Literal (Literal(foldLiteral, atomic))
@@ -45,11 +44,12 @@ import qualified Data.Set as Set
 -- Routine simplification. Like "psimplify" but with quantifier clauses.     
 -- ------------------------------------------------------------------------- 
 
-simplify1 :: (FirstOrderFormula fof atom v, Formula atom term v, AtomEq atom p term, Term term v f, Eq fof, Constants p, Eq p) => fof -> fof
-simplify1 fm =
+simplify1 :: (FirstOrderFormula fof atom v, Formula atom term v, Term term v f, Eq fof) =>
+             (atom -> Set.Set v) -> fof -> fof
+simplify1 va fm =
     foldFirstOrder qu co tf at fm
     where
-      qu _ x p = if Set.member x (fv varAtomEq p) then fm else p
+      qu _ x p = if Set.member x (fv va p) then fm else p
       co ((:~:) p) = foldFirstOrder (\ _ _ _ -> fm) nco (fromBool . not) (\ _ -> fm) p
       co (BinOp l op r) =
           case (asBool l, op, asBool r) of
@@ -75,13 +75,14 @@ simplify1 fm =
       tf = fromBool
       at _ = fm
 
-simplify :: (FirstOrderFormula fof atom v, Formula atom term v, AtomEq atom p term, Term term v f, Eq fof, Constants p, Eq p) => fof -> fof
-simplify fm =
+simplify :: (FirstOrderFormula fof atom v, Formula atom term v, Term term v f, Eq fof) =>
+            (atom -> Set.Set v) -> fof -> fof
+simplify va fm =
     foldFirstOrder qu co tf at fm
     where
-      qu op x fm' = simplify1 (quant op x (simplify fm'))
-      co ((:~:) fm') = simplify1 ((.~.) (simplify fm'))
-      co (BinOp fm1 op fm2) = simplify1 (binop (simplify fm1) op (simplify fm2))
+      qu op x fm' = simplify1 va (quant op x (simplify va fm'))
+      co ((:~:) fm') = simplify1 va ((.~.) (simplify va fm'))
+      co (BinOp fm1 op fm2) = simplify1 va (binop (simplify va fm1) op (simplify va fm2))
       tf = fromBool
       at _ = fm
 
@@ -119,7 +120,7 @@ nnf fm =
 -- Prenex normal form.                                                       
 -- ------------------------------------------------------------------------- 
 
-pullQuants :: forall formula atom v term p f. (FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f) =>
+pullQuants :: forall formula atom v term f. (FirstOrderFormula formula atom v, Formula atom term v, Term term v f) =>
               (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> formula -> formula
 pullQuants va sa fm =
     foldFirstOrder (\ _ _ _ -> fm) pullQuantsCombine (\ _ -> fm) (\ _ -> fm) fm
@@ -143,7 +144,7 @@ pullQuants va sa fm =
 -- |Helper function to rename variables when we want to enclose a
 -- formula containing a free occurrence of that variable a quantifier
 -- that quantifies it.
-pullq :: (FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f) =>
+pullq :: (FirstOrderFormula formula atom v, Formula atom term v, Term term v f) =>
          (atom -> Set.Set v)
       -> (Map.Map v term -> atom -> atom)
       -> Bool -> Bool
@@ -162,39 +163,33 @@ pullq va sa l r fm mkq op x y p q =
 
 -- |Recursivly apply pullQuants anywhere a quantifier might not be
 -- leftmost.
-prenex :: (FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f) => formula -> formula 
-prenex fm =
+prenex :: (FirstOrderFormula formula atom v, Formula atom term v, Term term v f) =>
+          (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> formula -> formula 
+prenex va sa fm =
     foldFirstOrder qu co (\ _ -> fm) (\ _ -> fm) fm
     where
-      qu op x p = quant op x (prenex p)
-      co (BinOp l (:&:) r) = pullQuants varAtomEq substAtomEq (prenex l .&. prenex r)
-      co (BinOp l (:|:) r) = pullQuants varAtomEq substAtomEq (prenex l .|. prenex r)
+      qu op x p = quant op x (prenex va sa p)
+      co (BinOp l (:&:) r) = pullQuants va sa (prenex va sa l .&. prenex va sa r)
+      co (BinOp l (:|:) r) = pullQuants va sa (prenex va sa l .|. prenex va sa r)
       co _ = fm
 
 -- |Convert to Prenex normal form, with all quantifiers at the left.
-pnf :: (FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, Eq formula, Constants p, Eq p) => formula -> formula
-pnf = prenex . nnf . simplify
+pnf :: (FirstOrderFormula formula atom v, Formula atom term v, Term term v f, Eq formula) =>
+       (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> formula -> formula
+pnf va sa = prenex va sa . nnf . simplify va
 
 -- ------------------------------------------------------------------------- 
 -- Get the functions in a term and formula.                                  
 -- ------------------------------------------------------------------------- 
 
-funcs :: (Term term v f, Ord f) => term -> Set.Set (f, Int)
-funcs tm =
-    foldTerm (const Set.empty)
-             (\ f args -> foldr (\ arg r -> Set.union (funcs arg) r) (Set.singleton (f, length args)) args)
-             tm
-
-functions :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Eq f, Ord f) => fof -> Set.Set (f, Int)
-functions fm =
-    foldFirstOrder qu co tf pr fm
+functions :: forall formula atom v f. (FirstOrderFormula formula atom v, Ord f) => (atom -> Set.Set (f, Int)) -> formula -> Set.Set (f, Int)
+functions fa fm =
+    foldFirstOrder qu co tf fa fm
     where
-      qu _ _ p = functions p
-      co ((:~:) p) = functions p
-      co (BinOp p _ q) = Set.union (functions p) (functions q)
+      qu _ _ p = functions fa p
+      co ((:~:) p) = functions fa p
+      co (BinOp p _ q) = Set.union (functions fa p) (functions fa q)
       tf _ = Set.empty
-      pr = foldAtomEq (\ _ ts -> Set.unions (map funcs ts)) (const Set.empty) (\ t1 t2 -> Set.union (funcs t1) (funcs t2))
-    -- atom_union (\ (R p a) -> foldr (Set.union . funcs) Set.empty a) fm
 
 -- ------------------------------------------------------------------------- 
 -- State monad for generating Skolem functions and constants.
@@ -245,55 +240,29 @@ runSkolemT action = (runStateT action) newSkolemState >>= return . fst
 -- are applied to the list of variables which are universally
 -- quantified in the context where the existential quantifier
 -- appeared.
-skolem :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f) => formula -> SkolemT v term m formula
-skolem fm =
+skolem :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, Term term v f) =>
+          (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> formula -> SkolemT v term m formula
+skolem va sa fm =
     foldFirstOrder qu co (\ _ -> return fm) (\ _ -> return fm) fm
     where
       qu Exists y p =
-          do let xs = fv varAtomEq fm
+          do let xs = fv va fm
              state <- get
              let f = toSkolem (skolemCount state)
              put (state {skolemCount = skolemCount state + 1})
              let fx = fApp f (map vt (Set.toList xs))
-             skolem (substituteEq y fx p)
-      qu Forall x p = skolem p >>= return . for_all x
-      co (BinOp l (:&:) r) = skolem2 (.&.) l r
-      co (BinOp l (:|:) r) = skolem2 (.|.) l r
+             skolem va sa (subst va sa (Map.singleton y fx) p)
+      qu Forall x p = skolem va sa p >>= return . for_all x
+      co (BinOp l (:&:) r) = skolem2 va sa (.&.) l r
+      co (BinOp l (:|:) r) = skolem2 va sa (.|.) l r
       co _ = return fm
 
-skolem2 :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f) =>
-           (formula -> formula -> formula) -> formula -> formula -> SkolemT v term m formula
-skolem2 cons p q =
-    skolem p >>= \ p' ->
-    skolem q >>= \ q' ->
+skolem2 :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, Term term v f) =>
+           (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> (formula -> formula -> formula) -> formula -> formula -> SkolemT v term m formula
+skolem2 va sa cons p q =
+    skolem va sa p >>= \ p' ->
+    skolem va sa q >>= \ q' ->
     return (cons p' q')
-
-{-
-skolem :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord f) => fof -> Set.Set f -> (fof, Set.Set f)
-skolem fm fns =
-    foldFirstOrder qu co pr fm
-    where
-      qu :: Quant -> v -> fof -> (fof, Set.Set f)
-      qu Exists y p =
-        let xs = fv fm in
-        let f = variantF (if Set.null xs then skolemConstant (undefined :: term) y else skolemFunction (undefined :: term) y) fns in
-        let fx = fApp f (map vt (Set.toList xs)) in
-        skolem (subst (y |=> fx) p) (Set.insert f fns)
-      qu Forall x p =
-          let (p',fns') = skolem p fns in (for_all x p', fns')
-      co :: Combination fof -> (fof, Set.Set f)
-      co (BinOp p (:&:) q) = skolem2 (.&.) (p,q) fns
-      co (BinOp p (:|:) q) = skolem2 (.|.) (p,q) fns
-      co _ = (fm,fns)
-      pr :: atom -> (fof, Set.Set f)
-      pr _ = (fm,fns)
-
-      skolem2 :: (fof -> fof -> fof) -> (fof, fof) -> Set.Set f -> (fof, Set.Set f)
-      skolem2 cons (p,q) fns' =
-          let (p',fns'') = skolem p fns' in
-          let (q',fns''') = skolem q fns'' in
-          (cons p' q', fns''')
--}
 
 -- ------------------------------------------------------------------------- 
 -- Overall Skolemization function.                                           
@@ -301,20 +270,20 @@ skolem fm fns =
 
 -- |I need to consult the Harrison book for the reasons why we don't
 -- |just Skolemize the result of prenexNormalForm.
-askolemize :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, Eq formula) =>
-              formula -> SkolemT v term m formula
-askolemize = skolem . nnf . simplify
+askolemize :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, Term term v f, Eq formula) =>
+              (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> formula -> SkolemT v term m formula
+askolemize va sa = skolem va sa . nnf . simplify va
 
-specialize :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => formula -> formula
+specialize :: forall fof atom v. FirstOrderFormula fof atom v => fof -> fof
 specialize f =
     foldFirstOrder q (\ _ -> f) (\ _ -> f) (\ _ -> f) f
     where
       q Forall _ f' = specialize f'
       q _ _ _ = f
 
-skolemize :: (Monad m, FirstOrderFormula fof atom v, Formula atom term v, AtomEq atom p term, Term term v f, Eq fof) => fof -> SkolemT v term m fof
--- skolemize fm = {- t1 $ -} specialize . pnf . askolemize $ fm
-skolemize fm = askolemize fm >>= return . specialize . pnf
+skolemize :: (Monad m, FirstOrderFormula fof atom v, Formula atom term v, Term term v f, Eq fof) =>
+             (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> fof -> SkolemT v term m fof
+skolemize va sa fm = askolemize va sa fm >>= return . specialize . pnf va sa
 
 -- | Convert a first order formula into a disjunct of conjuncts of
 -- literals.  Note that this can convert any instance of
@@ -330,46 +299,11 @@ literal fm =
       at :: atom -> Set.Set (Set.Set lit)
       at x = foldApply (\ _ _ -> Set.singleton (Set.singleton (Data.Logic.Classes.Literal.atomic x))) tf x
 
-{-
-askolemize :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f) => fof -> fof
-askolemize fm =
-  fst(skolem (nnf(simplify fm)) (Set.map fst (functions fm)));;
-
--- | Drop all universal quantifiers.
-specialize :: FirstOrderFormula fof atom v => fof -> fof
-specialize fm =
-    foldFirstOrder q (\ _ -> fm) (\ _ -> fm) fm
-    where
-      q Forall _ p = specialize p
-      q _ _ _ = fm
-
-skolemize :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f) => fof -> fof
-skolemize fm = {- t1 $ -} specialize . pnf . askolemize $ fm
-    -- where t1 x = trace ("skolemize: " ++ show fm ++ "\n        -> " ++ show x) x
-
--- | Convert a first order formula into a disjunct of conjuncts of
--- literals.  Note that this can convert any instance of
--- FirstOrderFormula into any instance of Literal.
-literal :: (FirstOrderFormula fof atom v, Atom atom p term, Term term v f, Literal lit atom v, Ord lit) =>
-           fof -> Set.Set (Set.Set lit)
-literal fm =
-    foldFirstOrder (error "quantifier") co pr fm
-    where
-      pr x = Set.singleton (Set.singleton (atomic x))
-      co ((:~:) x) = Set.map (Set.map (.~.)) (literal x)
-      co (BinOp p (:|:) q) = Set.singleton (Set.unions (Set.toList (literal p) ++ Set.toList (literal q)))
-          -- Set.singleton (Set.union (flatten (literal p)) (flatten (literal q)))
-          -- where flatten = Set.fold Set.union Set.empty
-      co (BinOp p (:&:) q) = Set.union (literal p) (literal q)
-      co _ = error "literal"
--}
-
 -- |We get Skolem Normal Form by skolemizing and then converting to
 -- Prenex Normal Form, and finally eliminating the remaining quantifiers.
-skolemNormalForm :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, Eq formula) =>
-                    formula -> SkolemT v term m formula
-skolemNormalForm f = askolemize f >>= return . specialize . pnf
-
--- |Replace each free occurrence of variable old with term new.
-substituteEq :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) => v -> term -> formula -> formula
-substituteEq old new formula = subst varAtomEq substAtomEq (Map.singleton old new) formula
+skolemNormalForm :: (FirstOrderFormula fof atom v,
+                     Formula atom term v,
+                     Term term v f,
+                     Monad m, Eq fof) =>
+                    (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> fof -> SkolemT v term m fof
+skolemNormalForm va sa f = askolemize va sa f >>= return . specialize . pnf va sa

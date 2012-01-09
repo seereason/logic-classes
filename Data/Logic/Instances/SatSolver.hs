@@ -9,7 +9,7 @@ import Data.Generics (Data, Typeable)
 import qualified Data.Set.Extra as S
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(..))
 import Data.Logic.Classes.Constants (Constants)
-import Data.Logic.Classes.Equals (AtomEq)
+import Data.Logic.Classes.Equals (AtomEq, varAtomEq, substAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Formula (Formula)
 import qualified Data.Logic.Classes.Literal as N
@@ -41,7 +41,7 @@ instance ClauseNormalFormula CNF Literal where
 
 toCNF :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, N.Literal formula atom v, Ord formula, Constants p, Eq p) =>
          formula -> NormalT formula v term m CNF
-toCNF f = clauseNormalForm f >>= S.ssMapM (lift . toLiteral) >>= return . makeCNF
+toCNF f = clauseNormalForm varAtomEq substAtomEq f >>= S.ssMapM (lift . toLiteral) >>= return . makeCNF
 
 -- |Convert a [[formula]] to CNF, which means building a map from
 -- formula to Literal.

@@ -4,13 +4,14 @@ module Data.Logic.Tests.Harrison.Resolution where
 
 import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Combine (Combinable(..))
-import Data.Logic.Classes.Equals (AtomEq, pApp)
+import Data.Logic.Classes.Equals (pApp, varAtomEq, substAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term(vt, fApp))
 import Data.Logic.Harrison.Normal (simpcnf)
 import Data.Logic.Harrison.Resolution (resolution1, resolution2, presolution)
 import Data.Logic.Harrison.Skolem (runSkolem, skolemize)
+import Data.Logic.Harrison.Tableaux (unifyAtomsEq)
 import Data.Logic.Types.Harrison.Equal (FOLEQ)
 import Data.Logic.Types.Harrison.FOL (Function(Skolem))
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula)
@@ -27,9 +28,9 @@ tests = TestLabel "Data.Logic.Tests.Harrison.Resolution" $ TestList [test01, tes
 -- Barber's paradox is an example of why we need factoring.                  
 -- ------------------------------------------------------------------------- 
 
--- test01 :: forall formula atom term v p f. TestFormulaEq formula atom term v p f => Test formula
+test01 :: Test (Formula FOLEQ)
 test01 = TestCase $ assertEqual "Barber's paradox (p. 181)" expected input
-    where input = simpcnf (runSkolem (skolemize((.~.)barb)))
+    where input = simpcnf varAtomEq (runSkolem (skolemize varAtomEq substAtomEq ((.~.)barb)))
           barb :: Formula FOLEQ
           barb = exists (fromString "b") (for_all (fromString "x") (shaves [b, x] .<=>. ((.~.)(shaves [x, x]))))
           -- This is not exactly what is in the book
@@ -46,7 +47,7 @@ test01 = TestCase $ assertEqual "Barber's paradox (p. 181)" expected input
 
 test02 :: Test (Formula FOLEQ)
 test02 = TestCase $ assertEqual "Davis-Putnam example" expected input
-    where input = runSkolem (resolution1 (dpExampleFm :: Formula FOLEQ))
+    where input = runSkolem (resolution1 unifyAtomsEq varAtomEq substAtomEq (dpExampleFm :: Formula FOLEQ))
           expected = Set.singleton (Success True)
 
 dpExampleFm :: Formula FOLEQ

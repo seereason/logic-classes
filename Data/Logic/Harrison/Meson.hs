@@ -6,17 +6,16 @@ import Control.Applicative.Error (Failing(..))
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Logic.Classes.Constants (Constants, false)
-import Data.Logic.Classes.Equals (AtomEq(..), varAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Formula (Formula)
-import Data.Logic.Classes.Literal (Literal)
-import Data.Logic.Classes.Negate (Negatable, (.~.), negative)
-import Data.Logic.Classes.Term (Term(..))
+import Data.Logic.Classes.Literal (Literal, fromLiteral)
+import Data.Logic.Classes.Negate ((.~.), negative)
+import Data.Logic.Classes.Term (Term)
 import Data.Logic.Harrison.FOL (generalize, list_conj)
 import Data.Logic.Harrison.Lib (setAll, settryfind)
 import Data.Logic.Harrison.Normal (simpcnf, simpdnf)
 import Data.Logic.Harrison.Prolog (renamerule)
-import Data.Logic.Harrison.Skolem (pnf, SkolemT, specialize, askolemize)
+import Data.Logic.Harrison.Skolem (SkolemT, pnf, specialize, askolemize)
 import Data.Logic.Harrison.Tableaux (unify_literals, deepen)
 
 -- =========================================================================
@@ -67,7 +66,22 @@ mexpand :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq ato
         -> ((Map.Map v term, Int, Int) -> Failing (Map.Map v term, Int, Int))
         -> (Map.Map v term, Int, Int) -> Failing (Map.Map v term, Int, Int)
 -}
-mexpand rules ancestors g cont (env,n,k) =
+mexpand :: forall atom term v f lit.
+           (-- Data.Logic.Classes.Equals.AtomEq atom a term,
+            Literal lit atom v,
+            FirstOrderFormula lit atom v,
+            Term term v f,
+            Formula atom term v,
+            Ord lit) =>
+           (Map.Map v term -> atom -> atom -> Failing (Map.Map v term))
+        -> (atom -> Set.Set v)
+        -> (Map.Map v term -> atom -> atom)
+        -> Set.Set (Set.Set lit, lit)
+        -> Set.Set lit
+        -> lit
+        -> ((Map.Map v term, Int, Int) -> Failing (Map.Map v term, Int, Int))
+        -> (Map.Map v term, Int, Int) -> Failing (Map.Map v term, Int, Int)
+mexpand ua va sa rules ancestors g cont (env,n,k) =
     if n < 0
     then Failure ["Too deep"]
     else case settryfind doAncestor ancestors of
@@ -75,49 +89,54 @@ mexpand rules ancestors g cont (env,n,k) =
            Failure _ -> settryfind doRule rules
     where
       doAncestor a =
-          do mp <- unify_literals env g ((.~.) a)
+          do mp <- unify_literals ua env g ((.~.) a)
              cont (mp, n, k)
       doRule rule =
-          do mp <- unify_literals env g c
+          do mp <- unify_literals ua env g c
              mexpand' (mp, n - Set.size asm, k')
           where
-            -- mexpand' :: (Map.Map v term, Int, Int) -> Failing (Map.Map v term, Int, Int)
-            mexpand' = Set.fold (mexpand rules (Set.insert g ancestors)) cont asm
-            ((asm, c), k') = renamerule k rule {- :: ((Set.Set fof, fof), Int) -}
+            mexpand' = Set.fold (mexpand ua va sa rules (Set.insert g ancestors)) cont asm
+            ((asm, c), k') = renamerule va sa k rule
 
 -- ------------------------------------------------------------------------- 
 -- Full MESON procedure.                                                     
 -- ------------------------------------------------------------------------- 
 
-{-
-puremeson :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f,
-                                          Ord fof, Eq p, Show fof) =>
-             Maybe Int -> fof -> Failing ((Map.Map v term, Int, Int), Int)
--}
-puremeson maxdl fm =
+puremeson :: forall atom term v f lit.
+             (Literal lit atom v,
+              FirstOrderFormula lit atom v,
+              Term term v f,
+              Formula atom term v,
+              Ord lit) =>
+             (Map.Map v term -> atom -> atom -> Failing (Map.Map v term))
+          -> (atom -> Set.Set v)
+          -> (Map.Map v term -> atom -> atom)
+          -> Maybe Int
+          -> lit
+          -> Failing ((Map.Map v term, Int, Int), Int)
+puremeson ua va sa maxdl fm =
     deepen f 0 maxdl
     where
-      -- f :: Int -> Failing (Map.Map v term, Int, Int)
-      f n = mexpand rules Set.empty false return (Map.empty, n, 0)
-      rules = Set.fold (Set.union . contrapositives) Set.empty cls {- :: Set.Set (Set.Set fof, fof) -}
-      cls = simpcnf (specialize (pnf fm))
+      f n = mexpand ua va sa rules Set.empty false return (Map.empty, n, 0)
+      rules = Set.fold (Set.union . contrapositives) Set.empty cls
+      cls = simpcnf va (specialize (pnf va sa fm))
 
-{-
-meson :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord term, Ord fof, Eq fof, Eq p, Show fof, Monad m) =>
-         Maybe Int -> fof -> SkolemT v term m (Set.Set (Failing ((Map.Map v term, Int, Int), Int)))
--}
-meson :: forall m lit atom term v p f.
-         (AtomEq atom p term,
-          Literal lit atom v,
-          FirstOrderFormula lit atom v,
-          Formula atom term v,
+meson :: forall m b term f atom v.
+         (Literal b atom v,
+          FirstOrderFormula b atom v,
           Term term v f,
-          Ord lit,
+          Formula atom term v,
+          Ord b,
           Monad m) =>
-         Maybe Int -> lit -> SkolemT v term m (Set.Set (Failing ((Map.Map v term, Int, Int), Int)))
-meson maxdl fm =
-    askolemize ((.~.)(generalize varAtomEq fm)) >>=
-    return . Set.map (puremeson maxdl . list_conj) . simpdnf 
+         (Map.Map v term -> atom -> atom -> Failing (Map.Map v term))
+      -> (atom -> Set.Set v)
+      -> (Map.Map v term -> atom -> atom)
+      -> Maybe Int
+      -> b
+      -> SkolemT v term m (Set.Set (Failing ((Map.Map v term, Int, Int), Int)))
+meson ua va sa maxdl fm =
+    askolemize va sa ((.~.)(generalize va fm)) >>=
+    return . Set.map (puremeson ua va sa maxdl . list_conj) . simpdnf
 
 {-
 -- ------------------------------------------------------------------------- 

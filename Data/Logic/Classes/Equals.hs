@@ -15,6 +15,7 @@ module Data.Logic.Classes.Equals
     , prettyAtomEq
     , varAtomEq
     , substAtomEq
+    , funcsAtomEq
     ) where
 
 import Data.List (intercalate, intersperse)
@@ -22,10 +23,8 @@ import Data.Logic.Classes.Arity (Arity(..))
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), ifElse)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
-import Data.Logic.Classes.Formula (Formula(..))
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Term (Term(foldTerm, fApp), convertTerm, showTerm, prettyTerm)
-import Data.Logic.Classes.Variable (Variable)
+import Data.Logic.Classes.Term (Term, convertTerm, showTerm, prettyTerm, fvt, tsubst, funcs)
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
@@ -144,16 +143,12 @@ a .!=. b = (.~.) (a .=. b)
 (≢) :: (FirstOrderFormula fof atom v, AtomEq atom p term) => term -> term -> fof
 (≢) = (.!=.)
 
+{-
 instance (AtomEq atom p term, Constants atom, Variable v, Term term v f) => Formula atom term v where
     substitute env = foldAtomEq (\ p args -> applyEq p (map (tsubst env) args)) fromBool (\ t1 t2 -> equals (tsubst env t1) (tsubst env t2))
     allVariables = foldAtomEq (\ _ args -> Set.unions (map fvt args)) (const Set.empty) (\ t1 t2 -> Set.union (fvt t1) (fvt t2))
     freeVariables = allVariables
-
-fvt :: (Term term v f, Ord v) => term -> Set.Set v
-fvt tm = foldTerm Set.singleton (\ _ args -> Set.unions (map fvt args)) tm
-
-tsubst :: (Term term v f, Ord v) => (Map.Map v term) -> term -> term
-tsubst env tm = foldTerm (\ x -> fromMaybe tm (Map.lookup x env)) (\ fn args -> fApp fn (map (tsubst env) args)) tm
+-}
 
 fromAtomEq :: (AtomEq atom1 p1 term1, Term term1 v1 f1,
                AtomEq atom2 p2 term2, Term term2 v2 f2, Constants atom2) =>
@@ -194,3 +189,6 @@ varAtomEq = foldAtomEq (\ _ args -> Set.unions (map fvt args)) (const Set.empty)
 substAtomEq :: (AtomEq atom p term, Constants atom, Term term v f) =>
                Map.Map v term -> atom -> atom
 substAtomEq env = foldAtomEq (\ p args -> applyEq p (map (tsubst env) args)) fromBool (\ t1 t2 -> equals (tsubst env t1) (tsubst env t2))
+
+funcsAtomEq :: (AtomEq atom p term, Term term v f, Ord f) => atom -> Set.Set (f, Int)
+funcsAtomEq = foldAtomEq (\ _ ts -> Set.unions (map funcs ts)) (const Set.empty) (\ t1 t2 -> Set.union (funcs t1) (funcs t2))

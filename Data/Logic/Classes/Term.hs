@@ -7,6 +7,7 @@ module Data.Logic.Classes.Term
     , prettyTerm
     , fvt
     , tsubst
+    , funcs
     ) where
 
 import Data.Generics (Data)
@@ -79,3 +80,9 @@ fvt tm = foldTerm Set.singleton (\ _ args -> Set.unions (map fvt args)) tm
 
 tsubst :: (Term term v f, Ord v) => Map.Map v term -> term -> term
 tsubst sfn tm = foldTerm (\ x -> fromMaybe tm (Map.lookup x sfn)) (\ fn args -> fApp fn (map (tsubst sfn) args)) tm
+
+funcs :: (Term term v f, Ord f) => term -> Set.Set (f, Int)
+funcs tm =
+    foldTerm (const Set.empty)
+             (\ f args -> foldr (\ arg r -> Set.union (funcs arg) r) (Set.singleton (f, length args)) args)
+             tm

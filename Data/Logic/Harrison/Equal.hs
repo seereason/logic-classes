@@ -15,7 +15,7 @@ import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Arity (Arity(..))
 import Data.Logic.Classes.Combine ((∧), (⇒))
 import Data.Logic.Classes.Constants (Constants(fromBool))
-import Data.Logic.Classes.Equals (AtomEq(..), applyEq, (.=.), PredicateName(..))
+import Data.Logic.Classes.Equals (AtomEq(..), applyEq, (.=.), PredicateName(..), funcsAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), (∀))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Harrison.Formulas.FirstOrder (atom_union)
@@ -135,7 +135,7 @@ equalitize fm =
     then fm
     else foldr1 (∧) (Set.toList axioms) ⇒ fm
     where
-      axioms = Set.fold (Set.union . function_congruence) (Set.fold (Set.union . predicate_congruence) equivalence_axioms preds) (functions fm)
+      axioms = Set.fold (Set.union . function_congruence) (Set.fold (Set.union . predicate_congruence) equivalence_axioms preds) (functions funcsAtomEq fm)
       allpreds = predicates fm
       preds = Set.delete Equals allpreds
 

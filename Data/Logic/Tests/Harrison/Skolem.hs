@@ -6,7 +6,7 @@ module Data.Logic.Tests.Harrison.Skolem
 
 import Data.Logic.Classes.Combine (Combinable(..))
 import Data.Logic.Classes.Constants (false)
-import Data.Logic.Classes.Equals (pApp)
+import Data.Logic.Classes.Equals (pApp, varAtomEq, substAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(exists, for_all))
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term(..))
@@ -29,7 +29,7 @@ test01 :: Test
 test01 = TestCase $ assertEqual "simplify (p. 140)" expected input
     where p = Named "P"
           q = Named "Q"
-          input = simplify fm
+          input = simplify varAtomEq fm
           expected = (for_all "x" (pApp p [vt "x"])) .=>. (pApp q []) :: Formula FOLEQ
           fm :: Formula FOLEQ
           fm = (for_all "x" (for_all "y" (pApp p [vt "x"] .|. (pApp p [vt "y"] .&. false)))) .=>. exists "z" (pApp q [])
@@ -59,7 +59,7 @@ test03 = TestCase $ assertEqual "pnf (p. 144)" expected input
     where p = Named "P"
           q = Named "Q"
           r = Named "R"
-          input = pnf fm
+          input = pnf varAtomEq substAtomEq fm
           expected = exists "x" (for_all "z"
                                  ((((.~.)(pApp p [vt "x"])) .&. ((.~.)(pApp r [vt "y"]))) .|.
                                   ((pApp q [vt "x"]) .|.
@@ -75,7 +75,7 @@ test03 = TestCase $ assertEqual "pnf (p. 144)" expected input
 
 test04 :: Test
 test04 = TestCase $ assertEqual "skolemize 1 (p. 150)" expected input
-    where input = runSkolem $ skolemize fm
+    where input = runSkolem $ skolemize varAtomEq substAtomEq fm
           fm :: Formula FOLEQ
           fm = exists "y" (pApp (Named "<") [vt "x", vt "y"] .=>.
                            for_all "u" (exists "v" (pApp (Named "<") [fApp "*" [vt "x", vt "u"],  fApp "*" [vt "y", vt "v"]])))
@@ -86,7 +86,7 @@ test05 :: Test
 test05 = TestCase $ assertEqual "skolemize 2 (p. 150)" expected input
     where p = Named "P"
           q = Named "Q"
-          input = runSkolem $ skolemize fm
+          input = runSkolem $ skolemize varAtomEq substAtomEq fm
           fm :: Formula FOLEQ
           fm = for_all "x" ((pApp p [vt "x"]) .=>.
                             (exists "y" (exists "z" ((pApp q [vt "y"]) .|.

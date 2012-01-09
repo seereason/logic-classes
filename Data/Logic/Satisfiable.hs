@@ -13,7 +13,7 @@ module Data.Logic.Satisfiable
 
 import qualified Data.Set as Set
 import Data.Logic.Classes.Constants (Constants)
-import Data.Logic.Classes.Equals (AtomEq)
+import Data.Logic.Classes.Equals (AtomEq, varAtomEq, substAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), toPropositional)
 import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Literal (Literal)
@@ -28,7 +28,7 @@ import qualified PropLogic as PL
 satisfiable :: forall formula atom term v p f m. (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, Ord formula, Literal formula atom v, Constants p, Eq p) =>
                 formula -> SkolemT v term m Bool
 satisfiable f =
-    do (clauses :: Set.Set (Set.Set formula)) <- clauseNormalForm f
+    do (clauses :: Set.Set (Set.Set formula)) <- clauseNormalForm varAtomEq substAtomEq f
        let f' = PL.CJ . map (PL.DJ . map (toPropositional PL.A)) . map Set.toList . Set.toList $ clauses
        return . PL.satisfiable $ f'
 

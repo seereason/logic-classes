@@ -14,8 +14,9 @@ import Data.Data (Data)
 import Data.Logic.Classes.Arity (Arity)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
-import Data.Logic.Classes.Equals (AtomEq(..), (.=.), pApp)
+import Data.Logic.Classes.Equals (AtomEq(..), (.=.), pApp, substAtomEq, varAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
+import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
@@ -167,6 +168,11 @@ instance (Constants p, Eq v, Eq p, Eq f, Constants (Predicate p (PTerm v f))) =>
                          else if p == fromBool False
                               then tf False
                               else at p
+
+instance (Arity p, Constants p, Variable v, Skolem f, Show p, Ord f, Data v, Data f, Eq p) => C.Formula (Predicate p (PTerm v f)) (PTerm v f) v where
+    substitute = substAtomEq
+    freeVariables = varAtomEq
+    allVariables = varAtomEq
 
 $(deriveSafeCopy 1 'base ''PTerm)
 $(deriveSafeCopy 1 'base ''Formula)

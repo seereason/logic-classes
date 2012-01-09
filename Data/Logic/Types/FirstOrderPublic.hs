@@ -15,13 +15,14 @@ import Data.Data (Data)
 import Data.Logic.Classes.Arity (Arity)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..))
+import Data.Logic.Classes.Equals (varAtomEq, substAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
-import qualified Data.Logic.Types.FirstOrder as N
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable)
 import Data.Logic.Normal.Implicative (implicativeNormalForm, ImplicativeForm, runNormal)
+import qualified Data.Logic.Types.FirstOrder as N
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set)
 import Data.Typeable (Typeable)
@@ -99,8 +100,8 @@ instance ({- FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
           Arity p, Constants p, Skolem f, Variable v,
           Ord (N.Formula v p f)) => Ord (Formula v p f) where
     compare a b =
-        let (a' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm (intern a :: N.Formula v p f))
-            (b' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm (intern b :: N.Formula v p f)) in
+        let (a' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm varAtomEq substAtomEq (intern a :: N.Formula v p f))
+            (b' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm varAtomEq substAtomEq (intern b :: N.Formula v p f)) in
         case compare a' b' of
           EQ -> EQ
           x -> {- if isRenameOf a' b' then EQ else -} x

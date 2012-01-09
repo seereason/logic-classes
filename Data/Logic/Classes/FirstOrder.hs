@@ -39,16 +39,14 @@ module Data.Logic.Classes.FirstOrder
     ) where
 
 import Data.Generics (Data, Typeable)
-import Data.List (intercalate, intersperse)
 import Data.Logic.Classes.Apply (Apply(..), apply, apply0, apply1, apply2, apply3, apply4, apply5, apply6, apply7)
 import Data.Logic.Classes.Constants
 import Data.Logic.Classes.Combine
 import Data.Logic.Classes.Propositional (PropositionalFormula)
-import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Happstack.Data (deriveNewData)
-import Text.PrettyPrint (Doc, (<>), (<+>), text, empty, parens, hcat, nest)
+import Text.PrettyPrint (Doc, (<>), (<+>), text, parens, nest)
 
 -- |The 'FirstOrderFormula' type class.  Minimal implementation:
 -- @for_all, exists, foldFirstOrder, foldTerm, (.=.), pApp0-pApp7, fApp, var@.  The

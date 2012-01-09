@@ -8,7 +8,7 @@ module Data.Logic.Instances.PropLogic
 
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool))
-import Data.Logic.Classes.Equals (AtomEq)
+import Data.Logic.Classes.Equals (AtomEq, varAtomEq, substAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula, toPropositional)
 import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Literal (Literal(..))
@@ -92,4 +92,4 @@ plSat f = clauses f >>= (\ (x :: PropForm formula) -> return x) >>= return . sat
 
 clauses :: forall m formula atom term v p f. (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, Literal formula atom v, Ord formula, Constants p, Eq p) =>
            formula -> SkolemT v term m (PropForm formula)
-clauses f = clauseNormalForm f >>= return . CJ . map (DJ . map (toPropositional (A :: formula -> PropForm formula))) . map S.toList . S.toList
+clauses f = clauseNormalForm varAtomEq substAtomEq f >>= return . CJ . map (DJ . map (toPropositional (A :: formula -> PropForm formula))) . map S.toList . S.toList

@@ -6,19 +6,20 @@ module Data.Logic.Tests.Logic (tests) where
 import Data.Logic.Classes.Arity (Arity(arity))
 import Data.Logic.Classes.Combine (Combinable(..))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.Equals (AtomEq, (.=.), pApp, pApp1, showAtomEq, varAtomEq)
+import Data.Logic.Classes.Equals (AtomEq, (.=.), pApp, pApp1, showAtomEq, varAtomEq, substAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder)
+import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Negate (negated, (.~.))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable)
-import Data.Logic.Harrison.FOL (fv)
-import Data.Logic.Harrison.Skolem (substituteEq)
+import Data.Logic.Harrison.FOL (fv, subst)
 import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Implicative (runNormal)
 import Data.Logic.Satisfiable (theorem, inconsistant)
 import Data.Logic.Tests.Common (TFormula, TTerm, myTest)
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 import PropLogic (PropForm(..), TruthTable, truthTable)
@@ -68,7 +69,7 @@ precTests =
                 , for_all "y" (z .=. y) :: TFormula ])
     ]
     where
-      sub f = substituteEq (head . Set.toList . fv varAtomEq $ f) (vt "z") f
+      sub f = subst varAtomEq substAtomEq (Map.singleton (head . Set.toList . fv varAtomEq $ f) (vt "z")) f
       a = pApp ("a") []
       b = pApp ("b") []
       c = pApp ("c") []
@@ -329,7 +330,7 @@ theoremTests =
                                       (h [x] .=>. m [x]) .&.
                                       (m [x] .=>. ((.~.) (s [x])))) .&.
                          (s [fApp "socrates" []]) in
-                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula, runNormal (clauseNormalForm formula) :: Set.Set (Set.Set TFormula)))
+                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula, runNormal (clauseNormalForm varAtomEq substAtomEq formula) :: Set.Set (Set.Set TFormula)))
     , let (formula :: TFormula) =
               (for_all "x" (pApp "L" [vt "x"] .=>. pApp "F" [vt "x"]) .&. -- All logicians are funny
                exists "x" (pApp "L" [vt "x"])) .=>.                            -- Someone is a logician
@@ -423,8 +424,8 @@ prepare formula = ({- flatten . -} fromJust . toPropositional convertA . cnf . (
 convertA = Just . A
 -}
 
-table :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Literal formula atom v,
-                                     Ord formula, Skolem f, IsString v, Variable v, TD.Display formula, Constants p, Eq p) =>
+table :: forall formula atom term v p f. (FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Constants p, Eq p, Term term v f, Literal formula atom v,
+                                     Ord formula, Skolem f, IsString v, Variable v, TD.Display formula) =>
          formula -> TruthTable formula
 table f =
     -- truthTable :: Ord a => PropForm a -> TruthTable a
@@ -435,6 +436,6 @@ table f =
       cnf' :: PropForm formula
       cnf' = CJ (map (DJ . map n) cnf)
       cnf :: [[formula]]
-      cnf = fromSS (runNormal (clauseNormalForm f))
+      cnf = fromSS (runNormal (clauseNormalForm varAtomEq substAtomEq f))
       fromSS = map Set.toList . Set.toList
       n f = (if negated f then N . A . (.~.) else A) $ f

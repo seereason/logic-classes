@@ -11,15 +11,13 @@ module Data.Logic.Harrison.FOL
     ) where
 
 import Data.Logic.Classes.Apply (Apply(..), apply)
-import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), combine, binop)
+import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (Constants (fromBool, true, false))
-import Data.Logic.Classes.Equals (AtomEq(foldAtomEq, equals), applyEq, pApp, (.=.))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), quant)
 import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Term (Term(vt, foldTerm, fApp), fvt)
+import Data.Logic.Classes.Term (Term(vt), fvt)
 import Data.Logic.Classes.Variable (Variable(..))
-import qualified Data.Logic.Classes.Term as C
 import Data.Logic.Harrison.Formulas.FirstOrder (on_atoms)
 import Data.Logic.Harrison.Lib ((|->), setAny)
 import qualified Data.Map as Map
@@ -200,22 +198,22 @@ END_INTERACTIVE;;
 
 -- | Return all variables occurring in a formula.
 var :: forall formula atom v. FirstOrderFormula formula atom v => (atom -> Set.Set v) -> formula -> Set.Set v
-var at fm =
-    foldFirstOrder qu co tf at fm
+var va fm =
+    foldFirstOrder qu co tf va fm
     where
-      qu _ x p = Set.insert x (var at p)
-      co ((:~:) p) = var at p
-      co (BinOp p _ q) = Set.union (var at p) (var at q)
+      qu _ x p = Set.insert x (var va p)
+      co ((:~:) p) = var va p
+      co (BinOp p _ q) = Set.union (var va p) (var va q)
       tf _ = Set.empty
 
 -- | Return the variables that occur free in a formula.
 fv :: forall formula atom term v. (FirstOrderFormula formula atom v, Formula atom term v) => (atom -> Set.Set v) -> formula -> Set.Set v
-fv at fm =
-    foldFirstOrder qu co tf at fm
+fv va fm =
+    foldFirstOrder qu co tf va fm
     where
-      qu _ x p = Set.delete x (fv at p)
-      co ((:~:) p) = fv at p
-      co (BinOp p _ q) = Set.union (fv at p) (fv at q)
+      qu _ x p = Set.delete x (fv va p)
+      co ((:~:) p) = fv va p
+      co (BinOp p _ q) = Set.union (fv va p) (fv va q)
       tf _ = Set.empty
 
 -- ------------------------------------------------------------------------- 

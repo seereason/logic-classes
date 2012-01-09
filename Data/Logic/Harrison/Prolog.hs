@@ -2,7 +2,6 @@
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Harrison.Prolog where
 
-import Data.Logic.Classes.Equals (AtomEq(..), varAtomEq, substAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
 import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Term (Term(vt))
@@ -19,14 +18,14 @@ import qualified Data.Set as Set
 -- Rename a rule.                                                            
 -- ------------------------------------------------------------------------- 
 
-renamerule :: forall fof atom term v p f. (FirstOrderFormula fof atom v, Formula atom term v, AtomEq atom p term, Term term v f, Ord fof) =>
-              Int -> (Set.Set fof, fof) -> ((Set.Set fof, fof), Int)
-renamerule k (asm,c) =
+renamerule :: forall fof atom term v f. (FirstOrderFormula fof atom v, Formula atom term v, Term term v f, Ord fof) =>
+              (atom -> Set.Set v) -> (Map.Map v term -> atom -> atom) -> Int -> (Set.Set fof, fof) -> ((Set.Set fof, fof), Int)
+renamerule va sa k (asm,c) =
     ((Set.map inst asm, inst c), k + Set.size fvs)
     where
-      fvs = fv varAtomEq (list_conj (Set.insert c asm)) :: Set.Set v
+      fvs = fv va (list_conj (Set.insert c asm)) :: Set.Set v
       vvs = Map.fromList (map (\ (v, i) -> (v, vt (fromString ("_" ++ show i)))) (zip (Set.toList fvs) [k..])) :: Map.Map v term
-      inst = subst varAtomEq substAtomEq vvs :: fof -> fof
+      inst = subst va sa vvs :: fof -> fof
 
 {-
 

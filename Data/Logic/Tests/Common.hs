@@ -32,7 +32,7 @@ import Data.Generics (Data, Typeable, listify)
 import Data.Logic.Classes.Arity (Arity(arity))
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(satisfiable))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.Equals (AtomEq)
+import Data.Logic.Classes.Equals (AtomEq, varAtomEq, substAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula, convertFOF)
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Skolem (Skolem(..))
@@ -183,19 +183,19 @@ doTest f =
       doExpected (FirstOrderFormula f') =
           myTest (name f ++ " original formula") (p f') (p (formula f))
       doExpected (SimplifiedForm f') =
-          myTest (name f ++ " simplified") (p f') (p (simplify (formula f)))
+          myTest (name f ++ " simplified") (p f') (p (simplify varAtomEq (formula f)))
       doExpected (PrenexNormalForm f') =
-          myTest (name f ++ " prenex normal form") (p f') (p (pnf (formula f)))
+          myTest (name f ++ " prenex normal form") (p f') (p (pnf varAtomEq substAtomEq (formula f)))
       doExpected (NegationNormalForm f') =
-          myTest (name f ++ " negation normal form") (p f') (p (nnf . simplify $ (formula f)))
+          myTest (name f ++ " negation normal form") (p f') (p (nnf . simplify varAtomEq $ (formula f)))
       doExpected (SkolemNormalForm f') =
-          myTest (name f ++ " skolem normal form") (p f') (p (runSkolem (skolemNormalForm (formula f))))
+          myTest (name f ++ " skolem normal form") (p f') (p (runSkolem (skolemNormalForm varAtomEq substAtomEq (formula f))))
       doExpected (SkolemNumbers f') =
-          myTest (name f ++ " skolem numbers") f' (skolemSet (runSkolem (skolemNormalForm (formula f))))
+          myTest (name f ++ " skolem numbers") f' (skolemSet (runSkolem (skolemNormalForm varAtomEq substAtomEq (formula f))))
       doExpected (ClauseNormalForm fss) =
-          myTest (name f ++ " clause normal form") fss (S.map (S.map p) (runSkolem (clauseNormalForm (formula f))))
+          myTest (name f ++ " clause normal form") fss (S.map (S.map p) (runSkolem (clauseNormalForm varAtomEq substAtomEq (formula f))))
       doExpected (TrivialClauses flags) =
-          myTest (name f ++ " trivial clauses") flags (map (\ (x :: S.Set TFormula) -> (trivial x, x)) (S.toList (runSkolem (clauseNormalForm (formula f :: TFormula)))))
+          myTest (name f ++ " trivial clauses") flags (map (\ (x :: S.Set TFormula) -> (trivial x, x)) (S.toList (runSkolem (clauseNormalForm varAtomEq substAtomEq (formula f :: TFormula)))))
       doExpected (ConvertToChiou result) =
           -- We need to convert (formula f) to Chiou and see if it matches result.
           let ca :: TAtom -> C.Sentence V Pr AtomicFunction
@@ -258,7 +258,7 @@ doProof :: forall formula atom term v p f. (FirstOrderFormula formula atom v,
                                             AtomEq atom p term, atom ~ P.Predicate p (P.PTerm v f),
                                             Term term v f, term ~ P.PTerm v f,
                                             Literal formula atom v,
-                                            Ord formula, Data formula, Eq term, Show term, Show v, Show formula, Constants p, Eq p, Show f) =>
+                                            Ord formula, Data formula, Eq term, Show term, Show v, Show formula, Constants p, Eq p, Ord f, Show f) =>
            TestProof formula term v -> Test
 doProof p =
     TestLabel (proofName p) $ TestList $

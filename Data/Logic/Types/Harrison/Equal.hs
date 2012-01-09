@@ -12,9 +12,10 @@ import Data.Logic.Classes.Arity (Arity(..))
 import Data.Logic.Classes.Apply (Apply(..))
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
-import Data.Logic.Classes.Equals (AtomEq(..), showFirstOrderFormulaEq)
+import Data.Logic.Classes.Equals (AtomEq(..), showFirstOrderFormulaEq, substAtomEq, varAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import qualified Data.Logic.Classes.FirstOrder as C
+import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Types.Harrison.FOL (TermType(..))
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
@@ -88,3 +89,9 @@ instance AtomEq FOLEQ PredName TermType where
     applyEq' (Named s) ts = R s ts
     applyEq' (:=:) [t1, t2] = EQUALS t1 t2
     applyEq' _ _ = error "arity"
+
+instance C.Formula FOLEQ TermType String where
+    substitute = substAtomEq
+    freeVariables = varAtomEq
+    allVariables = varAtomEq
+    

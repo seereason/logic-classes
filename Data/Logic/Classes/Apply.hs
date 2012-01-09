@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, FunctionalDependencies, MultiParamTypeClasses, TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, TypeFamilies, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-missing-signatures #-}
 -- | The Apply class represents a type of atom the only supports predicate application.
 module Data.Logic.Classes.Apply
@@ -71,3 +71,10 @@ varApply = foldApply (\ _ args -> Set.unions (map fvt args)) (const Set.empty)
 
 substApply :: (Apply atom p term, Constants atom, Term term v f) => Map.Map v term -> atom -> atom
 substApply env = foldApply (\ p args -> apply p (map (tsubst env) args)) fromBool
+
+{-
+instance (Apply atom p term, Term term v f, Constants atom) => Formula atom term v where
+    allVariables = varApply
+    freeVariables = varApply
+    substitute = substApply
+-}

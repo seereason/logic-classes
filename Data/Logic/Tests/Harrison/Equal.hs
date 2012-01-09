@@ -10,14 +10,15 @@ module Data.Logic.Tests.Harrison.Equal where
 
 import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Combine (Combinable(..), (∧), (⇒))
-import Data.Logic.Classes.Equals ((.=.), pApp)
+import Data.Logic.Classes.Equals ((.=.), pApp, varAtomEq, substAtomEq)
 import Data.Logic.Classes.FirstOrder ((∃), (∀))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Harrison.Equal (equalitize, function_congruence)
 import Data.Logic.Harrison.Meson (meson)
 import Data.Logic.Harrison.Skolem (runSkolem)
-import Data.Logic.Types.Harrison.FOL (FOL, TermType(..), Function)
+import Data.Logic.Harrison.Tableaux (unifyAtomsEq)
+import Data.Logic.Types.Harrison.FOL (TermType(..))
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
 import Data.Logic.Types.Harrison.Equal (FOLEQ(..), PredName)
 import qualified Data.Map as Map
@@ -70,7 +71,7 @@ test label expected input = TestLabel label $ TestCase $ assertEqual label expec
 
 test02 :: Test (Formula FOLEQ)
 test02 = test "equalitize 1 (p. 241)" expected input
-    where input = runSkolem (meson (Just 5) ewd)
+    where input = runSkolem (meson unifyAtomsEq varAtomEq substAtomEq (Just 5) ewd)
           ewd :: Formula FOLEQ
           ewd = equalitize fm
           fm :: Formula FOLEQ
@@ -108,7 +109,7 @@ test02 = test "equalitize 1 (p. 241)" expected input
 
 test03 :: Test (Formula FOLEQ)
 test03 = TestLabel "equalitize 2" $ TestCase $ assertEqual "equalitize 2 (p. 241)" expected input
-    where input = runSkolem (meson (Just 1) wishnu)
+    where input = runSkolem (meson unifyAtomsEq varAtomEq substAtomEq (Just 1) wishnu)
           wishnu = equalitize fm
           fm :: Formula FOLEQ
           fm = ((∃) (fromString "x") ((x .=. f[g[x]]) ∧ (∀) (fromString "x'") ((x' .=. f[g[x']]) ⇒ (x .=. x')))) .<=>.
@@ -128,7 +129,7 @@ test03 = TestLabel "equalitize 2" $ TestCase $ assertEqual "equalitize 2 (p. 241
 test04 :: Test (Formula FOLEQ)
 test04 = test "equalitize 3 (p. 248)" expected input
     where
-      input = runSkolem (meson (Just 20) . equalitize $ fm)
+      input = runSkolem (meson unifyAtomsEq varAtomEq substAtomEq (Just 20) . equalitize $ fm)
       fm :: Formula FOLEQ
       fm = ((∀) "x" . (∀) "y" . (∀) "z") ((*) [x', (*) [y', z']] .=. (*) [((*) [x', y']), z']) ∧
            (∀) "x" ((*) [one, x'] .=. x') ∧

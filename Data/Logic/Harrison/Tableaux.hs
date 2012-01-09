@@ -2,12 +2,13 @@
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Harrison.Tableaux
     ( unify_literals
+    , unifyAtomsEq
     , deepen
     ) where
 
 import Control.Applicative.Error (Failing(..))
-import Data.Logic.Classes.Equals (zipAtomsEq)
-import Data.Logic.Classes.Literal (zipLiterals)
+import Data.Logic.Classes.Equals (AtomEq, zipAtomsEq)
+import Data.Logic.Classes.Literal (Literal, zipLiterals)
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Harrison.Unif (unify)
 import qualified Data.Map as Map
@@ -27,22 +28,32 @@ import Debug.Trace (trace)
 unify_literals :: forall lit term atom v p f. (Literal lit atom v, AtomEq atom p term, Term term v f) =>
                  Map.Map v term -> lit -> lit -> Failing (Map.Map v term)
 -}
-unify_literals env f1 f2 =
+unify_literals :: forall lit atom term v f. (Literal lit atom v, Term term v f) =>
+                  (Map.Map v term -> atom -> atom -> Failing (Map.Map v term))
+               -> Map.Map v term -> lit -> lit -> Failing (Map.Map v term)
+unify_literals ua env f1 f2 =
     maybe err id (zipLiterals co tf at f1 f2)
     where
       -- co :: lit -> lit -> Maybe (Failing (Map.Map v term))
-      co p q = Just $ unify_literals env p q
+      co p q = Just $ unify_literals ua env p q
       tf p q = if p == q then Just $ unify env [] else Nothing
       -- at :: atom -> atom -> Maybe (Failing (Map.Map v term))
-      at a1 a2 =
-          zipAtomsEq (\ p1 ts1 p2 ts2 -> 
-                          if p1 == p2 && length ts1 == length ts2
-                          then Just $ unify env (zip ts1 ts2)
-                          else Nothing)
-                     tf
-                     (\ pl pr ql qr -> Just $ unify env [(pl, ql), (pr, qr)])
-                     a1 a2
+      at a1 a2 = Just $ ua env a1 a2
       err = Failure ["Can't unify literals"]
+
+unifyAtomsEq :: forall v f atom p term.
+                (AtomEq atom p term, Term term v f) =>
+                Map.Map v term -> atom -> atom -> Failing (Map.Map v term)
+unifyAtomsEq env a1 a2 =
+    maybe err id (zipAtomsEq ap tf eq a1 a2)
+    where
+      ap p1 ts1 p2 ts2 =
+          if p1 == p2 && length ts1 == length ts2
+          then Just $ unify env (zip ts1 ts2)
+          else Nothing
+      tf p q = if p == q then Just $ unify env [] else Nothing
+      eq pl pr ql qr = Just $ unify env [(pl, ql), (pr, qr)]
+      err = Failure ["Can't unify atoms"]
 
 -- ------------------------------------------------------------------------- 
 -- Unify complementary literals.                                             
