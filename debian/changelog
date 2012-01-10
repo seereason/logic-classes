@@ -1,3 +1,9 @@
+haskell-logic-classes (1.2) unstable; urgency=low
+
+  * Add a Pretty class to pretty print formulas and friends.
+
+ -- David Fox <dsf@seereason.com>  Tue, 10 Jan 2012 06:28:40 -0800
+
 haskell-logic-classes (1.1) unstable; urgency=low
 
   * Use the Formula class to abstract out the two different types of Atom

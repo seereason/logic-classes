@@ -15,8 +15,9 @@ import Data.Data (Data)
 import Data.Logic.Classes.Arity (Arity)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder)
 import Data.Logic.Classes.Negate (Negatable(..))
+import Data.Logic.Classes.Pretty (Pretty(pretty))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable)
@@ -108,6 +109,11 @@ instance ({- FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
 instance (Arity p, Constants p, Skolem f, Show p, Show f, Ord p, Ord f, Data f, Data v, Data p, Constants (N.Predicate p (N.PTerm v f)),
           FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v) => Eq (Formula v p f) where
     a == b = compare a b == EQ
+
+instance (Pretty v, Show v, Variable v, Data v,
+          Pretty p, Show p, Arity p, Constants p, Ord p, Data p,
+          Pretty f, Show f, Skolem f, Ord f, Data f) => Pretty (Formula v p f) where
+    pretty formula = prettyFirstOrder (\ _prec a -> pretty a) pretty 0 formula
 
 $(deriveSafeCopy 1 'base ''Formula)
 

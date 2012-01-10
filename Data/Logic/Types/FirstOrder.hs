@@ -14,11 +14,12 @@ import Data.Data (Data)
 import Data.Logic.Classes.Arity (Arity)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
-import Data.Logic.Classes.Equals (AtomEq(..), (.=.), pApp, substAtomEq, varAtomEq)
+import Data.Logic.Classes.Equals (AtomEq(..), (.=.), pApp, substAtomEq, varAtomEq, prettyAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
 import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
+import Data.Logic.Classes.Pretty (Pretty(pretty))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable(..))
@@ -182,6 +183,11 @@ instance (Arity p, Constants p, Variable v, Skolem f, Show p, Ord f, Data v, Dat
     foldTerms f r (Equal t1 t2) = f t2 (f t1 r)
     isRename = isRenameOfAtomEq
     getSubst = getSubstAtomEq
+
+instance (Pretty v, Variable v, Data v,
+          Pretty p, Arity p, Constants p, Eq p, Show p,
+          Pretty f, Skolem f, Ord f, Data f) => Pretty (Predicate p (PTerm v f)) where
+    pretty atom = prettyAtomEq pretty pretty pretty 0 atom
 
 $(deriveSafeCopy 1 'base ''PTerm)
 $(deriveSafeCopy 1 'base ''Formula)

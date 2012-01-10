@@ -1,5 +1,5 @@
 Name:             logic-classes
-Version:          1.1
+Version:          1.2
 License:          BSD3
 Author:           David Fox <dsf@seereason.com>
 Maintainer:       SeeReason Partners <partners@seereason.com>
@@ -25,6 +25,7 @@ Library
                    Data.Logic.Classes.Formula
                    Data.Logic.Classes.Literal
                    Data.Logic.Classes.Negate
+                   Data.Logic.Classes.Pretty
                    Data.Logic.Classes.Propositional
                    Data.Logic.Classes.Skolem
                    Data.Logic.Classes.Term
