@@ -5,6 +5,7 @@ module Data.Logic.Classes.Literal
     , zipLiterals
     , fromFirstOrder
     , fromLiteral
+    , toPropositional
     , prettyLit
     ) where
 
@@ -12,6 +13,7 @@ import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Combine (Combination(..))
 import Data.Logic.Classes.Constants
 import qualified Data.Logic.Classes.FirstOrder as FOF
+import qualified Data.Logic.Classes.Propositional as P
 import Data.Logic.Classes.Negate
 import Text.PrettyPrint (Doc, (<>), text)
 
@@ -59,6 +61,10 @@ fromFirstOrder ca cv formula =
 fromLiteral :: forall lit atom v fof atom2 v2. (Literal lit atom v, FOF.FirstOrderFormula fof atom2 v2) =>
                (atom -> atom2) -> lit -> fof
 fromLiteral ca lit = foldLiteral (\ p -> (.~.) (fromLiteral ca p)) fromBool (FOF.atomic . ca) lit
+
+toPropositional :: forall lit atom v pf atom2. (Literal lit atom v, P.PropositionalFormula pf atom2) =>
+                   (atom -> atom2) -> lit -> pf
+toPropositional ca lit = foldLiteral (\ p -> (.~.) (toPropositional ca p)) fromBool (P.atomic . ca) lit
 
 {-
 prettyLit :: forall lit atom term v p f. (Literal lit atom v, Apply atom p term, Term term v f) =>
