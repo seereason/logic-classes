@@ -8,6 +8,7 @@ module Data.Logic.Classes.Literal
     , prettyLit
     ) where
 
+import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Combine (Combination(..))
 import Data.Logic.Classes.Constants
 import qualified Data.Logic.Classes.FirstOrder as FOF
@@ -47,13 +48,13 @@ instance FirstOrderFormula fof atom v => Literal fof atom v where
 -- i.e. quantifiers and formula combinators other than negation.
 fromFirstOrder :: forall formula atom v lit atom2 v2.
                   (FOF.FirstOrderFormula formula atom v, Literal lit atom2 v2) =>
-                  (atom -> atom2) -> (v -> v2) -> formula -> lit
+                  (atom -> atom2) -> (v -> v2) -> formula -> Failing lit
 fromFirstOrder ca cv formula =
-    FOF.foldFirstOrder (\ _ _ _ -> error "FirstOrder -> Literal") co fromBool (atomic . ca) formula
+    FOF.foldFirstOrder (\ _ _ _ -> Failure ["fromFirstOrder"]) co (Success . fromBool) (Success . atomic . ca) formula
     where
-      co :: Combination formula -> lit
-      co ((:~:) f) =  (.~.) (fromFirstOrder ca cv f)
-      co _ = error "FirstOrder -> Literal"
+      co :: Combination formula -> Failing lit
+      co ((:~:) f) =  fromFirstOrder ca cv f >>= return . (.~.)
+      co _ = Failure ["fromFirstOrder"]
 
 fromLiteral :: forall lit atom v fof atom2 v2. (Literal lit atom v, FOF.FirstOrderFormula fof atom2 v2) =>
                (atom -> atom2) -> lit -> fof

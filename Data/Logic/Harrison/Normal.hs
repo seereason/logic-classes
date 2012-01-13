@@ -9,6 +9,7 @@ module Data.Logic.Harrison.Normal
     , simpcnf'
     ) where
 
+import Control.Applicative.Error (failing)
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
@@ -88,7 +89,7 @@ purednf' fm =
       co (BinOp p (:|:) q) = Set.union (purednf' p) (purednf' q)
       co _ = x
       -- x :: Set.Set (Set.Set lit)
-      x = Set.singleton (Set.singleton (fromFirstOrder id id fm)) -- :: Set.Set (Set.Set lit)
+      x = failing (const (error "purednf'")) (Set.singleton . Set.singleton) (fromFirstOrder id id fm)
 
 -- ------------------------------------------------------------------------- 
 -- Conjunctive normal form (CNF) by essentially the same code.               
