@@ -1,7 +1,7 @@
 {-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables #-}
 module Data.Logic.Classes.Term
     ( Term(..)
-    -- , Function(..)
+    , Function
     , convertTerm
     , showTerm
     , prettyTerm
@@ -19,18 +19,11 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import Text.PrettyPrint (Doc, (<>), brackets, hcat, text)
 
--- class (Ord f, IsString f) => Function f where
---     variantF :: f -> Set.Set f -> f
+class (Eq f, Ord f, Skolem f, Data f) => Function f
 
-class ( Ord v     -- Required so variables can be inserted into maps and sets
-      , Variable v -- Used to rename variable during conversion to prenex
-      , Data v    -- For serialization
-      -- , Function f
-      , Eq f      -- We need to check functions for equality during unification
-      , Skolem f  -- Used to create skolem functions and constants
-      , Data f    -- For serialization
-      , Ord term  -- For implementing Ord in Literal
-      ) => Term term v f | term -> v f where
+class ( Ord term  -- For implementing Ord in Literal
+      , Variable v
+      , Function f ) => Term term v f | term -> v f where
     vt :: v -> term
     -- ^ Build a term which is a variable reference.
     fApp :: f -> [term] -> term

@@ -41,7 +41,6 @@ import Data.Logic.Classes.Literal (Literal(..), prettyLit)
 import Data.Logic.Classes.Term (Term)
 import Data.Logic.Harrison.Normal (simpcnf')
 import Data.Logic.Harrison.Skolem (skolemNormalForm, SkolemT, pnf, nnf, simplify)
-import qualified Data.Map as Map
 import qualified Data.Set.Extra as Set
 import Text.PrettyPrint (Doc, hcat, vcat, text, nest, ($$), brackets, render)
 

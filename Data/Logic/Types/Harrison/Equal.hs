@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TypeSynonymInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Types.Harrison.Equal where
 
@@ -8,8 +8,9 @@ module Data.Logic.Types.Harrison.Equal where
 -- Copyright (co) 2003-2007, John Harrison. (See "LICENSE.txt" for details.)  
 -- ========================================================================= 
 
+import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Arity (Arity(..))
-import Data.Logic.Classes.Apply (Apply(..))
+import Data.Logic.Classes.Apply (Apply(..), Predicate)
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), showFirstOrderFormulaEq, substAtomEq, varAtomEq)
@@ -25,7 +26,7 @@ import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
 import Data.String (IsString(..))
 
 data FOLEQ = EQUALS TermType TermType | R String [TermType] deriving (Eq, Ord, Show)
-data PredName = (:=:) | Named String deriving (Eq, Ord, Show)
+data PredName = (:=:) | Named String deriving (Eq, Ord, Show, Data, Typeable)
 
 instance Arity PredName where
     arity (:=:) = Just 2
@@ -44,6 +45,8 @@ instance Constants PredName where
 
 instance Constants FOLEQ where
     fromBool x = R (fromBool x) []
+
+instance Predicate PredName
 
 -- | Using PredName for the predicate type is not quite appropriate
 -- here, but we need to implement this instance so we can use it as a

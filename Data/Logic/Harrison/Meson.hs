@@ -8,7 +8,7 @@ import qualified Data.Set as Set
 import Data.Logic.Classes.Constants (Constants, false)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Formula (Formula)
-import Data.Logic.Classes.Literal (Literal, fromLiteral)
+import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Negate ((.~.), negative)
 import Data.Logic.Classes.Term (Term)
 import Data.Logic.Harrison.FOL (generalize, list_conj)

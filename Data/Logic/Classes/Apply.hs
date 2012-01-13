@@ -3,6 +3,7 @@
 -- | The Apply class represents a type of atom the only supports predicate application.
 module Data.Logic.Classes.Apply
     ( Apply(..)
+    , Predicate
     , apply
     , zipApplys
     , apply0, apply1, apply2, apply3, apply4, apply5, apply6, apply7
@@ -12,6 +13,7 @@ module Data.Logic.Classes.Apply
     , substApply
     ) where
 
+import Data.Data (Data)
 import Data.Logic.Classes.Arity
 import Data.Logic.Classes.Constants
 import Data.Logic.Classes.Term (Term, showTerm, prettyTerm, fvt, tsubst)
@@ -21,7 +23,9 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Text.PrettyPrint (Doc, (<>), text, empty, parens, hcat)
 
-class (Arity p, Constants p, Eq p) => Apply atom p term | atom -> p term where
+class (Arity p, Constants p, Eq p, Ord p, Data p) => Predicate p
+
+class Predicate p => Apply atom p term | atom -> p term where
     foldApply :: (p -> [term] -> r) -> (Bool -> r) -> atom -> r
     apply' :: p -> [term] -> atom
 

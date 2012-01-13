@@ -29,6 +29,7 @@ import Control.Monad.Reader (MonadPlus(..), msum)
 import Data.Boolean.SatSolver (CNF)
 import Data.Char (isDigit)
 import Data.Generics (Data, Typeable, listify)
+import Data.Logic.Classes.Apply (Predicate)
 import Data.Logic.Classes.Arity (Arity(arity))
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(satisfiable))
 import Data.Logic.Classes.Constants (Constants(..))
@@ -36,7 +37,7 @@ import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula, convertFOF)
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Skolem (Skolem(..))
-import Data.Logic.Classes.Term (Term(vt, fApp, foldTerm))
+import Data.Logic.Classes.Term (Term(vt, fApp, foldTerm), Function)
 import Data.Logic.Classes.Variable (Variable(..))
 import Data.Logic.Harrison.Normal (trivial)
 import Data.Logic.Harrison.Skolem (skolemNormalForm, runSkolem, pnf, nnf, simplify)
@@ -91,6 +92,8 @@ data Pr
     | Equals
     deriving (Eq, Ord, Data, Typeable)
 
+instance Predicate Pr
+
 instance IsString Pr where
     fromString = Pr
 
@@ -121,6 +124,8 @@ data AtomicFunction
     | Skolem Int
     deriving (Eq, Ord, Data, Typeable)
 
+instance Function AtomicFunction
+
 instance Skolem AtomicFunction where
     toSkolem = Skolem
     fromSkolem (Skolem n) = Just n
@@ -140,6 +145,10 @@ prettyF (Skolem n) = text ("sK" ++ show n)
 type TFormula = P.Formula V Pr AtomicFunction
 type TAtom = P.Predicate Pr TTerm
 type TTerm = P.PTerm V AtomicFunction
+
+deriving instance Show (P.PTerm V AtomicFunction)
+deriving instance Show (P.Predicate Pr (P.PTerm V AtomicFunction))
+deriving instance Show TFormula
 
 -- |This allows you to use an expression that returns the Doc type in a
 -- unit test, such as prettyFirstOrder.

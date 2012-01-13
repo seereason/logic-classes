@@ -12,12 +12,10 @@ module Data.Logic.Harrison.Normal
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
-import Data.Logic.Classes.Formula (Formula)
-import Data.Logic.Classes.Literal (Literal(atomic), fromFirstOrder, fromLiteral)
+import Data.Logic.Classes.Literal (Literal(atomic), fromFirstOrder)
 import Data.Logic.Classes.Negate (Negatable, negated, (.~.))
-import Data.Logic.Classes.Term (Term)
 import Data.Logic.Harrison.Lib (setAny, allpairs)
-import Data.Logic.Harrison.Skolem (nnf, simplify)
+import Data.Logic.Harrison.Skolem (nnf)
 import qualified Data.Set.Extra as Set
 import Prelude hiding (negate)
 

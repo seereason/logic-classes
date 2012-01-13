@@ -14,7 +14,7 @@ module Data.Logic.Instances.Chiou
     ) where
 
 import Data.Generics (Data, Typeable)
-import Data.Logic.Classes.Apply (Apply(..))
+import Data.Logic.Classes.Apply (Apply(..), Predicate)
 import Data.Logic.Classes.Arity (Arity)
 import Data.Logic.Classes.Combine (Combinable(..), BinOp(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
@@ -22,7 +22,8 @@ import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', pApp)
 import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Negate (Negatable(..), (.~.))
-import Data.Logic.Classes.Term (Term(..))
+import Data.Logic.Classes.Term (Term(..), Function)
+import Data.Logic.Classes.Variable (Variable)
 import qualified Data.Logic.Classes.FirstOrder as L
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
@@ -105,12 +106,12 @@ instance Skolem AtomicFunction where
     fromSkolem _ = Nothing
 
 -- The Atom type is not cleanly distinguished from the Sentence type, so we need an Atom instance for Sentence.
-instance ({- Constants (Sentence v p f), -} Ord v, Ord p, Arity p, Constants p, Ord f) => Apply (Sentence v p f) p (CTerm v f) where
+instance (Variable v, Predicate p, Function f) => Apply (Sentence v p f) p (CTerm v f) where
     foldApply ap tf (Predicate p ts) = maybe (ap p ts) tf (asBool p)
     foldApply _ _ _ = error "Data.Logic.Instances.Chiou: Invalid atom"
     apply' = Predicate
 
-instance (Arity p, Show p, Constants p, Eq p) => AtomEq (Sentence v p f) p (CTerm v f) where
+instance Predicate p => AtomEq (Sentence v p f) p (CTerm v f) where
     foldAtomEq ap tf _ (Predicate p ts) = if p == true then tf True else if p == false then tf False else ap p ts
     foldAtomEq _ _ eq (Equal t1 t2) = eq t1 t2
     foldAtomEq _ _ _ _ = error "Data.Logic.Instances.Chiou: Invalid atom"
@@ -170,7 +171,7 @@ instance (Ord v, IsString v, Variable v, Data v, Show v,
     atomic x@(Equal _ _) = x
     atomic _ = error "Chiou: atomic"
 
-instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (CTerm v f) v f where
+instance (Variable v, Function f) => Term (CTerm v f) v f where
     foldTerm v fn t =
         case t of
           Variable x -> v x
@@ -245,7 +246,7 @@ instance (Combinable (NormalSentence v p f), Term (NormalTerm v f) v f,
     atomic x@(NFEqual _ _) = x
     atomic _ = error "Chiou: atomic"
 
-instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (NormalTerm v f) v f where
+instance (Variable v, Function f) => Term (NormalTerm v f) v f where
     vt = NormalVariable
     fApp = NormalFunction
     foldTerm v f t =
@@ -258,17 +259,17 @@ instance (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => Term (Nor
           (NormalFunction f1 ts1, NormalFunction f2 ts2) -> fn f1 ts1 f2 ts2
           _ -> Nothing
 
-toSentence :: (FirstOrderFormula (Sentence v p f) (Sentence v p f) v, Formula (Sentence v p f) (CTerm v f) v, Skolem f, Ord f, Data f, Data v, Constants p, Ord p, Show p, Arity p) =>
+toSentence :: (FirstOrderFormula (Sentence v p f) (Sentence v p f) v, Formula (Sentence v p f) (CTerm v f) v, Function f, Variable v, Predicate p) =>
               NormalSentence v p f -> Sentence v p f
 toSentence (NFNot s) = (.~.) (toSentence s)
 toSentence (NFEqual t1 t2) = toTerm t1 .=. toTerm t2
 toSentence (NFPredicate p ts) = pApp p (map toTerm ts)
 
-toTerm :: (Ord v, Variable v, Data v, Eq f, Ord f, Skolem f, Data f) => NormalTerm v f -> CTerm v f
+toTerm :: (Variable v, Function f) => NormalTerm v f -> CTerm v f
 toTerm (NormalFunction f ts) = fApp f (map toTerm ts)
 toTerm (NormalVariable v) = vt v
 
-fromSentence :: forall v p f. (FirstOrderFormula (Sentence v p f) (Sentence v p f) v, Arity p, Constants p, Ord p, Ord f, Show p) =>
+fromSentence :: forall v p f. (FirstOrderFormula (Sentence v p f) (Sentence v p f) v, Predicate p) =>
                 Sentence v p f -> NormalSentence v p f
 fromSentence = foldFirstOrder 
                  (\ _ _ _ -> error "fromSentence 1")

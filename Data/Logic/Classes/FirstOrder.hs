@@ -59,7 +59,6 @@ class ( Combinable formula  -- Basic logic operations
       , Constants formula
       , Constants atom
       , Variable v
-      , Show v
       ) => FirstOrderFormula formula atom v | formula -> atom v where
     -- | Universal quantification - for all x (formula x)
     for_all :: v -> formula -> formula
@@ -185,7 +184,7 @@ toPropositional convertAtom formula =
       at _ = convertAtom formula
 
 -- | Display a formula in a format that can be read into the interpreter.
-showFirstOrder :: forall formula atom v. (FirstOrderFormula formula atom v) => (atom -> String) -> formula -> String
+showFirstOrder :: forall formula atom v. (FirstOrderFormula formula atom v, Show v) => (atom -> String) -> formula -> String
 showFirstOrder sa formula =
     foldFirstOrder qu co tf at formula
     where

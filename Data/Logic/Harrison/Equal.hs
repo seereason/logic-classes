@@ -11,7 +11,6 @@ module Data.Logic.Harrison.Equal
 -- Copyright (co) 2003-2007, John Harrison. (See "LICENSE.txt" for details.)  
 -- ========================================================================= 
 
-import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Arity (Arity(..))
 import Data.Logic.Classes.Combine ((∧), (⇒))
 import Data.Logic.Classes.Constants (Constants(fromBool))
@@ -24,23 +23,23 @@ import Data.Logic.Harrison.Skolem (functions)
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 
-is_eq :: (FirstOrderFormula fof atom v, AtomEq atom p term) => fof -> Bool
-is_eq = foldFirstOrder (\ _ _ _ -> False) (\ _ -> False) (\ _ -> False) (foldAtomEq (\ _ _ -> False) (\ _ -> False) (\ _ _ -> True))
-
-mk_eq :: (FirstOrderFormula fof atom v, AtomEq atom p term) => term -> term -> fof
-mk_eq = (.=.)
-
-dest_eq :: (FirstOrderFormula fof atom v, AtomEq atom p term) => fof -> Failing (term, term)
-dest_eq fm =
-    foldFirstOrder (\ _ _ _ -> err) (\ _ -> err) (\ _ -> err) at fm
-    where
-      at = foldAtomEq (\ _ _ -> err) (\ _ -> err) (\ s t -> Success (s, t))
-      err = Failure ["dest_eq: not an equation"]
-
-lhs :: (FirstOrderFormula fof atom v, AtomEq atom p term) => fof -> Failing term
-lhs eq = dest_eq eq >>= return . fst
-rhs :: (FirstOrderFormula fof atom v, AtomEq atom p term) => fof -> Failing term
-rhs eq = dest_eq eq >>= return . snd
+-- is_eq :: (FirstOrderFormula fof atom v, AtomEq atom p term) => fof -> Bool
+-- is_eq = foldFirstOrder (\ _ _ _ -> False) (\ _ -> False) (\ _ -> False) (foldAtomEq (\ _ _ -> False) (\ _ -> False) (\ _ _ -> True))
+-- 
+-- mk_eq :: (FirstOrderFormula fof atom v, AtomEq atom p term) => term -> term -> fof
+-- mk_eq = (.=.)
+-- 
+-- dest_eq :: (FirstOrderFormula fof atom v, AtomEq atom p term) => fof -> Failing (term, term)
+-- dest_eq fm =
+--     foldFirstOrder (\ _ _ _ -> err) (\ _ -> err) (\ _ -> err) at fm
+--     where
+--       at = foldAtomEq (\ _ _ -> err) (\ _ -> err) (\ s t -> Success (s, t))
+--       err = Failure ["dest_eq: not an equation"]
+-- 
+-- lhs :: (FirstOrderFormula fof atom v, AtomEq atom p term) => fof -> Failing term
+-- lhs eq = dest_eq eq >>= return . fst
+-- rhs :: (FirstOrderFormula fof atom v, AtomEq atom p term) => fof -> Failing term
+-- rhs eq = dest_eq eq >>= return . snd
 
 -- ------------------------------------------------------------------------- 
 -- The set of predicates in a formula.                                       

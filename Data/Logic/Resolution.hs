@@ -13,6 +13,7 @@ module Data.Logic.Resolution
     , getSubstAtomEq
     ) where
 
+import Data.Logic.Classes.Apply (Predicate)
 import Data.Logic.Classes.Constants (fromBool)
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq, equals), applyEq, zipAtomsEq)
 import Data.Logic.Classes.Formula (Formula(isRename, getSubst))
@@ -28,7 +29,7 @@ type SetOfSupport lit v term = S.Set (Unification lit v term)
 
 type Unification lit v term = (ImplicativeForm lit, Map.Map v term)
 
-prove :: (Literal lit atom v, Formula atom term v, Term term v f, Ord lit, Ord term, Ord v, Show v, Show term, AtomEq atom p term, Eq p) =>
+prove :: (Literal lit atom v, Formula atom term v, Term term v f, Ord lit, Ord term, Ord v, {-Show v, Show term,-} AtomEq atom p term, Predicate p) =>
          Maybe Int -- ^ Recursion limit.  We continue recursing until this
                    -- becomes zero.  If it is negative it may recurse until
                    -- it overflows the stack.
@@ -53,6 +54,7 @@ prove limit ss1 ss2' kb  =
 --         (True, (ss1 ++ [s] ++ss'))
 --       else
 --         prove (ss1 ++ [s]) ss' (fst s:kb)
+
 prove' :: forall lit atom p f v term.
           (Literal lit atom v, Formula atom term v, Term term v f, Ord lit, Ord term, Ord v, AtomEq atom p term, Eq p) =>
           Unification lit v term -> S.Set (ImplicativeForm lit) -> SetOfSupport lit v term -> SetOfSupport lit v term -> (SetOfSupport lit v term, Bool)

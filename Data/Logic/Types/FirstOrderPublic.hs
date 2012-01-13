@@ -12,14 +12,13 @@ module Data.Logic.Types.FirstOrderPublic
     ) where
 
 import Data.Data (Data)
-import Data.Logic.Classes.Arity (Arity)
+import Data.Logic.Classes.Apply (Predicate)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder)
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pretty))
-import Data.Logic.Classes.Skolem (Skolem(..))
-import Data.Logic.Classes.Term (Term(..))
+import Data.Logic.Classes.Term (Term(..), Function)
 import Data.Logic.Classes.Variable (Variable)
 import Data.Logic.Normal.Implicative (implicativeNormalForm, ImplicativeForm, runNormal)
 import qualified Data.Logic.Types.FirstOrder as N
@@ -52,30 +51,26 @@ instance Negatable (Formula v p f) where
     negatePrivate = Formula . negatePrivate . unFormula
     foldNegation normal inverted = foldNegation (normal . Formula) (inverted . Formula) . unFormula
 
-instance (Constants (N.Formula v p f), Arity p, Constants p, Ord v, Ord p, Ord f, Variable v, Skolem f, Show v, Show p, Show f, Data v, Data f, Data p) => Constants (Formula v p f) where
+instance (Constants (N.Formula v p f), Predicate p, Variable v, Function f) => Constants (Formula v p f) where
     fromBool = Formula . fromBool
 
-instance (Constants (Formula v p f), Constants (N.Formula v p f),
-          Variable v, Show v, Ord v, Data v,
-          Arity p, Constants p, Show p, Ord p, Data p,
-          Skolem f, Show f, Ord f, Data f) => Combinable (Formula v p f) where
+instance (Constants (Formula v p f),
+          Constants (N.Formula v p f),
+          Variable v, Predicate p, Function f) => Combinable (Formula v p f) where
     x .<=>. y = Formula $ (unFormula x) .<=>. (unFormula y)
     x .=>.  y = Formula $ (unFormula x) .=>. (unFormula y)
     x .|.   y = Formula $ (unFormula x) .|. (unFormula y)
     x .&.   y = Formula $ (unFormula x) .&. (unFormula y)
 
 instance (Constants (N.Formula v p f),
-          Arity p, Variable v, Skolem f, Constants p,
-          Show p, Show v, Show f,
-          Ord f, Ord v, Ord p,
-          Data p, Data v, Data f) => Show (Formula v p f) where
+          Show (N.Formula v p f),
+          Predicate p, Variable v, Function f,
+          Show p, Show v, Show f) => Show (Formula v p f) where
     showsPrec n x = showsPrec n (unFormula x)
 
 instance (Constants (Formula v p f), Constants (N.Formula v p f),
           Combinable (Formula v p f), Term (N.PTerm v f) v f,
-          Show v,
-          Arity p, Constants p, Ord p, Data p, Show p,
-          Ord f, Show f) => FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v where
+          Predicate p) => FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v where
     for_all v x = public $ for_all v (intern x :: N.Formula v p f)
     exists v x = public $ exists v (intern x :: N.Formula v p f)
     foldFirstOrder qu co tf at f = foldFirstOrder qu' co' tf at (intern f :: N.Formula v p f)
@@ -89,16 +84,11 @@ instance (Constants (Formula v p f), Constants (N.Formula v p f),
     atomic = Formula . atomic
 
 -- |Here are the magic Ord and Eq instances
-instance ({- FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
-          Literal (N.Formula v p f) (N.PTerm v f) v p f,
-          FirstOrderFormula (N.Formula v p f) (N.PTerm v f) v p f, -}
-          Constants (N.Predicate p (N.PTerm v f)),
-          Constants (Formula v p f), Constants (N.Formula v p f),
-          Data v, Data f, Data p,
-          Ord v, Ord p, Ord f,
-          Show v, Show p, Show f,
-          Arity p, Constants p, Skolem f, Variable v,
-          Ord (N.Formula v p f)) => Ord (Formula v p f) where
+instance (Constants (N.Predicate p (N.PTerm v f)),
+          Constants (Formula v p f),
+          Constants (N.Formula v p f),
+          Ord (N.Formula v p f),
+          Predicate p, Function f, Variable v) => Ord (Formula v p f) where
     compare a b =
         let (a' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm (intern a :: N.Formula v p f))
             (b' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm (intern b :: N.Formula v p f)) in
@@ -106,13 +96,13 @@ instance ({- FirstOrderFormula (Formula v p f) (N.PTerm v f) v p f,
           EQ -> EQ
           x -> {- if isRenameOf a' b' then EQ else -} x
 
-instance (Arity p, Constants p, Skolem f, Show p, Show f, Ord p, Ord f, Data f, Data v, Data p, Constants (N.Predicate p (N.PTerm v f)),
+instance (Predicate p, Function f, Variable v, Constants (N.Predicate p (N.PTerm v f)),
           FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v) => Eq (Formula v p f) where
     a == b = compare a b == EQ
 
-instance (Pretty v, Show v, Variable v, Data v,
-          Pretty p, Show p, Arity p, Constants p, Ord p, Data p,
-          Pretty f, Show f, Skolem f, Ord f, Data f) => Pretty (Formula v p f) where
+instance (Pretty v, Show v, Variable v,
+          Pretty p, Show p, Predicate p,
+          Pretty f, Show f, Function f) => Pretty (Formula v p f) where
     pretty formula = prettyFirstOrder (\ _prec a -> pretty a) pretty 0 formula
 
 $(deriveSafeCopy 1 'base ''Formula)

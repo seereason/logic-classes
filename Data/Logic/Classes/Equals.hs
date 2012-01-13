@@ -19,6 +19,7 @@ module Data.Logic.Classes.Equals
     ) where
 
 import Data.List (intercalate, intersperse)
+import Data.Logic.Classes.Apply (Predicate)
 import Data.Logic.Classes.Arity (Arity(..))
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), ifElse)
@@ -31,7 +32,7 @@ import qualified Data.Set as Set
 import Text.PrettyPrint (Doc, (<>), (<+>), text, empty, parens, hcat, nest)
 
 -- | Its not safe to make Atom a superclass of AtomEq, because the Atom methods will fail on AtomEq instances.
-class (Arity p, Constants p, Eq p, Show p) => AtomEq atom p term | atom -> p term, term -> atom p where
+class Predicate p => AtomEq atom p term | atom -> p term, term -> atom p where
     foldAtomEq :: (p -> [term] -> r) -> (Bool -> r) -> (term -> term -> r) -> atom -> r
     equals :: term -> term -> atom
     applyEq' :: p -> [term] -> atom
@@ -77,8 +78,10 @@ apply6 p a b c d e f = if fromMaybe 6 (arity p) == 6 then applyEq' p [a,b,c,d,e,
 apply7 :: AtomEq atom p a => p -> a -> a -> a -> a -> a -> a -> a -> atom
 apply7 p a b c d e f g = if fromMaybe 7 (arity p) == 7 then applyEq' p [a,b,c,d,e,f,g] else arityError p [a,b,c,d,e,f,g]
 
-arityError :: (Arity p, Show p) => p -> [a] -> t
-arityError p ts = error $ "arity error for " ++ show p ++ ": expected " ++ show (arity p) ++ ", got " ++ show (length ts)
+arityError :: (Arity p) => p -> [a] -> t
+arityError _p _ts = error "arity error"
+-- arityError :: (Arity p, Pretty p) => p -> [a] -> t
+-- arityError p ts = error $ "arity error: " ++ show (length ts) ++ " arguments applied to arity " ++ show (arity p) ++ " predicate " ++ show (pretty p)
 
 pApp :: (FirstOrderFormula formula atom v, AtomEq atom p term) => p -> [term] -> formula
 pApp p ts = atomic (applyEq p ts)
@@ -161,7 +164,7 @@ fromAtomEq cv cp cf atom =
     where
       ct = convertTerm cv cf
 
-showAtomEq :: forall atom term v p f. (AtomEq atom p term, Term term v f, Show v, Show f) => atom -> String
+showAtomEq :: forall atom term v p f. (AtomEq atom p term, Term term v f, Show v, Show p, Show f) => atom -> String
 showAtomEq =
     foldAtomEq (\ p ts -> "(pApp" ++ show (length ts) ++ " (" ++ show p ++ ") (" ++ intercalate ") (" (map showTerm ts) ++ "))")
                (\ x -> if x then "true" else "false")

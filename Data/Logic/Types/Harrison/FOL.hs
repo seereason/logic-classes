@@ -9,7 +9,7 @@ module Data.Logic.Types.Harrison.FOL
 
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Arity
-import Data.Logic.Classes.Apply (Apply(..), showApply)
+import Data.Logic.Classes.Apply (Apply(..), Predicate, showApply)
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder)
@@ -51,6 +51,8 @@ instance Constants String where
 instance Constants FOL where
     fromBool x = R (fromBool x) []
 
+instance Predicate String
+
 instance FirstOrderFormula (Formula FOL) FOL String where
     -- type C.Term (Formula FOL) = Term
     -- type V (Formula FOL) = String
@@ -84,6 +86,8 @@ data Function
     = FName String
     | Skolem Int
     deriving (Eq, Ord, Data, Typeable, Show)
+
+instance C.Function Function
 
 instance Skolem Function where
     toSkolem = Skolem
