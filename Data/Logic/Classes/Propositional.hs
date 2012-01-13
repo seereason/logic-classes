@@ -12,6 +12,7 @@
 module Data.Logic.Classes.Propositional
     ( PropositionalFormula(..)
     , showPropositional
+    , prettyPropositional
     , convertProp
     , combine
     , negationNormalForm
@@ -29,6 +30,7 @@ import Data.Logic.Classes.Negate
 import Data.SafeCopy (base, deriveSafeCopy)
 import qualified Data.Set.Extra as Set
 import Happstack.Data (deriveNewData)
+import Text.PrettyPrint (Doc, cat, text, (<>))
 
 -- |A type class for propositional logic.  If the type we are writing
 -- an instance for is a zero-order (aka propositional) logic type
@@ -65,6 +67,17 @@ showPropositional showAtom formula =
       showFormOp (:=>:) = ".=>."
       showFormOp (:&:) = ".&."
       showFormOp (:|:) = ".|."
+
+-- | Show a formula in a format that can be evaluated 
+prettyPropositional :: (PropositionalFormula formula atom) => (atom -> Doc) -> Int -> formula -> Doc
+prettyPropositional prettyAtom _prec formula =
+    foldPropositional co tf at formula
+    where
+      co ((:~:) f) = text "¬" <> parenForm f
+      co (BinOp f1 op f2) = parenForm f1 <> text " " <> prettyBinOp op <> text " " <> parenForm f2
+      tf = prettyBool
+      at = prettyAtom
+      parenForm x = cat [text "(", prettyPropositional prettyAtom 0 x, text ")"]
 
 -- |Convert any instance of a propositional logic expression to any
 -- other using the supplied atom conversion function.

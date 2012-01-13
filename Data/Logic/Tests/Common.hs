@@ -32,7 +32,7 @@ import Data.Generics (Data, Typeable, listify)
 import Data.Logic.Classes.Apply (Predicate)
 import Data.Logic.Classes.Arity (Arity(arity))
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(satisfiable))
-import Data.Logic.Classes.Constants (Constants(..))
+import Data.Logic.Classes.Constants (Constants(..), prettyBool)
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula, convertFOF)
 import Data.Logic.Classes.Literal (Literal)
@@ -119,8 +119,8 @@ instance Show Pr where
 
 instance Pretty Pr where
     pretty (Pr s) = text s
-    pretty T = text "true"
-    pretty F = text "false"
+    pretty T = prettyBool True
+    pretty F = prettyBool False
     pretty Equals = text "="
 
 prettyP :: Pr -> Doc

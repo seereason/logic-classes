@@ -16,10 +16,12 @@ module Data.Logic.Classes.Combine
     -- * Use in Harrison's code
     , (==>)
     , (<=>)
+    , prettyBinOp
     ) where
 
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Negate (Negatable, (.~.))
+import Text.PrettyPrint (Doc, text)
 
 -- | A type class for logical formulas.  Minimal implementation:
 -- @
@@ -112,3 +114,9 @@ binop a (:<=>:) b = a .<=>. b
 (==>) = (.=>.)
 (<=>) :: Combinable formula => formula -> formula -> formula
 (<=>) = (.<=>.)
+
+prettyBinOp :: BinOp -> Doc
+prettyBinOp (:<=>:) = text "⇔"
+prettyBinOp (:=>:) = text "⇒"
+prettyBinOp (:&:) = text "∧"
+prettyBinOp (:|:) = text "∨"

@@ -4,7 +4,10 @@ module Data.Logic.Classes.Constants
     , ifElse
     , (⊨)
     , (⊭)
+    , prettyBool
     ) where
+
+import Text.PrettyPrint (Doc, text)
 
 -- |Some types in the Logic class heirarchy need to have True and
 -- False elements.
@@ -28,3 +31,7 @@ ifElse _ f False = f
 (⊨) = true
 (⊭) :: Constants formula => formula
 (⊭) = false
+
+prettyBool :: Bool -> Doc
+prettyBool True = text "⊨"
+prettyBool False = text "⊭"
