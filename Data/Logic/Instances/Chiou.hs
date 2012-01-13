@@ -15,7 +15,6 @@ module Data.Logic.Instances.Chiou
 
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Apply (Apply(..), Predicate)
-import Data.Logic.Classes.Arity (Arity)
 import Data.Logic.Classes.Combine (Combinable(..), BinOp(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
@@ -28,7 +27,6 @@ import Data.Logic.Classes.Variable (Variable)
 import qualified Data.Logic.Classes.FirstOrder as L
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
-import Data.Logic.Classes.Variable (Variable)
 import Data.String (IsString(..))
 
 data Sentence v p f
@@ -70,10 +68,7 @@ instance ({- Constants (Sentence v p f), -} Ord v, Ord p, Ord f) => Combinable (
     x .|.   y = Connective x Or y
     x .&.   y = Connective x And y
 
-instance (Ord v, IsString v, Data v, Variable v, 
-          Ord p, IsString p, Data p, Constants p, Arity p,
-          Ord f, IsString f, Data f, Skolem f,
-          {- Constants (Sentence v p f), -} Combinable (Sentence v p f)) =>
+instance (Variable v, Predicate p, Function f, Combinable (Sentence v p f)) =>
          PropositionalFormula (Sentence v p f) (Sentence v p f) where
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
@@ -229,9 +224,7 @@ instance (Variable v, Predicate p, Function f, Combinable (NormalSentence v p f)
     pretty = prettyFirstOrder (\ _ a -> pretty a) pretty 0
 
 instance (Combinable (NormalSentence v p f), Term (NormalTerm v f) v f,
-          IsString v, Show v,
-          Ord p, IsString p, Constants p, Arity p, Data p, Show p,
-          Ord f, IsString f, Show f) => FirstOrderFormula (NormalSentence v p f) (NormalSentence v p f) v where
+          Variable v, Predicate p, Function f) => FirstOrderFormula (NormalSentence v p f) (NormalSentence v p f) v where
     for_all _ _ = error "FirstOrderFormula NormalSentence"
     exists _ _ = error "FirstOrderFormula NormalSentence"
     foldFirstOrder _ co tf at f =

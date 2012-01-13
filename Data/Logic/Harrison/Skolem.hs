@@ -272,6 +272,10 @@ askolemize :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, T
               formula -> SkolemT v term m formula
 askolemize = skolem . nnf . simplify
 
+-- | Remove the leading universal quantifiers.  After a call to pnf
+-- this will be all the universal quantifiers, and the skolemization
+-- will have already turned all the existential quantifiers into
+-- skolem functions.
 specialize :: forall fof atom v. FirstOrderFormula fof atom v => fof -> fof
 specialize f =
     foldFirstOrder q (\ _ -> f) (\ _ -> f) (\ _ -> f) f
