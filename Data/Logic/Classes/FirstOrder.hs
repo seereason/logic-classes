@@ -43,7 +43,7 @@ import Data.Logic.Classes.Apply (Apply(..), apply, apply0, apply1, apply2, apply
 import Data.Logic.Classes.Constants
 import Data.Logic.Classes.Combine
 import Data.Logic.Classes.Pretty (Pretty)
-import Data.Logic.Classes.Propositional (PropositionalFormula)
+import qualified Data.Logic.Classes.Propositional as P
 import Data.Logic.Classes.Variable (Variable)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Happstack.Data (deriveNewData)
@@ -173,8 +173,8 @@ convertFOF convertA convertV formula =
 -- into an atom that it is unable to convert.
 toPropositional :: forall formula1 atom v formula2 atom2.
                    (FirstOrderFormula formula1 atom v,
-                    PropositionalFormula formula2 atom2) =>
-                   (formula1 -> formula2) -> formula1 -> formula2
+                    P.PropositionalFormula formula2 atom2) =>
+                   (atom -> atom2) -> formula1 -> formula2
 toPropositional convertAtom formula =
     foldFirstOrder qu co tf at formula
     where
@@ -183,7 +183,7 @@ toPropositional convertAtom formula =
       co (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
       co ((:~:) f) = combine ((:~:) (convert' f))
       tf = fromBool
-      at _ = convertAtom formula
+      at = P.atomic . convertAtom
 
 -- | Display a formula in a format that can be read into the interpreter.
 showFirstOrder :: forall formula atom v. (FirstOrderFormula formula atom v, Show v) => (atom -> String) -> formula -> String

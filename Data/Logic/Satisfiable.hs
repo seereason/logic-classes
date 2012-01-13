@@ -23,24 +23,30 @@ import Data.Logic.Normal.Clause (clauseNormalForm)
 import qualified PropLogic as PL
 
 -- |Is there any variable assignment that makes the formula true?
-satisfiable :: forall formula atom term v f m. (Monad m, FirstOrderFormula formula atom v, Formula atom term v, Term term v f, Ord formula, Literal formula atom v) =>
-                formula -> SkolemT v term m Bool
+-- satisfiable :: forall formula atom term v f m. (Monad m, FirstOrderFormula formula atom v, Formula atom term v, Term term v f, Ord formula, Literal formula atom v, Ord atom) =>
+--                 formula -> SkolemT v term m Bool
+satisfiable :: forall m formula atom v term f. (FirstOrderFormula formula atom v, Literal formula atom v, Term term v f, Formula atom term v,
+                                                Ord atom, Monad m, Eq formula, Ord formula) =>
+               formula -> SkolemT v term m Bool
 satisfiable f =
     do (clauses :: Set.Set (Set.Set formula)) <- clauseNormalForm f
        let f' = PL.CJ . map (PL.DJ . map (toPropositional PL.A)) . map Set.toList . Set.toList $ clauses
        return . PL.satisfiable $ f'
 
 -- |Is the formula always false?  (Not satisfiable.)
-inconsistant :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, Term term v f, Ord formula, Literal formula atom v) =>
+inconsistant :: forall m formula atom v term f. (FirstOrderFormula formula atom v, Literal formula atom v, Term term v f, Formula atom term v,
+                                                 Ord atom, Monad m, Eq formula, Ord formula) =>
                 formula -> SkolemT v term m Bool
 inconsistant f =  satisfiable f >>= return . not
 
 -- |Is the negation of the formula inconsistant?
-theorem :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, Term term v f, Ord formula, Literal formula atom v) =>
+theorem :: forall m formula atom v term f. (FirstOrderFormula formula atom v, Literal formula atom v, Term term v f, Formula atom term v,
+                                            Ord atom, Monad m, Eq formula, Ord formula) =>
            formula -> SkolemT v term m Bool
 theorem f = inconsistant ((.~.) f)
 
 -- |A formula is invalid if it is neither a theorem nor inconsistent.
-invalid :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, Term term v f, Ord formula, Literal formula atom v) =>
+invalid :: forall m formula atom v term f. (FirstOrderFormula formula atom v, Literal formula atom v, Term term v f, Formula atom term v,
+                                            Ord atom, Monad m, Eq formula, Ord formula) =>
            formula -> SkolemT v term m Bool
 invalid f = inconsistant f >>= \ fi -> theorem f >>= \ ft -> return (not (fi || ft))
