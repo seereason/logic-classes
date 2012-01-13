@@ -36,6 +36,7 @@ import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula, convertFOF)
 import Data.Logic.Classes.Literal (Literal)
+import Data.Logic.Classes.Pretty (Pretty(pretty))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(vt, fApp, foldTerm), Function)
 import Data.Logic.Classes.Variable (Variable(..))
@@ -71,6 +72,9 @@ instance Show V where
 
 prettyV :: V -> Doc
 prettyV (V s) = text s
+
+instance Pretty V where
+    pretty = prettyV
 
 instance Variable V where
     prefix p (V s) = V (p ++ s)
@@ -113,6 +117,12 @@ instance Show Pr where
     show Equals = ".=."
     show (Pr s) = show s            -- Because Pr is an instance of IsString
 
+instance Pretty Pr where
+    pretty (Pr s) = text s
+    pretty T = text "true"
+    pretty F = text "false"
+    pretty Equals = text "="
+
 prettyP :: Pr -> Doc
 prettyP T = text "True"
 prettyP F = text "False"
@@ -137,6 +147,10 @@ instance IsString AtomicFunction where
 instance Show AtomicFunction where
     show (Fn s) = show s
     show (Skolem n) = "toSkolem " ++ show n
+
+instance Pretty AtomicFunction where
+    pretty (Fn s) = text s
+    pretty (Skolem n) = text ("Sk" ++ show n)
 
 prettyF :: AtomicFunction -> Doc
 prettyF (Fn s) = text s

@@ -42,6 +42,7 @@ import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Apply (Apply(..), apply, apply0, apply1, apply2, apply3, apply4, apply5, apply6, apply7)
 import Data.Logic.Classes.Constants
 import Data.Logic.Classes.Combine
+import Data.Logic.Classes.Pretty (Pretty)
 import Data.Logic.Classes.Propositional (PropositionalFormula)
 import Data.Logic.Classes.Variable (Variable)
 import Data.SafeCopy (base, deriveSafeCopy)
@@ -59,6 +60,7 @@ class ( Combinable formula  -- Basic logic operations
       , Constants formula
       , Constants atom
       , Variable v
+      , Pretty atom, Pretty v
       ) => FirstOrderFormula formula atom v | formula -> atom v where
     -- | Universal quantification - for all x (formula x)
     for_all :: v -> formula -> formula

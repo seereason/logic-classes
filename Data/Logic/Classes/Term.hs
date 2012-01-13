@@ -12,6 +12,7 @@ module Data.Logic.Classes.Term
 
 import Data.Generics (Data)
 import Data.List (intercalate, intersperse)
+import Data.Logic.Classes.Pretty (Pretty)
 import Data.Logic.Classes.Skolem
 import Data.Logic.Classes.Variable
 import qualified Data.Map as Map
@@ -19,7 +20,7 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import Text.PrettyPrint (Doc, (<>), brackets, hcat, text)
 
-class (Eq f, Ord f, Skolem f, Data f) => Function f
+class (Eq f, Ord f, Skolem f, Data f, Pretty f) => Function f
 
 class ( Ord term  -- For implementing Ord in Literal
       , Variable v

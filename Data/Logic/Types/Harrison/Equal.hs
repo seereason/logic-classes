@@ -9,6 +9,7 @@ module Data.Logic.Types.Harrison.Equal where
 -- ========================================================================= 
 
 import Data.Generics (Data, Typeable)
+import Data.List (intersperse)
 import Data.Logic.Classes.Arity (Arity(..))
 import Data.Logic.Classes.Apply (Apply(..), Predicate)
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
@@ -18,12 +19,14 @@ import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import qualified Data.Logic.Classes.FirstOrder as C
 import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (Literal(..))
+import Data.Logic.Classes.Pretty (Pretty(pretty))
 import Data.Logic.Harrison.Resolution (matchAtomsEq)
 import Data.Logic.Harrison.Tableaux (unifyAtomsEq)
 import Data.Logic.Resolution (isRenameOfAtomEq, getSubstAtomEq)
 import Data.Logic.Types.Harrison.FOL (TermType(..))
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
 import Data.String (IsString(..))
+import Text.PrettyPrint (text, cat)
 
 data FOLEQ = EQUALS TermType TermType | R String [TermType] deriving (Eq, Ord, Show)
 data PredName = (:=:) | Named String deriving (Eq, Ord, Show, Data, Typeable)
@@ -47,6 +50,10 @@ instance Constants FOLEQ where
     fromBool x = R (fromBool x) []
 
 instance Predicate PredName
+
+instance Pretty PredName where
+    pretty (:=:) = text "="
+    pretty (Named s) = text s
 
 -- | Using PredName for the predicate type is not quite appropriate
 -- here, but we need to implement this instance so we can use it as a
@@ -74,6 +81,10 @@ instance FirstOrderFormula (Formula FOLEQ) FOLEQ String where
           Forall v fm' -> qu C.Forall v fm'
           Exists v fm' -> qu C.Exists v fm'
     atomic = Atom
+
+instance Pretty FOLEQ where
+    pretty (EQUALS a b) = cat [pretty a, pretty (:=:), pretty b]
+    pretty (R s ts) = cat ([pretty s, pretty "("] ++ intersperse (text ", ") (map pretty ts) ++ [text ")"])
 
 instance Literal (Formula FOLEQ) FOLEQ String where
     atomic = Atom

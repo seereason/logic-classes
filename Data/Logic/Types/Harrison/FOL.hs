@@ -8,11 +8,13 @@ module Data.Logic.Types.Harrison.FOL
     ) where
 
 import Data.Generics (Data, Typeable)
+import Data.List (intersperse)
 import Data.Logic.Classes.Arity
 import Data.Logic.Classes.Apply (Apply(..), Predicate, showApply)
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder)
+import Data.Logic.Classes.Pretty (Pretty(pretty))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(vt, foldTerm, fApp))
 import Data.Logic.Classes.Variable (Variable(..))
@@ -22,7 +24,7 @@ import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
 import qualified Data.Logic.Types.Harrison.Formulas.FirstOrder as H
 import qualified Data.Set as Set
 import Prelude hiding (pred)
-import Text.PrettyPrint (text)
+import Text.PrettyPrint (text, cat)
 
 -- -------------------------------------------------------------------------
 -- Terms.                                                                   
@@ -39,6 +41,10 @@ instance Show TermType where
     show (Var v) = "var " ++ show v
     show (Fn f ts) = "fApp " ++ show f ++ " " ++ show ts
 
+instance Pretty TermType where
+    pretty (Var v) = pretty v
+    pretty (Fn f ts) = cat ([pretty f, text "("] ++ intersperse (text ", ") (map pretty ts) ++ [text ")"])
+
 instance Apply FOL String TermType where
     foldApply f tf (R p ts) = maybe (f p ts) tf (asBool p)
     apply' = R
@@ -52,6 +58,9 @@ instance Constants FOL where
     fromBool x = R (fromBool x) []
 
 instance Predicate String
+
+instance Pretty String where
+    pretty = text
 
 instance FirstOrderFormula (Formula FOL) FOL String where
     -- type C.Term (Formula FOL) = Term
@@ -77,6 +86,9 @@ instance FirstOrderFormula (Formula FOL) FOL String where
           H.Forall v fm' -> qu C.Forall v fm'
           H.Exists v fm' -> qu C.Exists v fm'
 
+instance Pretty FOL where
+    pretty (R p ts) = cat ([pretty p, text "("] ++ intersperse (text ", ") (map pretty ts) ++ [text ")"])
+
 instance Arity String where
     arity _ = Nothing
 
@@ -86,6 +98,10 @@ data Function
     = FName String
     | Skolem Int
     deriving (Eq, Ord, Data, Typeable, Show)
+
+instance Pretty Function where
+    pretty (FName s) = text s
+    pretty (Skolem n) = text ("Sk" ++ show n)
 
 instance C.Function Function
 

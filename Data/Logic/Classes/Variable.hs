@@ -5,11 +5,12 @@ module Data.Logic.Classes.Variable
     ) where
 
 import Data.Data (Data)
+import Data.Logic.Classes.Pretty (Pretty)
 import qualified Data.Set as Set
 import Data.String (IsString)
 import Text.PrettyPrint (Doc)
 
-class (Ord v, IsString v, Data v) => Variable v where
+class (Ord v, IsString v, Data v, Pretty v) => Variable v where
     variant :: v -> Set.Set v -> v
     -- ^ Return a variable based on v but different from any set
     -- element.  The result may be v itself if v is not a member of

@@ -16,6 +16,7 @@ module Data.Logic.Classes.Apply
 import Data.Data (Data)
 import Data.Logic.Classes.Arity
 import Data.Logic.Classes.Constants
+import Data.Logic.Classes.Pretty (Pretty)
 import Data.Logic.Classes.Term (Term, showTerm, prettyTerm, fvt, tsubst)
 import Data.List (intercalate, intersperse)
 import Data.Maybe (fromMaybe)
@@ -23,7 +24,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Text.PrettyPrint (Doc, (<>), text, empty, parens, hcat)
 
-class (Arity p, Constants p, Eq p, Ord p, Data p) => Predicate p
+class (Arity p, Constants p, Eq p, Ord p, Data p, Pretty p) => Predicate p
 
 class Predicate p => Apply atom p term | atom -> p term where
     foldApply :: (p -> [term] -> r) -> (Bool -> r) -> atom -> r

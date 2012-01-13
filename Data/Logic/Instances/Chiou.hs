@@ -19,9 +19,10 @@ import Data.Logic.Classes.Arity (Arity)
 import Data.Logic.Classes.Combine (Combinable(..), BinOp(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', pApp)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', pApp, prettyFirstOrder)
 import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Negate (Negatable(..), (.~.))
+import Data.Logic.Classes.Pretty (Pretty(pretty))
 import Data.Logic.Classes.Term (Term(..), Function)
 import Data.Logic.Classes.Variable (Variable)
 import qualified Data.Logic.Classes.FirstOrder as L
@@ -118,9 +119,10 @@ instance Predicate p => AtomEq (Sentence v p f) p (CTerm v f) where
     equals = Equal
     applyEq' = Predicate
 
-instance (Ord v, IsString v, Variable v, Data v, Show v,
-          Ord p, IsString p, Constants p, Arity p, Data p, Show p,
-          Ord f, IsString f, Skolem f, Data f, Show f,
+instance (Variable v, Predicate p, Function f) => Pretty (Sentence v p f) where
+    pretty = prettyFirstOrder (\ _ a -> pretty a) pretty 0
+
+instance (Variable v, Predicate p, Function f,
           PropositionalFormula (Sentence v p f) (Sentence v p f)) =>
           FirstOrderFormula (Sentence v p f) (Sentence v p f) v where
     for_all v x = Quantifier ForAll [v] x
@@ -222,6 +224,9 @@ instance (Arity p, Constants p, Combinable (NormalSentence v p f)) => Pred p (No
     x .=. y = NFEqual x y
     x .!=. y = NFNot (NFEqual x y)
 -}
+
+instance (Variable v, Predicate p, Function f, Combinable (NormalSentence v p f)) => Pretty (NormalSentence v p f) where
+    pretty = prettyFirstOrder (\ _ a -> pretty a) pretty 0
 
 instance (Combinable (NormalSentence v p f), Term (NormalTerm v f) v f,
           IsString v, Show v,
