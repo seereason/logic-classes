@@ -160,10 +160,6 @@ type TFormula = P.Formula V Pr AtomicFunction
 type TAtom = P.Predicate Pr TTerm
 type TTerm = P.PTerm V AtomicFunction
 
-deriving instance Show (P.PTerm V AtomicFunction)
-deriving instance Show (P.Predicate Pr (P.PTerm V AtomicFunction))
-deriving instance Show TFormula
-
 -- |This allows you to use an expression that returns the Doc type in a
 -- unit test, such as prettyFirstOrder.
 instance Eq Doc where
