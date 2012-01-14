@@ -37,7 +37,7 @@ data Formula v p f
     | Quant Quant v (Formula v p f)
     -- Note that a derived Eq instance is not going to tell us that
     -- a&b is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).
-    deriving (Eq,Ord,Data,Typeable)
+    deriving (Eq, Ord, Data, Typeable, Show, Read)
 
 -- |A temporary type used in the fold method to represent the
 -- combination of a predicate and its arguments.  This reduces the
@@ -46,7 +46,7 @@ data Formula v p f
 data Predicate p term
     = Equal term term
     | Apply p [term]
-    deriving (Eq,Ord,Data,Typeable)
+    deriving (Eq, Ord, Data, Typeable, Show, Read)
 
 -- | The range of a term is an element of a set.
 data PTerm v f
@@ -56,7 +56,7 @@ data PTerm v f
                                     -- Constants are encoded as
                                     -- nullary functions.  The result
                                     -- is another term.
-    deriving (Eq,Ord,Data,Typeable)
+    deriving (Eq, Ord, Data, Typeable, Show, Read)
 
 instance Negatable (Formula v p f) where
     negatePrivate x = Combine ((:~:) x)
@@ -196,7 +196,7 @@ data Predicate_v1 p term
     | NotEqual_v1 term term
     | Constant_v1 Bool
     | Apply_v1 p [term]
-    deriving (Eq,Ord,Data,Typeable,Show,Read)
+    deriving (Eq, Ord, Data, Typeable, Show, Read)
 
 $(deriveSafeCopy 1 'base ''Predicate_v1)
 

@@ -60,7 +60,10 @@ infixr 2  .<=>. ,  .=>. ,  .<~>., ⇒, ⇔, ==>, <=>
 -- We had been using a different precedence for & and |, I'm swapping
 -- 3 and 4 here to match Harrison and Haskell (and I assume most other
 -- languages.)  So a .|. b .&. c means a .|. (b .&. c).  And False &&
--- True || True is True.
+-- True || True is True.  When formatting this expression, we observe
+-- that when the precedence of the .|. operator we are formatting (3)
+-- is less than the precedence of the .&. operator it is combining (4)
+-- we can omit the parentheses.
 infixl 3  .|., ∨
 infixl 4  .&., ∧
 
@@ -71,7 +74,7 @@ infixl 4  .&., ∧
 data Combination formula
     = BinOp formula BinOp formula
     | (:~:) formula
-    deriving (Eq,Ord,Data,Typeable,Show)
+    deriving (Eq, Ord, Data, Typeable, Show, Read)
 
 -- | A helper function for building folds:
 -- @
@@ -92,7 +95,7 @@ data BinOp
     |  (:=>:)  -- ^ Implication
     |  (:&:)  -- ^ AND
     |  (:|:)  -- ^ OR
-    deriving (Eq,Ord,Data,Typeable,Enum,Bounded,Show)
+    deriving (Eq, Ord, Data, Typeable, Enum, Bounded, Show, Read)
 
 binop :: Combinable formula => formula -> BinOp -> formula -> formula
 binop a (:&:) b = a .&. b
