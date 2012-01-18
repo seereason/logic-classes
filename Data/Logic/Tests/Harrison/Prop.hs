@@ -13,6 +13,7 @@ import Data.Logic.Harrison.Prop (eval, atoms, truthTable, tautology, pSubst, psi
                                  nnf, dnf, rawdnf, dual, purednf, trivial, cnf)
 import Data.Logic.Types.Harrison.Formulas.Propositional (Formula(..))
 import Data.Logic.Types.Harrison.Prop (Prop(..))
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Prelude hiding (negate)
 import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual)
@@ -77,7 +78,7 @@ test03 = TestCase $ assertEqual "Build Formula 3"
 
 test04 :: Test
 test04 = TestCase $ assertEqual "fixity tests" expected input
-    where (input, expected) = unzip (map (\ (fm, flag) -> (eval fm (const False), flag)) pairs)
+    where (input, expected) = unzip (map (\ (fm, flag) -> (eval fm Map.empty, flag)) pairs)
           pairs :: [(Formula String, Bool)]
           pairs =
               [ ( true .&. false .=>. false .&. true,  True)

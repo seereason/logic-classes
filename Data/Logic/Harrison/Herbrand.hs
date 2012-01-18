@@ -6,7 +6,7 @@ import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Propositional (PropositionalFormula(atomic))
+import Data.Logic.Classes.Propositional (PropositionalFormula)
 import Data.Logic.Classes.Term (Term, fApp)
 import Data.Logic.Harrison.DP (dpll)
 import Data.Logic.Harrison.FOL (fv', subst', generalize)
@@ -28,8 +28,8 @@ import Data.String (IsString(..))
 -- Propositional valuation.                                                  
 -- ------------------------------------------------------------------------- 
 
-pholds :: (PropositionalFormula formula atom) => (formula -> Bool) -> formula -> Bool
-pholds d fm = eval fm (\ p -> d (atomic p))
+pholds :: (PropositionalFormula formula atom, Ord atom) => (Map.Map atom Bool) -> formula -> Bool
+pholds d fm = eval fm d
 
 -- ------------------------------------------------------------------------- 
 -- Get the constants for Herbrand base, adding nullary one if necessary.     

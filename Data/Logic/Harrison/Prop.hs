@@ -42,6 +42,12 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Prelude hiding (negate)
 
+-- type Map a = Map.Map a Bool
+-- m0 = Map.empty
+-- ins :: forall a. Ord a => a -> Bool -> Map a -> Map a
+-- ins = Map.insert
+-- m ! k = Map.findWithDefault False k m
+
 -- ------------------------------------------------------------------------- 
 -- Parsing of propositional formulas.                                        
 -- ------------------------------------------------------------------------- 
@@ -80,7 +86,7 @@ let print_prop_formula = print_qformula print_propvar;;
 -- Interpretation of formulas.                                               
 -- ------------------------------------------------------------------------- 
 
-eval :: PropositionalFormula formula atomic => formula -> (atomic -> Bool) -> Bool
+eval :: (PropositionalFormula formula atomic, Ord atomic) => formula -> Map.Map atomic Bool -> Bool
 eval fm v =
     foldPropositional co id at fm
     where
@@ -89,7 +95,7 @@ eval fm v =
       co (BinOp p (:|:) q) = eval p v || eval q v
       co (BinOp p (:=>:) q) = not (eval p v) || eval q v
       co (BinOp p (:<=>:) q) = eval p v == eval q v
-      at x = v x
+      at x = Map.findWithDefault False x v
 
 {-
 START_INTERACTIVE;;
@@ -112,43 +118,31 @@ atoms = atom_union Set.singleton
 -- Code to print out truth tables.                                           
 -- ------------------------------------------------------------------------- 
 
-onAllValuations :: (Eq a) =>
-                   (r -> r -> r)      -- ^ Combine function for result type
-                -> ((a -> Bool) -> r) -- ^ The substitution function
-                -> (a -> Bool)        -- ^ The default valuation function for atoms not in ps
-                -> Set.Set a          -- ^ The variables to vary
+onAllValuations :: (Ord a) =>
+                   (r -> r -> r)         -- ^ Combine function for result type
+                -> (Map.Map a Bool -> r) -- ^ The substitution function
+                -> Map.Map a Bool        -- ^ The default valuation function for atoms not in ps
+                -> Set.Set a             -- ^ The variables to vary
                 -> r
 onAllValuations _ subfn v ps | Set.null ps = subfn v
 onAllValuations append subfn v ps =
     case Set.deleteFindMin ps of
       (p, ps') -> append -- Do the valuations of the remaining variables with  set to false
-                        (onAllValuations append subfn (\ q -> if q == p then False else v q) ps')
+                        (onAllValuations append subfn (Map.insert p False v) ps')
                         -- Do the valuations of the remaining variables with  set to true
-                        (onAllValuations append subfn (\ q -> if q == p then True else v q) ps')
-{-
-type TruthTableRow a = ([(a, Bool)], Bool)
+                        (onAllValuations append subfn (Map.insert p True v) ps')
 
-truthTable :: forall formula atomic. (PropositionalFormula formula atomic, Eq atomic, Ord atomic) =>
-              formula -> [TruthTableRow atomic]
-truthTable fm =
-    onAllValuations (++) mkRow (const False) ats
-    where
-      mkRow :: (atomic -> Bool)         -- The current variable assignment
-            -> [TruthTableRow atomic] -- The variable assignments and the formula value
-      mkRow v = [(map (\ a -> (a, v a)) (Set.toList ats), eval fm v)]
-      ats = atoms fm
--}
 type TruthTableRow = ([Bool], Bool)
 type TruthTable a = ([a], [TruthTableRow])
 
 truthTable :: forall formula atomic. (PropositionalFormula formula atomic, Eq atomic, Ord atomic) =>
               formula -> TruthTable atomic
 truthTable fm =
-    (atl, onAllValuations (++) mkRow (const False) ats)
+    (atl, onAllValuations (++) mkRow Map.empty ats)
     where
-      mkRow :: (atomic -> Bool)         -- The current variable assignment
-            -> [TruthTableRow]          -- The variable assignments and the formula value
-      mkRow v = [(map v atl, eval fm v)]
+      mkRow :: Map.Map atomic Bool      -- ^ The current variable assignment
+            -> [TruthTableRow]          -- ^ The variable assignments and the formula value
+      mkRow v = [(map (\ k -> Map.findWithDefault False k v) atl, eval fm v)]
       atl = Set.toList ats
       ats = atoms fm
 
@@ -157,7 +151,7 @@ truthTable fm =
 -- ------------------------------------------------------------------------- 
 
 tautology :: (PropositionalFormula formula atomic, Ord atomic) => formula -> Bool
-tautology fm = onAllValuations (&&) (eval fm) (const False) (atoms fm)
+tautology fm = onAllValuations (&&) (eval fm) Map.empty (atoms fm)
 
 -- ------------------------------------------------------------------------- 
 -- Related concepts.                                                         
@@ -314,22 +308,22 @@ list_conj l = maybe true (\ (x, xs) -> Set.fold (.&.) x xs) (Set.minView l)
 list_disj :: PropositionalFormula formula atomic => Set.Set formula -> formula
 list_disj l = maybe false (\ (x, xs) -> Set.fold (.|.) x xs) (Set.minView l)
 
-mkLits :: (PropositionalFormula formula atomic, Ord formula) =>
-          Set.Set formula -> (atomic -> Bool) -> formula
+mkLits :: (PropositionalFormula formula atomic, Ord formula, Ord atomic) =>
+          Set.Set formula -> Map.Map atomic Bool -> formula
 mkLits pvs v = list_conj (Set.map (\ p -> if eval p v then p else (.~.) p) pvs)
 
-allSatValuations :: Eq a => ((a -> Bool) -> Bool) -> (a -> Bool) -> Set.Set a -> [a -> Bool]
+allSatValuations :: Ord a => (Map.Map a Bool -> Bool) -> Map.Map a Bool -> Set.Set a -> [Map.Map a Bool]
 allSatValuations subfn v pvs =
     case Set.minView pvs of
       Nothing -> if subfn v then [v] else []
-      Just (p, ps) -> (allSatValuations subfn (\ q -> if q == p then False else v p) ps) ++
-                      (allSatValuations subfn (\ q -> if q == p then True else v p) ps)
+      Just (p, ps) -> (allSatValuations subfn (Map.insert p False v) ps) ++
+                      (allSatValuations subfn (Map.insert p True v) ps)
 
 dnf0 :: forall formula atomic. (PropositionalFormula formula atomic, Ord atomic, Ord formula) => formula -> formula
 dnf0 fm =
     list_disj (Set.fromList (map (mkLits (Set.map atomic pvs)) satvals))
     where
-      satvals = allSatValuations (eval fm) (const False) pvs
+      satvals = allSatValuations (eval fm) Map.empty pvs
       pvs = atoms fm
 
 -- ------------------------------------------------------------------------- 
