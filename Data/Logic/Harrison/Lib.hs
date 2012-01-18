@@ -26,6 +26,7 @@ module Data.Logic.Harrison.Lib
     , minimize'
     , maximize'
     , can
+    , allsets
     , allsubsets
     , allnonemptysubsets
     , mapfilter
@@ -465,17 +466,19 @@ let rec mem x lis =
   match lis with
     [] -> false
   | (h::t) -> Pervasives.compare x h = 0 or mem x t;;
-
-(* ------------------------------------------------------------------------- *)
-(* Finding all subsets or all subsets of a given size.                       *)
-(* ------------------------------------------------------------------------- *)
-
-let rec allsets m l =
-  if m = 0 then [[]] else
-  match l with
-    [] -> []
-  | h::t -> union (image (fun g -> h::g) (allsets (m - 1) t)) (allsets m t);;
 -}
+
+-- ------------------------------------------------------------------------- 
+-- Finding all subsets or all subsets of a given size.                       
+-- ------------------------------------------------------------------------- 
+
+-- allsets :: Ord a => Int -> Set.Set a -> Set.Set (Set.Set a)
+allsets :: forall a b. (Num a, Ord b) => a -> Set.Set b -> Set.Set (Set.Set b)
+allsets 0 _ = Set.singleton Set.empty
+allsets m l =
+    case Set.minView l of
+      Nothing -> Set.empty
+      Just (h, t) -> Set.union (Set.map (Set.insert h) (allsets (m - 1) t)) (allsets m t)
 
 allsubsets :: forall a. Ord a => Set.Set a -> Set.Set (Set.Set a)
 allsubsets s =
