@@ -15,7 +15,7 @@ import qualified Data.Logic.Tests.Harrison.Unif as Unif
 import Data.Logic.Types.Harrison.Equal (FOLEQ, PredName)
 import Data.Logic.Types.Harrison.FOL (FOL, TermType, Function)
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
-import Data.Logic.Tests.Harrison.HUnit
+import Data.Logic.Tests.HUnit
 import qualified Test.HUnit as T
 --import Data.String (IsString)
 

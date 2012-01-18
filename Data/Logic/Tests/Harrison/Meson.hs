@@ -18,7 +18,7 @@ import Data.Logic.Harrison.Normal (simpdnf)
 import Data.Logic.Harrison.Skolem (runSkolem, askolemize)
 import Data.Logic.Tests.Common (render)
 import Data.Logic.Tests.Harrison.Resolution (dpExampleFm)
-import Data.Logic.Tests.Harrison.HUnit
+import Data.Logic.Tests.HUnit
 import Data.Logic.Types.Harrison.Equal (FOLEQ)
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula)
 import Data.String (IsString(fromString))

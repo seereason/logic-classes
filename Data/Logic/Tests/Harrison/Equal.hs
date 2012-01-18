@@ -26,8 +26,7 @@ import Data.Logic.Types.Harrison.Equal (FOLEQ(..), PredName)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
--- import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual)
-import Data.Logic.Tests.Harrison.HUnit
+import Data.Logic.Tests.HUnit
 
 -- type TF = TestFormula (Formula FOL) FOL TermType String String Function
 -- type TFE = TestFormulaEq (Formula FOLEQ) FOLEQ TermType String String Function

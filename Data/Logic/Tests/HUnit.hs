@@ -1,6 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, RankNTypes #-}
--- | HUnit types with a type parameter.
-module Data.Logic.Tests.Harrison.HUnit
+module Data.Logic.Tests.HUnit
     ( Test(..)
     , Assertion
     , T.assertEqual
@@ -19,7 +18,14 @@ import qualified Test.HUnit as T
 
 type Assertion t = IO ()
 
--- | Provide a phantom type for a test
+-- | HUnit Test type with an added phantom type parameter.  To run
+-- such a test you use the convert function below:
+-- @
+--   :load Data.Logic.Tests.Harrison.Meson
+--   :m +Data.Logic.Tests.HUnit
+--   :m +Test.HUnit
+--   runTestTT (convert tests)
+-- @
 data Test t
   = TestCase (Assertion t)
   | TestList [Test t]
