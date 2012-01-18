@@ -18,6 +18,7 @@ import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder)
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pretty))
+import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.Logic.Classes.Term (Term(..), Function)
 import Data.Logic.Classes.Variable (Variable)
 import Data.Logic.Normal.Implicative (implicativeNormalForm, ImplicativeForm, runNormal)
@@ -62,28 +63,19 @@ instance (Constants (Formula v p f),
     x .|.   y = Formula $ (unFormula x) .|. (unFormula y)
     x .&.   y = Formula $ (unFormula x) .&. (unFormula y)
 
-{-
-instance (Constants (N.Formula v p f),
-          Show (N.Formula v p f),
-          Predicate p, Variable v, Function f,
-          Show p, Show v, Show f) => Show (Formula v p f) where
-    showsPrec n x = showsPrec n (unFormula x)
--}
-
-instance (Constants (Formula v p f), Constants (N.Formula v p f),
-          Combinable (Formula v p f), Term (N.PTerm v f) v f,
-          Predicate p) => FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v where
+instance (Variable v, Predicate p, Function f
+         ) => FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v where
     for_all v x = public $ for_all v (intern x :: N.Formula v p f)
     exists v x = public $ exists v (intern x :: N.Formula v p f)
     foldFirstOrder qu co tf at f = foldFirstOrder qu' co' tf at (intern f :: N.Formula v p f)
         where qu' quant v form = qu quant v (public form)
               co' x = co (public x)
-{-
-    zipFirstOrder q c p f1 f2 = zipFirstOrder q' c' p (intern f1 :: N.Formula v p f) (intern f2 :: N.Formula v p f)
-        where q' q1 v1 f1' q2 v2 f2' = q q1 v1 (public f1') q2 v2 (public f2')
-              c' combine1 combine2 = c (public combine1) (public combine2)
--}
-    atomic = Formula . atomic
+    atomic = Formula . Data.Logic.Classes.FirstOrder.atomic
+
+instance (Variable v, Predicate p, Function f) => PropositionalFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) where
+    foldPropositional co tf at f = foldPropositional co' tf at (intern f :: N.Formula v p f)
+        where co' x = co (public x)
+    atomic = Formula . Data.Logic.Classes.Propositional.atomic
 
 -- |Here are the magic Ord and Eq instances
 instance (Predicate p, Function f, Variable v) => Ord (Formula v p f) where

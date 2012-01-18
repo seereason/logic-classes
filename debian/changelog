@@ -11,6 +11,9 @@ haskell-logic-classes (1.4) unstable; urgency=low
   * askolemize should not specialize, only skolemize removes quantifiers.
   * Fix bad implementation of atomic method in PropositionalFormula for
     Data.Logic.Types.FirstOrder type.
+  * Added an argument function to skolemize and skolemNormalForm to convert
+    the atom type of the original formula to that of the result.  This means
+    it can convert to any PropositionalFormula type while skolemizing.
 
  -- David Fox <dsf@seereason.com>  Tue, 17 Jan 2012 21:00:28 -0800
 
