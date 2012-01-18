@@ -17,7 +17,7 @@ import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Apply (Apply(..), Predicate)
 import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Combine (Combinable(..), BinOp(..), Combination(..))
-import Data.Logic.Classes.Constants (Constants(..), asBool)
+import Data.Logic.Classes.Constants (Constants(..), asBool, true, false)
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', pApp, prettyFirstOrder, fixityFirstOrder)
 import Data.Logic.Classes.Negate (Negatable(..), (.~.))
@@ -59,8 +59,12 @@ instance Negatable (Sentence v p f) where
     foldNegation normal inverted (Not x) = foldNegation inverted normal x
     foldNegation normal _ x = normal x
 
-instance Constants p => Constants (Sentence v p f) where
+instance (Constants p, Eq (Sentence v p f)) => Constants (Sentence v p f) where
     fromBool x = Predicate (fromBool x) []
+    asBool x
+        | fromBool True == x = Just True
+        | fromBool False == x = Just False
+        | True = Nothing
 
 instance ({- Constants (Sentence v p f), -} Ord v, Ord p, Ord f) => Combinable (Sentence v p f) where
     x .<=>. y = Connective x Equiv y
@@ -201,8 +205,12 @@ data NormalTerm v f
     | NormalVariable v
     deriving (Eq, Ord, Data, Typeable)
 
-instance Constants p => Constants (NormalSentence v p f) where
+instance (Constants p, Eq (NormalSentence v p f)) => Constants (NormalSentence v p f) where
     fromBool x = NFPredicate (fromBool x) []
+    asBool x
+        | fromBool True == x = Just True
+        | fromBool False == x = Just False
+        | True = Nothing
 
 instance Negatable (NormalSentence v p f) where
     negatePrivate = NFNot

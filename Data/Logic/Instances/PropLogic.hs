@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-orphans #-}
 module Data.Logic.Instances.PropLogic
     ( flatten
@@ -8,7 +8,7 @@ module Data.Logic.Instances.PropLogic
 
 import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (Constants(fromBool))
+import Data.Logic.Classes.Constants (Constants(fromBool, asBool))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
@@ -31,7 +31,7 @@ instance {- Ord a => -} Combinable (PropForm a) where
     x .|.   y = DJ [x, y]
     x .&.   y = CJ [x, y]
 
-instance (Combinable (PropForm a) {-, Ord a -}) => PropositionalFormula (PropForm a) a where
+instance (Combinable (PropForm a), Ord a) => PropositionalFormula (PropForm a) a where
     atomic = A
     foldPropositional co tf at formula =
         case formula of
@@ -59,11 +59,14 @@ instance (Combinable (PropForm a) {-, Ord a -}) => PropositionalFormula (PropFor
 instance Constants (PropForm formula) where
     fromBool True = T
     fromBool False = F
+    asBool T = Just True
+    asBool F = Just False
+    asBool _ = Nothing
 
-instance (Pretty atom, HasFixity atom) => Pretty (PropForm atom) where
+instance (PropositionalFormula (PropForm atom) atom, Pretty atom, HasFixity atom) => Pretty (PropForm atom) where
     pretty = prettyPropositional pretty topFixity
 
-instance HasFixity atom => HasFixity (PropForm atom) where
+instance (PropositionalFormula (PropForm atom) atom, HasFixity atom) => HasFixity (PropForm atom) where
     fixity = fixityPropositional
 
 pairs :: [a] -> [(a, a)]

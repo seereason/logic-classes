@@ -11,6 +11,8 @@ import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 data Formula atom
     = Combine (Combination (Formula atom))
     | Atom atom
+    | T
+    | F
     -- Note that a derived Eq instance is not going to tell us that
     -- a&b is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).
     deriving (Eq,Ord,Data,Typeable)
@@ -20,18 +22,25 @@ instance Negatable (Formula atom) where
     foldNegation normal inverted (Combine ((:~:) x)) = foldNegation inverted normal x
     foldNegation normal _ x = normal x
 
-instance (Constants atom, Ord atom) => Combinable (Formula atom) where
+instance (Ord atom) => Combinable (Formula atom) where
     x .<=>. y = Combine (BinOp  x (:<=>:) y)
     x .=>.  y = Combine (BinOp  x (:=>:)  y)
     x .|.   y = Combine (BinOp  x (:|:)   y)
     x .&.   y = Combine (BinOp  x (:&:)   y)
 
-instance Constants atom => Constants (Formula atom) where
-    fromBool = Atom . fromBool
 
-instance (Constants atom, Ord atom) => PropositionalFormula (Formula atom) atom where
+instance Constants (Formula atom) where
+    fromBool True = T
+    fromBool False = F
+    asBool T = Just True
+    asBool F = Just False
+    asBool _ = Nothing
+
+instance Ord atom => PropositionalFormula (Formula atom) atom where
     atomic a = Atom a
     foldPropositional co tf at formula =
         case formula of
           Combine x -> co x
-          Atom x -> maybe (at x) tf (asBool x)
+          Atom x -> at x
+          T -> tf True
+          F -> tf False

@@ -14,7 +14,7 @@ import Control.Applicative ((<$>), (<*>))
 import Control.Applicative.Error (Failing(..))
 import Control.Monad (filterM)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (Constants(false))
+import Data.Logic.Classes.Constants (false)
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import qualified Data.Logic.Classes.FirstOrder as C

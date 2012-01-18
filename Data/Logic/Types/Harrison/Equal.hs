@@ -48,9 +48,18 @@ instance IsString PredName where
 instance Constants PredName where
     fromBool True = Named "true"
     fromBool False = Named "false"
+    asBool x
+        | x == fromBool True = Just True
+        | x == fromBool False = Just False
+        | True = Nothing
 
 instance Constants FOLEQ where
     fromBool x = R (fromBool x) []
+    asBool (R p _)
+        | fromBool True == p = Just True
+        | fromBool False == p = Just False
+        | True = Nothing
+    asBool _ = Nothing
 
 instance Predicate PredName
 

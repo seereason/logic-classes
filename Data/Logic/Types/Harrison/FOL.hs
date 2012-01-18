@@ -53,9 +53,14 @@ instance Apply FOL String TermType where
 instance Constants String where
     fromBool True = "true"
     fromBool False = "false"
+    asBool x 
+        | x == fromBool True = Just True
+        | x == fromBool False = Just False
+        | True = Nothing
 
 instance Constants FOL where
     fromBool x = R (fromBool x) []
+    asBool (R p _) = asBool p
 
 instance Predicate String
 

@@ -30,6 +30,9 @@ instance Negatable (Formula atom) where
 instance Constants (Formula a) where
     fromBool True = T
     fromBool False = F
+    asBool T = Just True
+    asBool F = Just False
+    asBool _ = Nothing
 
 instance Combinable (Formula a) where
     a .<=>. b = Iff a b
@@ -37,7 +40,7 @@ instance Combinable (Formula a) where
     a .|. b = Or a b
     a .&. b = And a b
 
-instance Combinable (Formula atom) => PropositionalFormula (Formula atom) atom where
+instance (Combinable (Formula atom), Ord atom) => PropositionalFormula (Formula atom) atom where
     -- The atom type for this formula is the same as its first type parameter.
     atomic = Atom
     foldPropositional co tf at formula =

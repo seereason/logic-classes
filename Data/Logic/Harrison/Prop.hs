@@ -33,7 +33,7 @@ module Data.Logic.Harrison.Prop
     ) where
 
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
-import Data.Logic.Classes.Constants (Constants(fromBool, true, false), asBool, ifElse)
+import Data.Logic.Classes.Constants (Constants(fromBool, asBool), true, false, ifElse)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Propositional
 import Data.Logic.Harrison.Formulas.Propositional (atom_union, on_atoms)

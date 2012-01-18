@@ -1,8 +1,9 @@
 module Data.Logic.Classes.Constants
-    ( Constants(..)
-    , asBool
+    ( Constants(asBool, fromBool)
     , ifElse
+    , true
     , (⊨)
+    , false
     , (⊭)
     , prettyBool
     ) where
@@ -13,16 +14,14 @@ import Text.PrettyPrint (Doc, text)
 -- |Some types in the Logic class heirarchy need to have True and
 -- False elements.
 class Constants p where
+    asBool :: p -> Maybe Bool
     fromBool :: Bool -> p
-    true :: p
-    true = fromBool True
-    false :: p
-    false = fromBool False
 
-asBool :: (Eq p, Constants p) => p -> Maybe Bool 
-asBool p | p == true = Just True
-         | p == false = Just False
-         | True = Nothing
+true :: Constants p => p
+true = fromBool True
+
+false :: Constants p => p
+false = fromBool False
 
 ifElse :: a -> a -> Bool -> a
 ifElse t _ True = t

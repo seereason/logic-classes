@@ -39,6 +39,9 @@ instance Negatable (Formula atom) where
 instance Constants (Formula a) where
     fromBool True = T
     fromBool False = F
+    asBool T = Just True
+    asBool F = Just False
+    asBool _ = Nothing
 
 instance Combinable (Formula a) where
     a .<=>. b = Iff a b

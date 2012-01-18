@@ -31,6 +31,9 @@ import Test.HUnit
 -- fromBool True.
 instance Constants String where
     fromBool = show
+    asBool "True" = Just True
+    asBool "False" = Just False
+    asBool _ = Nothing
 
 tests :: Test
 tests = TestLabel "Test.Logic" $ TestList (precTests ++ theoremTests)

@@ -54,6 +54,7 @@ instance Negatable (Formula v p f) where
 
 instance (Constants (N.Formula v p f), Predicate p, Variable v, Function f) => Constants (Formula v p f) where
     fromBool = Formula . fromBool
+    asBool = asBool . unFormula
 
 instance (Constants (Formula v p f),
           Constants (N.Formula v p f),

@@ -15,7 +15,7 @@ module Data.Logic.Harrison.FOL
 import Data.Logic.Classes.Apply (Apply(..), apply)
 import Data.Logic.Classes.Atom (Atom(allVariables, substitute))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
-import Data.Logic.Classes.Constants (Constants (fromBool, true, false))
+import Data.Logic.Classes.Constants (Constants (fromBool), true, false)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), quant)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))

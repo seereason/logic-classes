@@ -111,6 +111,9 @@ instance IsString Pr where
 instance Constants Pr where
     fromBool True = T
     fromBool False = F
+    asBool T = Just True
+    asBool F = Just False
+    asBool _ = Nothing
 
 instance Arity Pr where
     arity (Pr _) = Nothing

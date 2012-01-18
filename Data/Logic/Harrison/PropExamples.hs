@@ -23,7 +23,7 @@ import Prelude hiding (sum)
 -- Generate assertion equivalent to R(s,t) <= n for the Ramsey number R(s,t) 
 -- ------------------------------------------------------------------------- 
 
-data Atom a = P String a (Maybe a)
+data Atom a = P String a (Maybe a) deriving (Eq, Ord)
 
 ramsey :: forall a a1 a2 formula.
           (PropositionalFormula formula (Atom a2),
@@ -260,12 +260,15 @@ prime p =
 -- Examples.                                                                 
 -- ------------------------------------------------------------------------- 
 
+type F = Formula (Atom Int)
+
 {-
-START_INTERACTIVE;;
-
-tautology(prime 7);;
-tautology(prime 9);;
-tautology(prime 11);;
-
-END_INTERACTIVE;;
+instance Constants F where
+    fromBool True = 
 -}
+
+tests :: Test
+tests =
+    TestList [TestCase (assertEqual "tautology(prime 7)" True (tautology(prime 7 :: F))),
+              TestCase (assertEqual "tautology(prime 9)" False (tautology(prime 9 :: F))),
+              TestCase (assertEqual "tautology(prime 11)" True (tautology(prime 11 :: F)))]
