@@ -44,7 +44,7 @@ Library
                    Data.Logic.Harrison.Normal
                    Data.Logic.Harrison.Prolog
                    Data.Logic.Harrison.Prop
-                   Data.Logic.Harrison.PropExamples
+                   -- Data.Logic.Harrison.PropExamples
                    Data.Logic.Harrison.Resolution
                    Data.Logic.Harrison.Skolem
                    Data.Logic.Harrison.Tableaux
