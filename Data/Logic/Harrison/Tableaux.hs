@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings, RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Harrison.Tableaux
     ( unify_literals
@@ -7,13 +7,28 @@ module Data.Logic.Harrison.Tableaux
     ) where
 
 import Control.Applicative.Error (Failing(..))
+--import Data.List (partition)
+import qualified Data.Logic.Classes.Atom as C
+--import Data.Logic.Classes.Combine ((.&.), (.=>.))
+--import Data.Logic.Classes.Constants (false)
 import Data.Logic.Classes.Equals (AtomEq, zipAtomsEq)
-import qualified Data.Logic.Classes.Formula as C
+--import Data.Logic.Classes.FirstOrder (FirstOrderFormula, exists, for_all)
+import Data.Logic.Classes.Negate (positive, (.~.))
 import Data.Logic.Classes.Literal (Literal, zipLiterals)
-import Data.Logic.Classes.Term (Term(..))
+--import Data.Logic.Classes.Propositional (PropositionalFormula)
+import Data.Logic.Classes.Term (Term(..), vt)
+import Data.Logic.Harrison.FOL (fv', subst, generalize)
+import Data.Logic.Harrison.Herbrand (davisputnam)
+import Data.Logic.Harrison.Lib (allpairs, settryfind, distrib')
+import Data.Logic.Harrison.Prop (simpdnf)
+import Data.Logic.Harrison.Skolem (runSkolem, skolemize)
 import Data.Logic.Harrison.Unif (unify)
 import qualified Data.Map as Map
+import qualified Data.Set as Set
+import Data.String (IsString(..))
 import Debug.Trace (trace)
+
+import Test.HUnit
 
 -- =========================================================================
 -- Tableaux, seen as an optimized version of a Prawitz-like procedure.       
@@ -25,7 +40,10 @@ import Debug.Trace (trace)
 -- Unify literals (just pretend the toplevel relation is a function).        
 -- ------------------------------------------------------------------------- 
 
-unify_literals :: forall lit atom term v f. (Literal lit atom v, Term term v f, C.Formula atom term v) =>
+unify_literals :: forall lit atom term v f.
+                  (Literal lit atom v,
+                   C.Atom atom term v,
+                   Term term v f) =>
                   Map.Map v term -> lit -> lit -> Failing (Map.Map v term)
 unify_literals env f1 f2 =
     maybe err id (zipLiterals co tf at f1 f2)
@@ -33,7 +51,7 @@ unify_literals env f1 f2 =
       -- co :: lit -> lit -> Maybe (Failing (Map.Map v term))
       co p q = Just $ unify_literals env p q
       tf p q = if p == q then Just $ unify env [] else Nothing
-      -- at :: atom -> atom -> Maybe (Failing (Map.Map v term))
+      at :: atom -> atom -> Maybe (Failing (Map.Map v term))
       at a1 a2 = Just $ C.unify env a1 a2
       err = Failure ["Can't unify literals"]
 
@@ -54,47 +72,59 @@ unifyAtomsEq env a1 a2 =
 -- ------------------------------------------------------------------------- 
 -- Unify complementary literals.                                             
 -- ------------------------------------------------------------------------- 
-{-
-unify_complements env (p,q) = unify_literals env (p,negate q)
+
+unify_complements :: forall lit atom term v f.
+                     (Literal lit atom v,
+                      C.Atom atom term v,
+                      Term term v f) =>
+                     Map.Map v term -> lit -> lit -> Failing (Map.Map v term)
+unify_complements env p q = unify_literals env p ((.~.) q)
 
 -- ------------------------------------------------------------------------- 
 -- Unify and refute a set of disjuncts.                                      
 -- ------------------------------------------------------------------------- 
 
+unify_refute :: (Literal lit atom v, Term term v f, C.Atom atom term v, Ord lit) => Set.Set (Set.Set lit) -> Map.Map v term -> Failing (Map.Map v term)
 unify_refute djs env =
-  case djs of
-    [] -> env
-    d : odjs -> let (pos,neg) = partition positive d in
-               tryfind (unify_refute odjs . unify_complements env)
-                       (allpairs (\ p q -> (p,q)) pos neg);;
+    case Set.minView djs of
+      Nothing -> Success env
+      Just (d, odjs) ->
+          settryfind (\ (p, n) -> unify_complements env p n >>= unify_refute odjs) pairs
+          where
+            pairs = allpairs (,) pos neg
+            (pos,neg) = Set.partition positive d
 
 -- ------------------------------------------------------------------------- 
 -- Hence a Prawitz-like procedure (using unification on DNF).                
 -- ------------------------------------------------------------------------- 
 
+-- prawitz_loop :: (PropositionalFormula pf atom, Term term v f, Eq pf, Ord pf) => Set.Set (Set.Set pf) -> [v] -> Set.Set (Set.Set pf) -> Int -> (Map.Map v term, Int)
 prawitz_loop djs0 fvs djs n =
     let l = length fvs in
-    let newvars = map (\ k -> "_" ++ show (n * l + k)) [1..l] in
-    let inst = fpf fvs (map Var newvars) in
-    let djs1 = distrib (image (image (subst inst)) djs0) djs in
-    case (unify_refute djs1 undefined,(n + 1)) of
-      Left _ -> prawitz_loop djs0 fvs djs1 (n + 1)
-      Right x -> x
+    let newvars = map (\ k -> fromString ("_" ++ show (n * l + k))) [1..l] in
+    let inst = Map.fromList (zip fvs (map vt newvars)) in
+    let djs1 = distrib' (Set.map (Set.map (subst inst)) djs0) djs in
+    case unify_refute djs1 Map.empty of
+      Failure _ -> prawitz_loop djs0 fvs djs1 (n + 1)
+      Success env -> (env, n + 1)
 
+-- prawitz :: forall fof pf atom term f v. (FirstOrderFormula fof atom v, PropositionalFormula pf atom, Eq fof, Ord pf) => fof -> Int
 prawitz fm =
-  let fm0 = skolemize(Not(generalize fm)) in
-  snd(prawitz_loop (simpdnf fm0) (fv fm0) [[]] 0);;
+    snd (prawitz_loop (simpdnf pf) (Set.toList (fv' pf)) (Set.singleton Set.empty) 0)
+    where pf = runSkolem (skolemize id ((.~.)(generalize fm)))
 
 -- ------------------------------------------------------------------------- 
 -- Examples.                                                                 
 -- ------------------------------------------------------------------------- 
 
+{-
 test01 = TestCase $ assertEqual "p20 - prawitz" expected input
     where input = prawitz fm
-          fm = (for_all "x" (for_all "y" (exists "z" (for_all "w" (pApp "P" [var "x"] .&. pApp "Q" [var "y"] .=>.
-                                                                   pApp "R" [var "z"] .&. pApp "U" [var "w"]))))) .=>.
-               (exists "x" (exists "y" (pApp "P" [var "x"] .&. pApp "Q" [var "y"]))) .=>. (exists "z" (pApp "R" [var "z"]))
-          expected = false
+          fm = (for_all "x" (for_all "y" (exists "z" (for_all "w" (pApp "P" [vt "x"] .&. pApp "Q" [vt "y"] .=>.
+                                                                   pApp "R" [vt "z"] .&. pApp "U" [vt "w"]))))) .=>.
+               (exists "x" (exists "y" (pApp "P" [vt "x"] .&. pApp "Q" [vt "y"]))) .=>. (exists "z" (pApp "R" [vt "z"]))
+          expected = 1
+-}
 
 -- ------------------------------------------------------------------------- 
 -- Comparison of number of ground instances.                                 
@@ -105,18 +135,18 @@ compare fm =
 {-
 START_INTERACTIVE;;
 test02 = TestCase $ assertEqual "p19" expected input
-    where input = compare (exists "x" (forall "y" (for_all "z" ((pApp "P" [var "y"] .=>. pApp "Q" [var "z"]) .=>. pApp "P" [var "x"] .=>. pApp "Q" [var "x"]))))
+    where input = compare (exists "x" (forall "y" (for_all "z" ((pApp "P" [vt "y"] .=>. pApp "Q" [vt "z"]) .=>. pApp "P" [vt "x"] .=>. pApp "Q" [vt "x"]))))
 
 let p20 = compare
- <<(forall x y. exists z. forall w. P[var "x"] .&. Q[var "y"] .=>. R[var "z"] .&. U[var "w"])
-   .=>. (exists x y. P[var "x"] .&. Q[var "y"]) .=>. (exists z. R[var "z"])>>;;
+ <<(forall x y. exists z. forall w. P[vt "x"] .&. Q[vt "y"] .=>. R[vt "z"] .&. U[vt "w"])
+   .=>. (exists x y. P[vt "x"] .&. Q[vt "y"]) .=>. (exists z. R[vt "z"])>>;;
 
 let p24 = compare
- <<~(exists x. U[var "x"] .&. Q[var "x"]) .&.
-   (forall x. P[var "x"] .=>. Q[var "x"] .|. R[var "x"]) .&.
-   ~(exists x. P[var "x"] .=>. (exists x. Q[var "x"])) .&.
-   (forall x. Q[var "x"] .&. R[var "x"] .=>. U[var "x"])
-   .=>. (exists x. P[var "x"] .&. R[var "x"])>>;;
+ <<~(exists x. U[vt "x"] .&. Q[vt "x"]) .&.
+   (forall x. P[vt "x"] .=>. Q[vt "x"] .|. R[vt "x"]) .&.
+   ~(exists x. P[vt "x"] .=>. (exists x. Q[vt "x"])) .&.
+   (forall x. Q[vt "x"] .&. R[vt "x"] .=>. U[vt "x"])
+   .=>. (exists x. P[vt "x"] .&. R[vt "x"])>>;;
 
 let p39 = compare
  <<~(exists x. forall y. P(y,x) .<=>. ~P(y,y))>>;;
@@ -133,17 +163,17 @@ let p43 = compare
  ***** -}
 
 let p44 = compare
- <<(forall x. P[var "x"] .=>. (exists y. G[var "y"] .&. H(x,y)) .&.
-   (exists y. G[var "y"] .&. ~H(x,y))) .&.
-   (exists x. J[var "x"] .&. (forall y. G[var "y"] .=>. H(x,y)))
-   .=>. (exists x. J[var "x"] .&. ~P[var "x"])>>;;
+ <<(forall x. P[vt "x"] .=>. (exists y. G[vt "y"] .&. H(x,y)) .&.
+   (exists y. G[vt "y"] .&. ~H(x,y))) .&.
+   (exists x. J[vt "x"] .&. (forall y. G[vt "y"] .=>. H(x,y)))
+   .=>. (exists x. J[vt "x"] .&. ~P[vt "x"])>>;;
 
 let p59 = compare
- <<(forall x. P[var "x"] .<=>. ~P(f[var "x"])) .=>. (exists x. P[var "x"] .&. ~P(f[var "x"]))>>;;
+ <<(forall x. P[vt "x"] .<=>. ~P(f[vt "x"])) .=>. (exists x. P[vt "x"] .&. ~P(f[vt "x"]))>>;;
 
 let p60 = compare
- <<forall x. P(x,f[var "x"]) .<=>.
-             exists y. (forall z. P(z,y) .=>. P(z,f[var "x"])) .&. P(x,y)>>;;
+ <<forall x. P(x,f[vt "x"]) .<=>.
+             exists y. (forall z. P(z,y) .=>. P(z,f[vt "x"])) .&. P(x,y)>>;;
 
 END_INTERACTIVE;;
 
@@ -160,13 +190,12 @@ let rec tableau (fms,lits,n) cont (env,k) =
   | Or(p,q) : unexp ->
       tableau (p : unexp,lits,n) (tableau (q : unexp,lits,n) cont) (env,k)
   | Forall(x,p) : unexp ->
-      let y = Var("_" ++ string_of_int k) in
+      let y = Vt("_" ++ string_of_int k) in
       let p' = subst (x |=> y) p in
       tableau (p' : unexp@[Forall(x,p)],lits,n-1) cont (env,k+1)
   | fm : unexp ->
       try tryfind (\ l -> cont(unify_complements env (fm,l),k)) lits
       with Failure _ -> tableau (unexp,fm : lits,n) cont (env,k);;
--}
 -}
 
 -- | Try f with higher and higher values of n until it succeeds, or
@@ -184,7 +213,7 @@ deepen f n m =
 
 {-
 let tabrefute fms =
-  deepen (\ n -> tableau (fms,[],n) (\ x -> x) (undefined,0); n) 0;;
+  deepen (\ n -> tableau (fms,[],n) (\ x -> x) (Map.empty,0); n) 0;;
 
 let tab fm =
   let sfm = askolemize(Not(generalize fm)) in
@@ -197,12 +226,12 @@ let tab fm =
 START_INTERACTIVE;;
 let p38 = tab
  <<(forall x.
-     P[var "a"] .&. (P[var "x"] .=>. (exists y. P[var "y"] .&. R(x,y))) .=>.
-     (exists z w. P[var "z"] .&. R(x,w) .&. R(w,z))) .<=>.
+     P[vt "a"] .&. (P[vt "x"] .=>. (exists y. P[vt "y"] .&. R(x,y))) .=>.
+     (exists z w. P[vt "z"] .&. R(x,w) .&. R(w,z))) .<=>.
    (forall x.
-     (~P[var "a"] .|. P[var "x"] .|. (exists z w. P[var "z"] .&. R(x,w) .&. R(w,z))) .&.
-     (~P[var "a"] .|. ~(exists y. P[var "y"] .&. R(x,y)) .|.
-     (exists z w. P[var "z"] .&. R(x,w) .&. R(w,z))))>>;;
+     (~P[vt "a"] .|. P[vt "x"] .|. (exists z w. P[vt "z"] .&. R(x,w) .&. R(w,z))) .&.
+     (~P[vt "a"] .|. ~(exists y. P[vt "y"] .&. R(x,y)) .|.
+     (exists z w. P[vt "z"] .&. R(x,w) .&. R(w,z))))>>;;
 END_INTERACTIVE;;
 
 -- ------------------------------------------------------------------------- 
@@ -218,10 +247,10 @@ let splittab fm =
 
 START_INTERACTIVE;;
 let p34 = splittab
- <<((exists x. forall y. P[var "x"] .<=>. P[var "y"]) .<=>.
-    ((exists x. Q[var "x"]) .<=>. (forall y. Q[var "y"]))) .<=>.
-   ((exists x. forall y. Q[var "x"] .<=>. Q[var "y"]) .<=>.
-    ((exists x. P[var "x"]) .<=>. (forall y. P[var "y"])))>>;;
+ <<((exists x. forall y. P[vt "x"] .<=>. P[vt "y"]) .<=>.
+    ((exists x. Q[vt "x"]) .<=>. (forall y. Q[vt "y"]))) .<=>.
+   ((exists x. forall y. Q[vt "x"] .<=>. Q[vt "y"]) .<=>.
+    ((exists x. P[vt "x"]) .<=>. (forall y. P[vt "y"])))>>;;
 
 -- ------------------------------------------------------------------------- 
 -- Another nice example from EWD 1602.                                       
@@ -230,9 +259,9 @@ let p34 = splittab
 let ewd1062 = splittab
  <<(forall x. x <= x) .&.
    (forall x y z. x <= y .&. y <= z .=>. x <= z) .&.
-   (forall x y. f[var "x"] <= y .<=>. x <= g[var "y"])
-   .=>. (forall x y. x <= y .=>. f[var "x"] <= f[var "y"]) .&.
-       (forall x y. x <= y .=>. g[var "x"] <= g[var "y"])>>;;
+   (forall x y. f[vt "x"] <= y .<=>. x <= g[vt "y"])
+   .=>. (forall x y. x <= y .=>. f[vt "x"] <= f[vt "y"]) .&.
+       (forall x y. x <= y .=>. g[vt "x"] <= g[vt "y"])>>;;
 END_INTERACTIVE;;
 
 -- ------------------------------------------------------------------------- 
@@ -297,89 +326,89 @@ let p17 = time splittab
 -- ------------------------------------------------------------------------- 
 
 let p18 = time splittab
- <<exists y. forall x. P[var "y"] .=>. P[var "x"]>>;;
+ <<exists y. forall x. P[vt "y"] .=>. P[vt "x"]>>;;
 
 let p19 = time splittab
- <<exists x. forall y z. (P[var "y"] .=>. Q[var "z"]) .=>. P[var "x"] .=>. Q[var "x"]>>;;
+ <<exists x. forall y z. (P[vt "y"] .=>. Q[vt "z"]) .=>. P[vt "x"] .=>. Q[vt "x"]>>;;
 
 let p20 = time splittab
- <<(forall x y. exists z. forall w. P[var "x"] .&. Q[var "y"] .=>. R[var "z"] .&. U[var "w"])
-   .=>. (exists x y. P[var "x"] .&. Q[var "y"]) .=>. (exists z. R[var "z"])>>;;
+ <<(forall x y. exists z. forall w. P[vt "x"] .&. Q[vt "y"] .=>. R[vt "z"] .&. U[vt "w"])
+   .=>. (exists x y. P[vt "x"] .&. Q[vt "y"]) .=>. (exists z. R[vt "z"])>>;;
 
 let p21 = time splittab
- <<(exists x. P .=>. Q[var "x"]) .&. (exists x. Q[var "x"] .=>. P)
-   .=>. (exists x. P .<=>. Q[var "x"])>>;;
+ <<(exists x. P .=>. Q[vt "x"]) .&. (exists x. Q[vt "x"] .=>. P)
+   .=>. (exists x. P .<=>. Q[vt "x"])>>;;
 
 let p22 = time splittab
- <<(forall x. P .<=>. Q[var "x"]) .=>. (P .<=>. (forall x. Q[var "x"]))>>;;
+ <<(forall x. P .<=>. Q[vt "x"]) .=>. (P .<=>. (forall x. Q[vt "x"]))>>;;
 
 let p23 = time splittab
- <<(forall x. P .|. Q[var "x"]) .<=>. P .|. (forall x. Q[var "x"])>>;;
+ <<(forall x. P .|. Q[vt "x"]) .<=>. P .|. (forall x. Q[vt "x"])>>;;
 
 let p24 = time splittab
- <<~(exists x. U[var "x"] .&. Q[var "x"]) .&.
-   (forall x. P[var "x"] .=>. Q[var "x"] .|. R[var "x"]) .&.
-   ~(exists x. P[var "x"] .=>. (exists x. Q[var "x"])) .&.
-   (forall x. Q[var "x"] .&. R[var "x"] .=>. U[var "x"]) .=>.
-   (exists x. P[var "x"] .&. R[var "x"])>>;;
+ <<~(exists x. U[vt "x"] .&. Q[vt "x"]) .&.
+   (forall x. P[vt "x"] .=>. Q[vt "x"] .|. R[vt "x"]) .&.
+   ~(exists x. P[vt "x"] .=>. (exists x. Q[vt "x"])) .&.
+   (forall x. Q[vt "x"] .&. R[vt "x"] .=>. U[vt "x"]) .=>.
+   (exists x. P[vt "x"] .&. R[vt "x"])>>;;
 
 let p25 = time splittab
- <<(exists x. P[var "x"]) .&.
-   (forall x. U[var "x"] .=>. ~G[var "x"] .&. R[var "x"]) .&.
-   (forall x. P[var "x"] .=>. G[var "x"] .&. U[var "x"]) .&.
-   ((forall x. P[var "x"] .=>. Q[var "x"]) .|. (exists x. Q[var "x"] .&. P[var "x"]))
-   .=>. (exists x. Q[var "x"] .&. P[var "x"])>>;;
+ <<(exists x. P[vt "x"]) .&.
+   (forall x. U[vt "x"] .=>. ~G[vt "x"] .&. R[vt "x"]) .&.
+   (forall x. P[vt "x"] .=>. G[vt "x"] .&. U[vt "x"]) .&.
+   ((forall x. P[vt "x"] .=>. Q[vt "x"]) .|. (exists x. Q[vt "x"] .&. P[vt "x"]))
+   .=>. (exists x. Q[vt "x"] .&. P[vt "x"])>>;;
 
 let p26 = time splittab
- <<((exists x. P[var "x"]) .<=>. (exists x. Q[var "x"])) .&.
-   (forall x y. P[var "x"] .&. Q[var "y"] .=>. (R[var "x"] .<=>. U[var "y"]))
-   .=>. ((forall x. P[var "x"] .=>. R[var "x"]) .<=>. (forall x. Q[var "x"] .=>. U[var "x"]))>>;;
+ <<((exists x. P[vt "x"]) .<=>. (exists x. Q[vt "x"])) .&.
+   (forall x y. P[vt "x"] .&. Q[vt "y"] .=>. (R[vt "x"] .<=>. U[vt "y"]))
+   .=>. ((forall x. P[vt "x"] .=>. R[vt "x"]) .<=>. (forall x. Q[vt "x"] .=>. U[vt "x"]))>>;;
 
 let p27 = time splittab
- <<(exists x. P[var "x"] .&. ~Q[var "x"]) .&.
-   (forall x. P[var "x"] .=>. R[var "x"]) .&.
-   (forall x. U[var "x"] .&. V[var "x"] .=>. P[var "x"]) .&.
-   (exists x. R[var "x"] .&. ~Q[var "x"])
-   .=>. (forall x. U[var "x"] .=>. ~R[var "x"])
-       .=>. (forall x. U[var "x"] .=>. ~V[var "x"])>>;;
+ <<(exists x. P[vt "x"] .&. ~Q[vt "x"]) .&.
+   (forall x. P[vt "x"] .=>. R[vt "x"]) .&.
+   (forall x. U[vt "x"] .&. V[vt "x"] .=>. P[vt "x"]) .&.
+   (exists x. R[vt "x"] .&. ~Q[vt "x"])
+   .=>. (forall x. U[vt "x"] .=>. ~R[vt "x"])
+       .=>. (forall x. U[vt "x"] .=>. ~V[vt "x"])>>;;
 
 let p28 = time splittab
- <<(forall x. P[var "x"] .=>. (forall x. Q[var "x"])) .&.
-   ((forall x. Q[var "x"] .|. R[var "x"]) .=>. (exists x. Q[var "x"] .&. R[var "x"])) .&.
-   ((exists x. R[var "x"]) .=>. (forall x. L[var "x"] .=>. M[var "x"])) .=>.
-   (forall x. P[var "x"] .&. L[var "x"] .=>. M[var "x"])>>;;
+ <<(forall x. P[vt "x"] .=>. (forall x. Q[vt "x"])) .&.
+   ((forall x. Q[vt "x"] .|. R[vt "x"]) .=>. (exists x. Q[vt "x"] .&. R[vt "x"])) .&.
+   ((exists x. R[vt "x"]) .=>. (forall x. L[vt "x"] .=>. M[vt "x"])) .=>.
+   (forall x. P[vt "x"] .&. L[vt "x"] .=>. M[vt "x"])>>;;
 
 let p29 = time splittab
- <<(exists x. P[var "x"]) .&. (exists x. G[var "x"]) .=>.
-   ((forall x. P[var "x"] .=>. H[var "x"]) .&. (forall x. G[var "x"] .=>. J[var "x"]) .<=>.
-    (forall x y. P[var "x"] .&. G[var "y"] .=>. H[var "x"] .&. J[var "y"]))>>;;
+ <<(exists x. P[vt "x"]) .&. (exists x. G[vt "x"]) .=>.
+   ((forall x. P[vt "x"] .=>. H[vt "x"]) .&. (forall x. G[vt "x"] .=>. J[vt "x"]) .<=>.
+    (forall x y. P[vt "x"] .&. G[vt "y"] .=>. H[vt "x"] .&. J[vt "y"]))>>;;
 
 let p30 = time splittab
- <<(forall x. P[var "x"] .|. G[var "x"] .=>. ~H[var "x"]) .&.
-   (forall x. (G[var "x"] .=>. ~U[var "x"]) .=>. P[var "x"] .&. H[var "x"])
-   .=>. (forall x. U[var "x"])>>;;
+ <<(forall x. P[vt "x"] .|. G[vt "x"] .=>. ~H[vt "x"]) .&.
+   (forall x. (G[vt "x"] .=>. ~U[vt "x"]) .=>. P[vt "x"] .&. H[vt "x"])
+   .=>. (forall x. U[vt "x"])>>;;
 
 let p31 = time splittab
- <<~(exists x. P[var "x"] .&. (G[var "x"] .|. H[var "x"])) .&.
-   (exists x. Q[var "x"] .&. P[var "x"]) .&.
-   (forall x. ~H[var "x"] .=>. J[var "x"])
-   .=>. (exists x. Q[var "x"] .&. J[var "x"])>>;;
+ <<~(exists x. P[vt "x"] .&. (G[vt "x"] .|. H[vt "x"])) .&.
+   (exists x. Q[vt "x"] .&. P[vt "x"]) .&.
+   (forall x. ~H[vt "x"] .=>. J[vt "x"])
+   .=>. (exists x. Q[vt "x"] .&. J[vt "x"])>>;;
 
 let p32 = time splittab
- <<(forall x. P[var "x"] .&. (G[var "x"] .|. H[var "x"]) .=>. Q[var "x"]) .&.
-   (forall x. Q[var "x"] .&. H[var "x"] .=>. J[var "x"]) .&.
-   (forall x. R[var "x"] .=>. H[var "x"])
-   .=>. (forall x. P[var "x"] .&. R[var "x"] .=>. J[var "x"])>>;;
+ <<(forall x. P[vt "x"] .&. (G[vt "x"] .|. H[vt "x"]) .=>. Q[vt "x"]) .&.
+   (forall x. Q[vt "x"] .&. H[vt "x"] .=>. J[vt "x"]) .&.
+   (forall x. R[vt "x"] .=>. H[vt "x"])
+   .=>. (forall x. P[vt "x"] .&. R[vt "x"] .=>. J[vt "x"])>>;;
 
 let p33 = time splittab
- <<(forall x. P[var "a"] .&. (P[var "x"] .=>. P[var "b"]) .=>. P[var "c"]) .<=>.
-   (forall x. P[var "a"] .=>. P[var "x"] .|. P[var "c"]) .&. (P[var "a"] .=>. P[var "b"] .=>. P[var "c"])>>;;
+ <<(forall x. P[vt "a"] .&. (P[vt "x"] .=>. P[vt "b"]) .=>. P[vt "c"]) .<=>.
+   (forall x. P[vt "a"] .=>. P[vt "x"] .|. P[vt "c"]) .&. (P[vt "a"] .=>. P[vt "b"] .=>. P[vt "c"])>>;;
 
 let p34 = time splittab
- <<((exists x. forall y. P[var "x"] .<=>. P[var "y"]) .<=>.
-    ((exists x. Q[var "x"]) .<=>. (forall y. Q[var "y"]))) .<=>.
-   ((exists x. forall y. Q[var "x"] .<=>. Q[var "y"]) .<=>.
-    ((exists x. P[var "x"]) .<=>. (forall y. P[var "y"])))>>;;
+ <<((exists x. forall y. P[vt "x"] .<=>. P[vt "y"]) .<=>.
+    ((exists x. Q[vt "x"]) .<=>. (forall y. Q[vt "y"]))) .<=>.
+   ((exists x. forall y. Q[vt "x"] .<=>. Q[vt "y"]) .<=>.
+    ((exists x. P[vt "x"]) .<=>. (forall y. P[vt "y"])))>>;;
 
 let p35 = time splittab
  <<exists x y. P(x,y) .=>. (forall x y. P(x,y))>>;;
@@ -405,12 +434,12 @@ let p37 = time splittab
 
 let p38 = time splittab
  <<(forall x.
-     P[var "a"] .&. (P[var "x"] .=>. (exists y. P[var "y"] .&. R(x,y))) .=>.
-     (exists z w. P[var "z"] .&. R(x,w) .&. R(w,z))) .<=>.
+     P[vt "a"] .&. (P[vt "x"] .=>. (exists y. P[vt "y"] .&. R(x,y))) .=>.
+     (exists z w. P[vt "z"] .&. R(x,w) .&. R(w,z))) .<=>.
    (forall x.
-     (~P[var "a"] .|. P[var "x"] .|. (exists z w. P[var "z"] .&. R(x,w) .&. R(w,z))) .&.
-     (~P[var "a"] .|. ~(exists y. P[var "y"] .&. R(x,y)) .|.
-     (exists z w. P[var "z"] .&. R(x,w) .&. R(w,z))))>>;;
+     (~P[vt "a"] .|. P[vt "x"] .|. (exists z w. P[vt "z"] .&. R(x,w) .&. R(w,z))) .&.
+     (~P[vt "a"] .|. ~(exists y. P[vt "y"] .&. R(x,y)) .|.
+     (exists z w. P[vt "z"] .&. R(x,w) .&. R(w,z))))>>;;
 
 let p39 = time splittab
  <<~(exists x. forall y. P(y,x) .<=>. ~P(y,y))>>;;
@@ -431,27 +460,27 @@ let p43 = time splittab
    .=>. forall x y. Q(x,y) .<=>. Q(y,x)>>;;
 
 let p44 = time splittab
- <<(forall x. P[var "x"] .=>. (exists y. G[var "y"] .&. H(x,y)) .&.
-   (exists y. G[var "y"] .&. ~H(x,y))) .&.
-   (exists x. J[var "x"] .&. (forall y. G[var "y"] .=>. H(x,y))) .=>.
-   (exists x. J[var "x"] .&. ~P[var "x"])>>;;
+ <<(forall x. P[vt "x"] .=>. (exists y. G[vt "y"] .&. H(x,y)) .&.
+   (exists y. G[vt "y"] .&. ~H(x,y))) .&.
+   (exists x. J[vt "x"] .&. (forall y. G[vt "y"] .=>. H(x,y))) .=>.
+   (exists x. J[vt "x"] .&. ~P[vt "x"])>>;;
 
 let p45 = time splittab
  <<(forall x.
-     P[var "x"] .&. (forall y. G[var "y"] .&. H(x,y) .=>. J(x,y)) .=>.
-       (forall y. G[var "y"] .&. H(x,y) .=>. R[var "y"])) .&.
-   ~(exists y. L[var "y"] .&. R[var "y"]) .&.
-   (exists x. P[var "x"] .&. (forall y. H(x,y) .=>.
-     L[var "y"]) .&. (forall y. G[var "y"] .&. H(x,y) .=>. J(x,y))) .=>.
-   (exists x. P[var "x"] .&. ~(exists y. G[var "y"] .&. H(x,y)))>>;;
+     P[vt "x"] .&. (forall y. G[vt "y"] .&. H(x,y) .=>. J(x,y)) .=>.
+       (forall y. G[vt "y"] .&. H(x,y) .=>. R[vt "y"])) .&.
+   ~(exists y. L[vt "y"] .&. R[vt "y"]) .&.
+   (exists x. P[vt "x"] .&. (forall y. H(x,y) .=>.
+     L[vt "y"]) .&. (forall y. G[vt "y"] .&. H(x,y) .=>. J(x,y))) .=>.
+   (exists x. P[vt "x"] .&. ~(exists y. G[vt "y"] .&. H(x,y)))>>;;
 
 let p46 = time splittab
- <<(forall x. P[var "x"] .&. (forall y. P[var "y"] .&. H(y,x) .=>. G[var "y"]) .=>. G[var "x"]) .&.
-   ((exists x. P[var "x"] .&. ~G[var "x"]) .=>.
-    (exists x. P[var "x"] .&. ~G[var "x"] .&.
-               (forall y. P[var "y"] .&. ~G[var "y"] .=>. J(x,y)))) .&.
-   (forall x y. P[var "x"] .&. P[var "y"] .&. H(x,y) .=>. ~J(y,x)) .=>.
-   (forall x. P[var "x"] .=>. G[var "x"])>>;;
+ <<(forall x. P[vt "x"] .&. (forall y. P[vt "y"] .&. H(y,x) .=>. G[vt "y"]) .=>. G[vt "x"]) .&.
+   ((exists x. P[vt "x"] .&. ~G[vt "x"]) .=>.
+    (exists x. P[vt "x"] .&. ~G[vt "x"] .&.
+               (forall y. P[vt "y"] .&. ~G[vt "y"] .=>. J(x,y)))) .&.
+   (forall x y. P[vt "x"] .&. P[vt "y"] .&. H(x,y) .=>. ~J(y,x)) .=>.
+   (forall x. P[vt "x"] .=>. G[vt "x"])>>;;
 
 -- ------------------------------------------------------------------------- 
 -- Well-known "Agatha" example; cf. Manthey and Bry, CADE-9.                 
@@ -464,7 +493,7 @@ let p55 = time splittab
    (forall x y. killed(x,y) .=>. hates(x,y) .&. ~richer(x,y)) .&.
    (forall x. hates(agatha,x) .=>. ~hates(charles,x)) .&.
    (hates(agatha,agatha) .&. hates(agatha,charles)) .&.
-   (forall x. lives[var "x"] .&. ~richer(x,agatha) .=>. hates(butler,x)) .&.
+   (forall x. lives[vt "x"] .&. ~richer(x,agatha) .=>. hates(butler,x)) .&.
    (forall x. hates(agatha,x) .=>. hates(butler,x)) .&.
    (forall x. ~hates(x,agatha) .|. ~hates(x,butler) .|. ~hates(x,charles))
    .=>. killed(agatha,agatha) .&.
@@ -472,9 +501,9 @@ let p55 = time splittab
        ~killed(charles,agatha)>>;;
 
 let p57 = time splittab
- <<P(f([var "a"],b),f(b,c)) .&.
+ <<P(f([vt "a"],b),f(b,c)) .&.
    P(f(b,c),f(a,c)) .&.
-   (forall [var "x"] y z. P(x,y) .&. P(y,z) .=>. P(x,z))
+   (forall [vt "x"] y z. P(x,y) .&. P(y,z) .=>. P(x,z))
    .=>. P(f(a,b),f(a,c))>>;;
 
 -- ------------------------------------------------------------------------- 
@@ -483,14 +512,14 @@ let p57 = time splittab
 
 let p58 = time splittab
  <<forall P Q R. forall x. exists v. exists w. forall y. forall z.
-    ((P[var "x"] .&. Q[var "y"]) .=>. ((P[var "v"] .|. R[var "w"])  .&. (R[var "z"] .=>. Q[var "v"])))>>;;
+    ((P[vt "x"] .&. Q[vt "y"]) .=>. ((P[vt "v"] .|. R[vt "w"])  .&. (R[vt "z"] .=>. Q[vt "v"])))>>;;
 
 let p59 = time splittab
- <<(forall x. P[var "x"] .<=>. ~P(f[var "x"])) .=>. (exists x. P[var "x"] .&. ~P(f[var "x"]))>>;;
+ <<(forall x. P[vt "x"] .<=>. ~P(f[vt "x"])) .=>. (exists x. P[vt "x"] .&. ~P(f[vt "x"]))>>;;
 
 let p60 = time splittab
- <<forall x. P(x,f[var "x"]) .<=>.
-            exists y. (forall z. P(z,y) .=>. P(z,f[var "x"])) .&. P(x,y)>>;;
+ <<forall x. P(x,f[vt "x"]) .<=>.
+            exists y. (forall z. P(z,y) .=>. P(z,f[vt "x"])) .&. P(x,y)>>;;
 
 -- ------------------------------------------------------------------------- 
 -- From Gilmore's classic paper.                                             
@@ -500,10 +529,10 @@ let p60 = time splittab
 
 let gilmore_1 = time splittab
  <<exists x. forall y z.
-      ((F[var "y"] .=>. G[var "y"]) .<=>. F[var "x"]) .&.
-      ((F[var "y"] .=>. H[var "y"]) .<=>. G[var "x"]) .&.
-      (((F[var "y"] .=>. G[var "y"]) .=>. H[var "y"]) .<=>. H[var "x"])
-      .=>. F[var "z"] .&. G[var "z"] .&. H[var "z"]>>;;
+      ((F[vt "y"] .=>. G[vt "y"]) .<=>. F[vt "x"]) .&.
+      ((F[vt "y"] .=>. H[vt "y"]) .<=>. G[vt "x"]) .&.
+      (((F[vt "y"] .=>. G[vt "y"]) .=>. H[vt "y"]) .<=>. H[vt "x"])
+      .=>. F[vt "z"] .&. G[vt "z"] .&. H[vt "z"]>>;;
 
  ***** -}
 
@@ -518,8 +547,8 @@ let gilmore_2 = time splittab
 
 let gilmore_3 = time splittab
  <<exists x. forall y z.
-        ((F(y,z) .=>. (G[var "y"] .=>. H[var "x"])) .=>. F(x,x)) .&.
-        ((F(z,x) .=>. G[var "x"]) .=>. H[var "z"]) .&.
+        ((F(y,z) .=>. (G[vt "y"] .=>. H[vt "x"])) .=>. F(x,x)) .&.
+        ((F(z,x) .=>. G[vt "x"]) .=>. H[vt "z"]) .&.
         F(x,y)
         .=>. F(z,z)>>;;
 
@@ -540,14 +569,14 @@ let gilmore_6 = time splittab
             (forall u v. exists w. G(v,u) .|. H(w,y,u) .=>. G(u,w))>>;;
 
 let gilmore_7 = time splittab
- <<(forall x. K[var "x"] .=>. exists y. L[var "y"] .&. (F(x,y) .=>. G(x,y))) .&.
-   (exists z. K[var "z"] .&. forall u. L[var "u"] .=>. F(z,u))
-   .=>. exists v w. K[var "v"] .&. L[var "w"] .&. G(v,w)>>;;
+ <<(forall x. K[vt "x"] .=>. exists y. L[vt "y"] .&. (F(x,y) .=>. G(x,y))) .&.
+   (exists z. K[vt "z"] .&. forall u. L[vt "u"] .=>. F(z,u))
+   .=>. exists v w. K[vt "v"] .&. L[vt "w"] .&. G(v,w)>>;;
 
 let gilmore_8 = time splittab
  <<exists x. forall y z.
-        ((F(y,z) .=>. (G[var "y"] .=>. (forall u. exists v. H(u,v,x)))) .=>. F(x,x)) .&.
-        ((F(z,x) .=>. G[var "x"]) .=>. (forall u. exists v. H(u,v,z))) .&.
+        ((F(y,z) .=>. (G[vt "y"] .=>. (forall u. exists v. H(u,v,x)))) .=>. F(x,x)) .&.
+        ((F(z,x) .=>. G[vt "x"]) .=>. (forall u. exists v. H(u,v,z))) .&.
         F(x,y)
         .=>. F(z,z)>>;;
 
@@ -571,4 +600,5 @@ let davis_putnam_example = time splittab
         ((F(x,y) .&. G(x,y)) .=>. (G(x,z) .&. G(z,z)))>>;;
 
 ************ -}
+
 -}

@@ -6,16 +6,19 @@ module Data.Logic.Harrison.FOL
     , list_conj
     , var
     , fv
+    , fv'
     , subst
+    , subst'
     , generalize
     ) where
 
 import Data.Logic.Classes.Apply (Apply(..), apply)
+import Data.Logic.Classes.Atom (Atom(allVariables, substitute))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (Constants (fromBool, true, false))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), quant)
-import Data.Logic.Classes.Formula (Formula(allVariables, substitute))
 import Data.Logic.Classes.Negate ((.~.))
+import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.Logic.Classes.Term (Term(vt), fvt)
 import Data.Logic.Classes.Variable (Variable(..))
 import Data.Logic.Harrison.Formulas.FirstOrder (on_atoms)
@@ -62,7 +65,7 @@ mkLits pvs v = list_conj (Set.map (\ p -> if eval p v then p else (.~.) p) pvs)
 -- -------------------------------------------------------------------------
 
 on_formula :: (FirstOrderFormula fol atom v, Apply atom p term) => (term -> term) -> fol -> fol
-on_formula f = on_atoms (foldApply (\ p ts -> atomic (apply p (map f ts))) fromBool)
+on_formula f = on_atoms (foldApply (\ p ts -> Data.Logic.Classes.FirstOrder.atomic (apply p (map f ts))) fromBool)
 
 -- ------------------------------------------------------------------------- 
 -- Parsing of terms.                                                         
@@ -197,37 +200,55 @@ END_INTERACTIVE;;
 -- ------------------------------------------------------------------------- 
 
 -- | Return all variables occurring in a formula.
-var :: forall formula atom term v. (FirstOrderFormula formula atom v, Formula atom term v) => formula -> Set.Set v
+var :: forall formula atom term v.
+       (FirstOrderFormula formula atom v,
+        Atom atom term v) => formula -> Set.Set v
 var fm =
-    foldFirstOrder qu co tf allVariables fm
+    foldFirstOrder qu co tf at fm
     where
       qu _ x p = Set.insert x (var p)
       co ((:~:) p) = var p
       co (BinOp p _ q) = Set.union (var p) (var q)
       tf _ = Set.empty
+      at :: atom -> Set.Set v
+      at = allVariables
 
 -- | Return the variables that occur free in a formula.
-fv :: forall formula atom term v. (FirstOrderFormula formula atom v, Formula atom term v) => formula -> Set.Set v
+fv :: forall formula atom term v.
+      (FirstOrderFormula formula atom v,
+       Atom atom term v) => formula -> Set.Set v
 fv fm =
-    foldFirstOrder qu co tf allVariables fm
+    foldFirstOrder qu co tf at fm
     where
       qu _ x p = Set.delete x (fv p)
       co ((:~:) p) = fv p
       co (BinOp p _ q) = Set.union (fv p) (fv q)
+      tf _ = Set.empty
+      at = allVariables
+
+-- | Return the variables in a propositional formula.
+fv' :: forall formula atom term v. (PropositionalFormula formula atom, Atom atom term v, Ord v) => formula -> Set.Set v
+fv' fm =
+    foldPropositional co tf allVariables fm
+    where
+      co ((:~:) p) = fv' p
+      co (BinOp p _ q) = Set.union (fv' p) (fv' q)
       tf _ = Set.empty
 
 -- ------------------------------------------------------------------------- 
 -- Universal closure of a formula.                                           
 -- ------------------------------------------------------------------------- 
 
-generalize :: (FirstOrderFormula formula atom v, Formula atom term v) => formula -> formula
+generalize :: (FirstOrderFormula formula atom v, Atom atom term v) => formula -> formula
 generalize fm = Set.fold for_all fm (fv fm)
 
 -- ------------------------------------------------------------------------- 
 -- Substitution in formulas, with variable renaming.                         
 -- ------------------------------------------------------------------------- 
 
-subst :: (FirstOrderFormula formula atom v, Formula atom term v, Term term v f) =>
+subst :: (FirstOrderFormula formula atom v,
+          Term term v f,
+          Atom atom term v) =>
          Map.Map v term -> formula -> formula
 subst env fm =
     foldFirstOrder qu co tf at fm
@@ -240,7 +261,20 @@ subst env fm =
       co ((:~:) p) = ((.~.) (subst env p))
       co (BinOp p op q) = binop (subst env p) op (subst env q)
       tf = fromBool
-      at = atomic . substitute env
+      at = Data.Logic.Classes.FirstOrder.atomic . substitute env
+
+subst' :: (PropositionalFormula formula atom,
+           -- Formula formula term v,
+           Atom atom term v,
+           Term term v f) =>
+          Map.Map v term -> formula -> formula
+subst' env fm =
+    foldPropositional co tf at fm
+    where
+      co ((:~:) p) = ((.~.) (subst' env p))
+      co (BinOp p op q) = binop (subst' env p) op (subst' env q)
+      tf = fromBool
+      at = Data.Logic.Classes.Propositional.atomic . substitute env
 
 {-
 -- |Replace each free occurrence of variable old with term new.

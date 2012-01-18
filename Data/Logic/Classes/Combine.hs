@@ -21,6 +21,7 @@ module Data.Logic.Classes.Combine
 
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Negate (Negatable, (.~.))
+import Data.Logic.Classes.Pretty (Pretty(pretty))
 import Text.PrettyPrint (Doc, text)
 
 -- | A type class for logical formulas.  Minimal implementation:
@@ -56,14 +57,8 @@ class (Negatable formula) => Combinable formula where
     (.~&.) :: formula -> formula -> formula
     x .~&. y = (.~.) (x .&. y)
 
-infixr 2  .<=>. ,  .=>. ,  .<~>., ⇒, ⇔, ==>, <=>
--- We had been using a different precedence for & and |, I'm swapping
--- 3 and 4 here to match Harrison and Haskell (and I assume most other
--- languages.)  So a .|. b .&. c means a .|. (b .&. c).  And False &&
--- True || True is True.  When formatting this expression, we observe
--- that when the precedence of the .|. operator we are formatting (3)
--- is less than the precedence of the .&. operator it is combining (4)
--- we can omit the parentheses.
+infixl 1  .<=>. ,  .<~>., ⇔, <=>
+infixr 2  .=>., ⇒, ==>
 infixl 3  .|., ∨
 infixl 4  .&., ∧
 
@@ -123,3 +118,6 @@ prettyBinOp (:<=>:) = text "⇔"
 prettyBinOp (:=>:) = text "⇒"
 prettyBinOp (:&:) = text "∧"
 prettyBinOp (:|:) = text "∨"
+
+instance Pretty BinOp where
+    pretty = prettyBinOp

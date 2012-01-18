@@ -3,7 +3,8 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, RankNTypes, ScopedTypeVariables, StandaloneDeriving, TypeFamilies, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wwarn #-}
 module Data.Logic.Tests.Common
-    ( myTest
+    ( render
+    , myTest
       -- * Formula parameter types
     , V(..)
     , Pr(..)
@@ -34,14 +35,15 @@ import Data.Logic.Classes.Arity (Arity(arity))
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(satisfiable))
 import Data.Logic.Classes.Constants (Constants(..), prettyBool)
 import Data.Logic.Classes.Equals (AtomEq)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula, convertFOF)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula, convertFOF, prettyFirstOrder)
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Pretty (Pretty(pretty))
-import Data.Logic.Classes.Skolem (Skolem(..))
+import Data.Logic.Classes.Propositional (PropositionalFormula)
+import qualified Data.Logic.Classes.Skolem as C
 import Data.Logic.Classes.Term (Term(vt, fApp, foldTerm), Function)
 import Data.Logic.Classes.Variable (Variable(..))
 import Data.Logic.Harrison.Normal (trivial)
-import Data.Logic.Harrison.Skolem (skolemNormalForm, runSkolem, pnf, nnf, simplify)
+import Data.Logic.Harrison.Skolem (Skolem, skolemize, runSkolem, pnf, nnf, simplify)
 import qualified Data.Logic.Instances.Chiou as C
 import Data.Logic.Instances.PropLogic (plSat)
 import qualified Data.Logic.Instances.SatSolver as SS
@@ -52,11 +54,16 @@ import Data.Logic.Resolution (SetOfSupport)
 import qualified Data.Logic.Types.FirstOrder as P
 import qualified Data.Set as S
 import Data.String (IsString(fromString))
+import Text.PrettyPrint (Style(mode), renderStyle, style, Mode(OneLineMode))
 
 --import PropLogic (PropForm)
 
 import Test.HUnit
 import Text.PrettyPrint (Doc, text)
+
+-- | Render a Pretty instance in single line mode
+render :: Pretty a => a -> String
+render = renderStyle (style {mode = OneLineMode}) . pretty
 
 myTest :: (Show a, Eq a) => String -> a -> a -> Test
 myTest label expected input =
@@ -117,17 +124,14 @@ instance Show Pr where
     show Equals = ".=."
     show (Pr s) = show s            -- Because Pr is an instance of IsString
 
-instance Pretty Pr where
-    pretty (Pr s) = text s
-    pretty T = prettyBool True
-    pretty F = prettyBool False
-    pretty Equals = text "="
-
 prettyP :: Pr -> Doc
-prettyP T = text "True"
-prettyP F = text "False"
+prettyP T = prettyBool True
+prettyP F = prettyBool False
 prettyP Equals = text ".=."
 prettyP (Pr s) = text s
+
+instance Pretty Pr where
+    pretty = prettyP
 
 data AtomicFunction
     = Fn String
@@ -136,7 +140,7 @@ data AtomicFunction
 
 instance Function AtomicFunction
 
-instance Skolem AtomicFunction where
+instance C.Skolem AtomicFunction where
     toSkolem = Skolem
     fromSkolem (Skolem n) = Just n
     fromSkolem _ = Nothing
@@ -148,17 +152,19 @@ instance Show AtomicFunction where
     show (Fn s) = show s
     show (Skolem n) = "toSkolem " ++ show n
 
-instance Pretty AtomicFunction where
-    pretty (Fn s) = text s
-    pretty (Skolem n) = text ("Sk" ++ show n)
-
 prettyF :: AtomicFunction -> Doc
 prettyF (Fn s) = text s
 prettyF (Skolem n) = text ("sK" ++ show n)
 
+instance Pretty AtomicFunction where
+    pretty = prettyF
+
 type TFormula = P.Formula V Pr AtomicFunction
 type TAtom = P.Predicate Pr TTerm
 type TTerm = P.PTerm V AtomicFunction
+
+instance Pretty TFormula where
+    pretty = prettyFirstOrder (const pretty) pretty 0
 
 -- |This allows you to use an expression that returns the Doc type in a
 -- unit test, such as prettyFirstOrder.
@@ -208,9 +214,9 @@ doTest f =
       doExpected (NegationNormalForm f') =
           myTest (name f ++ " negation normal form") (p f') (p (nnf . simplify $ (formula f)))
       doExpected (SkolemNormalForm f') =
-          myTest (name f ++ " skolem normal form") (p f') (p (runSkolem (skolemNormalForm (formula f))))
+          myTest (name f ++ " skolem normal form") (p f') (p (runSkolem (skolemize id (formula f) :: Skolem V (P.PTerm V AtomicFunction) TFormula)))
       doExpected (SkolemNumbers f') =
-          myTest (name f ++ " skolem numbers") f' (skolemSet (runSkolem (skolemNormalForm (formula f))))
+          myTest (name f ++ " skolem numbers") f' (skolemSet (runSkolem (skolemize id (formula f) :: Skolem V (P.PTerm V AtomicFunction) TFormula)))
       doExpected (ClauseNormalForm fss) =
           myTest (name f ++ " clause normal form") fss (S.map (S.map p) (runSkolem (clauseNormalForm (formula f))))
       doExpected (TrivialClauses flags) =
@@ -240,12 +246,28 @@ doTest f =
 
       norm = map S.toList . S.toList . S.fromList . map S.fromList
 
+{-
+skolemNormalForm' f = (skolem' . nnf . simplify $ f) >>= return . prenex' . nnf' . simplify'
+
+-- skolem' :: formula -> SkolemT v term m pf
+skolem' :: ( Monad m
+           , Variable v
+           , Term term v f
+           , FirstOrderFormula formula atom v
+           -- , Atom atom term v
+           -- , PropositionalFormula pf atom
+           -- , Formula formula term v
+           ) =>
+           formula -> SkolemT v term m pf
+skolem' = undefined
+-}
+
 skolemSet :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Data formula) => formula -> S.Set Int
 skolemSet =
     foldr ins S.empty . skolemList
     where
       ins :: f -> S.Set Int -> S.Set Int
-      ins f s = case fromSkolem f of
+      ins f s = case C.fromSkolem f of
                   Just n -> S.insert n s
                   Nothing -> s
       skolemList :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Data f, Typeable f, Data formula) => formula -> [f]
@@ -274,6 +296,7 @@ data ProofExpected formula v term
     deriving (Data, Typeable)
 
 doProof :: forall formula atom term v p f. (FirstOrderFormula formula atom v,
+                                            PropositionalFormula formula atom,
                                             AtomEq atom p term, atom ~ P.Predicate p (P.PTerm v f),
                                             Term term v f, term ~ P.PTerm v f,
                                             Literal formula atom v,

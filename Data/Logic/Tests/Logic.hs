@@ -4,13 +4,14 @@
 module Data.Logic.Tests.Logic (tests) where
 
 import Data.Logic.Classes.Arity (Arity(arity))
-import Data.Logic.Classes.Combine (Combinable(..))
+import Data.Logic.Classes.Combine (Combinable(..), (⇒))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Equals (AtomEq, (.=.), pApp, pApp1, showAtomEq)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder)
-import Data.Logic.Classes.Formula (Formula)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder, (∀))
+import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Negate (negated, (.~.))
+import Data.Logic.Classes.Propositional (PropositionalFormula)
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable)
@@ -58,9 +59,42 @@ precTests =
     , myTest "Logic - prec test 3"
                ((a .&. b) .&. c) -- infixl, with infixr we get (a .&. (b .&. c))
                (a .&. b .&. c :: TFormula)
+    , let x = vt "x" :: TTerm
+          y = vt "y" :: TTerm
+          -- This is not the desired result, but it is the result we
+          -- will get due to the fact that function application
+          -- precedence is always 10, and that rule applies when you
+          -- put the operator in parentheses.  This means that direct
+          -- input of examples from Harrison won't always work.
+          expected = ((∀) "y" (pApp "g" [y])) ⇒ (pApp "f" [y]) :: TFormula
+          input =     (∀) "y" (pApp "g" [y])  ⇒ (pApp "f" [y]) :: TFormula in
+      myTest "Logic - prec test 4" expected input
     , TestCase (assertEqual "Logic - Find a free variable"
                 (fv (for_all "x" (x .=. y) :: TFormula))
                 (Set.singleton "y"))
+{-
+    , let a = Combine (BinOp
+                       (Combine (BinOp
+                                 T
+                                 (:=>:)
+                                 (Combine (BinOp T (:&:) T))))
+                       (:&:)
+                       (Combine (BinOp
+                                 (Combine (BinOp T (:&:) T))
+                                 (:=>:)
+                                 (Combine (BinOp T (:&:) T)))))
+          b = Combine (BinOp
+                       (Combine (BinOp
+                                 T
+                                 (:=>:)
+                                 (Combine (BinOp
+                                           (Combine (BinOp T (:&:) T))
+                                           (:&:)
+                                           (Combine (BinOp T (:&:) T))))))
+                       (:=>:)
+                       (Combine (BinOp T (:&:) T))) in
+      ()
+-}
     , TestCase (assertEqual "Logic - Substitute a variable"
                 (map sub
                          [ for_all "x" (x .=. y) {- :: Formula String String -}
@@ -424,7 +458,7 @@ prepare formula = ({- flatten . -} fromJust . toPropositional convertA . cnf . (
 convertA = Just . A
 -}
 
-table :: forall formula atom term v p f. (FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Constants p, Eq p, Term term v f, Literal formula atom v,
+table :: forall formula atom term v p f. (FirstOrderFormula formula atom v, PropositionalFormula formula atom, Atom atom term v, AtomEq atom p term, Constants p, Eq p, Term term v f, Literal formula atom v,
                                      Ord formula, Skolem f, IsString v, Variable v, TD.Display formula) =>
          formula -> TruthTable formula
 table f =

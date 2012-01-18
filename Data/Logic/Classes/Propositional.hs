@@ -13,6 +13,7 @@ module Data.Logic.Classes.Propositional
     ( PropositionalFormula(..)
     , showPropositional
     , prettyPropositional
+    , fixityPropositional
     , convertProp
     , combine
     , negationNormalForm
@@ -22,15 +23,17 @@ module Data.Logic.Classes.Propositional
     , clauseNormalFormAlt'
     , disjunctiveNormalForm
     , disjunctiveNormalForm'
+    , overatoms
     ) where
 
 import Data.Logic.Classes.Combine
 import Data.Logic.Classes.Constants
 import Data.Logic.Classes.Negate
+import Data.Logic.Classes.Pretty (HasFixity(fixity), Fixity(Fixity), FixityDirection(..))
 import Data.SafeCopy (base, deriveSafeCopy)
 import qualified Data.Set.Extra as Set
 import Happstack.Data (deriveNewData)
-import Text.PrettyPrint (Doc, cat, text, (<>))
+import Text.PrettyPrint (Doc, text, (<>))
 
 -- |A type class for propositional logic.  If the type we are writing
 -- an instance for is a zero-order (aka propositional) logic type
@@ -68,16 +71,36 @@ showPropositional showAtom formula =
       showFormOp (:&:) = ".&."
       showFormOp (:|:) = ".|."
 
--- | Show a formula in a format that can be evaluated 
-prettyPropositional :: (PropositionalFormula formula atom) => (atom -> Doc) -> Int -> formula -> Doc
-prettyPropositional prettyAtom _prec formula =
-    foldPropositional co tf at formula
+-- | Show a formula in a visually pleasing format.
+prettyPropositional :: (PropositionalFormula formula atom, HasFixity formula) =>
+                       (atom -> Doc)
+                    -> Fixity        -- ^ The fixity of the parent formula.  If the operator being formatted here
+                                     -- has a lower precedence it needs to be parenthesized.
+                    -> formula
+                    -> Doc
+prettyPropositional prettyAtom (Fixity pprec _pdir) formula =
+    parenIf (pprec > prec) (foldPropositional co tf at formula)
     where
-      co ((:~:) f) = text "¬" <> parenForm f
-      co (BinOp f1 op f2) = parenForm f1 <> text " " <> prettyBinOp op <> text " " <> parenForm f2
+      co ((:~:) f) = text "¬" <> prettyPropositional prettyAtom fix f
+      co (BinOp f1 op f2) = prettyPropositional prettyAtom fix f1 <> text " " <> prettyBinOp op <> text " " <> prettyPropositional prettyAtom fix f2
       tf = prettyBool
       at = prettyAtom
-      parenForm x = cat [text "(", prettyPropositional prettyAtom 0 x, text ")"]
+      -- parenForm x = cat [text "(", prettyPropositional prettyAtom 0 x, text ")"]
+      parenIf True x = text "(" <> x <> text ")"
+      parenIf False x = x
+      fix@(Fixity prec _dir) = fixity formula
+
+fixityPropositional :: (HasFixity atom, PropositionalFormula formula atom) => formula -> Fixity
+fixityPropositional formula =
+    foldPropositional co tf at formula
+    where
+      co ((:~:) _) = Fixity 5 InfixN
+      co (BinOp _ (:&:) _) = Fixity 4 InfixL
+      co (BinOp _ (:|:) _) = Fixity 3 InfixL
+      co (BinOp _ (:=>:) _) = Fixity 2 InfixR
+      co (BinOp _ (:<=>:) _) = Fixity 1 InfixL
+      tf _ = Fixity 10 InfixN
+      at = fixity
 
 -- |Convert any instance of a propositional logic expression to any
 -- other using the supplied atom conversion function.
@@ -247,7 +270,6 @@ trivial lits =
     not . Set.null $ Set.intersection (Set.map (.~.) n) p
     where (n, p) = Set.partition negated lits
 
---purecnf :: forall formula term v p f lit. (FirstOrderFormula formula term v p f, Literal lit term v p f) => formula -> Set.Set (Set.Set lit)
 purecnf :: forall formula atom. (PropositionalFormula formula atom, Eq formula, Ord formula) => formula -> Set.Set (Set.Set formula)
 purecnf fm = Set.map (Set.map (.~.)) (purednf (nnf ((.~.) fm)))
 
@@ -272,6 +294,20 @@ purecnf' fm =
       c _ = x
       x :: Set.Set (Set.Set formula)
       x = Set.singleton (Set.singleton (convertProp id fm)) :: Set.Set (Set.Set formula)
+
+-- ------------------------------------------------------------------------- 
+-- Formula analog of list iterator "itlist".                                 
+-- ------------------------------------------------------------------------- 
+
+overatoms :: forall formula atom r. PropositionalFormula formula atom =>
+             (atom -> r -> r) -> formula -> r -> r
+overatoms f fm b =
+    foldPropositional co tf at fm
+    where
+      co ((:~:) p) = overatoms f p b
+      co (BinOp p _ q) = overatoms f p (overatoms f q b)
+      tf _ = b
+      at a = f a b
 
 $(deriveSafeCopy 1 'base ''BinOp)
 $(deriveSafeCopy 1 'base ''Combination)

@@ -12,14 +12,14 @@ module Data.Logic.Types.FirstOrder
 
 import Data.Data (Data)
 import qualified Data.Logic.Classes.Apply as C
+import qualified Data.Logic.Classes.Atom as C
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.), pApp, substAtomEq, varAtomEq, prettyAtomEq)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
-import qualified Data.Logic.Classes.Formula as C
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), fixityFirstOrder)
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
-import Data.Logic.Classes.Pretty (Pretty(pretty))
+import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), botFixity)
 import Data.Logic.Classes.Term (Term(..), Function)
 import Data.Logic.Classes.Variable (Variable(..))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
@@ -76,9 +76,9 @@ instance (Constants (Formula v p f) {-, Ord v, Ord p, Ord f-}) => Combinable (Fo
     x .&.   y = Combine (BinOp  x (:&:)   y)
 
 instance (Variable v, C.Predicate p, Function f, Constants (Formula v p f), Combinable (Formula v p f)) =>
-         PropositionalFormula (Formula v p f) (Formula v p f) where
-    atomic (Predicate (Equal t1 t2)) = t1 .=. t2
-    atomic (Predicate (Apply p ts)) = pApp p ts
+         PropositionalFormula (Formula v p f) (Predicate p (PTerm v f)) where
+    atomic (Equal t1 t2) = t1 .=. t2
+    atomic (Apply p ts) = pApp p ts
     atomic _ = error "atomic method of PropositionalFormula for Parameterized: invalid argument"
     foldPropositional co tf at formula =
         maybe testFm tf (asBool formula)
@@ -87,7 +87,7 @@ instance (Variable v, C.Predicate p, Function f, Constants (Formula v p f), Comb
               case formula of
                 Quant _ _ _ -> error "foldF0: quantifiers should not be present"
                 Combine x -> co x
-                Predicate x -> at (Predicate x)
+                Predicate x -> at x
 
 instance (Variable v, Function f) => Term (PTerm v f) v f where
     foldTerm vf fn t =
@@ -167,7 +167,7 @@ instance (Constants p, Eq v, Eq p, Eq f, Constants (Predicate p (PTerm v f))) =>
                               then tf False
                               else at p
 
-instance (C.Predicate p, Variable v, Function f) => C.Formula (Predicate p (PTerm v f)) (PTerm v f) v where
+instance (C.Predicate p, Variable v, Function f) => C.Atom (Predicate p (PTerm v f)) (PTerm v f) v where
     substitute = substAtomEq
     freeVariables = varAtomEq
     allVariables = varAtomEq
@@ -182,6 +182,12 @@ instance (Variable v, Pretty v,
           C.Predicate p, Pretty p,
           Function f, Pretty f) => Pretty (Predicate p (PTerm v f)) where
     pretty atom = prettyAtomEq pretty pretty pretty 0 atom
+
+instance (C.Predicate p, Variable v, Function f, HasFixity (Predicate p (PTerm v f))) => HasFixity (Formula v p f) where
+    fixity = fixityFirstOrder
+
+instance HasFixity (Predicate p term) where
+    fixity = const botFixity
 
 $(deriveSafeCopy 1 'base ''PTerm)
 $(deriveSafeCopy 1 'base ''Formula)

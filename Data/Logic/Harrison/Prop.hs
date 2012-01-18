@@ -14,7 +14,7 @@ module Data.Logic.Harrison.Prop
     , trivial
     , psimplify
     , nnf
-    -- , simpdnf
+    , simpdnf
     , simpcnf
     , positive
     , negative
@@ -37,7 +37,7 @@ import Data.Logic.Classes.Constants (Constants(fromBool, true, false), asBool, i
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Propositional
 import Data.Logic.Harrison.Formulas.Propositional (atom_union, on_atoms)
-import Data.Logic.Harrison.Lib (fpf, allpairs, setAny)
+import Data.Logic.Harrison.Lib (fpf, setAny, distrib')
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Prelude hiding (negate)
@@ -125,7 +125,7 @@ onAllValuations append subfn v ps =
                         (onAllValuations append subfn (\ q -> if q == p then False else v q) ps')
                         -- Do the valuations of the remaining variables with  set to true
                         (onAllValuations append subfn (\ q -> if q == p then True else v q) ps')
-
+{-
 type TruthTableRow a = ([(a, Bool)], Bool)
 
 truthTable :: forall formula atomic. (PropositionalFormula formula atomic, Eq atomic, Ord atomic) =>
@@ -136,6 +136,20 @@ truthTable fm =
       mkRow :: (atomic -> Bool)         -- The current variable assignment
             -> [TruthTableRow atomic] -- The variable assignments and the formula value
       mkRow v = [(map (\ a -> (a, v a)) (Set.toList ats), eval fm v)]
+      ats = atoms fm
+-}
+type TruthTableRow = ([Bool], Bool)
+type TruthTable a = ([a], [TruthTableRow])
+
+truthTable :: forall formula atomic. (PropositionalFormula formula atomic, Eq atomic, Ord atomic) =>
+              formula -> TruthTable atomic
+truthTable fm =
+    (atl, onAllValuations (++) mkRow (const False) ats)
+    where
+      mkRow :: (atomic -> Bool)         -- The current variable assignment
+            -> [TruthTableRow]          -- The variable assignments and the formula value
+      mkRow v = [(map v atl, eval fm v)]
+      atl = Set.toList ats
       ats = atoms fm
 
 -- ------------------------------------------------------------------------- 
@@ -350,9 +364,6 @@ rawdnf fm =
 -- ------------------------------------------------------------------------- 
 -- A version using a list representation.                                    
 -- ------------------------------------------------------------------------- 
-
-distrib' :: (Eq formula, Ord formula) => Set.Set (Set.Set formula) -> Set.Set (Set.Set formula) -> Set.Set (Set.Set formula)
-distrib' s1 s2 = allpairs (Set.union) s1 s2
 
 purednf :: (PropositionalFormula formula atomic, Ord formula) => formula -> Set.Set (Set.Set formula)
 purednf fm =

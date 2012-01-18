@@ -16,9 +16,10 @@ import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.State (StateT(runStateT), MonadPlus, msum)
 import Data.Generics (Data, Typeable, listify)
 import Data.List (intersperse)
+import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Constants (Constants(true), ifElse)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
-import Data.Logic.Classes.Formula (Formula)
+import Data.Logic.Classes.Propositional (PropositionalFormula)
 import Data.Logic.Classes.Skolem (Skolem(fromSkolem))
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
@@ -89,15 +90,19 @@ prettyProof lit p = cat $ [text "["] ++ intersperse (text ", ") (map (prettyINF 
 --    a | b | c => f
 -- @
 implicativeNormalForm :: forall m formula atom term v f lit. 
-                         (Monad m, FirstOrderFormula formula atom v, Formula atom term v, Data formula, Literal lit atom v, Term term v f,
-                          Eq formula, Eq lit, Ord lit, Data lit, Skolem f) =>
+                         (Monad m,
+                          FirstOrderFormula formula atom v,
+                          PropositionalFormula formula atom,
+                          Atom atom term v,
+                          Literal lit atom v,
+                          Term term v f,
+                          Data formula, Ord formula, Ord lit, Data lit, Skolem f) =>
                          formula -> SkolemT v term m (Set.Set (ImplicativeForm lit))
 implicativeNormalForm formula =
     do cnf <- clauseNormalForm formula
        let pairs = Set.map (Set.fold collect (Set.empty, Set.empty)) cnf :: Set.Set (Set.Set lit, Set.Set lit)
            pairs' = Set.flatten (Set.map split pairs) :: Set.Set (Set.Set lit, Set.Set lit)
        return (Set.map (\ (n,p) -> INF n p) pairs')
-    -- clauseNormalForm formula >>= return . Set.unions . Set.map split . map (Set.fold collect (Set.empty, Set.empty))
     where
       collect :: lit -> (Set.Set lit, Set.Set lit) -> (Set.Set lit, Set.Set lit)
       collect f (n, p) =

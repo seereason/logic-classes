@@ -1,5 +1,5 @@
 Name:             logic-classes
-Version:          1.3
+Version:          1.4
 Synopsis:         Framework for propositional and first order logic, theorem proving
 Description:      Package to support Propositional and First Order Logic.  It includes classes
                   representing the different types of formulas and terms, some instances of
@@ -17,14 +17,14 @@ Build-Type:       Simple
 
 Library
  GHC-options: -Wall -O2
- Exposed-Modules:  Data.Logic.Classes.Arity
-                   Data.Logic.Classes.Apply
+ Exposed-Modules:  Data.Logic.Classes.Apply
+                   Data.Logic.Classes.Arity
+                   Data.Logic.Classes.Atom
                    Data.Logic.Classes.ClauseNormalForm
                    Data.Logic.Classes.Combine
                    Data.Logic.Classes.Constants
                    Data.Logic.Classes.Equals
                    Data.Logic.Classes.FirstOrder
-                   Data.Logic.Classes.Formula
                    Data.Logic.Classes.Literal
                    Data.Logic.Classes.Negate
                    Data.Logic.Classes.Pretty
@@ -32,15 +32,19 @@ Library
                    Data.Logic.Classes.Skolem
                    Data.Logic.Classes.Term
                    Data.Logic.Classes.Variable
+                   Data.Logic.Harrison.DefCNF
+                   Data.Logic.Harrison.DP
                    Data.Logic.Harrison.Equal
                    Data.Logic.Harrison.FOL
                    Data.Logic.Harrison.Formulas.FirstOrder
                    Data.Logic.Harrison.Formulas.Propositional
+                   Data.Logic.Harrison.Herbrand
                    Data.Logic.Harrison.Lib
                    Data.Logic.Harrison.Meson
                    Data.Logic.Harrison.Normal
                    Data.Logic.Harrison.Prolog
                    Data.Logic.Harrison.Prop
+                   Data.Logic.Harrison.PropExamples
                    Data.Logic.Harrison.Resolution
                    Data.Logic.Harrison.Skolem
                    Data.Logic.Harrison.Tableaux
@@ -48,6 +52,7 @@ Library
                    Data.Logic.Instances.Chiou
                    Data.Logic.Instances.PropLogic
                    Data.Logic.Instances.SatSolver
+                   -- Data.Logic.Instances.TPTP
                    Data.Logic.KnowledgeBase
                    Data.Logic.Normal.Clause
                    Data.Logic.Normal.Implicative
@@ -62,7 +67,7 @@ Library
                    Data.Logic.Types.Harrison.Prop
                    Data.Logic.Types.Propositional
  Build-Depends:    applicative-extras, base >= 4.3 && < 5, containers, fgl, happstack-data, incremental-sat-solver,
-                   mtl, syb-with-class, text, PropLogic, pretty, safecopy, set-extra, syb
+                   mtl, syb-with-class, text, PropLogic, pretty, safecopy, set-extra, syb, template-haskell
 
 Executable tests
  GHC-Options: -Wall -O2

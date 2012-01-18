@@ -13,13 +13,14 @@ import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Combine (Combination(..))
 import Data.Logic.Classes.Constants
 import qualified Data.Logic.Classes.FirstOrder as FOF
+import Data.Logic.Classes.Pretty (HasFixity(..), Fixity(..), FixityDirection(..))
 import qualified Data.Logic.Classes.Propositional as P
 import Data.Logic.Classes.Negate
-import Text.PrettyPrint (Doc, (<>), text)
+import Text.PrettyPrint (Doc, (<>), text, parens, nest)
 
 -- |Literals are the building blocks of the clause and implicative normal
 -- |forms.  They support negation and must include True and False elements.
-class (Negatable lit, Constants lit) => Literal lit atom v | lit -> atom v where
+class (Negatable lit, Constants lit, HasFixity atom) => Literal lit atom v | lit -> atom v where
     foldLiteral :: (lit -> r) -> (Bool -> r) -> (atom -> r) -> lit -> r
     atomic :: atom -> lit
 
@@ -95,10 +96,21 @@ prettyLit :: forall lit atom v. (Literal lit atom v) =>
            -> Int
            -> lit
            -> Doc
-prettyLit pa pv prec lit =
-    foldLiteral co tf at lit
+prettyLit pa pv pprec lit =
+    parensIf (pprec > prec) $ foldLiteral co tf at lit
     where
       co :: lit -> Doc
       co x = if negated x then text {-"¬"-} "~" <> prettyLit pa pv 5 x else prettyLit pa pv 5 x
       tf x = text (if x then "true" else "false")
       at = pa 6
+      parensIf False = id
+      parensIf _ = parens . nest 1
+      Fixity prec _ = fixityLiteral lit
+
+fixityLiteral :: (Literal formula atom v) => formula -> Fixity
+fixityLiteral formula =
+    foldLiteral neg tf at formula
+    where
+      neg _ = Fixity 5 InfixN
+      tf _ = Fixity 10 InfixN
+      at = fixity

@@ -17,10 +17,14 @@ module Data.Logic.Harrison.Lib
     , exists
     , tryApplyD
     , allpairs
+    , distrib'
     , image
     , optimize
     , minimize
     , maximize
+    , optimize'
+    , minimize'
+    , maximize'
     , can
     , allsubsets
     , allnonemptysubsets
@@ -197,6 +201,9 @@ allpairs :: forall a b c. (Ord c) => (a -> b -> c) -> Set.Set a -> Set.Set b -> 
 -- allpairs f xs ys = Set.fromList (concatMap (\ z -> map (f z) (Set.toList ys)) (Set.toList xs))
 allpairs f xs ys = Set.fold (\ x zs -> Set.fold (\ y zs' -> Set.insert (f x y) zs') zs ys) Set.empty xs
 
+distrib' :: Ord a => Set.Set (Set.Set a) -> Set.Set (Set.Set a) -> Set.Set (Set.Set a)
+distrib' s1 s2 = allpairs (Set.union) s1 s2
+
 test01 :: Test
 test01 = TestCase $ assertEqual "itlist2" expected input
     where input = allpairs (,) (Set.fromList [1,2,3]) (Set.fromList [4,5,6])
@@ -351,15 +358,24 @@ setmapfilter f s = Set.fold (\ a r -> failing (const r) (`Set.insert` r) (f a)) 
 -- Find list member that maximizes or minimizes a function.                 
 -- -------------------------------------------------------------------------
 
-optimize :: forall a b. (b -> b -> Bool) -> (a -> b) -> [a] -> a
-optimize ord f l =
-  fst (end_itlist (\ p@(_,y) p'@(_,y') -> if ord y y' then p else p') (map (\ x -> (x,f x)) l))
+optimize :: forall a b. (b -> b -> Bool) -> (a -> b) -> [a] -> Maybe a
+optimize _ _ [] = Nothing
+optimize ord f l = Just (fst (foldr1 (\ p@(_,y) p'@(_,y') -> if ord y y' then p else p') (map (\ x -> (x,f x)) l)))
 
-maximize :: forall a b. Ord b => (a -> b) -> [a] -> a
+maximize :: forall a b. Ord b => (a -> b) -> [a] -> Maybe a
 maximize f l = optimize (>) f l
 
-minimize :: forall a b. Ord b => (a -> b) -> [a] -> a
+minimize :: forall a b. Ord b => (a -> b) -> [a] -> Maybe a
 minimize f l = optimize (<) f l
+
+optimize' :: forall a b. (b -> b -> Bool) -> (a -> b) -> Set.Set a -> Maybe a
+optimize' ord f s = optimize ord f (Set.toList s)
+
+maximize' :: forall a b. Ord b => (a -> b) -> Set.Set a -> Maybe a
+maximize' f s = optimize' (>) f s
+
+minimize' :: forall a b. Ord b => (a -> b) -> Set.Set a -> Maybe a
+minimize' f s = optimize' (<) f s
 
 -- -------------------------------------------------------------------------
 -- Set operations on ordered lists.                                         

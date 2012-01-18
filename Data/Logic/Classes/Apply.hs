@@ -22,7 +22,7 @@ import Data.List (intercalate, intersperse)
 import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import Text.PrettyPrint (Doc, (<>), text, empty, parens, hcat)
+import Text.PrettyPrint (Doc, (<>), text, empty, parens, cat)
 
 class (Arity p, Constants p, Eq p, Ord p, Data p, Pretty p) => Predicate p
 
@@ -66,7 +66,7 @@ prettyApply pv pp pf prec atom =
     foldApply (\ p ts ->
                    pp p <> case ts of
                              [] -> empty
-                             _ -> parens (hcat (intersperse (text ",") (map (prettyTerm pv pf) ts))))
+                             _ -> parens (cat (intersperse (text ",") (map (prettyTerm pv pf) ts))))
               (\ x -> text (if x then "true" else "false"))
               atom
 

@@ -1,9 +1,11 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes, ScopedTypeVariables, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Harrison.Equal
-    ( function_congruence
+{-  ( function_congruence
     , equalitize
-    ) where
+    ) -} where
+
+import Debug.Trace
 
 -- ========================================================================= 
 -- First order logic with equality.                                          
@@ -117,8 +119,8 @@ predicate_congruence (Named p n) =
 equivalence_axioms :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof) => Set.Set fof
 equivalence_axioms =
     Set.fromList
-    [(∀) (fromString "x") (x .=. x),
-     (∀) (fromString "x") ((∀) (fromString "y") ((∀) (fromString "z") (x .=. y ∧ x .=. z ⇒ y .=. z)))]
+    [(∀) "x" (x .=. x),
+     (∀) "x" ((∀) "y" ((∀) "z" (x .=. y ∧ x .=. z ⇒ y .=. z)))]
     where
       x :: term
       x = vt (fromString "x")
@@ -127,7 +129,7 @@ equivalence_axioms =
       z :: term
       z = vt (fromString "z")
 
-equalitize :: (FirstOrderFormula formula atom v, AtomEq atom t term, Term term v f, Ord t, Ord formula, Ord f) =>
+equalitize :: (FirstOrderFormula formula atom v, AtomEq atom p term, Ord p, Show p, Term term v f, Ord formula, Ord f) =>
               formula -> formula
 equalitize fm =
     if not (Set.member Equals allpreds)

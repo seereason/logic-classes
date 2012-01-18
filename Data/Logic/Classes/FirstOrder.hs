@@ -26,26 +26,21 @@ module Data.Logic.Classes.FirstOrder
     , withUnivQuants
     , showFirstOrder
     , prettyFirstOrder
-{-
-    , freeVars
-    , quantVars
-    , allVars
-    , univquant_free_vars
-    , substitute
-    , substitutePairs
-    , disj
-    , conj
--}
+    , fixityFirstOrder
+    , onatoms
+    , overatoms
+    , atom_union
     ) where
 
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Apply (Apply(..), apply, apply0, apply1, apply2, apply3, apply4, apply5, apply6, apply7)
 import Data.Logic.Classes.Constants
 import Data.Logic.Classes.Combine
-import Data.Logic.Classes.Pretty (Pretty)
+import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), Fixity(..), FixityDirection(..))
 import qualified Data.Logic.Classes.Propositional as P
 import Data.Logic.Classes.Variable (Variable)
 import Data.SafeCopy (base, deriveSafeCopy)
+import qualified Data.Set as Set
 import Happstack.Data (deriveNewData)
 import Text.PrettyPrint (Doc, (<>), (<+>), text, parens, nest)
 
@@ -54,11 +49,12 @@ import Text.PrettyPrint (Doc, (<>), (<+>), text, parens, nest)
 -- functional dependencies are necessary here so we can write
 -- functions that don't fix all of the type parameters.  For example,
 -- without them the univquant_free_vars function gives the error @No
--- instance for (FirstOrderFormula Formula term V p f)@ because the
+-- instance for (FirstOrderFormula Formula atom V)@ because the
 -- function doesn't mention the Term type.
 class ( Combinable formula  -- Basic logic operations
       , Constants formula
       , Constants atom
+      , HasFixity atom
       , Variable v
       , Pretty atom, Pretty v
       ) => FirstOrderFormula formula atom v | formula -> atom v where
@@ -135,7 +131,8 @@ exists' vs f = foldr for_all f vs
 (?) :: FirstOrderFormula formula atom v => v -> formula -> formula
 (?) = exists
 
-infix 1 !, ?, ∀, ∃
+-- Irrelevant, because these are always used as prefix operators, never as infix.
+infixr 9 !, ?, ∀, ∃
 
 -- | ∀ can't be a function when -XUnicodeSyntax is enabled.
 (∀) :: FirstOrderFormula formula atom v => v -> formula -> formula
@@ -205,30 +202,41 @@ showFirstOrder sa formula =
 
 prettyFirstOrder :: forall formula atom v. (FirstOrderFormula formula atom v) =>
                       (Int -> atom -> Doc) -> (v -> Doc) -> Int -> formula -> Doc
-prettyFirstOrder pa pv prec formula =
+prettyFirstOrder pa pv pprec formula =
+    parensIf (pprec > prec) $
     foldFirstOrder
-          (\ qop v f -> parensIf (prec > 1) $ prettyQuant qop <> pv v <+> prettyFirstOrder pa pv 1 f)
+          (\ qop v f -> prettyQuant qop <> pv v <> text "." <+> (prettyFirstOrder pa pv prec f))
           (\ cm ->
                case cm of
                  (BinOp f1 op f2) ->
                      case op of
-                       (:=>:) -> parensIf (prec > 2) $ (prettyFirstOrder pa pv 2 f1 <+> formOp op <+> prettyFirstOrder pa pv 2 f2)
-                       (:<=>:) -> parensIf (prec > 2) $ (prettyFirstOrder pa pv 2 f1 <+> formOp op <+> prettyFirstOrder pa pv 2 f2)
-                       (:&:) -> parensIf (prec > 3) $ (prettyFirstOrder pa pv 3 f1 <+> formOp op <+> prettyFirstOrder pa pv 3 f2)
-                       (:|:) -> parensIf {-(prec > 4)-} True $ (prettyFirstOrder pa pv 4 f1 <+> formOp op <+> prettyFirstOrder pa pv 4 f2)
-                 ((:~:) f) -> text {-"¬"-} "~" <> prettyFirstOrder pa pv 5 f)
+                       (:=>:) -> (prettyFirstOrder pa pv 2 f1 <+> pretty op <+> prettyFirstOrder pa pv prec f2)
+                       (:<=>:) -> (prettyFirstOrder pa pv 2 f1 <+> pretty op <+> prettyFirstOrder pa pv prec f2)
+                       (:&:) -> (prettyFirstOrder pa pv 3 f1 <+> pretty op <+> prettyFirstOrder pa pv prec f2)
+                       (:|:) -> (prettyFirstOrder pa pv 4 f1 <+> pretty op <+> prettyFirstOrder pa pv prec f2)
+                 ((:~:) f) -> text "¬" {-"~"-} <> prettyFirstOrder pa pv prec f)
           (text . ifElse "true" "false")
-          (pa 6)
+          (pa prec)
           formula
     where
+      Fixity prec _ = fixityFirstOrder formula
       parensIf False = id
       parensIf _ = parens . nest 1
-      prettyQuant Forall = text {-"∀"-} "!"
-      prettyQuant Exists = text {-"∃"-} "?"
-      formOp (:<=>:) = text "<=>"
-      formOp (:=>:) = text "=>"
-      formOp (:&:) = text "&"
-      formOp (:|:) = text "|"
+      prettyQuant Forall = text "∀" -- "!"
+      prettyQuant Exists = text "∃" -- "?"
+
+fixityFirstOrder :: (HasFixity atom, FirstOrderFormula formula atom v) => formula -> Fixity
+fixityFirstOrder formula =
+    foldFirstOrder qu co tf at formula
+    where
+      qu _ _ _ = Fixity 10 InfixN
+      co ((:~:) _) = Fixity 5 InfixN
+      co (BinOp _ (:&:) _) = Fixity 4 InfixL
+      co (BinOp _ (:|:) _) = Fixity 3 InfixL
+      co (BinOp _ (:=>:) _) = Fixity 2 InfixR
+      co (BinOp _ (:<=>:) _) = Fixity 1 InfixL
+      tf _ = Fixity 10 InfixN
+      at = fixity
 
 -- | Examine the formula to find the list of outermost universally
 -- quantified variables, and call a function with that list and the
@@ -246,6 +254,44 @@ withUnivQuants fn formula =
                 f
       doQuant vs Forall v f = doFormula (v : vs) f
       doQuant vs Exists v f = fn (reverse vs) (exists v f)
+
+-- ------------------------------------------------------------------------- 
+-- Apply a function to the atoms, otherwise keeping structure.               
+-- ------------------------------------------------------------------------- 
+
+onatoms :: forall formula atom v. (FirstOrderFormula formula atom v) =>
+          (atom -> formula) -> formula -> formula
+onatoms f fm =
+    foldFirstOrder qu co tf at fm
+    where
+      qu op v p = quant op v (onatoms f p)
+      co ((:~:) p) = onatoms f p
+      co (BinOp p op q) = binop (onatoms f p) op (onatoms f q)
+      tf flag = fromBool flag
+      at x = f x
+
+-- ------------------------------------------------------------------------- 
+-- Formula analog of list iterator "itlist".                                 
+-- ------------------------------------------------------------------------- 
+
+overatoms :: forall formula atom v r. FirstOrderFormula formula atom v =>
+             (atom -> r -> r) -> formula -> r -> r
+overatoms f fm b =
+    foldFirstOrder qu co tf at fm
+    where
+      qu _ _ p = overatoms f p b
+      co ((:~:) p) = overatoms f p b
+      co (BinOp p _ q) = overatoms f p (overatoms f q b)
+      tf _ = b
+      at a = f a b
+
+-- ------------------------------------------------------------------------- 
+-- Special case of a union of the results of a function over the atoms.      
+-- ------------------------------------------------------------------------- 
+
+atom_union :: forall formula atom v a. (FirstOrderFormula formula atom v, Ord a) =>
+              (atom -> Set.Set a) -> formula -> Set.Set a
+atom_union f fm = overatoms (\ h t -> Set.union (f h) t) fm Set.empty
 
 $(deriveSafeCopy 1 'base ''Quant)
 

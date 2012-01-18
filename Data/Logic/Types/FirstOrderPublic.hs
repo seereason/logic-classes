@@ -86,14 +86,10 @@ instance (Constants (Formula v p f), Constants (N.Formula v p f),
     atomic = Formula . atomic
 
 -- |Here are the magic Ord and Eq instances
-instance (Constants (N.Predicate p (N.PTerm v f)),
-          Constants (Formula v p f),
-          Constants (N.Formula v p f),
-          Ord (N.Formula v p f),
-          Predicate p, Function f, Variable v) => Ord (Formula v p f) where
+instance (Predicate p, Function f, Variable v) => Ord (Formula v p f) where
     compare a b =
-        let (a' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm (intern a :: N.Formula v p f))
-            (b' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm (intern b :: N.Formula v p f)) in
+        let (a' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm (unFormula a))
+            (b' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm (unFormula b)) in
         case compare a' b' of
           EQ -> EQ
           x -> {- if isRenameOf a' b' then EQ else -} x

@@ -14,7 +14,7 @@ import Data.Logic.Classes.Apply (Apply(..), Predicate, showApply)
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder)
-import Data.Logic.Classes.Pretty (Pretty(pretty))
+import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), Fixity(..), FixityDirection(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(vt, foldTerm, fApp))
 import Data.Logic.Classes.Variable (Variable(..))
@@ -38,7 +38,7 @@ data TermType
 data FOL = R String [TermType] deriving (Eq, Ord, Show)
 
 instance Show TermType where
-    show (Var v) = "var " ++ show v
+    show (Var v) = "vt " ++ show v
     show (Fn f ts) = "fApp " ++ show f ++ " " ++ show ts
 
 instance Pretty TermType where
@@ -59,6 +59,7 @@ instance Constants FOL where
 
 instance Predicate String
 
+{-
 instance Pretty String where
     pretty = text
 
@@ -85,6 +86,7 @@ instance FirstOrderFormula (Formula FOL) FOL String where
           Iff fm1 fm2 -> co (BinOp fm1 (:<=>:) fm2)
           H.Forall v fm' -> qu C.Forall v fm'
           H.Exists v fm' -> qu C.Exists v fm'
+-}
 
 instance Pretty FOL where
     pretty (R p ts) = cat ([pretty p, text "("] ++ intersperse (text ", ") (map pretty ts) ++ [text ")"])
@@ -119,10 +121,15 @@ instance Term TermType String Function where
     foldTerm _ ffn (Fn f ts) = ffn f ts
     zipTerms = undefined
 
+{-
 instance Variable String where
     variant x vars = if Set.member x vars then variant (x ++ "'") vars else x
     prefix p x = p ++ x
     prettyVariable = text
+-}
 
 instance Show (Formula FOL) where
     show = showFirstOrder showApply
+
+instance HasFixity FOL where
+    fixity = const (Fixity 10 InfixN)

@@ -51,11 +51,14 @@ test36 = TestCase $ assertEqual "show propositional formula 1" expected input
 test01 :: Test
 test01 = TestCase $ assertEqual "Build Formula 1" expected input
     where input = (p .=>. q .<=>. r .&. s .|. (t .<=>. ((.~.) ((.~.) u)) .&. v))
-          expected = (Imp (Atom (P {pname = "p"}))
-                          (Iff (Atom (P {pname = "q"}))
-                               (Or (And (Atom (P {pname = "r"})) (Atom (P {pname = "s"})))
-                                   (Iff (Atom (P {pname = "t"}))
-                                        (And ({-Not-} ({-Not-} (Atom (P {pname = "u"})))) (Atom (P {pname = "v"})))))))
+          expected = (Iff
+                      (Imp
+                       (Atom (P {pname = "p"}))
+                       (Atom (P {pname = "q"})))
+                      (Or
+                       (And (Atom (P {pname = "r"})) (Atom (P {pname = "s"})))
+                       (Iff (Atom (P {pname = "t"}))
+                        (And ({-Not-} ({-Not-} (Atom (P {pname = "u"})))) (Atom (P {pname = "v"}))))))
           (p, q, r, s, t, u, v) = (Atom (P "p"), Atom (P "q"), Atom (P "r"), Atom (P "s"), Atom (P "t"), Atom (P "u"), Atom (P "v"))
 
 test02 :: Test
@@ -102,14 +105,15 @@ test07 :: Test
 test07 = TestCase $ assertEqual "truth table 1 (p. 36)" expected input
     where input = (truthTable $ p .&. q .=>. q .&. r)
           expected =
-              [([(P "p",False),(P "q",False),(P "r",False)],True),
-               ([(P "p",False),(P "q",False),(P "r",True)],True),
-               ([(P "p",False),(P "q",True),(P "r",False)],True),
-               ([(P "p",False),(P "q",True),(P "r",True)],True),
-               ([(P "p",True),(P "q",False),(P "r",False)],True),
-               ([(P "p",True),(P "q",False),(P "r",True)],True),
-               ([(P "p",True),(P "q",True),(P "r",False)],False),
-               ([(P "p",True),(P "q",True),(P "r",True)],True)]
+              ([P "p", P "q", P "r"],
+               [([False,False,False],True),
+               ([False,False,True],True),
+               ([False,True,False],True),
+               ([False,True,True],True),
+               ([True,False,False],True),
+               ([True,False,True],True),
+               ([True,True,False],False),
+               ([True,True,True],True)])
           (p, q, r) = (Atom (P "p"), Atom (P "q"), Atom (P "r"))
 
 -- ------------------------------------------------------------------------- 
@@ -120,18 +124,20 @@ test08 :: Test
 test08 = TestCase $
     assertEqual "truth table 2 (p. 39)"
                 (truthTable $  ((p .=>. q) .=>. p) .=>. p)
-                [([(P "p",False),(P "q",False)],True),
-                 ([(P "p",False),(P "q",True)],True),
-                 ([(P "p",True),(P "q",False)],True),
-                 ([(P "p",True),(P "q",True)],True)]
+                ([P "p", P "q"],
+                 [([False,False],True),
+                  ([False,True],True),
+                  ([True,False],True),
+                  ([True,True],True)])
         where (p, q) = (Atom (P "p"), Atom (P "q"))
 
 test09 :: Test
 test09 = TestCase $
     assertEqual "truth table 3 (p. 40)" expected input
         where input = (truthTable $ p .&. ((.~.) p))
-              expected = [([(P "p",False)],False),
-                          ([(P "p",True)],False)]
+              expected = ([P "p"],
+                          [([False],False),
+                          ([True],False)])
               p = Atom (P "p")
 
 -- ------------------------------------------------------------------------- 
@@ -293,14 +299,15 @@ test29 :: Test
 test29 = TestCase $ assertEqual "dnf 1 (p. 56)" expected input
     where input = (dnf fm, truthTable fm)
           expected = (Or (And (Not r) p) (And r (And (Not p) q)),
-                      [([(P {pname = "p"},False),(P {pname = "q"},False),(P {pname = "r"},False)],False),
-                       ([(P {pname = "p"},False),(P {pname = "q"},False),(P {pname = "r"},True)],False),
-                       ([(P {pname = "p"},False),(P {pname = "q"},True),(P {pname = "r"},False)],False),
-                       ([(P {pname = "p"},False),(P {pname = "q"},True),(P {pname = "r"},True)],True),
-                       ([(P {pname = "p"},True),(P {pname = "q"},False),(P {pname = "r"},False)],True),
-                       ([(P {pname = "p"},True),(P {pname = "q"},False),(P {pname = "r"},True)],False),
-                       ([(P {pname = "p"},True),(P {pname = "q"},True),(P {pname = "r"},False)],True),
-                       ([(P {pname = "p"},True),(P {pname = "q"},True),(P {pname = "r"},True)],False)])
+                      ([P {pname = "p"}, P {pname = "q"}, P {pname = "r"}],
+                       [([False,False,False],False),
+                        ([False,False,True],False),
+                        ([False,True,False],False),
+                        ([False,True,True],True),
+                        ([True,False,False],True),
+                        ([True,False,True],False),
+                        ([True,True,False],True),
+                        ([True,True,True],False)]))
           fm = (p .|. q .&. r) .&. (((.~.)p) .|. ((.~.)r))
           p = Atom (P "p")
           q = Atom (P "q")

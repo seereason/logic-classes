@@ -10,16 +10,15 @@ module Data.Logic.Types.Harrison.Equal where
 
 import Data.Generics (Data, Typeable)
 import Data.List (intersperse)
-import Data.Logic.Classes.Arity (Arity(..))
 import Data.Logic.Classes.Apply (Apply(..), Predicate)
+import Data.Logic.Classes.Arity (Arity(..))
+import qualified Data.Logic.Classes.Atom as C
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), showFirstOrderFormulaEq, substAtomEq, varAtomEq)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
-import qualified Data.Logic.Classes.FirstOrder as C
-import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (Literal(..))
-import Data.Logic.Classes.Pretty (Pretty(pretty))
+import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), Fixity(..), FixityDirection(..))
+import qualified Data.Logic.Classes.Propositional as P
 import Data.Logic.Harrison.Resolution (matchAtomsEq)
 import Data.Logic.Harrison.Tableaux (unifyAtomsEq)
 import Data.Logic.Resolution (isRenameOfAtomEq, getSubstAtomEq)
@@ -37,6 +36,10 @@ instance Arity PredName where
 
 instance Show (Formula FOLEQ) where
     show = showFirstOrderFormulaEq
+
+instance HasFixity FOLEQ where
+    fixity (EQUALS _ _) = Fixity 5 InfixL
+    fixity _ = Fixity 10 InfixN
 
 instance IsString PredName where
     fromString "=" = (:=:)
@@ -65,6 +68,7 @@ instance Apply FOLEQ PredName TermType where
     apply' (:=:) [t1, t2] = EQUALS t1 t2
     apply' (:=:) _ = error "arity"
 
+{-
 instance FirstOrderFormula (Formula FOLEQ) FOLEQ String where
     exists = Exists
     for_all = Forall
@@ -80,6 +84,22 @@ instance FirstOrderFormula (Formula FOLEQ) FOLEQ String where
           Iff fm1 fm2 -> co (BinOp fm1 (:<=>:) fm2)
           Forall v fm' -> qu C.Forall v fm'
           Exists v fm' -> qu C.Exists v fm'
+    atomic = Atom
+-}
+
+instance P.PropositionalFormula (Formula FOLEQ) FOLEQ where
+    foldPropositional co tf at fm =
+        case fm of
+          F -> tf False
+          T -> tf True
+          Atom a -> at a
+          Not fm' -> co ((:~:) fm')
+          And fm1 fm2 -> co (BinOp fm1 (:&:) fm2)
+          Or fm1 fm2 -> co (BinOp fm1 (:|:) fm2)
+          Imp fm1 fm2 -> co (BinOp fm1 (:=>:) fm2)
+          Iff fm1 fm2 -> co (BinOp fm1 (:<=>:) fm2)
+          Forall _ _ -> error "quantifier in propositional formula"
+          Exists _ _ -> error "quantifier in propositional formula"
     atomic = Atom
 
 instance Pretty FOLEQ where
@@ -107,7 +127,7 @@ instance AtomEq FOLEQ PredName TermType where
     applyEq' (:=:) [t1, t2] = EQUALS t1 t2
     applyEq' _ _ = error "arity"
 
-instance C.Formula FOLEQ TermType String where
+instance C.Atom FOLEQ TermType String where
     substitute = substAtomEq
     freeVariables = varAtomEq
     allVariables = varAtomEq

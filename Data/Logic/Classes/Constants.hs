@@ -7,6 +7,7 @@ module Data.Logic.Classes.Constants
     , prettyBool
     ) where
 
+import Data.Logic.Classes.Pretty (Pretty(pretty))
 import Text.PrettyPrint (Doc, text)
 
 -- |Some types in the Logic class heirarchy need to have True and
@@ -35,3 +36,6 @@ ifElse _ f False = f
 prettyBool :: Bool -> Doc
 prettyBool True = text "⊨"
 prettyBool False = text "⊭"
+
+instance Pretty Bool where
+    pretty = prettyBool

@@ -75,7 +75,7 @@ test03 = TestCase $ assertEqual "pnf (p. 144)" expected input
 
 test04 :: Test
 test04 = TestCase $ assertEqual "skolemize 1 (p. 150)" expected input
-    where input = runSkolem $ skolemize fm
+    where input = runSkolem (skolemize id fm) :: Formula FOLEQ
           fm :: Formula FOLEQ
           fm = exists "y" (pApp (Named "<") [vt "x", vt "y"] .=>.
                            for_all "u" (exists "v" (pApp (Named "<") [fApp "*" [vt "x", vt "u"],  fApp "*" [vt "y", vt "v"]])))
@@ -86,7 +86,7 @@ test05 :: Test
 test05 = TestCase $ assertEqual "skolemize 2 (p. 150)" expected input
     where p = Named "P"
           q = Named "Q"
-          input = runSkolem $ skolemize fm
+          input = runSkolem (skolemize id fm) :: Formula FOLEQ
           fm :: Formula FOLEQ
           fm = for_all "x" ((pApp p [vt "x"]) .=>.
                             (exists "y" (exists "z" ((pApp q [vt "y"]) .|.

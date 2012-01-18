@@ -25,6 +25,7 @@ import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), ifElse)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
 import Data.Logic.Classes.Negate ((.~.))
+import Data.Logic.Classes.Pretty (Pretty(pretty))
 import Data.Logic.Classes.Term (Term, convertTerm, showTerm, prettyTerm, fvt, tsubst, funcs)
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
@@ -47,7 +48,11 @@ applyEq p ts =
 -- | A way to represent any predicate's name.  Frequently the equality
 -- predicate has no standalone representation in the p type, it is
 -- just a constructor in the atom type, or even the formula type.
-data Ord p => PredicateName p = Named p Int | Equals deriving (Eq, Ord)
+data Ord p => PredicateName p = Named p Int | Equals deriving (Eq, Ord, Show)
+
+instance (Pretty p, Ord p) => Pretty (PredicateName p) where
+    pretty Equals = text "="
+    pretty (Named p _) = pretty p
 
 zipAtomsEq :: AtomEq atom p term =>
               (p -> [term] -> p -> [term] -> Maybe r)

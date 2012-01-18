@@ -33,14 +33,14 @@ module Data.Logic.Normal.Clause
     ) where
 
 import Data.List (intersperse)
-import Data.Logic.Classes.Constants (Constants(..))
+import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Equals (AtomEq, prettyAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder)
-import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Literal (Literal(..), prettyLit)
+import Data.Logic.Classes.Propositional (PropositionalFormula)
 import Data.Logic.Classes.Term (Term)
 import Data.Logic.Harrison.Normal (simpcnf')
-import Data.Logic.Harrison.Skolem (skolemNormalForm, SkolemT, pnf, nnf, simplify)
+import Data.Logic.Harrison.Skolem (skolemize, SkolemT, pnf, nnf, simplify)
 import qualified Data.Set.Extra as Set
 import Text.PrettyPrint (Doc, hcat, vcat, text, nest, ($$), brackets, render)
 
@@ -52,19 +52,33 @@ import Text.PrettyPrint (Doc, hcat, vcat, text, nest, ($$), brackets, render)
 -- (Q & R) | P  (Q | P) & (R | P)
 -- @
 -- 
-clauseNormalForm :: (Monad m, FirstOrderFormula formula atom v, Formula atom term v, Term term v f, Literal lit atom v, Eq formula, Ord lit) =>
+clauseNormalForm :: forall formula atom term v f lit m.
+                    (Monad m,
+                     FirstOrderFormula formula atom v,
+                     PropositionalFormula formula atom,
+                     Atom atom term v,
+                     Term term v f,
+                     Literal lit atom v,
+                     Ord formula, Ord lit) =>
                     formula -> SkolemT v term m (Set.Set (Set.Set lit))
-clauseNormalForm fm = skolemNormalForm fm >>= return . simpcnf'
+clauseNormalForm fm = skolemize id fm >>= return . (simpcnf' :: formula -> Set.Set (Set.Set lit))
 
 cnfTrace :: forall m formula atom term v p f lit.
-            (Monad m, FirstOrderFormula formula atom v, Formula atom term v, AtomEq atom p term, Term term v f, Literal lit atom v, Eq formula, Ord lit, Constants p, Eq p) =>
+            (Monad m,
+             FirstOrderFormula formula atom v,
+             PropositionalFormula formula atom,
+             Atom atom term v,
+             AtomEq atom p term,
+             Term term v f,
+             Literal lit atom v,
+             Ord formula, Ord lit) =>
             (v -> Doc)
          -> (p -> Doc)
          -> (f -> Doc)
          -> formula
          -> SkolemT v term m (String, Set.Set (Set.Set lit))
 cnfTrace pv pp pf f =
-    do snf <- skolemNormalForm f
+    do (snf :: formula) <- skolemize id f
        cnf <- clauseNormalForm f
        return (render (vcat
                        [text "Original:" $$ nest 2 (prettyFirstOrder (prettyAtomEq pv pp pf) pv 0 f),
