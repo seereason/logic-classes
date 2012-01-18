@@ -97,6 +97,7 @@ simplifyBinop l op r =
       (Just False, (:=>:), _         ) -> true
       (_,          (:=>:), Just True ) -> true
       (_,          (:=>:), Just False) -> (.~.) l
+      (Just False, (:<=>:), Just False) -> true
       (Just True,  (:<=>:), _         ) -> r
       (Just False, (:<=>:), _         ) -> (.~.) r
       (_,          (:<=>:), Just True ) -> l

@@ -202,6 +202,7 @@ psimplify1 fm =
             (Just False, (:=>:), _)           -> fromBool True
             (_,          (:=>:), Just True)   -> fromBool True
             (_,          (:=>:), Just False)  -> (.~.) l
+            (Just False, (:<=>:), Just False) -> fromBool True
             (Just True,  (:<=>:), _)          -> r
             (Just False, (:<=>:), _)          -> (.~.) r
             (_,          (:<=>:), Just True)  -> l

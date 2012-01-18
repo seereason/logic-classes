@@ -28,8 +28,6 @@ import qualified Data.Set as Set
 import Data.String (IsString(..))
 import Debug.Trace (trace)
 
-import Test.HUnit
-
 -- =========================================================================
 -- Tableaux, seen as an optimized version of a Prawitz-like procedure.       
 --                                                                           
