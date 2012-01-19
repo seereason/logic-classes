@@ -27,8 +27,8 @@ loadTest =
     myTest "Chiuo0 - loadKB test" expected (runProver' Nothing (loadKB sentences))
     where
       expected :: [Proof TFormula]
-      expected = [Proof Invalid (S.fromList [makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem 1) []])]),
-                                             makeINF' ([]) ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem 1) []])])]),
+      expected = [Proof Invalid (S.fromList [makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem "x" 1) []])]),
+                                             makeINF' ([]) ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem "x" 1) []])])]),
                   Proof Invalid (S.fromList [makeINF' ([(pApp ("Dog") [vt ("y2")]),(pApp ("Owns") [vt ("x"),vt ("y")])]) ([(pApp ("AnimalLover") [vt ("x")])])]),
                   Proof Invalid (S.fromList [makeINF' ([(pApp ("Animal") [vt ("y")]),(pApp ("AnimalLover") [vt ("x")]),(pApp ("Kills") [vt ("x"),vt ("y")])]) ([])]),
                   Proof Invalid (S.fromList [makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])])]),

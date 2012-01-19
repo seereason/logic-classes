@@ -11,13 +11,13 @@ import Data.Generics (Data, Typeable)
 import Data.List (intersperse)
 import Data.Logic.Classes.Arity
 import Data.Logic.Classes.Apply (Apply(..), Predicate, showApply)
-import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
+--import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder)
+import Data.Logic.Classes.FirstOrder ({-FirstOrderFormula(..),-} showFirstOrder)
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), Fixity(..), FixityDirection(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(vt, foldTerm, fApp))
-import Data.Logic.Classes.Variable (Variable(..))
+--import Data.Logic.Classes.Variable (Variable(..))
 import qualified Data.Logic.Classes.Term as C
 import qualified Data.Logic.Classes.FirstOrder as C
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
@@ -103,19 +103,19 @@ instance Arity String where
 -- something a little more type safe because of our Skolem class.
 data Function
     = FName String
-    | Skolem Int
+    | Skolem String Int
     deriving (Eq, Ord, Data, Typeable, Show)
 
 instance Pretty Function where
     pretty (FName s) = text s
-    pretty (Skolem n) = text ("Sk" ++ show n)
+    pretty (Skolem v n) = text ("SK" ++ v ++ show n)
 
-instance C.Function Function
+instance C.Function Function String
 
-instance Skolem Function where
+instance Skolem Function String where
     toSkolem = Skolem
-    fromSkolem (Skolem n) = Just n
-    fromSkolem _ = Nothing
+    isSkolem (Skolem _ _) = True
+    isSkolem _ = False
 
 instance Term TermType String Function where
     -- type V Term = String

@@ -5,8 +5,6 @@ module Data.Logic.Harrison.Equal
     , equalitize
     ) -} where
 
-import Debug.Trace
-
 -- ========================================================================= 
 -- First order logic with equality.                                          
 --                                                                           

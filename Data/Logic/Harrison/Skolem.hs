@@ -205,7 +205,7 @@ pullQuants fm =
 -- |Helper function to rename variables when we want to enclose a
 -- formula containing a free occurrence of that variable a quantifier
 -- that quantifies it.
-pullq :: (FirstOrderFormula formula atom v, {-Formula formula term v,-} Atom atom term v, Term term v f) =>
+pullq :: (FirstOrderFormula formula atom v, Atom atom term v, Term term v f) =>
          Bool -> Bool
       -> formula
       -> (v -> formula -> formula)
@@ -305,17 +305,25 @@ data SkolemState v term
         -- function.
       }
 
+-- | The state associated with the Skolem monad.
 newSkolemState :: SkolemState v term
-newSkolemState = SkolemState { skolemCount = 1
-                             -- , skolemMap = Map.empty
-                             , univQuant = [] }
+newSkolemState
+    = SkolemState
+      { skolemCount = 1 -- ^ The next available skolem number.
+      , univQuant = []  -- ^ The current set of univerally quantified variables.
+      }
 
+-- | The Skolem monad transformer
 type SkolemT v term m = StateT (SkolemState v term) m
-type Skolem v term = StateT (SkolemState v term) Identity
 
+-- | Run a computation in the Skolem monad.
 runSkolem :: SkolemT v term Identity a -> a
 runSkolem = runIdentity . runSkolemT
 
+-- | The Skolem monad
+type Skolem v term = StateT (SkolemState v term) Identity
+
+-- | Run a computation in a stacked invocation of the Skolem monad.
 runSkolemT :: Monad m => SkolemT v term m a -> m a
 runSkolemT action = (runStateT action) newSkolemState >>= return . fst
 
@@ -348,7 +356,7 @@ skolem fm =
       qu Exists y p =
           do let xs = fv fm
              state <- get
-             let f = C.toSkolem (skolemCount state)
+             let f = C.toSkolem y (skolemCount state)
              put (state {skolemCount = skolemCount state + 1})
              let fx = fApp f (map vt (Set.toList xs))
              skolem (subst (Map.singleton y fx) p)

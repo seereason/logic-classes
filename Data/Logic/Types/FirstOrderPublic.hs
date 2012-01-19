@@ -19,7 +19,7 @@ import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder)
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pretty))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
-import Data.Logic.Classes.Term (Term(..), Function)
+import Data.Logic.Classes.Term (Function)
 import Data.Logic.Classes.Variable (Variable)
 import Data.Logic.Normal.Implicative (implicativeNormalForm, ImplicativeForm, runNormal)
 import qualified Data.Logic.Types.FirstOrder as N
@@ -52,19 +52,19 @@ instance Negatable (Formula v p f) where
     negatePrivate = Formula . negatePrivate . unFormula
     foldNegation normal inverted = foldNegation (normal . Formula) (inverted . Formula) . unFormula
 
-instance (Constants (N.Formula v p f), Predicate p, Variable v, Function f) => Constants (Formula v p f) where
+instance (Constants (N.Formula v p f), Predicate p, Variable v, Function f v) => Constants (Formula v p f) where
     fromBool = Formula . fromBool
     asBool = asBool . unFormula
 
 instance (Constants (Formula v p f),
           Constants (N.Formula v p f),
-          Variable v, Predicate p, Function f) => Combinable (Formula v p f) where
+          Variable v, Predicate p, Function f v) => Combinable (Formula v p f) where
     x .<=>. y = Formula $ (unFormula x) .<=>. (unFormula y)
     x .=>.  y = Formula $ (unFormula x) .=>. (unFormula y)
     x .|.   y = Formula $ (unFormula x) .|. (unFormula y)
     x .&.   y = Formula $ (unFormula x) .&. (unFormula y)
 
-instance (Variable v, Predicate p, Function f
+instance (Variable v, Predicate p, Function f v
          ) => FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v where
     for_all v x = public $ for_all v (intern x :: N.Formula v p f)
     exists v x = public $ exists v (intern x :: N.Formula v p f)
@@ -73,13 +73,13 @@ instance (Variable v, Predicate p, Function f
               co' x = co (public x)
     atomic = Formula . Data.Logic.Classes.FirstOrder.atomic
 
-instance (Variable v, Predicate p, Function f) => PropositionalFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) where
+instance (Variable v, Predicate p, Function f v) => PropositionalFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) where
     foldPropositional co tf at f = foldPropositional co' tf at (intern f :: N.Formula v p f)
         where co' x = co (public x)
     atomic = Formula . Data.Logic.Classes.Propositional.atomic
 
 -- |Here are the magic Ord and Eq instances
-instance (Predicate p, Function f, Variable v) => Ord (Formula v p f) where
+instance (Predicate p, Function f v, Variable v) => Ord (Formula v p f) where
     compare a b =
         let (a' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm (unFormula a))
             (b' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm (unFormula b)) in
@@ -87,13 +87,13 @@ instance (Predicate p, Function f, Variable v) => Ord (Formula v p f) where
           EQ -> EQ
           x -> {- if isRenameOf a' b' then EQ else -} x
 
-instance (Predicate p, Function f, Variable v, Constants (N.Predicate p (N.PTerm v f)),
+instance (Predicate p, Function f v, Variable v, Constants (N.Predicate p (N.PTerm v f)),
           FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v) => Eq (Formula v p f) where
     a == b = compare a b == EQ
 
 instance (Pretty v, Show v, Variable v,
           Pretty p, Show p, Predicate p,
-          Pretty f, Show f, Function f) => Pretty (Formula v p f) where
+          Pretty f, Show f, Function f v) => Pretty (Formula v p f) where
     pretty formula = prettyFirstOrder (\ _prec a -> pretty a) pretty 0 formula
 
 $(deriveSafeCopy 1 'base ''Formula)

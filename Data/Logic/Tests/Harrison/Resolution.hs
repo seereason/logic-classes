@@ -38,7 +38,7 @@ test01 = TestCase $ assertEqual "Barber's paradox (p. 181)" expected input
                                    Set.fromList [shaves [fx [b],fx [b]], (.~.)(shaves [b,     fx [b]])]]
           x = vt (fromString "x")
           b = vt (fromString "b")
-          fx = fApp (Skolem 1)
+          fx = fApp (Skolem "x" 1)
           shaves = pApp (fromString "shaves") 
 
 -- ------------------------------------------------------------------------- 

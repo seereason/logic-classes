@@ -20,11 +20,11 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import Text.PrettyPrint (Doc, (<>), brackets, hcat, text)
 
-class (Eq f, Ord f, Skolem f, Data f, Pretty f) => Function f
+class (Eq f, Ord f, Skolem f v, Data f, Pretty f) => Function f v
 
 class ( Ord term  -- For implementing Ord in Literal
       , Variable v
-      , Function f ) => Term term v f | term -> v f where
+      , Function f v ) => Term term v f | term -> v f where
     vt :: v -> term
     -- ^ Build a term which is a variable reference.
     fApp :: f -> [term] -> term

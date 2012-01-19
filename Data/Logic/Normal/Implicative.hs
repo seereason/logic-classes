@@ -20,7 +20,7 @@ import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Constants (true, ifElse)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Propositional (PropositionalFormula)
-import Data.Logic.Classes.Skolem (Skolem(fromSkolem))
+import Data.Logic.Classes.Skolem (Skolem(isSkolem))
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Term (Term)
@@ -28,7 +28,6 @@ import Data.Logic.Harrison.Skolem (SkolemT, runSkolemT)
 import Data.Logic.Normal.Clause (clauseNormalForm)
 import qualified Data.Set.Extra as Set
 import qualified Data.Map as Map
-import Data.Maybe (isJust)
 import Text.PrettyPrint (Doc, cat, text, hsep)
 
 -- |Combination of Normal monad and LiteralMap monad
@@ -96,7 +95,7 @@ implicativeNormalForm :: forall m formula atom term v f lit.
                           Atom atom term v,
                           Literal lit atom v,
                           Term term v f,
-                          Data formula, Ord formula, Ord lit, Data lit, Skolem f) =>
+                          Data formula, Ord formula, Ord lit, Data lit, Skolem f v) =>
                          formula -> SkolemT v term m (Set.Set (ImplicativeForm lit))
 implicativeNormalForm formula =
     do cnf <- clauseNormalForm formula
@@ -112,7 +111,7 @@ implicativeNormalForm formula =
                       f
       split :: (Set.Set lit, Set.Set lit) -> Set.Set (Set.Set lit, Set.Set lit)
       split (lhs, rhs) =
-          if any isJust (map fromSkolem (gFind rhs :: [f]))
+          if any isSkolem (gFind rhs :: [f])
           then Set.map (\ x -> (lhs, Set.singleton x)) rhs
           else Set.singleton (lhs, rhs)
 

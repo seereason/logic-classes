@@ -1,6 +1,7 @@
 -- |Types to use for creating test cases.  These are used in the Logic
 -- package test cases, and are exported for use in its clients.
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, RankNTypes, ScopedTypeVariables, StandaloneDeriving, TypeFamilies, TypeSynonymInstances, UndecidableInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes,
+             ScopedTypeVariables, StandaloneDeriving, TypeFamilies, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wwarn #-}
 module Data.Logic.Tests.Common
     ( render
@@ -138,26 +139,26 @@ instance Pretty Pr where
 
 data AtomicFunction
     = Fn String
-    | Skolem Int
+    | Skolem V Int
     deriving (Eq, Ord, Data, Typeable)
 
-instance Function AtomicFunction
+instance Function AtomicFunction V
 
-instance C.Skolem AtomicFunction where
+instance C.Skolem AtomicFunction V where
     toSkolem = Skolem
-    fromSkolem (Skolem n) = Just n
-    fromSkolem _ = Nothing
+    isSkolem (Skolem _ _) = True
+    isSkolem _ = False
 
 instance IsString AtomicFunction where
     fromString = Fn
 
 instance Show AtomicFunction where
     show (Fn s) = show s
-    show (Skolem n) = "toSkolem " ++ show n
+    show (Skolem v n) = "toSkolem " ++ show v ++ " " ++ show n
 
 prettyF :: AtomicFunction -> Doc
 prettyF (Fn s) = text s
-prettyF (Skolem n) = text ("sK" ++ show n)
+prettyF (Skolem v n) = text ("sK" ++ show v ++ show n)
 
 instance Pretty AtomicFunction where
     pretty = prettyF
@@ -188,7 +189,7 @@ data (FirstOrderFormula formula atom v, formula ~ TFormula, atom ~ TAtom, v ~ V)
     | NegationNormalForm formula
     | PrenexNormalForm formula
     | SkolemNormalForm formula
-    | SkolemNumbers (S.Set Int)
+    | SkolemNumbers (S.Set AtomicFunction)
     | ClauseNormalForm (S.Set (S.Set formula))
     | TrivialClauses [(Bool, (S.Set formula))]
     | ConvertToChiou (C.Sentence V Pr AtomicFunction)
@@ -265,14 +266,14 @@ skolem' :: ( Monad m
 skolem' = undefined
 -}
 
-skolemSet :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Data formula) => formula -> S.Set Int
+skolemSet :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Data formula) => formula -> S.Set f
 skolemSet =
     foldr ins S.empty . skolemList
     where
-      ins :: f -> S.Set Int -> S.Set Int
-      ins f s = case C.fromSkolem f of
-                  Just n -> S.insert n s
-                  Nothing -> s
+      ins :: f -> S.Set f -> S.Set f
+      ins f s = if C.isSkolem f
+                then S.insert f s
+                else s
       skolemList :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Data f, Typeable f, Data formula) => formula -> [f]
       skolemList inf = gFind inf :: (Typeable f => [f])
 

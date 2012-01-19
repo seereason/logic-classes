@@ -79,8 +79,8 @@ test04 = TestCase $ assertEqual "skolemize 1 (p. 150)" expected input
           fm :: Formula FOLEQ
           fm = exists "y" (pApp (Named "<") [vt "x", vt "y"] .=>.
                            for_all "u" (exists "v" (pApp (Named "<") [fApp "*" [vt "x", vt "u"],  fApp "*" [vt "y", vt "v"]])))
-          expected = ((.~.)(pApp (Named "<") [vt "x",fApp (Skolem 1) [vt "x"]])) .|.
-                     (pApp (Named "<") [fApp "*" [vt "x",vt "u"],fApp "*" [fApp (Skolem 1) [vt "x"],fApp (Skolem 2) [vt "u",vt "x"]]])
+          expected = ((.~.)(pApp (Named "<") [vt "x",fApp (Skolem "y" 1) [vt "x"]])) .|.
+                     (pApp (Named "<") [fApp "*" [vt "x",vt "u"],fApp "*" [fApp (Skolem "y" 1) [vt "x"],fApp (Skolem "v" 2) [vt "u",vt "x"]]])
 
 test05 :: Test
 test05 = TestCase $ assertEqual "skolemize 2 (p. 150)" expected input
@@ -92,6 +92,6 @@ test05 = TestCase $ assertEqual "skolemize 2 (p. 150)" expected input
                             (exists "y" (exists "z" ((pApp q [vt "y"]) .|.
                                                      ((.~.)(exists "z" ((pApp p [vt "z"]) .&. (pApp q [vt "z"]))))))))
           expected = ((.~.)(pApp p [vt "x"])) .|.
-                     ((pApp q [fApp (Skolem 1) []]) .|.
+                     ((pApp q [fApp (Skolem "y" 1) []]) .|.
                       (((.~.)(pApp p [vt "z"])) .|.
                        ((.~.)(pApp q [vt "z"]))))

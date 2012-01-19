@@ -79,11 +79,10 @@ instance (Constants (Formula v p f) {-, Ord v, Ord p, Ord f-}) => Combinable (Fo
     x .|.   y = Combine (BinOp  x (:|:)   y)
     x .&.   y = Combine (BinOp  x (:&:)   y)
 
-instance (Variable v, C.Predicate p, Function f, Constants (Formula v p f), Combinable (Formula v p f)) =>
+instance (Variable v, C.Predicate p, Function f v, Constants (Formula v p f), Combinable (Formula v p f)) =>
          PropositionalFormula (Formula v p f) (Predicate p (PTerm v f)) where
     atomic (Equal t1 t2) = t1 .=. t2
     atomic (Apply p ts) = pApp p ts
-    atomic _ = error "atomic method of PropositionalFormula for Parameterized: invalid argument"
     foldPropositional co tf at formula =
         maybe testFm tf (asBool formula)
         where
@@ -93,7 +92,7 @@ instance (Variable v, C.Predicate p, Function f, Constants (Formula v p f), Comb
                 Combine x -> co x
                 Predicate x -> at x
 
-instance (Variable v, Function f) => Term (PTerm v f) v f where
+instance (Variable v, Function f v) => Term (PTerm v f) v f where
     foldTerm vf fn t =
         case t of
           Var v -> vf v
@@ -125,7 +124,7 @@ instance C.Predicate p => AtomEq (Predicate p (PTerm v f)) p (PTerm v f) where
 
 instance (AtomEq (Predicate p (PTerm v f)) p (PTerm v f),
           Constants (Formula v p f),
-          Variable v, C.Predicate p, Function f) =>
+          Variable v, C.Predicate p, Function f v) =>
          FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v where
     for_all v x = Quant Forall v x
     exists v x = Quant Exists v x
@@ -171,7 +170,7 @@ instance (Constants p, Eq v, Eq p, Eq f, Constants (Predicate p (PTerm v f))) =>
                               then tf False
                               else at p
 
-instance (C.Predicate p, Variable v, Function f) => C.Atom (Predicate p (PTerm v f)) (PTerm v f) v where
+instance (C.Predicate p, Variable v, Function f v) => C.Atom (Predicate p (PTerm v f)) (PTerm v f) v where
     substitute = substAtomEq
     freeVariables = varAtomEq
     allVariables = varAtomEq
@@ -184,10 +183,10 @@ instance (C.Predicate p, Variable v, Function f) => C.Atom (Predicate p (PTerm v
 
 instance (Variable v, Pretty v,
           C.Predicate p, Pretty p,
-          Function f, Pretty f) => Pretty (Predicate p (PTerm v f)) where
+          Function f v, Pretty f) => Pretty (Predicate p (PTerm v f)) where
     pretty atom = prettyAtomEq pretty pretty pretty 0 atom
 
-instance (C.Predicate p, Variable v, Function f, HasFixity (Predicate p (PTerm v f))) => HasFixity (Formula v p f) where
+instance (C.Predicate p, Variable v, Function f v, HasFixity (Predicate p (PTerm v f))) => HasFixity (Formula v p f) where
     fixity = fixityFirstOrder
 
 instance HasFixity (Predicate p term) where

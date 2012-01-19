@@ -120,18 +120,18 @@ test02 = test "equalitize 1 (p. 241)" (expected, expectedProof) input
 -}
           expectedProof =
               Set.fromList [Success ((Map.fromList [(fromString "_0",vt "_2"),
-                                                    (fromString "_1",fApp (toSkolem 2) []),
+                                                    (fromString "_1",fApp (toSkolem "y" 2) []),
                                                     (fromString "_2",vt "_4"),
-                                                    (fromString "_3",fApp (toSkolem 2) []),
-                                                    (fromString "_4",fApp (toSkolem 1) [])],0,5),6)]
+                                                    (fromString "_3",fApp (toSkolem "y" 2) []),
+                                                    (fromString "_4",fApp (toSkolem "x" 1) [])],0,5),6)]
 {-
           expectedProof =
               Set.singleton (Success ((Map.fromList [(fromString "_0",vt' "_2"),
-                                                     (fromString "_1",fApp (toSkolem 1) []),
+                                                     (fromString "_1",fApp (toSkolem "x" 1) []),
                                                      (fromString "_2",vt' "_4"),
-                                                     (fromString "_3",fApp (toSkolem 1) []),
-                                                     (fromString "_4",fApp (toSkolem 2) []),
-                                                     (fromString "_5",fApp (toSkolem 1) [])], 0, 6), 5))
+                                                     (fromString "_3",fApp (toSkolem "x" 1) []),
+                                                     (fromString "_4",fApp (toSkolem "x" 2) []),
+                                                     (fromString "_5",fApp (toSkolem "x" 1) [])], 0, 6), 5))
           fApp' :: String -> [term] -> term
           fApp' s ts = fApp (fromString s) ts
           for_all' s = for_all (fromString s)
@@ -222,9 +222,9 @@ test04 = test "equalitize 3 (p. 248)" (render expected, expectedProof) input
           Set.fromList
                  [Success ((Map.fromList
                                    [( "_0",  (*) [one, vt' "_3"]),
-                                    ( "_1",  (*) [fApp (toSkolem 1) [],i [fApp (toSkolem 1) []]]),
+                                    ( "_1",  (*) [fApp (toSkolem "x" 1) [],i [fApp (toSkolem "x" 1) []]]),
                                     ( "_2",  one),
-                                    ( "_3",  (*) [fApp (toSkolem 1) [],i [fApp (toSkolem 1) []]]),
+                                    ( "_3",  (*) [fApp (toSkolem "x" 1) [],i [fApp (toSkolem "x" 1) []]]),
                                     ( "_4",  vt' "_8"),
                                     ( "_5",  (*) [one, vt' "_3"]),
                                     ( "_6",  one),
@@ -243,11 +243,11 @@ test04 = test "equalitize 3 (p. 248)" (render expected, expectedProof) input
                                     ("_19", vt' "_20"),
                                     ("_20", i [vt' "_28"]),
                                     ("_21", vt' "_28"),
-                                    ("_22", fApp (toSkolem 1) []),
-                                    ("_23", i [fApp (toSkolem 1) []]),
+                                    ("_22", fApp (toSkolem "x" 1) []),
+                                    ("_23", i [fApp (toSkolem "x" 1) []]),
                                     ("_24", (*) [vt' "_13", vt' "_14"]),
                                     ("_25", (*) [vt' "_22", vt' "_23"]),
-                                    ("_26", (*) [fApp (toSkolem 1) [],i [fApp (toSkolem 1) []]]),
+                                    ("_26", (*) [fApp (toSkolem "x" 1) [],i [fApp (toSkolem "x" 1) []]]),
                                     ("_27", one),
                                     ("_28", vt' "_30"),
                                     ("_29", (*) [vt' "_22", vt' "_23"]),

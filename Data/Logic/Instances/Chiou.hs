@@ -72,7 +72,7 @@ instance ({- Constants (Sentence v p f), -} Ord v, Ord p, Ord f) => Combinable (
     x .|.   y = Connective x Or y
     x .&.   y = Connective x And y
 
-instance (Variable v, Predicate p, Function f, Combinable (Sentence v p f)) =>
+instance (Variable v, Predicate p, Function f v, Combinable (Sentence v p f)) =>
          PropositionalFormula (Sentence v p f) (Sentence v p f) where
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
@@ -100,13 +100,13 @@ data AtomicFunction
 instance IsString AtomicFunction where
     fromString = AtomicFunction
 
-instance Skolem AtomicFunction where
-    toSkolem = AtomicSkolemFunction 
-    fromSkolem (AtomicSkolemFunction n) = Just n
-    fromSkolem _ = Nothing
+instance Variable v => Skolem AtomicFunction v where
+    toSkolem _ n = AtomicSkolemFunction n
+    isSkolem (AtomicSkolemFunction _) = True
+    isSkolem _ = False
 
 -- The Atom type is not cleanly distinguished from the Sentence type, so we need an Atom instance for Sentence.
-instance (Variable v, Predicate p, Function f) => Apply (Sentence v p f) p (CTerm v f) where
+instance (Variable v, Predicate p, Function f v) => Apply (Sentence v p f) p (CTerm v f) where
     foldApply ap tf (Predicate p ts) = maybe (ap p ts) tf (asBool p)
     foldApply _ _ _ = error "Data.Logic.Instances.Chiou: Invalid atom"
     apply' = Predicate
@@ -118,13 +118,13 @@ instance Predicate p => AtomEq (Sentence v p f) p (CTerm v f) where
     equals = Equal
     applyEq' = Predicate
 
-instance (Variable v, Predicate p, Function f) => Pretty (Sentence v p f) where
+instance (Variable v, Predicate p, Function f v) => Pretty (Sentence v p f) where
     pretty = prettyFirstOrder (\ _ a -> pretty a) pretty 0
 
-instance (Predicate p, Function f, Variable v) => HasFixity (Sentence v p f) where
+instance (Predicate p, Function f v, Variable v) => HasFixity (Sentence v p f) where
     fixity = fixityFirstOrder
 
-instance (Variable v, Predicate p, Function f,
+instance (Variable v, Predicate p, Function f v,
           PropositionalFormula (Sentence v p f) (Sentence v p f)) =>
           FirstOrderFormula (Sentence v p f) (Sentence v p f) v where
     for_all v x = Quantifier ForAll [v] x
@@ -175,7 +175,7 @@ instance (Variable v, Predicate p, Function f,
     atomic x@(Equal _ _) = x
     atomic _ = error "Chiou: atomic"
 
-instance (Variable v, Function f) => Term (CTerm v f) v f where
+instance (Variable v, Function f v) => Term (CTerm v f) v f where
     foldTerm v fn t =
         case t of
           Variable x -> v x
@@ -231,11 +231,11 @@ instance (Arity p, Constants p, Combinable (NormalSentence v p f)) => Pred p (No
     x .!=. y = NFNot (NFEqual x y)
 -}
 
-instance (Variable v, Predicate p, Function f, Combinable (NormalSentence v p f)) => Pretty (NormalSentence v p f) where
+instance (Variable v, Predicate p, Function f v, Combinable (NormalSentence v p f)) => Pretty (NormalSentence v p f) where
     pretty = prettyFirstOrder (\ _ a -> pretty a) pretty 0
 
 instance (Combinable (NormalSentence v p f), Term (NormalTerm v f) v f,
-          Variable v, Predicate p, Function f) => FirstOrderFormula (NormalSentence v p f) (NormalSentence v p f) v where
+          Variable v, Predicate p, Function f v) => FirstOrderFormula (NormalSentence v p f) (NormalSentence v p f) v where
     for_all _ _ = error "FirstOrderFormula NormalSentence"
     exists _ _ = error "FirstOrderFormula NormalSentence"
     foldFirstOrder _ co tf at f =
@@ -255,10 +255,10 @@ instance (Combinable (NormalSentence v p f), Term (NormalTerm v f) v f,
     atomic x@(NFEqual _ _) = x
     atomic _ = error "Chiou: atomic"
 
-instance (Combinable (NormalSentence v p f), Predicate p, Function f, Variable v) => HasFixity (NormalSentence v p f) where
+instance (Combinable (NormalSentence v p f), Predicate p, Function f v, Variable v) => HasFixity (NormalSentence v p f) where
     fixity = fixityFirstOrder
 
-instance (Variable v, Function f) => Term (NormalTerm v f) v f where
+instance (Variable v, Function f v) => Term (NormalTerm v f) v f where
     vt = NormalVariable
     fApp = NormalFunction
     foldTerm v f t =
@@ -271,13 +271,13 @@ instance (Variable v, Function f) => Term (NormalTerm v f) v f where
           (NormalFunction f1 ts1, NormalFunction f2 ts2) -> fn f1 ts1 f2 ts2
           _ -> Nothing
 
-toSentence :: (FirstOrderFormula (Sentence v p f) (Sentence v p f) v, Atom (Sentence v p f) (CTerm v f) v, Function f, Variable v, Predicate p) =>
+toSentence :: (FirstOrderFormula (Sentence v p f) (Sentence v p f) v, Atom (Sentence v p f) (CTerm v f) v, Function f v, Variable v, Predicate p) =>
               NormalSentence v p f -> Sentence v p f
 toSentence (NFNot s) = (.~.) (toSentence s)
 toSentence (NFEqual t1 t2) = toTerm t1 .=. toTerm t2
 toSentence (NFPredicate p ts) = pApp p (map toTerm ts)
 
-toTerm :: (Variable v, Function f) => NormalTerm v f -> CTerm v f
+toTerm :: (Variable v, Function f v) => NormalTerm v f -> CTerm v f
 toTerm (NormalFunction f ts) = fApp f (map toTerm ts)
 toTerm (NormalVariable v) = vt v
 
