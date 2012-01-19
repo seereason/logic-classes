@@ -249,10 +249,10 @@ dplb cls trail =
   if Set.member Set.empty cls' then
     case Set.minView (backtrack trail) of
       Just ((p,Guessed), tt) ->
-        let gretrail' = backjump cls p tt in
-        let declits = Set.filter (\ (_,d) -> d == Guessed) trail' in
+        let trail'' = backjump cls p tt in
+        let declits = Set.filter (\ (_,d) -> d == Guessed) trail'' in
         let conflict = Set.insert ((.~.) p) (Set.map ((.~.) . fst) declits) in
-        dplb (Set.insert conflict cls) (Set.insert ((.~.) p,Deduced) trail')
+        dplb (Set.insert conflict cls) (Set.insert ((.~.) p,Deduced) trail'')
       _ -> Success False
   else
     case unassigned cls trail' of
