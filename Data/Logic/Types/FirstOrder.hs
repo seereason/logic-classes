@@ -16,7 +16,7 @@ import qualified Data.Logic.Classes.Atom as C
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.), pApp, substAtomEq, varAtomEq, prettyAtomEq)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), fixityFirstOrder)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), prettyFirstOrder, fixityFirstOrder)
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), botFixity)
@@ -188,6 +188,9 @@ instance (Variable v, Pretty v,
 
 instance (C.Predicate p, Variable v, Function f v, HasFixity (Predicate p (PTerm v f))) => HasFixity (Formula v p f) where
     fixity = fixityFirstOrder
+
+instance (Variable v, C.Predicate p, Function f v) => Pretty (Formula v p f) where
+    pretty = prettyFirstOrder (\ _ -> pretty) pretty 0
 
 instance HasFixity (Predicate p term) where
     fixity = const botFixity

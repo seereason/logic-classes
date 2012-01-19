@@ -298,6 +298,20 @@ nenf' fm =
 nenf :: (PropositionalFormula formula atomic, Eq formula) => formula -> formula
 nenf = nenf' . psimplify
 
+{-
+# Not (prime 2) ->
+  <<~(~(((out_0 <=> x_0 /\ y_0) /\ ~out_1) /\ ~out_0 /\ out_1))>>
+
+# nenf (Not (prime 2)) -> 
+  <<((out_0 <=> x_0 /\ y_0) /\ ~out_1) /\ ~out_0 /\ out_1>>
+
+> pretty ((.~.)(prime 2 :: Formula (Data.Logic.Harrison.PropExamples.Atom N)))
+     (out0 ⇔ x0 ∧ y0) ∧ ¬out1 ∧ out1 ∧ ¬out0
+
+> pretty (nenf ((.~.)(prime 2 :: Formula (Data.Logic.Harrison.PropExamples.Atom N))))
+     (out0 ⇔ x0 ∨ y0) ∨ ¬out1 ∨ out1 ∨ ¬out0
+-}
+
 -- ------------------------------------------------------------------------- 
 -- Disjunctive normal form (DNF) via truth tables.                           
 -- ------------------------------------------------------------------------- 

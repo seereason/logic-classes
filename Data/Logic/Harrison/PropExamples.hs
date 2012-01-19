@@ -1,17 +1,28 @@
-{-# LANGUAGE FlexibleContexts, RankNTypes, ScopedTypeVariables, StandaloneDeriving, TypeSynonymInstances #-}
-module Data.Logic.Harrison.PropExamples where
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, RankNTypes, ScopedTypeVariables, StandaloneDeriving, TypeSynonymInstances #-}
+module Data.Logic.Harrison.PropExamples
+    ( Atom(..)
+    , N
+    , prime
+    , ramsey
+    , tests
+    ) where
 
 import Data.Bits (Bits, shiftR)
 import Data.Logic.Classes.Combine ((.<=>.), (.=>.), (.&.), (.|.), Combinable, Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (true, false)
 import Data.Logic.Classes.Negate ((.~.))
+import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), botFixity)
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.Logic.Harrison.Lib (allsets)
-import Data.Logic.Harrison.Prop
+import Data.Logic.Harrison.Prop (tautology, list_conj, list_disj, psimplify)
 import Data.Logic.Types.Propositional (Formula(..))
-import Test.HUnit
 import qualified Data.Set as Set
 import Prelude hiding (sum)
+import Test.HUnit
+import Text.PrettyPrint (text)
+
+tests :: Test
+tests = TestList [test01, test02, test03]
 
 -- ========================================================================= 
 -- Some propositional formulas to test, and functions to generate classes.   
@@ -25,10 +36,17 @@ import Prelude hiding (sum)
 
 data Atom a = P String a (Maybe a) deriving (Eq, Ord, Show)
 
-ramsey :: forall a a1 a2 formula.
-          (PropositionalFormula formula (Atom a2),
-           Ord formula, Ord a2, Num a, Num a1, Num a2, Enum a2) =>
-          a1 -> a -> a2 -> formula
+instance Pretty (Atom N) where
+    pretty (P s n mm) = text (s ++ show n ++ maybe "" (\ m -> "." ++ show m) mm)
+
+instance HasFixity (Atom N) where
+    fixity = const botFixity
+
+type N = Int
+
+ramsey :: forall formula.
+          (PropositionalFormula formula (Atom N), Ord formula) =>
+          Int -> Int -> N -> formula
 ramsey s t n =
   let vertices = Set.fromList [1 .. n] in
   let yesgrps = Set.map (allsets (2 :: Int)) (allsets s vertices)
@@ -40,16 +58,113 @@ ramsey s t n =
 -- Some currently tractable examples.                                        
 -- ------------------------------------------------------------------------- 
 
-{-
-START_INTERACTIVE;;
-ramsey 3 3 4;;
-
-tautology(ramsey 3 3 5);;
-
-tautology(ramsey 3 3 6);;
-
-END_INTERACTIVE;;
--}
+test01 :: Test
+test01 = TestList [{- TestCase (assertEqual "ramsey 3 3 4"
+                                             (Combine
+                                              (BinOp
+                                               (Combine
+                                                (BinOp
+                                                 (Combine
+                                                  (BinOp
+                                                   (Atom (P "p" 1 (Just 4)))
+                                                   (:&:)
+                                                   (Combine
+                                                    (BinOp
+                                                     (Atom (P "p" 2 (Just 4)))
+                                                     (:&:)
+                                                     (Atom (P "p" 1 (Just 2)))))))
+                                                 (:|:)
+                                                 (Combine
+                                                  (BinOp
+                                                   (Combine
+                                                    (BinOp
+                                                     (Atom (P "p" 1 (Just 4)))
+                                                     (:&:)
+                                                     (Combine
+                                                      (BinOp
+                                                       (Atom (P "p" 3 (Just 4)))
+                                                       (:&:)
+                                                       (Atom (P "p" 1 (Just 3)))))))
+                                                   (:|:)
+                                                   (Combine
+                                                    (BinOp
+                                                     (Combine
+                                                      (BinOp
+                                                       (Atom (P "p" 2 (Just 4)))
+                                                       (:&:)
+                                                       (Combine
+                                                        (BinOp
+                                                         (Atom (P "p" 3 (Just 4)))
+                                                         (:&:)
+                                                         (Atom (P "p" 2 (Just 3)))))))
+                                                     (:|:)
+                                                     (Combine
+                                                      (BinOp
+                                                       (Atom (P "p" 1 (Just 3)))
+                                                       (:&:)
+                                                       (Combine
+                                                        (BinOp
+                                                         (Atom (P "p" 2 (Just 3)))
+                                                         (:&:)
+                                                         (Atom (P "p" 1 (Just 2)))))))))))))
+                                               (:|:)
+                                               (Combine
+                                                (BinOp
+                                                 (Combine
+                                                  (BinOp (Combine
+                                                          ((:~:) (Atom (P "p" 1 (Just 4))))) (:&:)
+                                                   (Combine
+                                                    (BinOp
+                                                     (Combine
+                                                      ((:~:) (Atom (P "p" 2 (Just 4)))))
+                                                     (:&:)
+                                                     (Combine
+                                                      ((:~:) (Atom (P "p" 1 (Just 2)))))))))
+                                                 (:|:)
+                                                 (Combine
+                                                  (BinOp
+                                                   (Combine
+                                                    (BinOp (Combine
+                                                            ((:~:) (Atom (P "p" 1 (Just 4)))))
+                                                     (:&:)
+                                                     (Combine
+                                                      (BinOp
+                                                       (Combine
+                                                        ((:~:) (Atom (P "p" 3 (Just 4)))))
+                                                       (:&:)
+                                                       (Combine
+                                                        ((:~:) (Atom (P "p" 1 (Just 3)))))))))
+                                                   (:|:)
+                                                   (Combine
+                                                    (BinOp
+                                                     (Combine
+                                                      (BinOp
+                                                       (Combine
+                                                        ((:~:) (Atom (P "p" 2 (Just 4)))))
+                                                       (:&:)
+                                                       (Combine
+                                                        (BinOp
+                                                         (Combine
+                                                          ((:~:) (Atom (P "p" 3 (Just 4)))))
+                                                         (:&:)
+                                                         (Combine
+                                                          ((:~:) (Atom (P "p" 2 (Just 3)))))))))
+                                                     (:|:)
+                                                     (Combine
+                                                      (BinOp
+                                                       (Combine
+                                                        ((:~:) (Atom (P "p" 1 (Just 3)))))
+                                                       (:&:)
+                                                       (Combine
+                                                        (BinOp
+                                                         (Combine
+                                                          ((:~:) (Atom (P "p" 2 (Just 3)))))
+                                                         (:&:)
+                                                         (Combine
+                                                          ((:~:) (Atom (P "p" 1 (Just 2)))))))))))))))))
+                                         (ramsey 3 3 4 :: Formula (Atom N))), -}
+                   TestCase (assertEqual "tautology (ramsey 3 3 5)" False (tautology (ramsey 3 3 5 :: Formula (Atom N)))),
+                   TestCase (assertEqual "tautology (ramsey 3 3 6)" True (tautology (ramsey 3 3 6 :: Formula (Atom N))))]
 
 -- ------------------------------------------------------------------------- 
 -- Half adder.                                                               
@@ -106,15 +221,17 @@ mk_index x i = atomic (P x i Nothing)
 mk_index2 :: forall formula a. PropositionalFormula formula (Atom a) => String -> a -> a -> formula
 mk_index2 x i j = atomic (P x i (Just j))
 
-{-
-START_INTERACTIVE;;
-
-let [x; y; out; c] = map mk_index ["X"; "Y"; "OUT"; "C"];;
-
-ripplecarry x y c out 2;;
-
-END_INTERACTIVE;;
--}
+test02 = TestCase (assertEqual "ripplecarry x y c out 2"
+                               (Combine (BinOp (Combine (BinOp (Combine (BinOp (Atom (P "OUT" 1 Nothing)) (:<=>:) (Combine (BinOp (Combine (BinOp (Atom (P "X" 1 Nothing)) (:<=>:) (Combine ((:~:) (Atom (P "Y" 1 Nothing)))))) (:<=>:) (Combine ((:~:) (Atom (P "C" 1 Nothing)))))))) (:&:)
+                                                         (Combine (BinOp (Atom (P "C" 2 Nothing)) (:<=>:) (Combine (BinOp (Combine (BinOp (Atom (P "X" 1 Nothing)) (:&:) (Atom (P "Y" 1 Nothing)))) (:|:) (Combine (BinOp (Combine (BinOp (Atom (P "X" 1 Nothing)) (:|:) (Atom (P "Y" 1 Nothing)))) (:&:) (Atom (P "C" 1 Nothing)))))))))) (:&:)
+                                         (Combine (BinOp (Combine (BinOp (Atom (P "OUT" 0 Nothing)) (:<=>:) (Combine (BinOp (Combine (BinOp (Atom (P "X" 0 Nothing)) (:<=>:) (Combine ((:~:) (Atom (P "Y" 0 Nothing)))))) (:<=>:) (Combine ((:~:) (Atom (P "C" 0 Nothing)))))))) (:&:)
+                                                   (Combine (BinOp (Atom (P "C" 1 Nothing)) (:<=>:) (Combine (BinOp (Combine (BinOp (Atom (P "X" 0 Nothing)) (:&:) (Atom (P "Y" 0 Nothing)))) (:|:) (Combine (BinOp (Combine (BinOp (Atom (P "X" 0 Nothing)) (:|:) (Atom (P "Y" 0 Nothing)))) (:&:) (Atom (P "C" 0 Nothing))))))))))))
+                               {- <<((OUT_0 <=> (X_0 <=> ~Y_0) <=> ~C_0) /\
+                                      (C_1 <=> X_0 /\ Y_0 \/ (X_0 \/ Y_0) /\ C_0)) /\
+                                     (OUT_1 <=> (X_1 <=> ~Y_1) <=> ~C_1) /\
+                                     (C_2 <=> X_1 /\ Y_1 \/ (X_1 \/ Y_1) /\ C_1)>> -}
+                               (let [x, y, out, c] = map mk_index ["X", "Y", "OUT", "C"] in
+                                ripplecarry x y c out 2 :: Formula (Atom N)))
 
 -- ------------------------------------------------------------------------- 
 -- Special case with 0 instead of c(0).                                      
@@ -246,8 +363,7 @@ congruent_to x m n =
   conjoin (\ i -> if bit i m then x i else (.~.)(x i))
           (Set.fromList [0 .. (n - 1)])
 
-prime :: forall formula. (PropositionalFormula formula (Atom Int), Ord formula) =>
-         Integer -> formula
+prime :: forall formula. (PropositionalFormula formula (Atom N), Ord formula) => N -> formula
 prime p =
   let [x, y, out] = map mk_index ["x", "y", "out"] in
   let m i j = (x i) .&. (y j)
@@ -268,325 +384,8 @@ instance Constants F where
     fromBool True = 
 -}
 
-tests :: Test
-tests =
+test03 :: Test
+test03 =
     TestList [TestCase (assertEqual "tautology(prime 7)" True (tautology(prime 7 :: F))),
               TestCase (assertEqual "tautology(prime 9)" False (tautology(prime 9 :: F))),
-              TestCase (assertEqual "prime 11"
-                                        (Combine
-                                         ((:~:)
-                                          (Combine
-                                           (BinOp
-                                            (Combine
-                                             (BinOp
-                                              (Combine
-                                               (BinOp
-                                                (Atom (P "out" 0 Nothing))
-                                                (:<=>:)
-                                                (Combine
-                                                 (BinOp
-                                                  (Atom (P "x" 0 Nothing))
-                                                  (:&:)
-                                                  (Atom (P "y" 0 Nothing))))))
-                                              (:&:)
-                                              (Combine
-                                               (BinOp
-                                                (Combine
-                                                 (BinOp
-                                                  (Combine
-                                                   (BinOp
-                                                    (Combine
-                                                     (BinOp
-                                                      (Atom (P "u" 2 (Just 0)))
-                                                      (:<=>:)
-                                                      (Combine
-                                                       (BinOp
-                                                        (Combine
-                                                         (BinOp
-                                                          (Combine
-                                                           (BinOp (Atom (P "x" 0 Nothing)) (:&:) (Atom (P "y" 2 Nothing))))
-                                                          (:<=>:)
-                                                          (Combine
-                                                           ((:~:) (Combine
-                                                                   (BinOp
-                                                                    (Atom (P "x" 1 Nothing))
-                                                                    (:&:)
-                                                                    (Atom (P "y" 1 Nothing))))))))
-                                                        (:<=>:) (Combine
-                                                                 ((:~:) (Atom (P "v" 2 (Just 2)))))))))
-                                                    (:&:)
-                                                    (Combine
-                                                     (BinOp
-                                                      (Atom (P "v" 2 (Just 3)))
-                                                      (:<=>:)
-                                                      (Combine
-                                                       (BinOp
-                                                        (Combine
-                                                         (BinOp
-                                                          (Combine
-                                                           (BinOp
-                                                            (Atom (P "x" 0 Nothing))
-                                                            (:&:)
-                                                            (Atom (P "y" 2 Nothing))))
-                                                          (:&:)
-                                                          (Combine
-                                                           (BinOp
-                                                            (Atom (P "x" 1 Nothing))
-                                                            (:&:)
-                                                            (Atom (P "y" 1 Nothing))))))
-                                                        (:|:)
-                                                        (Combine
-                                                         (BinOp
-                                                          (Combine
-                                                           (BinOp
-                                                            (Combine
-                                                             (BinOp
-                                                              (Atom (P "x" 0 Nothing))
-                                                              (:&:)
-                                                              (Atom (P "y" 2 Nothing))))
-                                                            (:|:)
-                                                            (Combine
-                                                             (BinOp
-                                                              (Atom (P "x" 1 Nothing))
-                                                              (:&:)
-                                                              (Atom (P "y" 1 Nothing))))))
-                                                          (:&:)
-                                                          (Atom (P "v" 2 (Just 2)))))))))))
-                                                  (:&:)
-                                                  (Combine
-                                                   (BinOp
-                                                    (Combine
-                                                     (BinOp
-                                                      (Combine
-                                                       (BinOp
-                                                        (Atom (P "u" 2 (Just 1)))
-                                                        (:<=>:)
-                                                        (Combine
-                                                         (BinOp
-                                                          (Combine
-                                                           (BinOp
-                                                            (Atom (P "x" 1 Nothing))
-                                                            (:&:)
-                                                            (Atom (P "y" 2 Nothing))))
-                                                          (:<=>:)
-                                                          (Combine
-                                                           ((:~:) (Atom (P "v" 2 (Just 3)))))))))
-                                                      (:&:)
-                                                      (Combine
-                                                       (BinOp
-                                                        (Atom (P "u" 2 (Just 2)))
-                                                        (:<=>:)
-                                                        (Combine
-                                                         (BinOp
-                                                          (Combine
-                                                           (BinOp
-                                                            (Atom (P "x" 1 Nothing))
-                                                            (:&:)
-                                                            (Atom (P "y" 2 Nothing))))
-                                                          (:&:)
-                                                          (Atom (P "v" 2 (Just 3)))))))))
-                                                    (:&:)
-                                                    (Combine
-                                                     (BinOp
-                                                      (Combine
-                                                       (BinOp
-                                                        (Atom (P "out" 1 Nothing))
-                                                        (:<=>:)
-                                                        (Combine
-                                                         (BinOp
-                                                          (Combine
-                                                           (BinOp
-                                                            (Atom (P "x" 0 Nothing))
-                                                            (:&:)
-                                                            (Atom (P "y" 1 Nothing))))
-                                                          (:<=>:)
-                                                          (Combine
-                                                           ((:~:) (Combine
-                                                                   (BinOp
-                                                                    (Atom (P "x" 1 Nothing))
-                                                                    (:&:)
-                                                                    (Atom (P "y" 0 Nothing))))))))))
-                                                      (:&:)
-                                                      (Combine
-                                                       (BinOp
-                                                        (Atom (P "v" 2 (Just 2)))
-                                                        (:<=>:)
-                                                        (Combine
-                                                         (BinOp
-                                                          (Combine
-                                                           (BinOp
-                                                            (Atom (P "x" 0 Nothing))
-                                                            (:&:)
-                                                            (Atom (P "y" 1 Nothing))))
-                                                          (:&:)
-                                                          (Combine
-                                                           (BinOp
-                                                            (Atom (P "x" 1 Nothing))
-                                                            (:&:)
-                                                            (Atom (P "y" 0 Nothing))))))))))))))
-                                                (:&:)
-                                                (Combine
-                                                 (BinOp
-                                                  (Combine
-                                                   (BinOp
-                                                    (Combine
-                                                     (BinOp
-                                                      (Atom (P "out" 3 Nothing))
-                                                      (:<=>:)
-                                                      (Combine
-                                                       (BinOp
-                                                        (Combine
-                                                         (BinOp
-                                                          (Atom (P "u" 2 (Just 1)))
-                                                          (:<=>:)
-                                                          (Combine
-                                                           ((:~:) (Combine
-                                                                   (BinOp
-                                                                    (Atom (P "x" 2 Nothing))
-                                                                    (:&:)
-                                                                    (Atom (P "y" 1 Nothing))))))))
-                                                        (:<=>:)
-                                                        (Combine
-                                                         ((:~:) (Atom (P "v" 3 (Just 2)))))))))
-                                                    (:&:)
-                                                    (Combine
-                                                     (BinOp
-                                                      (Atom (P "v" 3 (Just 3)))
-                                                      (:<=>:)
-                                                      (Combine
-                                                       (BinOp
-                                                        (Combine
-                                                         (BinOp
-                                                          (Atom (P "u" 2 (Just 1)))
-                                                          (:&:)
-                                                          (Combine
-                                                           (BinOp
-                                                            (Atom (P "x" 2 Nothing))
-                                                            (:&:)
-                                                            (Atom (P "y" 1 Nothing))))))
-                                                        (:|:)
-                                                        (Combine
-                                                         (BinOp
-                                                          (Combine
-                                                           (BinOp
-                                                            (Atom (P "u" 2 (Just 1)))
-                                                            (:|:)
-                                                            (Combine
-                                                             (BinOp
-                                                              (Atom (P "x" 2 Nothing))
-                                                              (:&:)
-                                                              (Atom (P "y" 1 Nothing))))))
-                                                          (:&:)
-                                                          (Atom (P "v" 3 (Just 2)))))))))))
-                                                  (:&:)
-                                                  (Combine
-                                                   (BinOp
-                                                    (Combine
-                                                     (BinOp
-                                                      (Combine
-                                                       (BinOp
-                                                        (Atom (P "out" 4 Nothing))
-                                                        (:<=>:)
-                                                        (Combine
-                                                         (BinOp
-                                                          (Combine
-                                                           (BinOp
-                                                            (Atom (P "u" 2 (Just 2)))
-                                                            (:<=>:)
-                                                            (Combine
-                                                             ((:~:) (Combine
-                                                                     (BinOp
-                                                                      (Atom (P "x" 2 Nothing))
-                                                                      (:&:)
-                                                                      (Atom (P "y" 2 Nothing))))))))
-                                                          (:<=>:)
-                                                          (Combine
-                                                           ((:~:) (Atom (P "v" 3 (Just 3)))))))))
-                                                      (:&:)
-                                                      (Combine
-                                                       (BinOp
-                                                        (Atom (P "out" 5 Nothing))
-                                                        (:<=>:)
-                                                        (Combine
-                                                         (BinOp
-                                                          (Combine
-                                                           (BinOp
-                                                            (Atom (P "u" 2 (Just 2)))
-                                                            (:&:)
-                                                            (Combine
-                                                             (BinOp
-                                                              (Atom (P "x" 2 Nothing))
-                                                              (:&:)
-                                                              (Atom (P "y" 2 Nothing))))))
-                                                          (:|:)
-                                                          (Combine
-                                                           (BinOp
-                                                            (Combine
-                                                             (BinOp
-                                                              (Atom (P "u" 2 (Just 2)))
-                                                              (:|:)
-                                                              (Combine
-                                                               (BinOp
-                                                                (Atom (P "x" 2 Nothing))
-                                                                (:&:)
-                                                                (Atom (P "y" 2 Nothing))))))
-                                                            (:&:)
-                                                            (Atom (P "v" 3 (Just 3)))))))))))
-                                                    (:&:)
-                                                    (Combine
-                                                     (BinOp
-                                                      (Combine
-                                                       (BinOp
-                                                        (Atom (P "out" 2 Nothing))
-                                                        (:<=>:)
-                                                        (Combine
-                                                         (BinOp
-                                                          (Atom (P "u" 2 (Just 0)))
-                                                          (:<=>:)
-                                                          (Combine
-                                                           ((:~:) (Combine
-                                                                   (BinOp
-                                                                    (Atom (P "x" 2 Nothing))
-                                                                    (:&:)
-                                                                    (Atom (P "y" 0 Nothing))))))))))
-                                                      (:&:)
-                                                      (Combine
-                                                       (BinOp
-                                                        (Atom (P "v" 3 (Just 2)))
-                                                        (:<=>:)
-                                                        (Combine
-                                                         (BinOp
-                                                          (Atom (P "u" 2 (Just 0)))
-                                                          (:&:)
-                                                          (Combine
-                                                           (BinOp
-                                                            (Atom (P "x" 2 Nothing))
-                                                            (:&:)
-                                                            (Atom (P "y" 0 Nothing))))))))))))))))))
-                                            (:&:)
-                                            (Combine
-                                             (BinOp
-                                              (Combine
-                                               ((:~:) (Atom (P "out" 4 Nothing))))
-                                              (:&:)
-                                              (Combine
-                                               (BinOp
-                                                (Combine
-                                                 ((:~:) (Atom (P "out" 5 Nothing))))
-                                                (:&:)
-                                                (Combine
-                                                 (BinOp
-                                                  (Atom (P "out" 0 Nothing))
-                                                  (:&:)
-                                                  (Combine
-                                                   (BinOp
-                                                    (Atom (P "out" 1 Nothing))
-                                                    (:&:)
-                                                    (Combine
-                                                     (BinOp
-                                                      (Atom (P "out" 3 Nothing))
-                                                      (:&:)
-                                                      (Combine
-                                                       ((:~:) (Atom (P "out" 2 Nothing))))))))))))))))))
-                                    (prime 11 :: F)),
               TestCase (assertEqual "tautology(prime 11)" True (tautology(prime 11 :: F)))]

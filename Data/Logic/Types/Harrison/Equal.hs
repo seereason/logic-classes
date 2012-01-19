@@ -16,6 +16,7 @@ import qualified Data.Logic.Classes.Atom as C
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), showFirstOrderFormulaEq, substAtomEq, varAtomEq)
+import Data.Logic.Classes.FirstOrder (fixityFirstOrder)
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), Fixity(..), FixityDirection(..))
 import qualified Data.Logic.Classes.Propositional as P
@@ -114,6 +115,9 @@ instance P.PropositionalFormula (Formula FOLEQ) FOLEQ where
 instance Pretty FOLEQ where
     pretty (EQUALS a b) = cat [pretty a, pretty (:=:), pretty b]
     pretty (R s ts) = cat ([pretty s, pretty "("] ++ intersperse (text ", ") (map pretty ts) ++ [text ")"])
+
+instance HasFixity (Formula FOLEQ) where
+    fixity = fixityFirstOrder
 
 instance Literal (Formula FOLEQ) FOLEQ String where
     atomic = Atom

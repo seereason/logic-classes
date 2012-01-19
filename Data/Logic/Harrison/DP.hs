@@ -1,16 +1,29 @@
-{-# LANGUAGE FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, ScopedTypeVariables #-}
 module Data.Logic.Harrison.DP
-    ( dpll
+    ( tests
+    , dpll
     ) where
 
 import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Negate (Negatable, (.~.), negated)
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
-import Data.Logic.Harrison.DefCNF (Atom, defcnfs)
+import Data.Logic.Classes.Pretty (pretty)
+import Data.Logic.Harrison.DefCNF (NumAtom(..), defcnfs)
 import Data.Logic.Harrison.Lib (allpairs, maximize', minimize', defined, setmapfilter, (|->))
 import Data.Logic.Harrison.Prop (negative, positive, trivial, tautology)
+import Data.Logic.Harrison.PropExamples (Atom(..), N, prime)
+import Data.Logic.Tests.HUnit
+import Data.Logic.Types.Propositional (Formula(..))
 import qualified Data.Map as Map
 import qualified Data.Set.Extra as Set
+
+import Debug.Trace
+
+instance NumAtom (Atom N) where
+    ma n = P "p" n Nothing
+    ai (P _ n _) = n
+
+tests = convert (TestList [test01, test02, test03])
 
 -- ========================================================================= 
 -- The Davis-Putnam and Davis-Putnam-Loveland-Logemann procedures.           
@@ -64,16 +77,15 @@ resolution_blowup cls l =
 resolution_rule :: forall pf atomic. (PropositionalFormula pf atomic, Ord pf) =>
                    Set.Set (Set.Set pf) -> Failing (Set.Set (Set.Set pf))
 resolution_rule clauses =
-  let pvs = Set.filter positive (Set.flatten clauses) in
-  case minimize' (resolution_blowup clauses) pvs of
-    Just p -> Success (resolve_on p clauses)
-    Nothing -> Failure ["resolution_rule"]
+    let pvs = Set.filter positive (Set.flatten clauses) in
+    case minimize' (resolution_blowup clauses) pvs of
+      Just p -> Success (resolve_on p clauses)
+      Nothing -> Failure ["resolution_rule"]
 
 -- ------------------------------------------------------------------------- 
 -- Overall procedure.                                                        
 -- ------------------------------------------------------------------------- 
-
-dp :: (PropositionalFormula pf atom, Eq pf, Ord pf) => Set.Set (Set.Set pf) -> Failing Bool
+        
 dp clauses =
   if Set.null clauses
   then Success True
@@ -90,11 +102,11 @@ dp clauses =
 -- Davis-Putnam satisfiability tester and tautology checker.                 
 -- ------------------------------------------------------------------------- 
 
-dpsat :: forall pf. (PropositionalFormula pf Atom, Ord pf) =>
+dpsat :: forall pf. (PropositionalFormula pf (Atom N), Ord pf) =>
          pf -> Failing Bool
 dpsat fm = dp (defcnfs fm)
 
-dptaut :: forall pf. (PropositionalFormula pf Atom, Ord pf) =>
+dptaut :: forall pf. (PropositionalFormula pf (Atom N), Ord pf) =>
           pf -> Failing Bool
 dptaut fm = dpsat((.~.) fm) >>= return . not
 
@@ -102,16 +114,7 @@ dptaut fm = dpsat((.~.) fm) >>= return . not
 -- Examples.                                                                 
 -- ------------------------------------------------------------------------- 
 
-{-
-test01 =
-    TestCase (assertEqual "tautology(prime 11)" 
-
-START_INTERACTIVE
-tautology(prime 11)
-
-dptaut(prime 11)
-END_INTERACTIVE
--}
+test01 = TestCase (assertEqual "dptaut(prime 11)" (Success True) (dptaut(prime 11 :: Formula (Atom N)))) 
 
 -- ------------------------------------------------------------------------- 
 -- The same thing but with the DPLL procedure.                               
@@ -147,11 +150,11 @@ dpll clauses =
                                 (Failure a, _) -> Failure a
                                 (_, Failure b) -> Failure b
 
-dpllsat :: forall pf. (PropositionalFormula pf Atom, Ord pf) =>
+dpllsat :: forall pf. (PropositionalFormula pf (Atom N), Ord pf) =>
            pf -> Failing Bool
 dpllsat fm = dpll(defcnfs fm)
 
-dplltaut :: forall pf. (PropositionalFormula pf Atom, Ord pf) =>
+dplltaut :: forall pf. (PropositionalFormula pf (Atom N), Ord pf) =>
             pf -> Failing Bool
 dplltaut fm = dpllsat ((.~.) fm) >>= return . not
 
@@ -159,11 +162,7 @@ dplltaut fm = dpllsat ((.~.) fm) >>= return . not
 -- Example.                                                                  
 -- ------------------------------------------------------------------------- 
 
-{-
-START_INTERACTIVE
-dplltaut(prime 11)
-END_INTERACTIVE
--}
+test02 = TestCase (assertEqual "dplltaut(prime 11)" (Success True) (dplltaut(prime 11 :: Formula (Atom N)))) 
 
 -- ------------------------------------------------------------------------- 
 -- Iterative implementation with explicit trail instead of recursion.        
@@ -222,11 +221,11 @@ dpli cls trail =
                 Just p -> dpli cls (Set.insert (p :: pf, Guessed) trail')
                 Nothing -> Failure ["dpli"]
 
-dplisat :: forall pf. (PropositionalFormula pf Atom, Ord pf) =>
+dplisat :: forall pf. (PropositionalFormula pf (Atom N), Ord pf) =>
            pf -> Failing Bool
 dplisat fm = dpli (defcnfs fm) Set.empty
 
-dplitaut :: forall pf. (PropositionalFormula pf Atom, Ord pf) =>
+dplitaut :: forall pf. (PropositionalFormula pf (Atom N), Ord pf) =>
             pf -> Failing Bool
 dplitaut fm = dplisat((.~.) fm) >>= return . not
 
@@ -262,20 +261,17 @@ dplb cls trail =
               Just p -> dplb cls (Set.insert (p,Guessed) trail')
               Nothing -> Failure ["dpib"]
             
-dplbsat :: forall a. (PropositionalFormula a Atom, Ord a) =>
+dplbsat :: forall a. (PropositionalFormula a (Atom N), Ord a) =>
            a -> Failing Bool
 dplbsat fm = dplb (defcnfs fm) Set.empty
 
-dplbtaut :: forall a. (PropositionalFormula a Atom, Ord a) =>
+dplbtaut :: forall a. (PropositionalFormula a (Atom N), Ord a) =>
             a -> Failing Bool
 dplbtaut fm = dplbsat((.~.) fm) >>= return . not
 
 -- ------------------------------------------------------------------------- 
 -- Examples.                                                                 
 -- ------------------------------------------------------------------------- 
-{-
-START_INTERACTIVE
-dplitaut(prime 101)
-dplbtaut(prime 101)
-END_INTERACTIVE
--}
+
+test03 = TestList [TestCase (assertEqual "dplitaut(prime 101)" (Success True) (dplitaut(prime 101 :: Formula (Atom N)))),
+                   TestCase (assertEqual "dplbtaut(prime 101)" (Success True) (dplbtaut(prime 101 :: Formula (Atom N))))]

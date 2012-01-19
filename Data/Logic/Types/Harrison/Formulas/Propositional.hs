@@ -7,7 +7,8 @@ module Data.Logic.Types.Harrison.Formulas.Propositional
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Negate (Negatable(..))
-import Data.Logic.Classes.Propositional (PropositionalFormula(..))
+import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), topFixity)
+import Data.Logic.Classes.Propositional (PropositionalFormula(..), prettyPropositional, fixityPropositional)
 
 data Formula a
     = F
@@ -40,7 +41,7 @@ instance Combinable (Formula a) where
     a .|. b = Or a b
     a .&. b = And a b
 
-instance (Combinable (Formula atom), Ord atom) => PropositionalFormula (Formula atom) atom where
+instance (Combinable (Formula atom), Pretty atom, HasFixity atom, Ord atom) => PropositionalFormula (Formula atom) atom where
     -- The atom type for this formula is the same as its first type parameter.
     atomic = Atom
     foldPropositional co tf at formula =
@@ -53,3 +54,9 @@ instance (Combinable (Formula atom), Ord atom) => PropositionalFormula (Formula 
           Imp f g -> co (BinOp f (:=>:) g)
           Iff f g -> co (BinOp f (:<=>:) g)
           Atom x -> at x
+
+instance (Pretty atom, HasFixity atom, Ord atom) => Pretty (Formula atom) where
+    pretty = prettyPropositional pretty topFixity
+
+instance (Pretty atom, HasFixity atom, Ord atom) => HasFixity (Formula atom) where
+    fixity = fixityPropositional

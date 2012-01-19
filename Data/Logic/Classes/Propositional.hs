@@ -29,7 +29,7 @@ module Data.Logic.Classes.Propositional
 import Data.Logic.Classes.Combine
 import Data.Logic.Classes.Constants (Constants(fromBool), asBool, prettyBool)
 import Data.Logic.Classes.Negate
-import Data.Logic.Classes.Pretty (HasFixity(fixity), Fixity(Fixity), FixityDirection(..))
+import Data.Logic.Classes.Pretty (Pretty, HasFixity(fixity), Fixity(Fixity), FixityDirection(..))
 import Data.SafeCopy (base, deriveSafeCopy)
 import qualified Data.Set.Extra as Set
 import Happstack.Data (deriveNewData)
@@ -50,7 +50,8 @@ import Text.PrettyPrint (Doc, text, (<>))
 -- without.  It is less obvious whether Constants is always required,
 -- but the implementation of functions like simplify would be more
 -- elaborate if we didn't have it, so we will require it.
-class (Ord formula, Negatable formula, Combinable formula, Constants formula) => PropositionalFormula formula atom | formula -> atom where
+class (Ord formula, Negatable formula, Combinable formula, Constants formula, Pretty formula, HasFixity formula
+      ) => PropositionalFormula formula atom | formula -> atom where
     -- | Build an atomic formula from the atom type.
     atomic :: atom -> formula
     -- | A fold function that distributes different sorts of formula

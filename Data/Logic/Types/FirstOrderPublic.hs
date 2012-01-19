@@ -17,7 +17,7 @@ import Data.Logic.Classes.Combine (Combinable(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder)
 import Data.Logic.Classes.Negate (Negatable(..))
-import Data.Logic.Classes.Pretty (Pretty(pretty))
+import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity)
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.Logic.Classes.Term (Function)
 import Data.Logic.Classes.Variable (Variable)
@@ -73,7 +73,8 @@ instance (Variable v, Predicate p, Function f v
               co' x = co (public x)
     atomic = Formula . Data.Logic.Classes.FirstOrder.atomic
 
-instance (Variable v, Predicate p, Function f v) => PropositionalFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) where
+instance (Show v, Show p, Show f, HasFixity (Formula v p f), Variable v, Predicate p, Function f v
+         ) => PropositionalFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) where
     foldPropositional co tf at f = foldPropositional co' tf at (intern f :: N.Formula v p f)
         where co' x = co (public x)
     atomic = Formula . Data.Logic.Classes.Propositional.atomic

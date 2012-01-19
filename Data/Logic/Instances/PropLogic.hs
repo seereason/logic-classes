@@ -31,7 +31,7 @@ instance {- Ord a => -} Combinable (PropForm a) where
     x .|.   y = DJ [x, y]
     x .&.   y = CJ [x, y]
 
-instance (Combinable (PropForm a), Ord a) => PropositionalFormula (PropForm a) a where
+instance (Combinable (PropForm a), Pretty a, HasFixity a, Ord a) => PropositionalFormula (PropForm a) a where
     atomic = A
     foldPropositional co tf at formula =
         case formula of

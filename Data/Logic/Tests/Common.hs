@@ -167,8 +167,10 @@ type TFormula = P.Formula V Pr AtomicFunction
 type TAtom = P.Predicate Pr TTerm
 type TTerm = P.PTerm V AtomicFunction
 
+{-
 instance Pretty TFormula where
     pretty = prettyFirstOrder (const pretty) pretty 0
+-}
 
 -- |This allows you to use an expression that returns the Doc type in a
 -- unit test, such as prettyFirstOrder.

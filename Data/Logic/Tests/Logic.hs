@@ -3,7 +3,6 @@
 {-# OPTIONS -Wall -Wwarn -fno-warn-name-shadowing -fno-warn-orphans #-}
 module Data.Logic.Tests.Logic (tests) where
 
-import Data.Logic.Classes.Arity (Arity(arity))
 import Data.Logic.Classes.Combine (Combinable(..), (⇒))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Equals (AtomEq, (.=.), pApp, pApp1, showAtomEq)
@@ -26,14 +25,6 @@ import Data.String (IsString(fromString))
 import PropLogic (PropForm(..), TruthTable, truthTable)
 import qualified TextDisplay as TD
 import Test.HUnit
-
--- |Don't use this at home!  It breaks type safety, fromString "True"
--- fromBool True.
-instance Constants String where
-    fromBool = show
-    asBool "True" = Just True
-    asBool "False" = Just False
-    asBool _ = Nothing
 
 tests :: Test
 tests = TestLabel "Test.Logic" $ TestList (precTests ++ theoremTests)
@@ -195,9 +186,6 @@ inf1 =
       formula :: {- ImplicativeNormalFormula inf (C.Sentence V String AtomicFunction) (C.Term V AtomicFunction) V String AtomicFunction => -} TFormula
       formula = convertFOF id id id (implicativeNormalForm (convertFOF id id id (for_all ["x"] (p [x] .=>. (q [x] .|. r [x]))) :: C.Sentence V String AtomicFunction) :: C.Sentence V String AtomicFunction)
 -}
-
-instance Arity String where
-    arity _ = Nothing
 
 theoremTests :: [Test]
 theoremTests =
