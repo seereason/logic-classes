@@ -285,7 +285,7 @@ nenf' fm =
     foldPropositional nenfCombine (\ _ -> fm) (\ _ -> fm) fm
     where
       nenfCombine ((:~:) p) = foldPropositional nenfNotCombine (\ _ -> fm) (\ _ -> fm) p
-      nenfCombine (BinOp p (:&:) q) = nenf' p .|. nenf' q
+      nenfCombine (BinOp p (:&:) q) = nenf' p .&. nenf' q
       nenfCombine (BinOp p (:|:) q) = nenf' p .|. nenf' q
       nenfCombine (BinOp p (:=>:) q) = nenf' ((.~.) p) .|. nenf' q
       nenfCombine (BinOp p (:<=>:) q) = nenf' p .<=>. nenf' q
