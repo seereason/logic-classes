@@ -90,18 +90,18 @@ instance (Variable v, Predicate p, Function f v, Combinable (Sentence v p f)) =>
           Predicate p ts -> maybe (at (Predicate p ts)) tf (asBool p)
           Equal t1 t2 -> at (Equal t1 t2)
 
-data AtomicFunction
+data AtomicFunction v
     = AtomicFunction String
     -- This is redundant with the SkolemFunction and SkolemConstant
     -- constructors in the Chiou Term type.
-    | AtomicSkolemFunction Int
+    | AtomicSkolemFunction v
     deriving (Eq, Show)
 
-instance IsString AtomicFunction where
+instance IsString (AtomicFunction v) where
     fromString = AtomicFunction
 
-instance Variable v => Skolem AtomicFunction v where
-    toSkolem _ n = AtomicSkolemFunction n
+instance Variable v => Skolem (AtomicFunction v) v where
+    toSkolem = AtomicSkolemFunction
     isSkolem (AtomicSkolemFunction _) = True
     isSkolem _ = False
 

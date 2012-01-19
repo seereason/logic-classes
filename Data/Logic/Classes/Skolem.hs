@@ -9,7 +9,7 @@ import Data.Logic.Classes.Variable (Variable)
 -- variable, and it can be helpful to retain a reference to the
 -- variable.
 class Variable v => Skolem f v | f -> v where
-    toSkolem :: v -> Int -> f
+    toSkolem :: v -> f
     -- ^ Built a Skolem function from the given variable and number.
     -- The number is generally obtained from the skolem monad.
     isSkolem  :: f -> Bool

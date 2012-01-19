@@ -139,14 +139,14 @@ instance Pretty Pr where
 
 data AtomicFunction
     = Fn String
-    | Skolem V Int
+    | Skolem V
     deriving (Eq, Ord, Data, Typeable)
 
 instance Function AtomicFunction V
 
 instance C.Skolem AtomicFunction V where
     toSkolem = Skolem
-    isSkolem (Skolem _ _) = True
+    isSkolem (Skolem _) = True
     isSkolem _ = False
 
 instance IsString AtomicFunction where
@@ -154,11 +154,11 @@ instance IsString AtomicFunction where
 
 instance Show AtomicFunction where
     show (Fn s) = show s
-    show (Skolem v n) = "toSkolem " ++ show v ++ " " ++ show n
+    show (Skolem v) = "toSkolem " ++ show v
 
 prettyF :: AtomicFunction -> Doc
 prettyF (Fn s) = text s
-prettyF (Skolem v n) = text ("sK" ++ show v ++ show n)
+prettyF (Skolem v) = text ("sK" ++ show v)
 
 instance Pretty AtomicFunction where
     pretty = prettyF

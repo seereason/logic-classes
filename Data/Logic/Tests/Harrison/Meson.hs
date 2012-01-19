@@ -40,20 +40,20 @@ test01 = TestLabel "Data.Logic.Tests.Harrison.Meson" $ TestCase $ assertEqual "m
                                     -- Success ((Map.empty, 0, 0), 8)
                                     Success ((Map.fromList [(fromString "_0",vt' "_6"),
                                                             (fromString "_1",vt' "_2"),
-                                                            (fromString "_10",fApp (toSkolem "z" 1) [vt' "_6",vt' "_7"]),
-                                                            (fromString "_11",fApp (toSkolem "z" 1) [vt' "_6",vt' "_7"]),
-                                                            (fromString "_12",fApp (toSkolem "z" 1) [vt' "_0",vt' "_1"]),
-                                                            (fromString "_13",fApp (toSkolem "z" 1) [vt' "_0",vt' "_1"]),
-                                                            (fromString "_14",fApp (toSkolem "z" 1) [vt' "_0",vt' "_1"]),
-                                                            (fromString "_15",fApp (toSkolem "z" 1) [vt' "_12",vt' "_13"]),
-                                                            (fromString "_16",fApp (toSkolem "z" 1) [vt' "_12",vt' "_13"]),
-                                                            (fromString "_17",fApp (toSkolem "z" 1) [vt' "_12",vt' "_13"]),
-                                                            (fromString "_3",fApp (toSkolem "z" 1) [vt' "_0",vt' "_1"]),
-                                                            (fromString "_4",fApp (toSkolem "z" 1) [vt' "_0",vt' "_1"]),
-                                                            (fromString "_5",fApp (toSkolem "z" 1) [vt' "_0",vt' "_1"]),
-                                                            (fromString "_7",fApp (toSkolem "z" 1) [vt' "_0",vt' "_1"]),
-                                                            (fromString "_8",fApp (toSkolem "z" 1) [vt' "_0",vt' "_1"]),
-                                                            (fromString "_9",fApp (toSkolem "z" 1) [vt' "_6",vt' "_7"])],0,18),8)
+                                                            (fromString "_10",fApp (toSkolem "z") [vt' "_6",vt' "_7"]),
+                                                            (fromString "_11",fApp (toSkolem "z") [vt' "_6",vt' "_7"]),
+                                                            (fromString "_12",fApp (toSkolem "z") [vt' "_0",vt' "_1"]),
+                                                            (fromString "_13",fApp (toSkolem "z") [vt' "_0",vt' "_1"]),
+                                                            (fromString "_14",fApp (toSkolem "z") [vt' "_0",vt' "_1"]),
+                                                            (fromString "_15",fApp (toSkolem "z") [vt' "_12",vt' "_13"]),
+                                                            (fromString "_16",fApp (toSkolem "z") [vt' "_12",vt' "_13"]),
+                                                            (fromString "_17",fApp (toSkolem "z") [vt' "_12",vt' "_13"]),
+                                                            (fromString "_3",fApp (toSkolem "z") [vt' "_0",vt' "_1"]),
+                                                            (fromString "_4",fApp (toSkolem "z") [vt' "_0",vt' "_1"]),
+                                                            (fromString "_5",fApp (toSkolem "z") [vt' "_0",vt' "_1"]),
+                                                            (fromString "_7",fApp (toSkolem "z") [vt' "_0",vt' "_1"]),
+                                                            (fromString "_8",fApp (toSkolem "z") [vt' "_0",vt' "_1"]),
+                                                            (fromString "_9",fApp (toSkolem "z") [vt' "_6",vt' "_7"])],0,18),8)
                                    )
           vt' = vt . fromString
 
@@ -112,7 +112,7 @@ test02 =
                                     (Set.map render ((Set.map list_conj (simpdnf (runSkolem (askolemize ((.~.) (generalize dpExampleFm)))))) :: Set.Set (Formula FOLEQ))))]
     where f = pApp "F"
           g = pApp "G"
-          sk1 = fApp (toSkolem "z" 1)
+          sk1 = fApp (toSkolem "z")
           x = vt "x"
           y = vt "y"
           z = vt "z"

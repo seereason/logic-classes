@@ -103,18 +103,18 @@ instance Arity String where
 -- something a little more type safe because of our Skolem class.
 data Function
     = FName String
-    | Skolem String Int
+    | Skolem String
     deriving (Eq, Ord, Data, Typeable, Show)
 
 instance Pretty Function where
     pretty (FName s) = text s
-    pretty (Skolem v n) = text ("SK" ++ v ++ show n)
+    pretty (Skolem v) = text ("sK" ++ v)
 
 instance C.Function Function String
 
 instance Skolem Function String where
     toSkolem = Skolem
-    isSkolem (Skolem _ _) = True
+    isSkolem (Skolem _) = True
     isSkolem _ = False
 
 instance Term TermType String Function where

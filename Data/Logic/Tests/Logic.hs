@@ -240,22 +240,22 @@ theoremTests =
     , myTest "Logic - theorem test 1a"
                 (False,
                  False,
-                 ([(pApp1 ("H") (fApp (toSkolem "x" 1) [])),
+                 ([(pApp1 ("H") (fApp (toSkolem "x") [])),
                    (pApp1 ("M") (vt ("y"))),
-                   (pApp1 ("M") (fApp (toSkolem "x" 1) [])),
+                   (pApp1 ("M") (fApp (toSkolem "x") [])),
                    (pApp1 ("S") (vt ("y"))),
-                   (pApp1 ("S") (fApp (toSkolem "x" 1) []))],
-                  Just (CJ [DJ [A (pApp1 ("H") (fApp (toSkolem "x" 1) [])),
+                   (pApp1 ("S") (fApp (toSkolem "x") []))],
+                  Just (CJ [DJ [A (pApp1 ("H") (fApp (toSkolem "x") [])),
                                 A (pApp1 ("M") (vt ("y"))),
-                                A (pApp1 ("S") (fApp (toSkolem "x" 1) [])),
+                                A (pApp1 ("S") (fApp (toSkolem "x") [])),
                                 N (A (pApp1 ("S") (vt ("y"))))],
                             DJ [A (pApp1 ("M") (vt ("y"))),
-                                A (pApp1 ("S") (fApp (toSkolem "x" 1) [])),
-                                N (A (pApp1 ("M") (fApp (toSkolem "x" 1) []))),
+                                A (pApp1 ("S") (fApp (toSkolem "x") [])),
+                                N (A (pApp1 ("M") (fApp (toSkolem "x") []))),
                                 N (A (pApp1 ("S") (vt ("y"))))],
                             DJ [A (pApp1 ("M") (vt ("y"))),
-                                N (A (pApp1 ("H") (fApp (toSkolem "x" 1) []))),
-                                N (A (pApp1 ("M") (fApp (toSkolem "x" 1) []))),
+                                N (A (pApp1 ("H") (fApp (toSkolem "x") []))),
+                                N (A (pApp1 ("M") (fApp (toSkolem "x") []))),
                                 N (A (pApp1 ("S") (vt ("y"))))]]),
                   [([False,False,False,False,False],True),
                    ([False,False,False,False,True],True),
@@ -295,13 +295,13 @@ theoremTests =
                  (runNormal (theorem formula), runNormal (inconsistant formula), table formula))
                 
     , myTest "Logic - socrates is mortal, truth table"
-                ([pApp "H" [fApp (toSkolem "x" 1) []],
-                  pApp "H" [fApp (toSkolem "y" 2) []],
+                ([pApp "H" [fApp (toSkolem "x") []],
+                  pApp "H" [fApp (toSkolem "y") []],
                   pApp "M" [vt "z"],
-                  pApp "M" [fApp (toSkolem "y" 2) []],
+                  pApp "M" [fApp (toSkolem "y") []],
                   pApp "S" [vt "z"],
-                  pApp "S" [fApp (toSkolem "x" 1) []]],
-                 Just (CJ [DJ [A (pApp "H" [fApp (toSkolem "y" 2) []]),A (pApp "M" [vt "z"]),A (pApp "S" [fApp (toSkolem "x" 1) []]),N (A (pApp "S" [vt "z"]))],DJ [A (pApp "H" [fApp (toSkolem "y" 2) []]),A (pApp "M" [vt "z"]),N (A (pApp "H" [fApp (toSkolem "x" 1) []])),N (A (pApp "S" [vt "z"]))],DJ [A (pApp "M" [vt "z"]),A (pApp "S" [fApp (toSkolem "x" 1) []]),N (A (pApp "M" [fApp (toSkolem "y" 2) []])),N (A (pApp "S" [vt "z"]))],DJ [A (pApp "M" [vt "z"]),N (A (pApp "H" [fApp (toSkolem "x" 1) []])),N (A (pApp "M" [fApp (toSkolem "y" 2) []])),N (A (pApp "S" [vt "z"]))]]),
+                  pApp "S" [fApp (toSkolem "x") []]],
+                 Just (CJ [DJ [A (pApp "H" [fApp (toSkolem "y") []]),A (pApp "M" [vt "z"]),A (pApp "S" [fApp (toSkolem "x") []]),N (A (pApp "S" [vt "z"]))],DJ [A (pApp "H" [fApp (toSkolem "y") []]),A (pApp "M" [vt "z"]),N (A (pApp "H" [fApp (toSkolem "x") []])),N (A (pApp "S" [vt "z"]))],DJ [A (pApp "M" [vt "z"]),A (pApp "S" [fApp (toSkolem "x") []]),N (A (pApp "M" [fApp (toSkolem "y") []])),N (A (pApp "S" [vt "z"]))],DJ [A (pApp "M" [vt "z"]),N (A (pApp "H" [fApp (toSkolem "x") []])),N (A (pApp "M" [fApp (toSkolem "y") []])),N (A (pApp "S" [vt "z"]))]]),
                  [([False,False,False,False,False,False],True),
                   ([False,False,False,False,False,True],True),
                   ([False,False,False,False,True,False],False),
@@ -429,11 +429,11 @@ theoremTests =
               (.~.) (exists "x" (pApp "F" [vt "x"]))                           -- Someone / Nobody is funny
           input = table formula
           expected = ([(pApp ("F") [vt ("x2")]),
-                       (pApp ("F") [fApp (toSkolem "x" 1) []]),
+                       (pApp ("F") [fApp (toSkolem "x") []]),
                        (pApp ("L") [vt ("x")]),
-                       (pApp ("L") [fApp (toSkolem "x" 1) []])],
-                      Just (CJ [DJ [A (pApp1 ("L") (fApp (toSkolem "x" 1) [])),N (A (pApp1 ("F") (vt ("x2")))),N (A (pApp1 ("L") (vt ("x"))))],
-                                DJ [N (A (pApp1 ("F") (vt ("x2")))),N (A (pApp1 ("F") (fApp (toSkolem "x" 1) []))),N (A (pApp1 ("L") (vt ("x"))))]]),
+                       (pApp ("L") [fApp (toSkolem "x") []])],
+                      Just (CJ [DJ [A (pApp1 ("L") (fApp (toSkolem "x") [])),N (A (pApp1 ("F") (vt ("x2")))),N (A (pApp1 ("L") (vt ("x"))))],
+                                DJ [N (A (pApp1 ("F") (vt ("x2")))),N (A (pApp1 ("F") (fApp (toSkolem "x") []))),N (A (pApp1 ("L") (vt ("x"))))]]),
                       [([False,False,False,False],True),
                        ([False,False,False,True],True),
                        ([False,False,True,False],True),
@@ -457,7 +457,7 @@ theoremTests =
               (.~.) (exists "z" (pApp "F" [vt "z"]))                       -- Someone / Nobody is funny
           input = table formula
           expected :: TruthTable TFormula
-          expected = ([(pApp1 ("F") (vt ("z"))),(pApp1 ("F") (fApp (toSkolem "x" 1) [])),(pApp1 ("L") (vt ("y"))),(pApp1 ("L") (fApp (toSkolem "x" 1) []))],Just (CJ [DJ [A (pApp1 ("L") (fApp (toSkolem "x" 1) [])),N (A (pApp1 ("F") (vt ("z")))),N (A (pApp1 ("L") (vt ("y"))))],DJ [N (A (pApp1 ("F") (vt ("z")))),N (A (pApp1 ("F") (fApp (toSkolem "x" 1) []))),N (A (pApp1 ("L") (vt ("y"))))]]),[([False,False,False,False],True),([False,False,False,True],True),([False,False,True,False],True),([False,False,True,True],True),([False,True,False,False],True),([False,True,False,True],True),([False,True,True,False],True),([False,True,True,True],True),([True,False,False,False],True),([True,False,False,True],True),([True,False,True,False],False),([True,False,True,True],True),([True,True,False,False],True),([True,True,False,True],True),([True,True,True,False],False),([True,True,True,True],False)])
+          expected = ([(pApp1 ("F") (vt ("z"))),(pApp1 ("F") (fApp (toSkolem "x") [])),(pApp1 ("L") (vt ("y"))),(pApp1 ("L") (fApp (toSkolem "x") []))],Just (CJ [DJ [A (pApp1 ("L") (fApp (toSkolem "x") [])),N (A (pApp1 ("F") (vt ("z")))),N (A (pApp1 ("L") (vt ("y"))))],DJ [N (A (pApp1 ("F") (vt ("z")))),N (A (pApp1 ("F") (fApp (toSkolem "x") []))),N (A (pApp1 ("L") (vt ("y"))))]]),[([False,False,False,False],True),([False,False,False,True],True),([False,False,True,False],True),([False,False,True,True],True),([False,True,False,False],True),([False,True,False,True],True),([False,True,True,False],True),([False,True,True,True],True),([True,False,False,False],True),([True,False,False,True],True),([True,False,True,False],False),([True,False,True,True],True),([True,True,False,False],True),([True,True,False,True],True),([True,True,True,False],False),([True,True,True,True],False)])
       in myTest "Logic - gensler189 renamed" expected input
     ]
 

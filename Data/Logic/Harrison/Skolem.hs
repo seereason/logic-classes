@@ -355,10 +355,7 @@ skolem fm =
       -- the formula.
       qu Exists y p =
           do let xs = fv fm
-             state <- get
-             let f = C.toSkolem y (skolemCount state)
-             put (state {skolemCount = skolemCount state + 1})
-             let fx = fApp f (map vt (Set.toList xs))
+             let fx = fApp (C.toSkolem y) (map vt (Set.toAscList xs))
              skolem (subst (Map.singleton y fx) p)
       qu Forall x p = skolem p >>= return . for_all x
       co (BinOp l (:&:) r) = skolem2 (.&.) l r
