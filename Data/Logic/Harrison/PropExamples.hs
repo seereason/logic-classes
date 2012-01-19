@@ -235,10 +235,10 @@ multiplier x u v out n =
 -- ------------------------------------------------------------------------- 
 
 bitlength :: forall b a. (Bits b, Num a) => b -> a
-bitlength x = if x == 0 then 0 else 1 + bitlength (shiftR x 2);;
+bitlength x = if x == 0 then 0 else 1 + bitlength (shiftR x 1);;
 
 bit :: forall a b. (Bits b, Num a, Integral b) => a -> b -> Bool
-bit n x = if n == 0 then x `mod` 2 == 1 else bit (n - 1) (shiftR x 2)
+bit n x = if n == 0 then x `mod` 2 == 1 else bit (n - 1) (shiftR x 1)
 
 congruent_to :: forall formula atomic a b. (Bits b, PropositionalFormula formula atomic, Ord a, Ord formula, Num a, Integral b, Enum a) =>
                 (a -> formula) -> b -> a -> formula
