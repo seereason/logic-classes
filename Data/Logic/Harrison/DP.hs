@@ -184,6 +184,7 @@ unit_subpropagate (cls,fn,trail) =
   let cls' = Set.map (Set.filter (not . defined fn . (.~.))) cls in
   let uu cs =
           case Set.minView cs of
+            Nothing -> Failure ["unit_subpropagate"]
             Just (c, _) -> if Set.size cs == 1 && not (defined fn c)
                            then Success cs
                            else Failure ["unit_subpropagate"] in
