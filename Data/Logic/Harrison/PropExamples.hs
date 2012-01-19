@@ -1,8 +1,8 @@
-{-# LANGUAGE FlexibleContexts, RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts, RankNTypes, ScopedTypeVariables, StandaloneDeriving, TypeSynonymInstances #-}
 module Data.Logic.Harrison.PropExamples where
 
 import Data.Bits (Bits, shiftR)
-import Data.Logic.Classes.Combine ((.<=>.), (.=>.), (.&.), (.|.), Combinable)
+import Data.Logic.Classes.Combine ((.<=>.), (.=>.), (.&.), (.|.), Combinable, Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (true, false)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
@@ -23,7 +23,7 @@ import Prelude hiding (sum)
 -- Generate assertion equivalent to R(s,t) <= n for the Ramsey number R(s,t) 
 -- ------------------------------------------------------------------------- 
 
-data Atom a = P String a (Maybe a) deriving (Eq, Ord)
+data Atom a = P String a (Maybe a) deriving (Eq, Ord, Show)
 
 ramsey :: forall a a1 a2 formula.
           (PropositionalFormula formula (Atom a2),
@@ -250,17 +250,18 @@ prime :: forall formula. (PropositionalFormula formula (Atom Int), Ord formula) 
          Integer -> formula
 prime p =
   let [x, y, out] = map mk_index ["x", "y", "out"] in
-  let -- m :: Integer -> Integer -> formula
-      m i j = (x i) .&. (y j)
+  let m i j = (x i) .&. (y j)
       [u, v] = map mk_index2 ["u", "v"] in
   let (n :: Int) = bitlength p in
-  (.~.) ((multiplier m u v out (n - 1)) .&. (congruent_to out p (max n (2 * n - 2))))
+  (.~.) (multiplier m u v out (n - 1) .&. congruent_to out p (max n (2 * n - 2)))
 
 -- ------------------------------------------------------------------------- 
 -- Examples.                                                                 
 -- ------------------------------------------------------------------------- 
 
 type F = Formula (Atom Int)
+
+deriving instance Show F
 
 {-
 instance Constants F where
