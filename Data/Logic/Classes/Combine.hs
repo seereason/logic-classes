@@ -59,7 +59,7 @@ class (Negatable formula) => Combinable formula where
 
 infixl 1  .<=>. ,  .<~>., ⇔, <=>
 infixr 2  .=>., ⇒, ==>
-infixl 3  .|., ∨
+infixr 3  .|., ∨
 infixl 4  .&., ∧
 
 -- |'Combination' is a helper type used in the signatures of the
