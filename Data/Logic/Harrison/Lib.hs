@@ -473,7 +473,7 @@ let rec mem x lis =
 -- ------------------------------------------------------------------------- 
 
 -- allsets :: Ord a => Int -> Set.Set a -> Set.Set (Set.Set a)
-allsets :: forall a b. (Num a, Ord b) => a -> Set.Set b -> Set.Set (Set.Set b)
+allsets :: forall a b. (Num a, Eq a, Ord b) => a -> Set.Set b -> Set.Set (Set.Set b)
 allsets 0 _ = Set.singleton Set.empty
 allsets m l =
     case Set.minView l of
