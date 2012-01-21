@@ -43,9 +43,11 @@ instance Skolem AtomicFunction where
 instance IsString AtomicFunction where
     fromString = Fn
 
+{-
 instance Show AtomicFunction where
     show (Fn s) = show s
-    show (Skolem n) = "toSkolem " ++ show n
+    show (Skolem n) = "(toSkolem " ++ show n ++ ")"
+-}
 
 instance Pretty AtomicFunction where
     pretty (Fn s) = text s

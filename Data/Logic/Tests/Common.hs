@@ -154,7 +154,7 @@ instance IsString AtomicFunction where
 
 instance Show AtomicFunction where
     show (Fn s) = show s
-    show (Skolem v) = "toSkolem " ++ show v
+    show (Skolem v) = "(toSkolem " ++ show v ++ ")"
 
 prettyF :: AtomicFunction -> Doc
 prettyF (Fn s) = text s

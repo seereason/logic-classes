@@ -135,10 +135,14 @@ gilmore fa fm =
   let cntms = Set.map (\ (c,_) -> fApp c []) consts in
   gilmore_loop (simpdnf sfm :: Set.Set (Set.Set pf)) cntms funcs (fvs) 0 Set.empty Set.empty Set.empty >>= return . Set.size
 
-{-
 -- ------------------------------------------------------------------------- 
 -- First example and a little tracing.                                       
 -- ------------------------------------------------------------------------- 
+{-
+test01 =
+    let fm = exists "x" (for_all "y" (pApp "p" [vt "x"] .=>. pApp "p" [vt "y"]))
+        sfm = skolemize ((.~.) fm) in
+    TestList [TestCase (assertEqual "gilmore 1" 2 (gilmore fm))]
 
 START_INTERACTIVE;;
 gilmore <<exists x. forall y. P(x) ==> P(y)>>;;
@@ -168,19 +172,19 @@ let p45 = gilmore
                       (forall y. G(y) /\ H(x,y) ==> J(x,y)))
    ==> (exists x. P(x) /\ ~(exists y. G(y) /\ H(x,y)))>>;;
 END_INTERACTIVE;;
-
+-}
 -- ------------------------------------------------------------------------- 
 -- Apparently intractable example.                                           
 -- ------------------------------------------------------------------------- 
 
-(**********
+{-
 
 let p20 = gilmore
  <<(forall x y. exists z. forall w. P(x) /\ Q(y) ==> R(z) /\ U(w))
    ==> (exists x y. P(x) /\ Q(y)) ==> (exists z. R(z))>>;;
 
- *********)
 -}
+
 
 -- ------------------------------------------------------------------------- 
 -- The Davis-Putnam procedure for first order logic.                         

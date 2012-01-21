@@ -4,6 +4,8 @@ module Data.Logic.Harrison.Prop
     ( eval
     , atoms
     , onAllValuations
+    , TruthTable
+    , TruthTableRow
     , truthTable
     , tautology
     , unsatisfiable
@@ -126,24 +128,26 @@ onAllValuations :: (Ord a) =>
                 -> r
 onAllValuations _ subfn v ps | Set.null ps = subfn v
 onAllValuations append subfn v ps =
-    case Set.deleteFindMin ps of
-      (p, ps') -> append -- Do the valuations of the remaining variables with  set to false
-                        (onAllValuations append subfn (Map.insert p False v) ps')
-                        -- Do the valuations of the remaining variables with  set to true
-                        (onAllValuations append subfn (Map.insert p True v) ps')
+    case Set.minView ps of
+      Nothing -> error "onAllValuations"
+      Just (p, ps') ->
+          append -- Do the valuations of the remaining variables with  set to false
+                 (onAllValuations append subfn (Map.insert p False v) ps')
+                 -- Do the valuations of the remaining variables with  set to true
+                 (onAllValuations append subfn (Map.insert p True v) ps')
 
 type TruthTableRow = ([Bool], Bool)
 type TruthTable a = ([a], [TruthTableRow])
 
-truthTable :: forall formula atomic. (PropositionalFormula formula atomic, Eq atomic, Ord atomic) =>
-              formula -> TruthTable atomic
+truthTable :: forall formula atom. (PropositionalFormula formula atom, Eq atom, Ord atom) =>
+              formula -> TruthTable atom
 truthTable fm =
     (atl, onAllValuations (++) mkRow Map.empty ats)
     where
-      mkRow :: Map.Map atomic Bool      -- ^ The current variable assignment
+      mkRow :: Map.Map atom Bool      -- ^ The current variable assignment
             -> [TruthTableRow]          -- ^ The variable assignments and the formula value
       mkRow v = [(map (\ k -> Map.findWithDefault False k v) atl, eval fm v)]
-      atl = Set.toList ats
+      atl = Set.toAscList ats
       ats = atoms fm
 
 -- ------------------------------------------------------------------------- 

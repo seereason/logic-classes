@@ -3,31 +3,37 @@
 {-# OPTIONS -Wall -Wwarn -fno-warn-name-shadowing -fno-warn-orphans #-}
 module Data.Logic.Tests.Logic (tests) where
 
-import Data.Logic.Classes.Combine (Combinable(..), (⇒))
-import Data.Logic.Classes.Constants (Constants(..))
+import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), (⇒))
+import Data.Logic.Classes.Constants (Constants(..), true)
 import Data.Logic.Classes.Equals (AtomEq, (.=.), pApp, pApp1, showAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder, (∀))
 import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Negate (negated, (.~.))
+import Data.Logic.Classes.Pretty (pretty)
 import Data.Logic.Classes.Propositional (PropositionalFormula)
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Classes.Variable (Variable)
-import Data.Logic.Harrison.FOL (fv, subst)
+import Data.Logic.Harrison.FOL (fv, subst, list_conj, list_disj)
+import Data.Logic.Harrison.Normal (trivial)
+import Data.Logic.Harrison.Prop (TruthTable, truthTable)
+import Data.Logic.Harrison.Skolem (runSkolem, skolemize, pnf)
 import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Implicative (runNormal)
 import Data.Logic.Satisfiable (theorem, inconsistant)
-import Data.Logic.Tests.Common (TFormula, TTerm, myTest)
+import Data.Logic.Tests.Common (TFormula, TAtom, TTerm, myTest)
+import Data.Logic.Types.FirstOrder
 import qualified Data.Map as Map
-import qualified Data.Set as Set
+import qualified Data.Set.Extra as Set
+import Data.Set.Extra (fromList)
 import Data.String (IsString(fromString))
-import PropLogic (PropForm(..), TruthTable, truthTable)
+-- import PropLogic (PropForm(..), TruthTable, truthTable)
 import qualified TextDisplay as TD
 import Test.HUnit
 
 tests :: Test
-tests = TestLabel "Test.Logic" $ TestList (precTests ++ theoremTests)
+tests = TestLabel "Test.Logic" $ TestList [precTests, normalTests, theoremTests]
 
 {-
 formCase :: (FirstOrderFormula TFormula TAtom V, AtomEq TAtom Pr TTerm, Term TTerm V AtomicFunction) =>
@@ -35,8 +41,9 @@ formCase :: (FirstOrderFormula TFormula TAtom V, AtomEq TAtom Pr TTerm, Term TTe
 formCase s expected input = TestLabel s $ TestCase (assertEqual s expected input)
 -}
 
-precTests :: [Test]
+precTests :: Test
 precTests =
+    TestList
     [ myTest "Logic - prec test 1"
                ((a .&. b) .|. c)
                (a .&. b .|. c)
@@ -108,6 +115,25 @@ y :: TTerm
 y = vt (fromString "y")
 z :: TTerm
 z = vt (fromString "z")
+
+normalTests =
+    let s = pApp "S"
+        h = pApp "H"
+        m = pApp "M"
+        x2 = vt "x2" :: TTerm
+        for_all' x fm = for_all (fromString x) fm
+        exists' x fm = exists (fromString x) fm
+    in
+    TestList
+    [TestCase (assertEqual
+               "nnf"
+               (show (pretty (for_all' "x" (exists' "x2" ((s[x2] .&. ((.~.)(h[x2])) .|. h[x2] .&. ((.~.)(m[x2]))) .|. ((.~.)(s[x])) .|. m[x])) :: TFormula)))
+               -- <<forall x. exists x'. (S(x') /\ ~H(x') \/ H(x') /\ ~M(x')) \/ ~S(x) \/ M(x)>>
+               -- ∀x. ∃x2. ((S(x2) ∧ ¬H(x2) ∨ H(x2) ∧ ¬M(x2)) ∨ ¬S(x) ∨ M(x))
+               (show
+                (pretty
+                 (pnf (((for_all' "x" (s[x] .=>. h[x])) .&. (for_all "x" (h[x] .=>. m[x]))) .=>.
+                    (for_all "x" (s[x] .=>. m[x])) :: TFormula) :: TFormula))))]
 
 -- |Here is an example of automatic conversion from a FirstOrderFormula
 -- instance to a PropositionalFormula instance.  The result is PropForm
@@ -187,191 +213,164 @@ inf1 =
       formula = convertFOF id id id (implicativeNormalForm (convertFOF id id id (for_all ["x"] (p [x] .=>. (q [x] .|. r [x]))) :: C.Sentence V String AtomicFunction) :: C.Sentence V String AtomicFunction)
 -}
 
-theoremTests :: [Test]
+theoremTests :: Test
 theoremTests =
     let s = pApp "S"
         h = pApp "H"
-        m = pApp "M" in
-    [ let formula = for_all "x" (((s [x] .=>. h [x]) .&. (h [x] .=>. m [x])) .=>.
-                                  (s [x] .=>. m [x])) in
-      myTest "Logic - theorem test 1"
-                (True,([],Just (CJ []),[([],True)]))
-{-
-                (True,
-                 ([(pApp ("H") [vt (V "x")]),(pApp ("M") [vt (V "x")]),(pApp ("S") [vt (V "x")])],
-                  Just (CJ [DJ [A (pApp ("S") [vt (V "x")]),
-                                A (pApp ("H") [vt (V "x")]),
-                                N (A (pApp ("S") [vt (V "x")])),
-                                A (pApp ("M") [vt (V "x")])],
-                            DJ [N (A (pApp ("H") [vt (V "x")])),
-                                A (pApp ("H") [vt (V "x")]),
-                                N (A (pApp ("S") [vt (V "x")])),
-                                A (pApp ("M") [vt (V "x")])],
-                            DJ [A (pApp ("S") [vt (V "x")]),
-                                N (A (pApp ("M") [vt (V "x")])),
-                                N (A (pApp ("S") [vt (V "x")])),
-                                A (pApp ("M") [vt (V "x")])],
-                            DJ [N (A (pApp ("H") [vt (V "x")])),
-                                N (A (pApp ("M") [vt (V "x")])),
-                                N (A (pApp ("S") [vt (V "x")])),
-                                A (pApp ("M") [vt (V "x")])]]),
-                  [([False,False,False],True),
-                   ([False,False,True],True),
-                   ([False,True,False],True),
-                   ([False,True,True],True),
-                   ([True,False,False],True),
-                   ([True,False,True],True),
-                   ([True,True,False],True),
-                   ([True,True,True],True)]))
--}
-                (runNormal (theorem formula), table formula)
+        m = pApp "M"
+        socrates1 = (for_all "x"   (s [x] .=>. h [x]) .&. for_all "x" (h [x] .=>. m [x]))  .=>.  for_all "x" (s [x] .=>. m [x])  :: TFormula -- First two clauses grouped - compare to 5
+        socrates2 =  for_all "x" (((s [x] .=>. h [x]) .&.             (h [x] .=>. m [x]))  .=>.              (s [x] .=>. m [x])) :: TFormula -- shared binding for x
+        socrates3 = (for_all "x"  ((s [x] .=>. h [x]) .&.             (h [x] .=>. m [x]))) .=>. (for_all "y" (s [y] .=>. m [y])) :: TFormula -- First two clauses share x, third is renamed y
+        socrates5 =  for_all "x"   (s [x] .=>. h [x]) .&. for_all "x" (h [x] .=>. m [x])   .=>.  for_all "x" (s [x] .=>. m [x])  :: TFormula -- like 1, but less parens - check precedence 
+        socrates6 =  for_all "x"   (s [x] .=>. h [x]) .&. for_all "y" (h [y] .=>. m [y])   .=>.  for_all "z" (s [z] .=>. m [z])  :: TFormula -- Like 5, but with variables renamed
+        socrates7 =  for_all "x"  ((s [x] .=>. h [x]) .&.             (h [x] .=>. m [x])   .&.               (m [x] .=>. ((.~.) (s [x])))) .&. (s [fApp "socrates" []]) in 
+    TestList
+    [ myTest "Logic - theorem test 1"
+                (True,(Set.empty, ([]{-Just (CJ [])-},[([],True)])))
+                (runNormal (theorem socrates2), table socrates2)
     , myTest "Logic - theorem test 1a"
                 (False,
                  False,
-                 ([(pApp1 ("H") (fApp (toSkolem "x") [])),
-                   (pApp1 ("M") (vt ("y"))),
-                   (pApp1 ("M") (fApp (toSkolem "x") [])),
-                   (pApp1 ("S") (vt ("y"))),
-                   (pApp1 ("S") (fApp (toSkolem "x") []))],
-                  Just (CJ [DJ [A (pApp1 ("H") (fApp (toSkolem "x") [])),
-                                A (pApp1 ("M") (vt ("y"))),
-                                A (pApp1 ("S") (fApp (toSkolem "x") [])),
-                                N (A (pApp1 ("S") (vt ("y"))))],
-                            DJ [A (pApp1 ("M") (vt ("y"))),
-                                A (pApp1 ("S") (fApp (toSkolem "x") [])),
-                                N (A (pApp1 ("M") (fApp (toSkolem "x") []))),
-                                N (A (pApp1 ("S") (vt ("y"))))],
-                            DJ [A (pApp1 ("M") (vt ("y"))),
-                                N (A (pApp1 ("H") (fApp (toSkolem "x") []))),
-                                N (A (pApp1 ("M") (fApp (toSkolem "x") []))),
-                                N (A (pApp1 ("S") (vt ("y"))))]]),
-                  [([False,False,False,False,False],True),
-                   ([False,False,False,False,True],True),
-                   ([False,False,False,True,False],False),
-                   ([False,False,False,True,True],True),
-                   ([False,False,True,False,False],True),
-                   ([False,False,True,False,True],True),
-                   ([False,False,True,True,False],False),
-                   ([False,False,True,True,True],True),
-                   ([False,True,False,False,False],True),
-                   ([False,True,False,False,True],True),
-                   ([False,True,False,True,False],True),
-                   ([False,True,False,True,True],True),
-                   ([False,True,True,False,False],True),
-                   ([False,True,True,False,True],True),
-                   ([False,True,True,True,False],True),
-                   ([False,True,True,True,True],True),
-                   ([True,False,False,False,False],True),
-                   ([True,False,False,False,True],True),
-                   ([True,False,False,True,False],True),
-                   ([True,False,False,True,True],True),
-                   ([True,False,True,False,False],True),
-                   ([True,False,True,False,True],True),
-                   ([True,False,True,True,False],False),
-                   ([True,False,True,True,True],False),
-                   ([True,True,False,False,False],True),
-                   ([True,True,False,False,True],True),
-                   ([True,True,False,True,False],True),
-                   ([True,True,False,True,True],True),
-                   ([True,True,True,False,False],True),
-                   ([True,True,True,False,True],True),
-                   ([True,True,True,True,False],True),
-                   ([True,True,True,True,True],True)]))
+                 (fromList [fromList [Predicate (Apply "H" [FunApp (toSkolem "x") []]),
+                                      Predicate (Apply "M" [Var "y"]),
+                                      Predicate (Apply "S" [FunApp (toSkolem "x") []]),
+                                      Combine ((:~:) (Predicate (Apply "S" [Var "y"])))],
+                            fromList [Predicate (Apply "M" [Var "y"]),
+                                      Predicate (Apply "S" [FunApp (toSkolem "x") []]),
+                                      Combine ((:~:) (Predicate (Apply "M" [FunApp (toSkolem "x") []]))),
+                                      Combine ((:~:) (Predicate (Apply "S" [Var "y"])))],
+                            fromList [Predicate (Apply "M" [Var "y"]),
+                                      Combine ((:~:) (Predicate (Apply "H" [FunApp (toSkolem "x") []]))),
+                                      Combine ((:~:) (Predicate (Apply "M" [FunApp (toSkolem "x") []]))),
+                                      Combine ((:~:) (Predicate (Apply "S" [Var "y"])))]],
+                 ([(Apply "H" [fApp (toSkolem "x") []]),
+                   (Apply "M" [vt ("y")]),
+                   (Apply "M" [fApp (toSkolem "x") []]),
+                   (Apply "S" [vt ("y")]),
+                   (Apply "S" [fApp (toSkolem "x") []])],
+                  [([False,	False,	False,	False,	False],	True),
+                   ([False,	False,	False,	False,	True],	True),
+                   ([False,	False,	False,	True,	False],	False),
+                   ([False,	False,	False,	True,	True],	True),
+                   ([False,	False,	True,	False,	False],	True),
+                   ([False,	False,	True,	False,	True],	True),
+                   ([False,	False,	True,	True,	False],	False),
+                   ([False,	False,	True,	True,	True],	True),
+                   ([False,	True,	False,	False,	False],	True),
+                   ([False,	True,	False,	False,	True],	True),
+                   ([False,	True,	False,	True,	False],	True),
+                   ([False,	True,	False,	True,	True],	True),
+                   ([False,	True,	True,	False,	False],	True),
+                   ([False,	True,	True,	False,	True],	True),
+                   ([False,	True,	True,	True,	False],	True),
+                   ([False,	True,	True,	True,	True],	True),
+                   ([True,	False,	False,	False,	False],	True),
+                   ([True,	False,	False,	False,	True],	True),
+                   ([True,	False,	False,	True,	False],	True),
+                   ([True,	False,	False,	True,	True],	True),
+                   ([True,	False,	True,	False,	False],	True),
+                   ([True,	False,	True,	False,	True],	True),
+                   ([True,	False,	True,	True,	False],	False),
+                   ([True,	False,	True,	True,	True],	False),
+                   ([True,	True,	False,	False,	False],	True),
+                   ([True,	True,	False,	False,	True],	True),
+                   ([True,	True,	False,	True,	False],	True),
+                   ([True,	True,	False,	True,	True],	True),
+                   ([True,	True,	True,	False,	False],	True),
+                   ([True,	True,	True,	False,	True],	True),
+                   ([True,	True,	True,	True,	False],	True),
+                   ([True,	True,	True,	True,	True],	True)])))
                 
-                (let formula = (for_all "x" ((s [x] .=>. h [x]) .&. (h [x] .=>. m [x]))) .=>.
-                               (for_all "y" (s [y] .=>. m [y])) in
-                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula))
-                
-    , myTest "Logic - socrates is mortal, truth table"
-                ([pApp "H" [fApp (toSkolem "x") []],
-                  pApp "H" [fApp (toSkolem "y") []],
-                  pApp "M" [vt "z"],
-                  pApp "M" [fApp (toSkolem "y") []],
-                  pApp "S" [vt "z"],
-                  pApp "S" [fApp (toSkolem "x") []]],
-                 Just (CJ [DJ [A (pApp "H" [fApp (toSkolem "y") []]),A (pApp "M" [vt "z"]),A (pApp "S" [fApp (toSkolem "x") []]),N (A (pApp "S" [vt "z"]))],DJ [A (pApp "H" [fApp (toSkolem "y") []]),A (pApp "M" [vt "z"]),N (A (pApp "H" [fApp (toSkolem "x") []])),N (A (pApp "S" [vt "z"]))],DJ [A (pApp "M" [vt "z"]),A (pApp "S" [fApp (toSkolem "x") []]),N (A (pApp "M" [fApp (toSkolem "y") []])),N (A (pApp "S" [vt "z"]))],DJ [A (pApp "M" [vt "z"]),N (A (pApp "H" [fApp (toSkolem "x") []])),N (A (pApp "M" [fApp (toSkolem "y") []])),N (A (pApp "S" [vt "z"]))]]),
-                 [([False,False,False,False,False,False],True),
-                  ([False,False,False,False,False,True],True),
-                  ([False,False,False,False,True,False],False),
-                  ([False,False,False,False,True,True],	True),
-                  ([False,False,False,True,False,False],True),
-                  ([False,False,False,True,False,True],	True),
-                  ([False,False,False,True,True,False],	False),
-                  ([False,False,False,True,True,True],	True),
-                  ([False,False,True,False,False,False],True),
-                  ([False,False,True,False,False,True],	True),
-                  ([False,False,True,False,True,False],	True),
-                  ([False,False,True,False,True,True],	True),
-                  ([False,False,True,True,False,False],	True),
-                  ([False,False,True,True,False,True],	True),
-                  ([False,False,True,True,True,False],	True),
-                  ([False,False,True,True,True,True],	True),
-                  ([False,True,False,False,False,False],True),
-                  ([False,True,False,False,False,True],	True),
-                  ([False,True,False,False,True,False],	True),
-                  ([False,True,False,False,True,True],	True),
-                  ([False,True,False,True,False,False],	True),
-                  ([False,True,False,True,False,True],	True),
-                  ([False,True,False,True,True,False],	False),
-                  ([False,True,False,True,True,True],	True),
-                  ([False,True,True,False,False,False],	True),
-                  ([False,True,True,False,False,True],	True),
-                  ([False,True,True,False,True,False],	True),
-                  ([False,True,True,False,True,True],	True),
-                  ([False,True,True,True,False,False],	True),
-                  ([False,True,True,True,False,True],	True),
-                  ([False,True,True,True,True,False],	True),
-                  ([False,True,True,True,True,True],	True),
-                  ([True,False,False,False,False,False],True),
-                  ([True,False,False,False,False,True],	True),
-                  ([True,False,False,False,True,False],	False),
-                  ([True,False,False,False,True,True],	False),
-                  ([True,False,False,True,False,False],	True),
-                  ([True,False,False,True,False,True],	True),
-                  ([True,False,False,True,True,False],	False),
-                  ([True,False,False,True,True,True],	False),
-                  ([True,False,True,False,False,False],	True),
-                  ([True,False,True,False,False,True],	True),
-                  ([True,False,True,False,True,False],	True),
-                  ([True,False,True,False,True,True],	True),
-                  ([True,False,True,True,False,False],	True),
-                  ([True,False,True,True,False,True],	True),
-                  ([True,False,True,True,True,False],	True),
-                  ([True,False,True,True,True,True],	True),
-                  ([True,True,False,False,False,False],	True),
-                  ([True,True,False,False,False,True],	True),
-                  ([True,True,False,False,True,False],	True),
-                  ([True,True,False,False,True,True],	True),
-                  ([True,True,False,True,False,False],	True),
-                  ([True,True,False,True,False,True],	True),
-                  ([True,True,False,True,True,False],	False),
-                  ([True,True,False,True,True,True],	False),
-                  ([True,True,True,False,False,False],	True),
-                  ([True,True,True,False,False,True],	True),
-                  ([True,True,True,False,True,False],	True),
-                  ([True,True,True,False,True,True],	True),
-                  ([True,True,True,True,False,False],	True),
-                  ([True,True,True,True,False,True],	True),
-                  ([True,True,True,True,True,False],	True),
-                  ([True,True,True,True,True,True],	True)])
-                -- This formula has separate variables for each of the
-                -- three beliefs.  To combine these into an argument
-                -- we would wrap a single exists around them all and
-                -- remove the existing ones, substituting that one
-                -- variable into each formula.
-                (table (for_all "x" (s [x] .=>. h [x]) .&. for_all "y" (h [y] .=>. m [y]) .=>. for_all "z" (s [z] .=>. m [z])))
+                (runNormal (theorem socrates3),
+                 runNormal (inconsistant socrates3),
+                 table socrates3)
+    , myTest "socrates1 truth table"
+             (let skx = fApp (toSkolem "x") in
+              (fromList [fromList [Predicate (Apply "H" [FunApp (toSkolem "x") []]),
+                                   Predicate (Apply "M" [Var "x"]),
+                                   Predicate (Apply "S" [FunApp (toSkolem "x") []]),
+                                   Combine ((:~:) (Predicate (Apply "S" [Var "x"])))],
+                         fromList [Predicate (Apply "M" [Var "x"]),
+                                   Predicate (Apply "S" [FunApp (toSkolem "x") []]),
+                                   Combine ((:~:) (Predicate (Apply "M" [FunApp (toSkolem "x") []]))),
+                                   Combine ((:~:) (Predicate (Apply "S" [Var "x"])))],
+                         fromList [Predicate (Apply "M" [Var "x"]),
+                                   Combine ((:~:) (Predicate (Apply "H" [FunApp (toSkolem "x") []]))),
+                                   Combine ((:~:) (Predicate (Apply "M" [FunApp (toSkolem "x") []]))),
+                                   Combine ((:~:) (Predicate (Apply "S" [Var "x"])))]],
+              ([(Apply "H" [skx []]),
+                (Apply "M" [x]),
+                (Apply "M" [skx []]),
+                (Apply "S" [x]),
+                (Apply "S" [skx []])],
+               -- Clauses are always true if x is not socrates
+               -- Nothing,
+               {- (Just (CJ [DJ [A (h[skx[]]), A (m[x]),     A (s[skx[]]), N (s[x])],  -- false when x is socrates and not mortal, and skx is socrates and human
+                          DJ [A (m[x]),     A (s[skx[]]), N (A (m[skx[]])), N (s[x])],
+                          DJ [A (m[x]),     N (A (h[x])), N (A (m[skx[]])), N (s[x])]])) -}
+            --    h[skx] m[x] m[skx] s[x] s[skx]
+               [([False,False,False,False,False],True),
+                ([False,False,False,False,True], True),
+                ([False,False,False,True, False],False),
+                ([False,False,False,True, True], True),
+                ([False,False,True, False,False],True),
+                ([False,False,True, False,True], True),
+                ([False,False,True, True, False],False),
+                ([False,False,True, True, True], True),
+                ([False,True, False,False,False],True),
+                ([False,True, False,False,True], True),
+                ([False,True, False,True, False],True),
+                ([False,True, False,True, True], True),
+                ([False,True, True, False,False],True),
+                ([False,True, True, False,True], True),
+                ([False,True, True, True, False],True),
+                ([False,True, True, True, True], True),
+                ([True, False,False,False,False],True),
+                ([True, False,False,False,True], True),
+                ([True, False,False,True, False],True),
+                ([True, False,False,True, True], True),
+                ([True, False,True, False,False],True),
+                ([True, False,True, False,True], True),
+                ([True, False,True, True, False],False),
+                ([True, False,True, True, True], False),
+                ([True, True, False,False,False],True),
+                ([True, True, False,False,True], True),
+                ([True, True, False,True, False],True),
+                ([True, True, False,True, True], True),
+                ([True, True, True, False,False],True),
+                ([True, True, True, False,True], True),
+                ([True, True, True, True, False],True),
+                ([True, True, True, True, True], True)])))
+                (table socrates1)
+
+    , let skx = fApp (toSkolem "x")
+          {- sky = fApp (toSkolem "y") -} in
+      myTest "Socrates formula skolemized"
+              -- ((s[skx []] .&. (.~.)(h[skx []]) .|. h[sky[]] .&. (.~.)(m[sky []])) .|. (.~.)(s[z]) .|. m[z])
+                 ((s[skx []] .&. (.~.)(h[skx []]) .|. h[skx[]] .&. (.~.)(m[skx []])) .|. (.~.)(s[x]) .|. m[x])
+                 (runSkolem (skolemize id socrates5) :: TFormula)
+
+    , let skx = fApp (toSkolem "x")
+          sky = fApp (toSkolem "y") in
+      myTest "Socrates formula skolemized"
+              -- ((s[skx []] .&. (.~.)(h[skx []]) .|. h[sky[]] .&. (.~.)(m[sky []])) .|. (.~.)(s[z]) .|. m[z])
+                 ((s[skx []] .&. (.~.)(h[skx []]) .|. h[sky[]] .&. (.~.)(m[sky []])) .|. (.~.)(s[z]) .|. m[z])
+                 (runSkolem (skolemize id socrates6) :: TFormula)
 
     , myTest "Logic - socrates is not mortal"
                 (False,
                  False,
-                 ([(pApp ("H") [vt ("x")]),
-                   (pApp ("M") [vt ("x")]),
-                   (pApp ("S") [vt ("x")]),
-                   (pApp ("S") [fApp ("socrates") []])],
-                  Just (CJ [DJ [A (pApp ("H") [vt ("x")]),N (A (pApp ("S") [vt ("x")]))],
-                            DJ [A (pApp ("M") [vt ("x")]),N (A (pApp ("H") [vt ("x")]))],
-                            DJ [A (pApp ("S") [fApp ("socrates") []])],
-                            DJ [N (A (pApp ("M") [vt ("x")])),N (A (pApp ("S") [vt ("x")]))]]),
+                 (fromList [fromList [Predicate (Apply "H" [Var "x"]),
+                                      Combine ((:~:) (Predicate (Apply "S" [Var "x"])))],
+                            fromList [Predicate (Apply "M" [Var "x"]),
+                                      Combine ((:~:) (Predicate (Apply "H" [Var "x"])))],
+                            fromList [Predicate (Apply "S" [FunApp "socrates" []])],
+                            fromList [Combine ((:~:) (Predicate (Apply "M" [Var "x"]))),
+                                      Combine ((:~:) (Predicate (Apply "S" [Var "x"])))]],
+                 ([(Apply ("H") [vt ("x")]),
+                   (Apply ("M") [vt ("x")]),
+                   (Apply ("S") [vt ("x")]),
+                   (Apply ("S") [fApp ("socrates") []])],
                   [([False,False,False,False],False),
                    ([False,False,False,True],True),
                    ([False,False,True,False],False),
@@ -387,7 +386,7 @@ theoremTests =
                    ([True,True,False,False],False),
                    ([True,True,False,True],True),
                    ([True,True,True,False],False),
-                   ([True,True,True,True],False)]),
+                   ([True,True,True,True],False)])),
                  toSS [[(pApp ("H") [vt ("x")]),((.~.) (pApp ("S") [vt ("x")]))],
                        [(pApp ("M") [vt ("x")]),((.~.) (pApp ("H") [vt ("x")]))],
                        [(pApp ("S") [fApp ("socrates") []])],
@@ -405,23 +404,22 @@ theoremTests =
                 -- M(x) is false, the remaining lines would all be zero,
                 -- the argument would be inconsistant (an anti-theorem.)
                 -- How can we modify the formula to make these lines 0?
-                (let (formula :: TFormula) =
-                         for_all "x" ((s [x] .=>. h [x]) .&.
-                                      (h [x] .=>. m [x]) .&.
-                                      (m [x] .=>. ((.~.) (s [x])))) .&.
-                         (s [fApp "socrates" []]) in
-                 (runNormal (theorem formula), runNormal (inconsistant formula), table formula, runNormal (clauseNormalForm formula) :: Set.Set (Set.Set TFormula)))
+                (runNormal (theorem socrates7), runNormal (inconsistant socrates7), table socrates7, runNormal (clauseNormalForm socrates7) :: Set.Set (Set.Set TFormula))
     , let (formula :: TFormula) =
               (for_all "x" (pApp "L" [vt "x"] .=>. pApp "F" [vt "x"]) .&. -- All logicians are funny
                exists "x" (pApp "L" [vt "x"])) .=>.                            -- Someone is a logician
               (.~.) (exists "x" (pApp "F" [vt "x"]))                           -- Someone / Nobody is funny
           input = table formula
-          expected = ([(pApp ("F") [vt ("x2")]),
-                       (pApp ("F") [fApp (toSkolem "x") []]),
-                       (pApp ("L") [vt ("x")]),
-                       (pApp ("L") [fApp (toSkolem "x") []])],
-                      Just (CJ [DJ [A (pApp1 ("L") (fApp (toSkolem "x") [])),N (A (pApp1 ("F") (vt ("x2")))),N (A (pApp1 ("L") (vt ("x"))))],
-                                DJ [N (A (pApp1 ("F") (vt ("x2")))),N (A (pApp1 ("F") (fApp (toSkolem "x") []))),N (A (pApp1 ("L") (vt ("x"))))]]),
+          expected = (fromList [fromList [Predicate (Apply "L" [FunApp (toSkolem "x") []]),
+                                          Combine ((:~:) (Predicate (Apply "F" [Var "x2"]))),
+                                          Combine ((:~:) (Predicate (Apply "L" [Var "x"])))],
+                                fromList [Combine ((:~:) (Predicate (Apply "F" [Var "x2"]))),
+                                          Combine ((:~:) (Predicate (Apply "F" [FunApp (toSkolem "x") []]))),
+                                          Combine ((:~:) (Predicate (Apply "L" [Var "x"])))]],
+                      ([(Apply ("F") [vt ("x2")]),
+                       (Apply ("F") [fApp (toSkolem "x") []]),
+                       (Apply ("L") [vt ("x")]),
+                       (Apply ("L") [fApp (toSkolem "x") []])],
                       [([False,False,False,False],True),
                        ([False,False,False,True],True),
                        ([False,False,True,False],True),
@@ -437,15 +435,24 @@ theoremTests =
                        ([True,True,False,False],True),
                        ([True,True,False,True],True),
                        ([True,True,True,False],False),
-                       ([True,True,True,True],False)])
+                       ([True,True,True,True],False)]))
       in myTest "Logic - gensler189" expected input
     , let (formula :: TFormula) =
               (for_all "x" (pApp "L" [vt "x"] .=>. pApp "F" [vt "x"]) .&. -- All logicians are funny
                exists "y" (pApp "L" [vt (fromString "y")])) .=>.           -- Someone is a logician
               (.~.) (exists "z" (pApp "F" [vt "z"]))                       -- Someone / Nobody is funny
           input = table formula
-          expected :: TruthTable TFormula
-          expected = ([(pApp1 ("F") (vt ("z"))),(pApp1 ("F") (fApp (toSkolem "x") [])),(pApp1 ("L") (vt ("y"))),(pApp1 ("L") (fApp (toSkolem "x") []))],Just (CJ [DJ [A (pApp1 ("L") (fApp (toSkolem "x") [])),N (A (pApp1 ("F") (vt ("z")))),N (A (pApp1 ("L") (vt ("y"))))],DJ [N (A (pApp1 ("F") (vt ("z")))),N (A (pApp1 ("F") (fApp (toSkolem "x") []))),N (A (pApp1 ("L") (vt ("y"))))]]),[([False,False,False,False],True),([False,False,False,True],True),([False,False,True,False],True),([False,False,True,True],True),([False,True,False,False],True),([False,True,False,True],True),([False,True,True,False],True),([False,True,True,True],True),([True,False,False,False],True),([True,False,False,True],True),([True,False,True,False],False),([True,False,True,True],True),([True,True,False,False],True),([True,True,False,True],True),([True,True,True,False],False),([True,True,True,True],False)])
+          expected = (fromList [fromList [Predicate (Apply "L" [FunApp (toSkolem "x") []]),
+                                          Combine ((:~:) (Predicate (Apply "F" [Var "z"]))),
+                                          Combine ((:~:) (Predicate (Apply "L" [Var "y"])))],
+                                fromList [Combine ((:~:) (Predicate (Apply "F" [Var "z"]))),
+                                          Combine ((:~:) (Predicate (Apply "F" [FunApp (toSkolem "x") []]))),
+                                          Combine ((:~:) (Predicate (Apply "L" [Var "y"])))]],
+                      ([(Apply ("F") [vt ("z")]),
+                       (Apply ("F") [fApp (toSkolem "x") []]),
+                       (Apply ("L") [vt ("y")]),
+                       (Apply ("L") [fApp (toSkolem "x") []])],
+                      [([False,False,False,False],True),([False,False,False,True],True),([False,False,True,False],True),([False,False,True,True],True),([False,True,False,False],True),([False,True,False,True],True),([False,True,True,False],True),([False,True,True,True],True),([True,False,False,False],True),([True,False,False,True],True),([True,False,True,False],False),([True,False,True,True],True),([True,True,False,False],True),([True,True,False,True],True),([True,True,True,False],False),([True,True,True,True],False)]))
       in myTest "Logic - gensler189 renamed" expected input
     ]
 
@@ -503,19 +510,37 @@ prepare formula = ({- flatten . -} fromJust . toPropositional convertA . cnf . (
 
 convertA = Just . A
 -}
+         {- forall formula atom term v p f.
+         (FirstOrderFormula formula atom v,
+          PropositionalFormula formula atom,
+          Atom atom term v,
+          AtomEq atom p term,
+          Constants p, Eq p, Term term v f, Literal formula atom v,
+          Ord formula, Skolem f v, IsString v, Variable v, TD.Display formula) => -}
 
-table :: forall formula atom term v p f. (FirstOrderFormula formula atom v, PropositionalFormula formula atom, Atom atom term v, AtomEq atom p term, Constants p, Eq p, Term term v f, Literal formula atom v,
-                                     Ord formula, Skolem f v, IsString v, Variable v, TD.Display formula) =>
-         formula -> TruthTable formula
+table :: forall formula atom term v f.
+         (FirstOrderFormula formula atom v,
+          PropositionalFormula formula atom,
+          Literal formula atom v,
+          Atom atom term v,
+          Term term v f,
+          Ord formula, Ord atom) =>
+         formula -> (Set.Set (Set.Set formula), TruthTable atom)
 table f =
     -- truthTable :: Ord a => PropForm a -> TruthTable a
-    tt cnf'
+    (cnf, truthTable cnf')
     where
-      tt :: PropForm formula -> TruthTable formula
-      tt = truthTable
-      cnf' :: PropForm formula
-      cnf' = CJ (map (DJ . map n) cnf)
-      cnf :: [[formula]]
-      cnf = fromSS (runNormal (clauseNormalForm f))
+      cnf' :: formula
+      cnf' = list_conj (Set.map list_disj cnf :: Set.Set formula) -- CJ (map (DJ . map n) cnf)
+      cnf :: Set.Set (Set.Set formula)
+      cnf = runNormal (clauseNormalForm f)
       fromSS = map Set.toList . Set.toList
-      n f = (if negated f then N . A . (.~.) else A) $ f
+      -- n f = (if negated f then (.~.) . atomic . (.~.) else atomic) $ f
+      -- list_disj = setFoldr1 (.|.)
+      -- list_conj = setFoldr1 (.&.)
+
+setFoldr1 :: (a -> a -> a) -> Set.Set a -> a
+setFoldr1 f s =
+    case Set.minView s of
+      Nothing -> error "setFoldr1"
+      Just (x, s') -> Set.fold f x s'
