@@ -13,7 +13,8 @@ import Data.Logic.Classes.Arity
 import Data.Logic.Classes.Apply (Apply(..), Predicate, showApply)
 --import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
-import Data.Logic.Classes.FirstOrder ({-FirstOrderFormula(..),-} showFirstOrder)
+import Data.Logic.Classes.FirstOrder ({-FirstOrderFormula(..),-} showFirstOrder, foldAtomsFirstOrder, mapAtomsFirstOrder)
+import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), Fixity(..), FixityDirection(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(vt, foldTerm, fApp))
@@ -132,6 +133,10 @@ instance Variable String where
     prefix p x = p ++ x
     prettyVariable = text
 -}
+
+instance C.Formula (Formula FOL) FOL where
+    foldAtoms = foldAtomsFirstOrder
+    mapAtoms = mapAtomsFirstOrder
 
 instance Show (Formula FOL) where
     show = showFirstOrder showApply

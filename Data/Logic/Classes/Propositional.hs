@@ -307,15 +307,17 @@ purecnf' fm =
 -- Formula analog of list iterator "itlist".                                 
 -- ------------------------------------------------------------------------- 
 
-overatoms :: forall formula atom r. PropositionalFormula formula atom =>
-             (atom -> r -> r) -> formula -> r -> r
-overatoms f fm b =
-    foldPropositional co tf at fm
-    where
-      co ((:~:) p) = overatoms f p b
-      co (BinOp p _ q) = overatoms f p (overatoms f q b)
-      tf _ = b
-      at a = f a b
+-- | Use this to implement foldAtoms
+foldAtomsPropositional :: PropositionalFormula pf atom => (r -> atom -> r) -> r -> pf -> r
+foldAtomsPropositional f i pf =
+        foldPropositional co (const i) (f i) pf
+        where
+          co ((:~:) pf') = foldAtomsPropositional f i pf'
+          co (BinOp p _ q) = foldAtomsPropositional f (foldAtomsPropositional f i q) p
+
+-- | Deprecated - use foldAtoms.
+overatoms :: forall formula atom r. PropositionalFormula formula atom => (atom -> r -> r) -> formula -> r -> r
+overatoms f fm b = foldAtomsPropositional (flip f) b fm
 
 $(deriveSafeCopy 1 'base ''BinOp)
 $(deriveSafeCopy 1 'base ''Combination)

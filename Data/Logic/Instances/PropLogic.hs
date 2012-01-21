@@ -95,12 +95,12 @@ plSat0 f = satisfiable . (\ (x :: PropForm formula) -> x) . clauses0 $ f
 clauses0 :: (PropositionalFormula formula atom, Ord formula) => PropForm formula -> PropForm formula
 clauses0 f = CJ . map DJ . map S.toList . S.toList $ clauseNormalForm' f
 
-plSat :: forall m formula atom term v f. (Monad m, FirstOrderFormula formula atom v, PropositionalFormula formula atom, Atom atom term v, Term term v f, Eq formula, Literal formula atom v, Ord formula) =>
+plSat :: forall m formula atom term v f. (Monad m, FirstOrderFormula formula atom v, PropositionalFormula formula atom, Atom atom term v, Term term v f, Eq formula, Literal formula atom, Ord formula) =>
                 formula -> SkolemT v term m Bool
 plSat f = clauses f >>= (\ (x :: PropForm formula) -> return x) >>= return . satisfiable
 
 clauses :: forall m formula atom term v f.
-           (Monad m, FirstOrderFormula formula atom v, PropositionalFormula formula atom, Atom atom term v, Term term v f, Eq formula, Literal formula atom v, Ord formula) =>
+           (Monad m, FirstOrderFormula formula atom v, PropositionalFormula formula atom, Atom atom term v, Term term v f, Eq formula, Literal formula atom, Ord formula) =>
            formula -> SkolemT v term m (PropForm formula)
 clauses f =
     do (cnf :: S.Set (S.Set formula)) <- clauseNormalForm f

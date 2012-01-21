@@ -16,7 +16,8 @@ import qualified Data.Logic.Classes.Atom as C
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), showFirstOrderFormulaEq, substAtomEq, varAtomEq)
-import Data.Logic.Classes.FirstOrder (fixityFirstOrder)
+import Data.Logic.Classes.FirstOrder (fixityFirstOrder, mapAtomsFirstOrder, foldAtomsFirstOrder)
+import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), Fixity(..), FixityDirection(..))
 import qualified Data.Logic.Classes.Propositional as P
@@ -34,6 +35,10 @@ data PredName = (:=:) | Named String deriving (Eq, Ord, Show, Data, Typeable)
 instance Arity PredName where
     arity (:=:) = Just 2
     arity _ = Nothing
+
+instance C.Formula (Formula FOLEQ) FOLEQ where
+    foldAtoms = foldAtomsFirstOrder
+    mapAtoms = mapAtomsFirstOrder
 
 instance Show (Formula FOLEQ) where
     show = showFirstOrderFormulaEq
@@ -119,7 +124,7 @@ instance Pretty FOLEQ where
 instance HasFixity (Formula FOLEQ) where
     fixity = fixityFirstOrder
 
-instance Literal (Formula FOLEQ) FOLEQ String where
+instance Literal (Formula FOLEQ) FOLEQ where
     atomic = Atom
     foldLiteral neg tf at lit =
         case lit of

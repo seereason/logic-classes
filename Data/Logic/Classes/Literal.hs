@@ -7,12 +7,14 @@ module Data.Logic.Classes.Literal
     , fromLiteral
     , toPropositional
     , prettyLit
+    , foldAtomsLiteral
     ) where
 
 import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Combine (Combination(..))
 import Data.Logic.Classes.Constants
 import qualified Data.Logic.Classes.FirstOrder as FOF
+import Data.Logic.Classes.Formula (Formula(foldAtoms))
 import Data.Logic.Classes.Pretty (HasFixity(..), Fixity(..), FixityDirection(..))
 import qualified Data.Logic.Classes.Propositional as P
 import Data.Logic.Classes.Negate
@@ -20,11 +22,11 @@ import Text.PrettyPrint (Doc, (<>), text, parens, nest)
 
 -- |Literals are the building blocks of the clause and implicative normal
 -- |forms.  They support negation and must include True and False elements.
-class (Negatable lit, Constants lit, HasFixity atom) => Literal lit atom v | lit -> atom v where
+class (Negatable lit, Constants lit, HasFixity atom) => Literal lit atom | lit -> atom where
     foldLiteral :: (lit -> r) -> (Bool -> r) -> (atom -> r) -> lit -> r
     atomic :: atom -> lit
 
-zipLiterals :: Literal lit atom v =>
+zipLiterals :: Literal lit atom =>
                (lit -> lit -> Maybe r)
             -> (Bool -> Bool -> Maybe r)
             -> (atom -> atom -> Maybe r)
@@ -49,21 +51,21 @@ instance FirstOrderFormula fof atom v => Literal fof atom v where
 -- |Just like Logic.FirstOrder.convertFOF except it rejects anything
 -- with a construct unsupported in a normal logic formula,
 -- i.e. quantifiers and formula combinators other than negation.
-fromFirstOrder :: forall formula atom v lit atom2 v2.
-                  (FOF.FirstOrderFormula formula atom v, Literal lit atom2 v2) =>
-                  (atom -> atom2) -> (v -> v2) -> formula -> Failing lit
-fromFirstOrder ca cv formula =
+fromFirstOrder :: forall formula atom v lit atom2.
+                  (FOF.FirstOrderFormula formula atom v, Literal lit atom2) =>
+                  (atom -> atom2) -> formula -> Failing lit
+fromFirstOrder ca formula =
     FOF.foldFirstOrder (\ _ _ _ -> Failure ["fromFirstOrder"]) co (Success . fromBool) (Success . atomic . ca) formula
     where
       co :: Combination formula -> Failing lit
-      co ((:~:) f) =  fromFirstOrder ca cv f >>= return . (.~.)
+      co ((:~:) f) =  fromFirstOrder ca f >>= return . (.~.)
       co _ = Failure ["fromFirstOrder"]
 
-fromLiteral :: forall lit atom v fof atom2 v2. (Literal lit atom v, FOF.FirstOrderFormula fof atom2 v2) =>
+fromLiteral :: forall lit atom v fof atom2. (Literal lit atom, FOF.FirstOrderFormula fof atom2 v) =>
                (atom -> atom2) -> lit -> fof
 fromLiteral ca lit = foldLiteral (\ p -> (.~.) (fromLiteral ca p)) fromBool (FOF.atomic . ca) lit
 
-toPropositional :: forall lit atom v pf atom2. (Literal lit atom v, P.PropositionalFormula pf atom2) =>
+toPropositional :: forall lit atom pf atom2. (Literal lit atom, P.PropositionalFormula pf atom2) =>
                    (atom -> atom2) -> lit -> pf
 toPropositional ca lit = foldLiteral (\ p -> (.~.) (toPropositional ca p)) fromBool (P.atomic . ca) lit
 
@@ -90,7 +92,7 @@ prettyLit pv pp pf _prec lit =
       -- parensIf _ = parens . nest 1
 -}
 
-prettyLit :: forall lit atom v. (Literal lit atom v) =>
+prettyLit :: forall lit atom v. (Literal lit atom) =>
               (Int -> atom -> Doc)
            -> (v -> Doc)
            -> Int
@@ -107,10 +109,13 @@ prettyLit pa pv pprec lit =
       parensIf _ = parens . nest 1
       Fixity prec _ = fixityLiteral lit
 
-fixityLiteral :: (Literal formula atom v) => formula -> Fixity
+fixityLiteral :: (Literal formula atom) => formula -> Fixity
 fixityLiteral formula =
     foldLiteral neg tf at formula
     where
       neg _ = Fixity 5 InfixN
       tf _ = Fixity 10 InfixN
       at = fixity
+
+foldAtomsLiteral :: Literal lit atom => (r -> atom -> r) -> r -> lit -> r
+foldAtomsLiteral f i lit = foldLiteral (foldAtomsLiteral f i) (const i) (f i) lit

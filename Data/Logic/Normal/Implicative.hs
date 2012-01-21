@@ -93,7 +93,7 @@ implicativeNormalForm :: forall m formula atom term v f lit.
                           FirstOrderFormula formula atom v,
                           PropositionalFormula formula atom,
                           Atom atom term v,
-                          Literal lit atom v,
+                          Literal lit atom,
                           Term term v f,
                           Data formula, Ord formula, Ord lit, Data lit, Skolem f v) =>
                          formula -> SkolemT v term m (Set.Set (ImplicativeForm lit))

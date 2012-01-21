@@ -10,6 +10,7 @@ import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder)
 import qualified Data.Logic.Classes.FirstOrder as C
+import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity)
 import Data.Logic.Classes.Variable (Variable(..))
@@ -69,7 +70,7 @@ instance Variable String where
                 (digits, nondigits) -> nondigits ++ show (1 + read (reverse digits) :: Int)
 -}
 
-instance (Constants a, Pretty a, HasFixity a) => FirstOrderFormula (Formula a) a String where
+instance (C.Formula (Formula a) a, Constants a, Pretty a, HasFixity a) => FirstOrderFormula (Formula a) a String where
     atomic = Atom
     for_all = Forall
     exists = Exists
@@ -86,5 +87,5 @@ instance (Constants a, Pretty a, HasFixity a) => FirstOrderFormula (Formula a) a
           Forall v fm' -> qu C.Forall v fm'
           Exists v fm' -> qu C.Exists v fm'
 
-instance (Constants a, Pretty a, HasFixity a) => Pretty (Formula a) where
+instance (FirstOrderFormula (Formula a) a String) => Pretty (Formula a) where
     pretty = prettyFirstOrder (const pretty) pretty 0

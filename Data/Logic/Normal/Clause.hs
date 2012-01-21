@@ -58,7 +58,7 @@ clauseNormalForm :: forall formula atom term v f lit m.
                      PropositionalFormula formula atom,
                      Atom atom term v,
                      Term term v f,
-                     Literal lit atom v,
+                     Literal lit atom,
                      Ord formula, Ord lit) =>
                     formula -> SkolemT v term m (Set.Set (Set.Set lit))
 clauseNormalForm fm = skolemize id fm >>= return . (simpcnf' :: formula -> Set.Set (Set.Set lit))
@@ -70,7 +70,7 @@ cnfTrace :: forall m formula atom term v p f lit.
              Atom atom term v,
              AtomEq atom p term,
              Term term v f,
-             Literal lit atom v,
+             Literal lit atom,
              Ord formula, Ord lit) =>
             (v -> Doc)
          -> (p -> Doc)

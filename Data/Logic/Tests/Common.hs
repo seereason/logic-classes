@@ -45,7 +45,7 @@ import Data.Logic.Classes.Term (Term(vt, fApp, foldTerm), Function)
 import Data.Logic.Classes.Variable (Variable(..))
 import Data.Logic.Harrison.Normal (trivial)
 import Data.Logic.Harrison.Skolem (Skolem, skolemize, runSkolem, pnf, nnf, simplify)
-import qualified Data.Logic.Instances.Chiou as C
+import qualified Data.Logic.Instances.Chiou as Ch
 import Data.Logic.Instances.PropLogic (plSat)
 import qualified Data.Logic.Instances.SatSolver as SS
 import Data.Logic.KnowledgeBase (WithId, runProver', Proof, loadKB, theoremKB, getKB)
@@ -194,15 +194,15 @@ data (FirstOrderFormula formula atom v, formula ~ TFormula, atom ~ TAtom, v ~ V)
     | SkolemNumbers (S.Set AtomicFunction)
     | ClauseNormalForm (S.Set (S.Set formula))
     | TrivialClauses [(Bool, (S.Set formula))]
-    | ConvertToChiou (C.Sentence V Pr AtomicFunction)
+    | ConvertToChiou (Ch.Sentence V Pr AtomicFunction)
     | ChiouKB1 (Proof formula)
     | PropLogicSat Bool
     | SatSolverCNF CNF
     | SatSolverSat Bool
     -- deriving (Data, Typeable)
 
-deriving instance Show (C.Sentence V Pr AtomicFunction)
-deriving instance Show (C.CTerm V AtomicFunction)
+deriving instance Show (Ch.Sentence V Pr AtomicFunction)
+deriving instance Show (Ch.CTerm V AtomicFunction)
 
 type TTestFormula = TestFormula TFormula TAtom V
 
@@ -229,17 +229,17 @@ doTest f =
           myTest (name f ++ " trivial clauses") flags (map (\ (x :: S.Set TFormula) -> (trivial x, x)) (S.toList (runSkolem (clauseNormalForm (formula f :: TFormula)))))
       doExpected (ConvertToChiou result) =
           -- We need to convert (formula f) to Chiou and see if it matches result.
-          let ca :: TAtom -> C.Sentence V Pr AtomicFunction
+          let ca :: TAtom -> Ch.Sentence V Pr AtomicFunction
               -- ca = undefined
-              ca (P.Apply p ts) = C.Predicate p (map ct ts)
-              ca (P.Equal t1 t2) = C.Equal (ct t1) (ct t2)
-              ct :: TTerm -> C.CTerm V AtomicFunction
+              ca (P.Apply p ts) = Ch.Predicate p (map ct ts)
+              ca (P.Equal t1 t2) = Ch.Equal (ct t1) (ct t2)
+              ct :: TTerm -> Ch.CTerm V AtomicFunction
               ct = foldTerm cv fn
-              cv :: V -> C.CTerm V AtomicFunction
+              cv :: V -> Ch.CTerm V AtomicFunction
               cv = vt
-              fn :: AtomicFunction -> [TTerm] -> C.CTerm V AtomicFunction
+              fn :: AtomicFunction -> [TTerm] -> Ch.CTerm V AtomicFunction
               fn f ts = fApp f (map ct ts) in
-          myTest (name f ++ " converted to Chiou") result (convertFOF ca id (formula f) :: C.Sentence V Pr AtomicFunction)
+          myTest (name f ++ " converted to Chiou") result (convertFOF ca id (formula f) :: Ch.Sentence V Pr AtomicFunction)
       doExpected (ChiouKB1 result) =
           myTest (name f ++ " Chiou KB") result (runProver' Nothing (loadKB [formula f] >>= return . head))
       doExpected (PropLogicSat result) =
@@ -305,7 +305,7 @@ doProof :: forall formula atom term v p f. (FirstOrderFormula formula atom v,
                                             PropositionalFormula formula atom,
                                             AtomEq atom p term, atom ~ P.Predicate p (P.PTerm v f),
                                             Term term v f, term ~ P.PTerm v f,
-                                            Literal formula atom v,
+                                            Literal formula atom,
                                             Ord formula, Data formula, Eq term, Show term, Show v, Show formula, Constants p, Eq p, Ord f, Show f) =>
            TestProof formula term v -> Test
 doProof p =

@@ -13,11 +13,12 @@ import qualified Data.Logic.Classes.Atom as C
 --import Data.Logic.Classes.Constants (false)
 import Data.Logic.Classes.Equals (AtomEq, zipAtomsEq)
 --import Data.Logic.Classes.FirstOrder (FirstOrderFormula, exists, for_all)
+import Data.Logic.Classes.Formula (Formula(..))
 import Data.Logic.Classes.Negate (positive, (.~.))
 import Data.Logic.Classes.Literal (Literal, zipLiterals)
 --import Data.Logic.Classes.Propositional (PropositionalFormula)
 import Data.Logic.Classes.Term (Term(..), vt)
-import Data.Logic.Harrison.FOL (fv', subst, generalize)
+import Data.Logic.Harrison.FOL (subst, generalize)
 import Data.Logic.Harrison.Herbrand (davisputnam)
 import Data.Logic.Harrison.Lib (allpairs, settryfind, distrib')
 import Data.Logic.Harrison.Prop (simpdnf)
@@ -39,7 +40,7 @@ import Debug.Trace (trace)
 -- ------------------------------------------------------------------------- 
 
 unify_literals :: forall lit atom term v f.
-                  (Literal lit atom v,
+                  (Literal lit atom,
                    C.Atom atom term v,
                    Term term v f) =>
                   Map.Map v term -> lit -> lit -> Failing (Map.Map v term)
@@ -72,7 +73,7 @@ unifyAtomsEq env a1 a2 =
 -- ------------------------------------------------------------------------- 
 
 unify_complements :: forall lit atom term v f.
-                     (Literal lit atom v,
+                     (Literal lit atom,
                       C.Atom atom term v,
                       Term term v f) =>
                      Map.Map v term -> lit -> lit -> Failing (Map.Map v term)
@@ -82,7 +83,7 @@ unify_complements env p q = unify_literals env p ((.~.) q)
 -- Unify and refute a set of disjuncts.                                      
 -- ------------------------------------------------------------------------- 
 
-unify_refute :: (Literal lit atom v, Term term v f, C.Atom atom term v, Ord lit) => Set.Set (Set.Set lit) -> Map.Map v term -> Failing (Map.Map v term)
+unify_refute :: (Literal lit atom, Term term v f, C.Atom atom term v, Ord lit) => Set.Set (Set.Set lit) -> Map.Map v term -> Failing (Map.Map v term)
 unify_refute djs env =
     case Set.minView djs of
       Nothing -> Success env
@@ -108,7 +109,7 @@ prawitz_loop djs0 fvs djs n =
 
 -- prawitz :: forall fof pf atom term f v. (FirstOrderFormula fof atom v, PropositionalFormula pf atom, Eq fof, Ord pf) => fof -> Int
 prawitz fm =
-    snd (prawitz_loop (simpdnf pf) (Set.toList (fv' pf)) (Set.singleton Set.empty) 0)
+    snd (prawitz_loop (simpdnf pf) (Set.toList (foldAtoms (\ s a -> Set.union (C.freeVariables a) s) Set.empty pf)) (Set.singleton Set.empty) 0)
     where pf = runSkolem (skolemize id ((.~.)(generalize fm)))
 
 -- ------------------------------------------------------------------------- 

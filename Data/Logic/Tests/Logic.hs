@@ -521,7 +521,7 @@ convertA = Just . A
 table :: forall formula atom term v f.
          (FirstOrderFormula formula atom v,
           PropositionalFormula formula atom,
-          Literal formula atom v,
+          Literal formula atom,
           Atom atom term v,
           Term term v f,
           Ord formula, Ord atom) =>

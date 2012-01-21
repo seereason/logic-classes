@@ -2,14 +2,14 @@
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Harrison.Skolem
     ( simplify
-    , simplify'
+    -- , simplify'
     , lsimplify
     , nnf
-    , nnf'
+    -- , nnf'
     , pnf
-    , pnf'
+    -- , pnf'
     , functions
-    , functions'
+    -- , functions'
     , SkolemT
     , Skolem
     , runSkolem
@@ -19,18 +19,18 @@ module Data.Logic.Harrison.Skolem
     , literal
     , askolemize
     , skolemNormalForm
-    -- , substituteEq
-    , prenex'
+    -- , prenex'
     , skolem
     ) where
 
 import Control.Monad.Identity (Identity(runIdentity))
-import Control.Monad.State (StateT(runStateT), get, put)
+import Control.Monad.State (StateT(runStateT))
 import Data.Logic.Classes.Apply (Apply(foldApply))
 import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (Constants(fromBool, asBool), true, false)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(atomic, exists, for_all, foldFirstOrder), Quant(..), quant, toPropositional)
+import Data.Logic.Classes.Formula (Formula(..))
 import Data.Logic.Classes.Literal (Literal(foldLiteral, atomic))
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
@@ -133,10 +133,10 @@ simplify' fm =
       at _ = fm
 
 -- | Just looks for double negatives and negated constants.
-lsimplify :: Literal lit atom v => lit -> lit
+lsimplify :: Literal lit atom => lit -> lit
 lsimplify fm = foldLiteral (lsimplify1 . (.~.) . lsimplify) fromBool (const fm) fm
 
-lsimplify1 :: Literal lit atom v => lit -> lit
+lsimplify1 :: Literal lit atom => lit -> lit
 lsimplify1 fm = foldLiteral (foldLiteral id (fromBool . not) (const fm)) fromBool (const fm) fm
 
 
@@ -263,22 +263,8 @@ pnf' = prenex' . nnf' . simplify'
 
 -- FIXME: the function parameter should be a method in the Atom class,
 -- but we need to add a type parameter f to it first.
-functions :: forall formula atom v f. (FirstOrderFormula formula atom v, Ord f) => (atom -> Set.Set (f, Int)) -> formula -> Set.Set (f, Int)
-functions fa fm =
-    foldFirstOrder qu co tf fa fm
-    where
-      qu _ _ p = functions fa p
-      co ((:~:) p) = functions fa p
-      co (BinOp p _ q) = Set.union (functions fa p) (functions fa q)
-      tf _ = Set.empty
-
-functions' :: forall formula atom f. (PropositionalFormula formula atom, Ord f) => (atom -> Set.Set (f, Int)) -> formula -> Set.Set (f, Int)
-functions' fa fm =
-    foldPropositional co tf fa fm
-    where
-      co ((:~:) p) = functions' fa p
-      co (BinOp p _ q) = Set.union (functions' fa p) (functions' fa q)
-      tf _ = Set.empty
+functions :: forall formula atom f. (Formula formula atom, Ord f) => (atom -> Set.Set (f, Int)) -> formula -> Set.Set (f, Int)
+functions fa fm = foldAtoms (\ s a -> Set.union s (fa a)) Set.empty fm
 
 -- ------------------------------------------------------------------------- 
 -- State monad for generating Skolem functions and constants.
@@ -414,7 +400,7 @@ skolemize ca fm = askolemize fm >>= return . (toPropositional ca :: fof -> pf) .
 -- | Convert a first order formula into a disjunct of conjuncts of
 -- literals.  Note that this can convert any instance of
 -- FirstOrderFormula into any instance of Literal.
-literal :: forall fof atom term v p f lit. (Literal fof atom v, Apply atom p term, Term term v f, Literal lit atom v, Ord lit) =>
+literal :: forall fof atom term v p f lit. (Literal fof atom, Apply atom p term, Term term v f, Literal lit atom, Ord lit) =>
            fof -> Set.Set (Set.Set lit)
 literal fm =
     foldLiteral neg tf at fm

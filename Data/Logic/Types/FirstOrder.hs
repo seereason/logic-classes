@@ -16,7 +16,8 @@ import qualified Data.Logic.Classes.Atom as C
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.), pApp, substAtomEq, varAtomEq, prettyAtomEq)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), prettyFirstOrder, fixityFirstOrder)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), prettyFirstOrder, fixityFirstOrder, foldAtomsFirstOrder, mapAtomsFirstOrder)
+import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), botFixity)
@@ -79,7 +80,11 @@ instance (Constants (Formula v p f) {-, Ord v, Ord p, Ord f-}) => Combinable (Fo
     x .|.   y = Combine (BinOp  x (:|:)   y)
     x .&.   y = Combine (BinOp  x (:&:)   y)
 
-instance (Variable v, C.Predicate p, Function f v, Constants (Formula v p f), Combinable (Formula v p f)) =>
+instance (C.Predicate p, Function f v) => C.Formula (Formula v p f) (Predicate p (PTerm v f)) where
+    foldAtoms = foldAtomsFirstOrder
+    mapAtoms = mapAtomsFirstOrder
+
+instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)), Variable v, C.Predicate p, Function f v, Constants (Formula v p f), Combinable (Formula v p f)) =>
          PropositionalFormula (Formula v p f) (Predicate p (PTerm v f)) where
     atomic (Equal t1 t2) = t1 .=. t2
     atomic (Apply p ts) = pApp p ts
@@ -122,7 +127,8 @@ instance C.Predicate p => AtomEq (Predicate p (PTerm v f)) p (PTerm v f) where
     equals = Equal
     applyEq' = Apply
 
-instance (AtomEq (Predicate p (PTerm v f)) p (PTerm v f),
+instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)),
+          AtomEq (Predicate p (PTerm v f)) p (PTerm v f),
           Constants (Formula v p f),
           Variable v, C.Predicate p, Function f v) =>
          FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v where
@@ -157,7 +163,7 @@ instance (Constants (Formula v p f),
     atomic = Predicate
 -}
 
-instance (Constants p, Eq v, Eq p, Eq f, Constants (Predicate p (PTerm v f))) => Literal (Formula v p f) (Predicate p (PTerm v f)) v where
+instance (Constants p, Eq v, Eq p, Eq f, Constants (Predicate p (PTerm v f))) => Literal (Formula v p f) (Predicate p (PTerm v f)) where
     atomic = Predicate
     foldLiteral neg tf at f =
         case f of
@@ -186,10 +192,11 @@ instance (Variable v, Pretty v,
           Function f v, Pretty f) => Pretty (Predicate p (PTerm v f)) where
     pretty atom = prettyAtomEq pretty pretty pretty 0 atom
 
-instance (C.Predicate p, Variable v, Function f v, HasFixity (Predicate p (PTerm v f))) => HasFixity (Formula v p f) where
+instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)),
+          C.Predicate p, Variable v, Function f v, HasFixity (Predicate p (PTerm v f))) => HasFixity (Formula v p f) where
     fixity = fixityFirstOrder
 
-instance (Variable v, C.Predicate p, Function f v) => Pretty (Formula v p f) where
+instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)), Variable v, C.Predicate p, Function f v) => Pretty (Formula v p f) where
     pretty = prettyFirstOrder (\ _ -> pretty) pretty 0
 
 instance HasFixity (Predicate p term) where

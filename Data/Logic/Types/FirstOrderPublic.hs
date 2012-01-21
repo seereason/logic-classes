@@ -16,6 +16,7 @@ import Data.Logic.Classes.Apply (Predicate)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder)
+import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity)
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
@@ -56,7 +57,8 @@ instance (Constants (N.Formula v p f), Predicate p, Variable v, Function f v) =>
     fromBool = Formula . fromBool
     asBool = asBool . unFormula
 
-instance (Constants (Formula v p f),
+instance (C.Formula (N.Formula v p f) (N.Predicate p (N.PTerm v f)),
+          Constants (Formula v p f),
           Constants (N.Formula v p f),
           Variable v, Predicate p, Function f v) => Combinable (Formula v p f) where
     x .<=>. y = Formula $ (unFormula x) .<=>. (unFormula y)
@@ -64,8 +66,9 @@ instance (Constants (Formula v p f),
     x .|.   y = Formula $ (unFormula x) .|. (unFormula y)
     x .&.   y = Formula $ (unFormula x) .&. (unFormula y)
 
-instance (Variable v, Predicate p, Function f v
-         ) => FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v where
+instance (C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)),
+          C.Formula (N.Formula v p f) (N.Predicate p (N.PTerm v f)),
+          Variable v, Predicate p, Function f v) => FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v where
     for_all v x = public $ for_all v (intern x :: N.Formula v p f)
     exists v x = public $ exists v (intern x :: N.Formula v p f)
     foldFirstOrder qu co tf at f = foldFirstOrder qu' co' tf at (intern f :: N.Formula v p f)
@@ -73,14 +76,18 @@ instance (Variable v, Predicate p, Function f v
               co' x = co (public x)
     atomic = Formula . Data.Logic.Classes.FirstOrder.atomic
 
-instance (Show v, Show p, Show f, HasFixity (Formula v p f), Variable v, Predicate p, Function f v
-         ) => PropositionalFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) where
+instance (C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)),
+          C.Formula (N.Formula v p f) (N.Predicate p (N.PTerm v f)),
+          Show v, Show p, Show f, HasFixity (Formula v p f), Variable v, Predicate p,
+          Function f v) => PropositionalFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) where
     foldPropositional co tf at f = foldPropositional co' tf at (intern f :: N.Formula v p f)
         where co' x = co (public x)
     atomic = Formula . Data.Logic.Classes.Propositional.atomic
 
 -- |Here are the magic Ord and Eq instances
-instance (Predicate p, Function f v, Variable v) => Ord (Formula v p f) where
+instance (C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)),
+          C.Formula (N.Formula v p f) (N.Predicate p (N.PTerm v f)),
+          Predicate p, Function f v, Variable v) => Ord (Formula v p f) where
     compare a b =
         let (a' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm (unFormula a))
             (b' :: Set (ImplicativeForm (N.Formula v p f))) = runNormal (implicativeNormalForm (unFormula b)) in
@@ -88,11 +95,15 @@ instance (Predicate p, Function f v, Variable v) => Ord (Formula v p f) where
           EQ -> EQ
           x -> {- if isRenameOf a' b' then EQ else -} x
 
-instance (Predicate p, Function f v, Variable v, Constants (N.Predicate p (N.PTerm v f)),
+instance (C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)),
+          C.Formula (N.Formula v p f) (N.Predicate p (N.PTerm v f)),
+          Predicate p, Function f v, Variable v, Constants (N.Predicate p (N.PTerm v f)),
           FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v) => Eq (Formula v p f) where
     a == b = compare a b == EQ
 
-instance (Pretty v, Show v, Variable v,
+instance (C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)),
+          C.Formula (N.Formula v p f) (N.Predicate p (N.PTerm v f)),
+          Pretty v, Show v, Variable v,
           Pretty p, Show p, Predicate p,
           Pretty f, Show f, Function f v) => Pretty (Formula v p f) where
     pretty formula = prettyFirstOrder (\ _prec a -> pretty a) pretty 0 formula

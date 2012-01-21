@@ -45,7 +45,7 @@ toCNF :: (Monad m,
           Atom atom term v,
           AtomEq atom p term,
           Term term v f,
-          N.Literal formula atom v,
+          N.Literal formula atom,
           Ord formula) =>
          formula -> NormalT formula v term m CNF
 toCNF f = clauseNormalForm f >>= S.ssMapM (lift . toLiteral) >>= return . makeCNF

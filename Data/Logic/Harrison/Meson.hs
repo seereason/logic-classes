@@ -59,7 +59,7 @@ contrapositives cls =
 -- The core of MESON: ancestor unification or Prolog-style extension.        
 -- ------------------------------------------------------------------------- 
 
-mexpand :: forall fof atom term v f. (FirstOrderFormula fof atom v, Literal fof atom v, Term term v f, Atom atom term v, Ord fof) =>
+mexpand :: forall fof atom term v f. (FirstOrderFormula fof atom v, Literal fof atom, Term term v f, Atom atom term v, Ord fof) =>
            Set.Set (Set.Set fof, fof)
         -> Set.Set fof
         -> fof
@@ -86,7 +86,7 @@ mexpand rules ancestors g cont (env,n,k) =
 -- Full MESON procedure.                                                     
 -- ------------------------------------------------------------------------- 
 
-puremeson :: forall fof atom term v f. (FirstOrderFormula fof atom v, Literal fof atom v, Term term v f, Atom atom term v, Ord fof) =>
+puremeson :: forall fof atom term v f. (FirstOrderFormula fof atom v, Literal fof atom, Term term v f, Atom atom term v, Ord fof) =>
              Maybe Int -> fof -> Failing ((Map.Map v term, Int, Int), Int)
 puremeson maxdl fm =
     deepen f 0 maxdl
@@ -95,7 +95,7 @@ puremeson maxdl fm =
       rules = Set.fold (Set.union . contrapositives) Set.empty cls
       cls = simpcnf (specialize (pnf fm))
 
-meson :: forall m fof atom term f v. (FirstOrderFormula fof atom v, PropositionalFormula fof atom, Literal fof atom v, Term term v f, Atom atom term v, Ord fof, Monad m) =>
+meson :: forall m fof atom term f v. (FirstOrderFormula fof atom v, PropositionalFormula fof atom, Literal fof atom, Term term v f, Atom atom term v, Ord fof, Monad m) =>
          Maybe Int -> fof -> SkolemT v term m (Set.Set (Failing ((Map.Map v term, Int, Int), Int)))
 meson maxdl fm =
     askolemize ((.~.)(generalize fm)) >>=

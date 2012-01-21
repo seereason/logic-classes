@@ -6,9 +6,9 @@ module Data.Logic.Harrison.FOL
     , list_conj
     , var
     , fv
-    , fv'
+    -- , fv'
     , subst
-    , subst'
+    -- , subst'
     , generalize
     ) where
 

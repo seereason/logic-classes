@@ -16,10 +16,11 @@ import Data.Logic.Classes.Combine ((∧), (⇒))
 import Data.Logic.Classes.Constants (Constants(fromBool))
 import Data.Logic.Classes.Equals (AtomEq(..), applyEq, (.=.), PredicateName(..), funcsAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), (∀))
+import Data.Logic.Classes.Formula (Formula(foldAtoms))
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Harrison.Formulas.FirstOrder (atom_union)
 import Data.Logic.Harrison.Lib ((∅))
-import Data.Logic.Harrison.Skolem (functions)
+-- import Data.Logic.Harrison.Skolem (functions)
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 
@@ -127,16 +128,21 @@ equivalence_axioms =
       z :: term
       z = vt (fromString "z")
 
-equalitize :: (FirstOrderFormula formula atom v, AtomEq atom p term, Ord p, Show p, Term term v f, Ord formula, Ord f) =>
+equalitize :: forall formula atom term v p f. (FirstOrderFormula formula atom v, Formula formula atom, AtomEq atom p term, Ord p, Show p, Term term v f, Ord formula, Ord f) =>
               formula -> formula
 equalitize fm =
     if not (Set.member Equals allpreds)
     then fm
     else foldr1 (∧) (Set.toList axioms) ⇒ fm
     where
-      axioms = Set.fold (Set.union . function_congruence) (Set.fold (Set.union . predicate_congruence) equivalence_axioms preds) (functions funcsAtomEq fm)
+      axioms = Set.fold (Set.union . function_congruence) (Set.fold (Set.union . predicate_congruence) equivalence_axioms preds) (functions' funcsAtomEq' fm)
+      funcsAtomEq' :: atom -> Set.Set (f, Int)
+      funcsAtomEq' = funcsAtomEq
       allpreds = predicates fm
       preds = Set.delete Equals allpreds
+
+functions' :: forall formula atom f. (Formula formula atom, Ord f) => (atom -> Set.Set (f, Int)) -> formula -> Set.Set (f, Int)
+functions' fa fm = foldAtoms (\ s a -> Set.union s (fa a)) Set.empty fm
 
 -- ------------------------------------------------------------------------- 
 -- Other variants not mentioned in book.                                     

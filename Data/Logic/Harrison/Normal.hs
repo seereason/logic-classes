@@ -65,7 +65,7 @@ purednf fm =
       tf = Set.singleton . Set.singleton . fromBool
       at _ = Set.singleton (Set.singleton fm)
 
-simpdnf' :: forall lit fof atom v. (FirstOrderFormula fof atom v, Literal lit atom v, Ord lit) =>
+simpdnf' :: forall lit fof atom v. (FirstOrderFormula fof atom v, Literal lit atom, Ord lit) =>
             fof -> Set.Set (Set.Set lit)
 simpdnf' fm =
     foldFirstOrder qu co tf at fm
@@ -79,7 +79,7 @@ simpdnf' fm =
       keep x = not (setAny (`Set.isProperSubsetOf` x) djs)
       djs = Set.filter (not . trivial) (purednf' (nnf fm))
 
-purednf' :: forall lit fof atom v. (FirstOrderFormula fof atom v, Literal lit atom v, Ord lit) =>
+purednf' :: forall lit fof atom v. (FirstOrderFormula fof atom v, Literal lit atom, Ord lit) =>
             fof -> Set.Set (Set.Set lit)
 purednf' fm =
     foldFirstOrder (\ _ _ _ -> x) co (\ _ -> x) (\ _ -> x)  fm
@@ -89,7 +89,7 @@ purednf' fm =
       co (BinOp p (:|:) q) = Set.union (purednf' p) (purednf' q)
       co _ = x
       -- x :: Set.Set (Set.Set lit)
-      x = failing (const (error "purednf'")) (Set.singleton . Set.singleton) (fromFirstOrder id id fm)
+      x = failing (const (error "purednf'")) (Set.singleton . Set.singleton) (fromFirstOrder id fm)
 
 -- ------------------------------------------------------------------------- 
 -- Conjunctive normal form (CNF) by essentially the same code.               
@@ -120,7 +120,7 @@ purecnf fm = Set.map (Set.map ({-simplify .-} (.~.))) (purednf (nnf ((.~.) fm)))
 
 -- Alternative versions, these should be merged
 
-simpcnf' :: forall lit fof atom v. (FirstOrderFormula fof atom v, Literal lit atom v, Ord lit) => fof -> Set.Set (Set.Set lit)
+simpcnf' :: forall lit fof atom v. (FirstOrderFormula fof atom v, Literal lit atom, Ord lit) => fof -> Set.Set (Set.Set lit)
 simpcnf' fm =
     foldFirstOrder (\ _ _ _ -> cjs') co tf at fm
     where
@@ -134,5 +134,5 @@ simpcnf' fm =
       cjs = Set.filter (not . trivial) (purecnf' (nnf fm)) -- :: Set.Set (Set.Set lit)
 
 -- | CNF: (a | b | c) & (d | e | f)
-purecnf' :: forall lit fof atom v. (FirstOrderFormula fof atom v, Literal lit atom v, Ord lit) => fof -> Set.Set (Set.Set lit)
+purecnf' :: forall lit fof atom v. (FirstOrderFormula fof atom v, Literal lit atom, Ord lit) => fof -> Set.Set (Set.Set lit)
 purecnf' fm = Set.map (Set.map (.~.)) (purednf' (nnf ((.~.) fm)))

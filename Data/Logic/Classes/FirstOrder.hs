@@ -27,6 +27,8 @@ module Data.Logic.Classes.FirstOrder
     , showFirstOrder
     , prettyFirstOrder
     , fixityFirstOrder
+    , foldAtomsFirstOrder
+    , mapAtomsFirstOrder
     , onatoms
     , overatoms
     , atom_union
@@ -36,6 +38,7 @@ import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Apply (Apply(..), apply, apply0, apply1, apply2, apply3, apply4, apply5, apply6, apply7)
 import Data.Logic.Classes.Constants
 import Data.Logic.Classes.Combine
+import Data.Logic.Classes.Formula (Formula)
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), Fixity(..), FixityDirection(..))
 import qualified Data.Logic.Classes.Propositional as P
 import Data.Logic.Classes.Variable (Variable)
@@ -51,7 +54,8 @@ import Text.PrettyPrint (Doc, (<>), (<+>), text, parens, nest)
 -- without them the univquant_free_vars function gives the error @No
 -- instance for (FirstOrderFormula Formula atom V)@ because the
 -- function doesn't mention the Term type.
-class ( Combinable formula  -- Basic logic operations
+class ( Formula formula atom
+      , Combinable formula  -- Basic logic operations
       , Constants formula
       , Constants atom
       , HasFixity atom
@@ -259,9 +263,8 @@ withUnivQuants fn formula =
 -- Apply a function to the atoms, otherwise keeping structure.               
 -- ------------------------------------------------------------------------- 
 
-onatoms :: forall formula atom v. (FirstOrderFormula formula atom v) =>
-          (atom -> formula) -> formula -> formula
-onatoms f fm =
+mapAtomsFirstOrder :: forall formula atom v. FirstOrderFormula formula atom v => (atom -> formula) -> formula -> formula
+mapAtomsFirstOrder f fm =
     foldFirstOrder qu co tf at fm
     where
       qu op v p = quant op v (onatoms f p)
@@ -270,20 +273,26 @@ onatoms f fm =
       tf flag = fromBool flag
       at x = f x
 
+-- | Deprecated - use mapAtoms
+onatoms :: forall formula atom v. (FirstOrderFormula formula atom v) => (atom -> formula) -> formula -> formula
+onatoms = mapAtomsFirstOrder
+
 -- ------------------------------------------------------------------------- 
 -- Formula analog of list iterator "itlist".                                 
--- ------------------------------------------------------------------------- 
+-- -------------------------------------------------------------------------
 
+foldAtomsFirstOrder :: FirstOrderFormula fof atom v => (r -> atom -> r) -> r -> fof -> r
+foldAtomsFirstOrder f i fof =
+        foldFirstOrder qu co (const i) (f i) fof
+        where
+          qu _ _ fof' = foldAtomsFirstOrder f i fof'
+          co ((:~:) fof') = foldAtomsFirstOrder f i fof'
+          co (BinOp p _ q) = foldAtomsFirstOrder f (foldAtomsFirstOrder f i q) p
+
+-- | Deprecated - use foldAtoms
 overatoms :: forall formula atom v r. FirstOrderFormula formula atom v =>
              (atom -> r -> r) -> formula -> r -> r
-overatoms f fm b =
-    foldFirstOrder qu co tf at fm
-    where
-      qu _ _ p = overatoms f p b
-      co ((:~:) p) = overatoms f p b
-      co (BinOp p _ q) = overatoms f p (overatoms f q b)
-      tf _ = b
-      at a = f a b
+overatoms f fm b = foldAtomsFirstOrder (flip f) b fm
 
 -- ------------------------------------------------------------------------- 
 -- Special case of a union of the results of a function over the atoms.      

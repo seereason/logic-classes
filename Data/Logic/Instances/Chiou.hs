@@ -19,7 +19,8 @@ import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Combine (Combinable(..), BinOp(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool, true, false)
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', pApp, prettyFirstOrder, fixityFirstOrder)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', pApp, prettyFirstOrder, fixityFirstOrder, foldAtomsFirstOrder, mapAtomsFirstOrder)
+import Data.Logic.Classes.Formula (Formula(..))
 import Data.Logic.Classes.Negate (Negatable(..), (.~.))
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..))
 import Data.Logic.Classes.Term (Term(..), Function)
@@ -72,7 +73,7 @@ instance ({- Constants (Sentence v p f), -} Ord v, Ord p, Ord f) => Combinable (
     x .|.   y = Connective x Or y
     x .&.   y = Connective x And y
 
-instance (Variable v, Predicate p, Function f v, Combinable (Sentence v p f)) =>
+instance (Formula (Sentence v p f) (Sentence v p f), Variable v, Predicate p, Function f v, Combinable (Sentence v p f)) =>
          PropositionalFormula (Sentence v p f) (Sentence v p f) where
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
@@ -118,14 +119,14 @@ instance Predicate p => AtomEq (Sentence v p f) p (CTerm v f) where
     equals = Equal
     applyEq' = Predicate
 
-instance (Variable v, Predicate p, Function f v) => Pretty (Sentence v p f) where
+instance (FirstOrderFormula (Sentence v p f) (Sentence v p f) v, Variable v, Predicate p, Function f v) => Pretty (Sentence v p f) where
     pretty = prettyFirstOrder (\ _ a -> pretty a) pretty 0
 
-instance (Predicate p, Function f v, Variable v) => HasFixity (Sentence v p f) where
+instance (Formula (Sentence v p f) (Sentence v p f), Predicate p, Function f v, Variable v) => HasFixity (Sentence v p f) where
     fixity = fixityFirstOrder
 
-instance (Variable v, Predicate p, Function f v,
-          PropositionalFormula (Sentence v p f) (Sentence v p f)) =>
+instance (Formula (Sentence v p f) (Sentence v p f),
+          Variable v, Predicate p, Function f v) =>
           FirstOrderFormula (Sentence v p f) (Sentence v p f) v where
     for_all v x = Quantifier ForAll [v] x
     exists v x = Quantifier ExistsCh [v] x
@@ -231,10 +232,11 @@ instance (Arity p, Constants p, Combinable (NormalSentence v p f)) => Pred p (No
     x .!=. y = NFNot (NFEqual x y)
 -}
 
-instance (Variable v, Predicate p, Function f v, Combinable (NormalSentence v p f)) => Pretty (NormalSentence v p f) where
+instance (Formula (NormalSentence v p f) (NormalSentence v p f),
+          Variable v, Predicate p, Function f v, Combinable (NormalSentence v p f)) => Pretty (NormalSentence v p f) where
     pretty = prettyFirstOrder (\ _ a -> pretty a) pretty 0
 
-instance (Combinable (NormalSentence v p f), Term (NormalTerm v f) v f,
+instance (Formula (NormalSentence v p f) (NormalSentence v p f), Combinable (NormalSentence v p f), Term (NormalTerm v f) v f,
           Variable v, Predicate p, Function f v) => FirstOrderFormula (NormalSentence v p f) (NormalSentence v p f) v where
     for_all _ _ = error "FirstOrderFormula NormalSentence"
     exists _ _ = error "FirstOrderFormula NormalSentence"
@@ -255,7 +257,12 @@ instance (Combinable (NormalSentence v p f), Term (NormalTerm v f) v f,
     atomic x@(NFEqual _ _) = x
     atomic _ = error "Chiou: atomic"
 
-instance (Combinable (NormalSentence v p f), Predicate p, Function f v, Variable v) => HasFixity (NormalSentence v p f) where
+instance (Predicate p, Function f v) => Formula (Sentence v p f) (Sentence v p f) where
+    foldAtoms = foldAtomsFirstOrder
+    mapAtoms = mapAtomsFirstOrder
+
+instance (Formula (NormalSentence v p f) (NormalSentence v p f),
+          Combinable (NormalSentence v p f), Predicate p, Function f v, Variable v) => HasFixity (NormalSentence v p f) where
     fixity = fixityFirstOrder
 
 instance (Variable v, Function f v) => Term (NormalTerm v f) v f where

@@ -112,7 +112,7 @@ instance Default ProofResult where
 
 data Proof lit = Proof {proofResult :: ProofResult, proof :: S.Set (ImplicativeForm lit)} deriving (Data, Typeable, Eq, Ord)
 
-instance (Ord lit, Show lit, Literal lit atom v, FirstOrderFormula lit atom v) => Show (Proof lit) where
+instance (Ord lit, Show lit, Literal lit atom, FirstOrderFormula lit atom v) => Show (Proof lit) where
     show p = "Proof {proofResult = " ++ show (proofResult p) ++ ", proof = " ++ show (proof p) ++ "}"
 
 -- |Remove a particular sentence from the knowledge base
@@ -129,7 +129,7 @@ getKB = get >>= return . knowledgeBase
 -- |Return a flag indicating whether sentence was disproved, along
 -- with a disproof.
 inconsistantKB :: forall m formula atom term v p f lit.
-                  (FirstOrderFormula formula atom v, PropositionalFormula formula atom, Literal lit atom v, Atom atom term v, AtomEq atom p term, Term term v f,
+                  (FirstOrderFormula formula atom v, PropositionalFormula formula atom, Literal lit atom, Atom atom term v, AtomEq atom p term, Term term v f,
                    Monad m, Ord formula, Data formula, Data lit, Eq lit, Ord lit, Ord term) =>
                   formula -> ProverT' v term (ImplicativeForm lit) m (Bool, SetOfSupport lit v term)
 inconsistantKB s =
@@ -142,7 +142,7 @@ inconsistantKB s =
 -- |Return a flag indicating whether sentence was proved, along with a
 -- proof.
 theoremKB :: forall m formula atom term v p f lit.
-             (Monad m, FirstOrderFormula formula atom v, PropositionalFormula formula atom, Literal lit atom v, Atom atom term v, AtomEq atom p term, Term term v f,
+             (Monad m, FirstOrderFormula formula atom v, PropositionalFormula formula atom, Literal lit atom, Atom atom term v, AtomEq atom p term, Term term v f,
               Ord formula, Ord term, Ord lit, Data formula, Data lit) =>
              formula -> ProverT' v term (ImplicativeForm lit) m (Bool, SetOfSupport lit v term)
 theoremKB s = inconsistantKB ((.~.) s)
@@ -150,14 +150,14 @@ theoremKB s = inconsistantKB ((.~.) s)
 -- |Try to prove a sentence, return the result and the proof.
 -- askKB should be in KnowledgeBase module. However, since resolution
 -- is here functions are here, it is also placed in this module.
-askKB :: (Monad m, FirstOrderFormula formula atom v, PropositionalFormula formula atom, Literal lit atom v, Atom atom term v, AtomEq atom p term, Term term v f,
+askKB :: (Monad m, FirstOrderFormula formula atom v, PropositionalFormula formula atom, Literal lit atom, Atom atom term v, AtomEq atom p term, Term term v f,
           Ord formula, Ord term, Ord lit, Data formula, Data lit) =>
          formula -> ProverT' v term (ImplicativeForm lit) m Bool
 askKB s = theoremKB s >>= return . fst
 
 -- |See whether the sentence is true, false or invalid.  Return proofs
 -- for truth and falsity.
-validKB :: (FirstOrderFormula formula atom v, PropositionalFormula formula atom, Literal lit atom v, Atom atom term v, AtomEq atom p term, Term term v f,
+validKB :: (FirstOrderFormula formula atom v, PropositionalFormula formula atom, Literal lit atom, Atom atom term v, AtomEq atom p term, Term term v f,
             Monad m, Ord formula, Ord term, Ord lit, Data formula, Data lit) =>
            formula -> ProverT' v term (ImplicativeForm lit) m (ProofResult, SetOfSupport lit v term, SetOfSupport lit v term)
 validKB s =
@@ -168,7 +168,7 @@ validKB s =
 -- |Validate a sentence and insert it into the knowledgebase.  Returns
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
-tellKB :: (FirstOrderFormula formula atom v, PropositionalFormula formula atom, Literal lit atom v, Atom atom term v, AtomEq atom p term, Term term v f,
+tellKB :: (FirstOrderFormula formula atom v, PropositionalFormula formula atom, Literal lit atom, Atom atom term v, AtomEq atom p term, Term term v f,
            Monad m, Ord formula, Data formula, Data lit, Eq lit, Ord lit, Ord term) =>
           formula -> ProverT' v term (ImplicativeForm lit) m (Proof lit)
 tellKB s =
@@ -182,7 +182,7 @@ tellKB s =
                      , sentenceCount = sentenceCount st + 1 }
        return $ Proof {proofResult = valid, proof = S.map wiItem inf'}
 
-loadKB :: (FirstOrderFormula formula atom v, PropositionalFormula formula atom, Literal lit atom v, Atom atom term v, AtomEq atom p term, Term term v f,
+loadKB :: (FirstOrderFormula formula atom v, PropositionalFormula formula atom, Literal lit atom, Atom atom term v, AtomEq atom p term, Term term v f,
            Monad m, Ord formula, Ord term, Ord lit, Data formula, Data lit) =>
           [formula] -> ProverT' v term (ImplicativeForm lit) m [Proof lit]
 loadKB sentences = mapM tellKB sentences
