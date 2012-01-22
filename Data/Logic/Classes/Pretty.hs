@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
 module Data.Logic.Classes.Pretty
     ( Pretty(pretty)
     , HasFixity(fixity)

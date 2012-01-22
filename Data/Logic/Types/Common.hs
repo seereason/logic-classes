@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
 module Data.Logic.Types.Common where
 
 import Data.Logic.Classes.Variable (Variable(..))
