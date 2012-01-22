@@ -73,13 +73,17 @@ instance ({- Constants (Sentence v p f), -} Ord v, Ord p, Ord f) => Combinable (
     x .|.   y = Connective x Or y
     x .&.   y = Connective x And y
 
-instance (Formula (Sentence v p f) (Sentence v p f), Variable v, Predicate p, Function f v, Combinable (Sentence v p f)) =>
-         PropositionalFormula (Sentence v p f) (Sentence v p f) where
+instance (Predicate p, Function f v) => Formula (Sentence v p f) (Sentence v p f) where
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Not _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic x@(Predicate _ _) = x
     atomic x@(Equal _ _) = x
+    foldAtoms = foldAtomsFirstOrder
+    mapAtoms = mapAtomsFirstOrder
+
+instance (Formula (Sentence v p f) (Sentence v p f), Variable v, Predicate p, Function f v, Combinable (Sentence v p f)) =>
+         PropositionalFormula (Sentence v p f) (Sentence v p f) where
     foldPropositional co tf at formula =
         case formula of
           Not x -> co ((:~:) x)
@@ -172,9 +176,6 @@ instance (Formula (Sentence v p f) (Sentence v p f),
           (Predicate _ _, Predicate _ _) -> at f1 f2
           _ -> Nothing
 -}
-    atomic x@(Predicate _ _) = x
-    atomic x@(Equal _ _) = x
-    atomic _ = error "Chiou: atomic"
 
 instance (Variable v, Function f v) => Term (CTerm v f) v f where
     foldTerm v fn t =
@@ -236,6 +237,13 @@ instance (Formula (NormalSentence v p f) (NormalSentence v p f),
           Variable v, Predicate p, Function f v, Combinable (NormalSentence v p f)) => Pretty (NormalSentence v p f) where
     pretty = prettyFirstOrder (\ _ a -> pretty a) pretty 0
 
+instance (Predicate p, Function f v, Combinable (NormalSentence v p f)) => Formula (NormalSentence v p f) (NormalSentence v p f) where
+    atomic x@(NFPredicate _ _) = x
+    atomic x@(NFEqual _ _) = x
+    atomic _ = error "Chiou: atomic"
+    foldAtoms = foldAtomsFirstOrder
+    mapAtoms = mapAtomsFirstOrder
+
 instance (Formula (NormalSentence v p f) (NormalSentence v p f), Combinable (NormalSentence v p f), Term (NormalTerm v f) v f,
           Variable v, Predicate p, Function f v) => FirstOrderFormula (NormalSentence v p f) (NormalSentence v p f) v where
     for_all _ _ = error "FirstOrderFormula NormalSentence"
@@ -253,13 +261,6 @@ instance (Formula (NormalSentence v p f) (NormalSentence v p f), Combinable (Nor
           (NFPredicate _ _, NFPredicate _ _) -> at f1 f2
           _ -> Nothing
 -}
-    atomic x@(NFPredicate _ _) = x
-    atomic x@(NFEqual _ _) = x
-    atomic _ = error "Chiou: atomic"
-
-instance (Predicate p, Function f v) => Formula (Sentence v p f) (Sentence v p f) where
-    foldAtoms = foldAtomsFirstOrder
-    mapAtoms = mapAtomsFirstOrder
 
 instance (Formula (NormalSentence v p f) (NormalSentence v p f),
           Combinable (NormalSentence v p f), Predicate p, Function f v, Variable v) => HasFixity (NormalSentence v p f) where

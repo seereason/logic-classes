@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TypeSynonymInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Types.Harrison.Equal where
 
@@ -35,10 +35,6 @@ data PredName = (:=:) | Named String deriving (Eq, Ord, Show, Data, Typeable)
 instance Arity PredName where
     arity (:=:) = Just 2
     arity _ = Nothing
-
-instance C.Formula (Formula FOLEQ) FOLEQ where
-    foldAtoms = foldAtomsFirstOrder
-    mapAtoms = mapAtomsFirstOrder
 
 instance Show (Formula FOLEQ) where
     show = showFirstOrderFormulaEq
@@ -102,7 +98,7 @@ instance FirstOrderFormula (Formula FOLEQ) FOLEQ String where
     atomic = Atom
 -}
 
-instance P.PropositionalFormula (Formula FOLEQ) FOLEQ where
+instance C.Formula (Formula FOLEQ) FOLEQ => P.PropositionalFormula (Formula FOLEQ) FOLEQ where
     foldPropositional co tf at fm =
         case fm of
           F -> tf False
@@ -115,7 +111,6 @@ instance P.PropositionalFormula (Formula FOLEQ) FOLEQ where
           Iff fm1 fm2 -> co (BinOp fm1 (:<=>:) fm2)
           Forall _ _ -> error "quantifier in propositional formula"
           Exists _ _ -> error "quantifier in propositional formula"
-    atomic = Atom
 
 instance Pretty FOLEQ where
     pretty (EQUALS a b) = cat [pretty a, pretty (:=:), pretty b]
@@ -124,8 +119,7 @@ instance Pretty FOLEQ where
 instance HasFixity (Formula FOLEQ) where
     fixity = fixityFirstOrder
 
-instance Literal (Formula FOLEQ) FOLEQ where
-    atomic = Atom
+instance C.Formula (Formula FOLEQ) FOLEQ => Literal (Formula FOLEQ) FOLEQ where
     foldLiteral neg tf at lit =
         case lit of
           F -> tf False

@@ -1,12 +1,14 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, UndecidableInstances #-}
 module Data.Logic.Types.Propositional where
 
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
+import qualified Data.Logic.Classes.Formula as C
+import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), topFixity)
-import Data.Logic.Classes.Propositional (PropositionalFormula(..), prettyPropositional, fixityPropositional)
+import Data.Logic.Classes.Propositional (PropositionalFormula(..), prettyPropositional, fixityPropositional, foldAtomsPropositional, mapAtomsPropositional)
 
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula atom
@@ -37,8 +39,21 @@ instance Constants (Formula atom) where
     asBool F = Just False
     asBool _ = Nothing
 
-instance (Pretty atom, HasFixity atom, Ord atom) => PropositionalFormula (Formula atom) atom where
-    atomic a = Atom a
+instance (Pretty atom, HasFixity atom, Ord atom) => C.Formula (Formula atom) atom where
+    atomic = Atom
+    foldAtoms = foldAtomsPropositional
+    mapAtoms = mapAtomsPropositional
+
+instance (Pretty atom, HasFixity atom, Ord atom) => Literal (Formula atom) atom where
+    foldLiteral neg tf at formula =
+        case formula of
+          Combine ((:~:) p) -> neg p
+          Combine _ -> error ("Literal: " ++ show (pretty formula))
+          Atom x -> at x
+          T -> tf True
+          F -> tf False
+
+instance (C.Formula (Formula atom) atom, Pretty atom, HasFixity atom, Ord atom) => PropositionalFormula (Formula atom) atom where
     foldPropositional co tf at formula =
         case formula of
           Combine x -> co x

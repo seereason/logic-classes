@@ -13,6 +13,7 @@ module Data.Logic.Harrison.Prop
     , rawdnf
     , purednf
     , dnf
+    , dnf'
     , trivial
     , psimplify
     , nnf
@@ -32,10 +33,13 @@ module Data.Logic.Harrison.Prop
     , allSatValuations
     , dnf0
     , cnf
+    , cnf'
     ) where
 
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (Constants(fromBool, asBool), true, false, ifElse)
+import Data.Logic.Classes.Formula (Formula(atomic))
+import Data.Logic.Classes.Literal (Literal(foldLiteral), toPropositional)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Propositional
 import Data.Logic.Harrison.Formulas.Propositional (atom_union, on_atoms)
@@ -234,16 +238,15 @@ psimplify fm =
 -- Some operations on literals.                                              
 -- ------------------------------------------------------------------------- 
 
-negative :: PropositionalFormula formula atomic => formula -> Bool
+negative :: forall lit atom. Literal lit atom => lit -> Bool
 negative lit =
-    foldPropositional c tf a lit
+    foldLiteral neg tf a lit
     where
-      c ((:~:) _) = True
-      c _ = False
+      neg _ = True
       tf = not
       a _ = False
 
-positive :: PropositionalFormula formula atomic => formula -> Bool
+positive :: Literal lit atom => lit -> Bool
 positive = not . negative
 
 negate :: PropositionalFormula formula atomic => formula -> formula
@@ -377,21 +380,22 @@ rawdnf fm =
 -- A version using a list representation.                                    
 -- ------------------------------------------------------------------------- 
 
-purednf :: (PropositionalFormula formula atomic, Ord formula) => formula -> Set.Set (Set.Set formula)
+purednf :: (PropositionalFormula pf atom, Literal lit atom, Ord lit) => pf -> Set.Set (Set.Set lit)
 purednf fm =
     foldPropositional c tf a fm
     where
       c (BinOp p (:&:) q) = distrib' (purednf p) (purednf q)
       c (BinOp p (:|:) q) = Set.union (purednf p) (purednf q)
-      c _ = Set.singleton (Set.singleton fm)
-      tf _ = Set.singleton (Set.singleton fm)
-      a _ = Set.singleton (Set.singleton fm)
+      c ((:~:) p) = Set.map (Set.map (.~.)) (purednf p)
+      c _ = error "purednf" -- Set.singleton (Set.singleton fm)
+      tf x = Set.singleton (Set.singleton (fromBool x))
+      a x = Set.singleton (Set.singleton (atomic x))
 
 -- ------------------------------------------------------------------------- 
 -- Filtering out trivial disjuncts (in this guise, contradictory).           
 -- ------------------------------------------------------------------------- 
 
-trivial :: (PropositionalFormula formula atomic, Ord formula) => Set.Set formula -> Bool
+trivial :: (Literal lit atom, Ord lit) => Set.Set lit -> Bool
 trivial lits =
     not . Set.null $ Set.intersection neg (Set.map (.~.) pos)
     where (pos, neg) = Set.partition positive lits
@@ -400,33 +404,35 @@ trivial lits =
 -- With subsumption checking, done very naively (quadratic).                 
 -- ------------------------------------------------------------------------- 
 
-simpdnf :: forall formula atomic.  (PropositionalFormula formula atomic, Eq formula, Ord formula) => formula -> Set.Set (Set.Set formula)
+simpdnf :: forall pf lit atom. (PropositionalFormula pf atom, Literal lit atom, Ord lit) => pf -> Set.Set (Set.Set lit)
 simpdnf fm =
     foldPropositional c tf a fm
     where
-      c :: Combination formula -> Set.Set (Set.Set formula)
+      c :: Combination pf -> Set.Set (Set.Set lit)
       c _ = Set.filter (\ d -> not (setAny (\ d' -> Set.isProperSubsetOf d' d) djs)) djs
           where djs = Set.filter (not . trivial) (purednf (nnf fm))
       tf = ifElse (Set.singleton Set.empty) Set.empty
-      a :: atomic -> Set.Set (Set.Set formula)
-      a _ = Set.singleton (Set.singleton fm)
+      a :: atom -> Set.Set (Set.Set lit)
+      a x = Set.singleton (Set.singleton (atomic x))
 
 -- ------------------------------------------------------------------------- 
 -- Mapping back to a formula.                                                
 -- ------------------------------------------------------------------------- 
 
-dnf :: (PropositionalFormula formula atomic, Ord formula) => formula -> formula
-dnf fm = list_disj (Set.map list_conj (simpdnf fm))
+dnf :: forall pf lit atom. (PropositionalFormula pf atom, Literal lit atom, Ord lit) => Set.Set (Set.Set lit) -> pf
+dnf = list_disj . Set.map (list_conj . Set.map (toPropositional id))
+
+dnf' :: forall pf atom. (PropositionalFormula pf atom, Literal pf atom) => pf -> pf
+dnf' = dnf . (simpdnf :: pf -> Set.Set (Set.Set pf))
 
 -- ------------------------------------------------------------------------- 
 -- Conjunctive normal form (CNF) by essentially the same code.               
 -- ------------------------------------------------------------------------- 
 
-purecnf :: (PropositionalFormula formula atomic, Ord formula) => formula -> Set.Set (Set.Set formula)
-purecnf fm = Set.map (Set.map (psimplify . (.~.))) (purednf (nnf ((.~.) fm)))
+purecnf :: forall pf lit atom. (PropositionalFormula pf atom, Literal lit atom, Ord lit) => pf -> Set.Set (Set.Set lit)
+purecnf fm = Set.map (Set.map (.~.)) (purednf (nnf ((.~.) fm)))
 
-simpcnf :: (PropositionalFormula formula atomic, Ord formula) =>
-           formula -> Set.Set (Set.Set formula)
+simpcnf :: (PropositionalFormula pf atom, Literal lit atom, Ord lit) => pf -> Set.Set (Set.Set lit)
 simpcnf fm =
     foldPropositional c tf a fm
     where
@@ -435,7 +441,10 @@ simpcnf fm =
       c _ = Set.filter keep cjs
       keep x = not (setAny (`Set.isProperSubsetOf` x) cjs)
       cjs = Set.filter (not . trivial) (purecnf fm)
-      a _ = Set.singleton (Set.singleton fm)
+      a x = Set.singleton (Set.singleton (atomic x))
 
-cnf :: (PropositionalFormula formula atomic, Ord formula) => formula -> formula
-cnf fm = list_conj (Set.map list_disj (simpcnf fm))
+cnf :: forall pf lit atom. (PropositionalFormula pf atom, Literal lit atom, Ord lit) => Set.Set (Set.Set lit) -> pf
+cnf = list_conj . Set.map (list_disj . Set.map (toPropositional id))
+
+cnf' :: forall pf atom. (PropositionalFormula pf atom, Literal pf atom) => pf -> pf
+cnf' = cnf . (simpcnf :: pf -> Set.Set (Set.Set pf))

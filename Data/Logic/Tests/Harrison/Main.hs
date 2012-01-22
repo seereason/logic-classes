@@ -1,9 +1,7 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, RankNTypes, TypeSynonymInstances #-}
 module Data.Logic.Tests.Harrison.Main (tests) where
 
---import Data.Logic.Classes.Apply (Apply)
---import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
---import Data.Logic.Classes.Term (Term)
+import Data.Logic.Classes.Pretty (pretty)
 import qualified Data.Logic.Harrison.Lib as Lib
 import qualified Data.Logic.Tests.Harrison.Equal as Equal
 import qualified Data.Logic.Tests.Harrison.FOL as FOL
@@ -21,6 +19,9 @@ import qualified Test.HUnit as T
 
 instance TestFormula (Formula FOL) FOL TermType String String Function
 instance TestFormulaEq (Formula FOLEQ) FOLEQ TermType String PredName Function
+
+instance Show (Formula FOL) where
+    show = show . pretty
 
 main = T.runTestTT tests
 

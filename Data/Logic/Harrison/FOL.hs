@@ -17,6 +17,7 @@ import Data.Logic.Classes.Atom (Atom(allVariables, substitute))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (Constants (fromBool), true, false)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), quant)
+import Data.Logic.Classes.Formula (Formula(atomic))
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.Logic.Classes.Term (Term(vt), fvt)
@@ -64,8 +65,8 @@ mkLits pvs v = list_conj (Set.map (\ p -> if eval p v then p else (.~.) p) pvs)
 -- Special case of applying a subfunction to the top *terms*.               
 -- -------------------------------------------------------------------------
 
-on_formula :: (FirstOrderFormula fol atom v, Apply atom p term) => (term -> term) -> fol -> fol
-on_formula f = on_atoms (foldApply (\ p ts -> Data.Logic.Classes.FirstOrder.atomic (apply p (map f ts))) fromBool)
+on_formula :: forall fol atom term v p. (FirstOrderFormula fol atom v, Apply atom p term) => (term -> term) -> fol -> fol
+on_formula f = on_atoms (foldApply (\ p ts -> atomic (apply p (map f ts) :: atom)) fromBool)
 
 -- ------------------------------------------------------------------------- 
 -- Parsing of terms.                                                         
@@ -261,7 +262,7 @@ subst env fm =
       co ((:~:) p) = ((.~.) (subst env p))
       co (BinOp p op q) = binop (subst env p) op (subst env q)
       tf = fromBool
-      at = Data.Logic.Classes.FirstOrder.atomic . substitute env
+      at = atomic . substitute env
 
 subst' :: (PropositionalFormula formula atom,
            -- Formula formula term v,
@@ -274,7 +275,7 @@ subst' env fm =
       co ((:~:) p) = ((.~.) (subst' env p))
       co (BinOp p op q) = binop (subst' env p) op (subst' env q)
       tf = fromBool
-      at = Data.Logic.Classes.Propositional.atomic . substitute env
+      at = atomic . substitute env
 
 {-
 -- |Replace each free occurrence of variable old with term new.

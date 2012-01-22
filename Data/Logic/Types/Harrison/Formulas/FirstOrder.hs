@@ -8,14 +8,12 @@ module Data.Logic.Types.Harrison.Formulas.FirstOrder
 --import Data.Char (isDigit)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder, foldAtomsFirstOrder, mapAtomsFirstOrder)
 import qualified Data.Logic.Classes.FirstOrder as C
 import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity)
-import Data.Logic.Classes.Variable (Variable(..))
-import qualified Data.Set as Set
-import Text.PrettyPrint (text)
+import Data.Logic.Types.Common ({- instance Variable String -})
 
 data Formula a
     = F
@@ -50,28 +48,12 @@ instance Combinable (Formula a) where
     a .|. b = Or a b
     a .&. b = And a b
 
-instance Pretty String where
-    pretty = text
-
-instance Variable String where
-    variant x vars = if Set.member x vars then variant (x ++ "'") vars else x
-    prefix p x = p ++ x
-    prettyVariable = text
-{-
-instance Variable String where
-    variant v vs =
-        if Set.member v vs then variant (next v) (Set.insert v vs) else v
-        where
-          next :: String -> String
-          next s =
-              case break (not . isDigit) (reverse s) of
-                (_, "") -> "x"
-                ("", nondigits) -> nondigits ++ "2"
-                (digits, nondigits) -> nondigits ++ show (1 + read (reverse digits) :: Int)
--}
+instance (Constants a, Pretty a, HasFixity a) => C.Formula (Formula a) a where
+    atomic = Atom
+    foldAtoms = foldAtomsFirstOrder
+    mapAtoms = mapAtomsFirstOrder
 
 instance (C.Formula (Formula a) a, Constants a, Pretty a, HasFixity a) => FirstOrderFormula (Formula a) a String where
-    atomic = Atom
     for_all = Forall
     exists = Exists
     foldFirstOrder qu co tf at fm =

@@ -15,7 +15,7 @@ import Data.Data (Data)
 import Data.Logic.Classes.Apply (Predicate)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder, foldAtomsFirstOrder, mapAtomsFirstOrder)
 import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity)
@@ -66,6 +66,11 @@ instance (C.Formula (N.Formula v p f) (N.Predicate p (N.PTerm v f)),
     x .|.   y = Formula $ (unFormula x) .|. (unFormula y)
     x .&.   y = Formula $ (unFormula x) .&. (unFormula y)
 
+instance (Predicate p, Function f v) => C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)) where
+    atomic = Formula . C.atomic
+    foldAtoms = foldAtomsFirstOrder
+    mapAtoms = mapAtomsFirstOrder
+
 instance (C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)),
           C.Formula (N.Formula v p f) (N.Predicate p (N.PTerm v f)),
           Variable v, Predicate p, Function f v) => FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v where
@@ -74,7 +79,6 @@ instance (C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)),
     foldFirstOrder qu co tf at f = foldFirstOrder qu' co' tf at (intern f :: N.Formula v p f)
         where qu' quant v form = qu quant v (public form)
               co' x = co (public x)
-    atomic = Formula . Data.Logic.Classes.FirstOrder.atomic
 
 instance (C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)),
           C.Formula (N.Formula v p f) (N.Predicate p (N.PTerm v f)),
@@ -82,7 +86,6 @@ instance (C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)),
           Function f v) => PropositionalFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) where
     foldPropositional co tf at f = foldPropositional co' tf at (intern f :: N.Formula v p f)
         where co' x = co (public x)
-    atomic = Formula . Data.Logic.Classes.Propositional.atomic
 
 -- |Here are the magic Ord and Eq instances
 instance (C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)),

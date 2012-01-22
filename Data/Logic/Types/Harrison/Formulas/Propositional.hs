@@ -6,9 +6,11 @@ module Data.Logic.Types.Harrison.Formulas.Propositional
 
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
+import qualified Data.Logic.Classes.Formula as C
+import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), topFixity)
-import Data.Logic.Classes.Propositional (PropositionalFormula(..), prettyPropositional, fixityPropositional)
+import Data.Logic.Classes.Propositional (PropositionalFormula(..), prettyPropositional, fixityPropositional, foldAtomsPropositional, mapAtomsPropositional)
 
 data Formula a
     = F
@@ -41,9 +43,13 @@ instance Combinable (Formula a) where
     a .|. b = Or a b
     a .&. b = And a b
 
+instance (Pretty atom, HasFixity atom, Ord atom) => C.Formula (Formula atom) atom where
+    atomic = Atom
+    foldAtoms = foldAtomsPropositional
+    mapAtoms = mapAtomsPropositional
+
 instance (Combinable (Formula atom), Pretty atom, HasFixity atom, Ord atom) => PropositionalFormula (Formula atom) atom where
     -- The atom type for this formula is the same as its first type parameter.
-    atomic = Atom
     foldPropositional co tf at formula =
         case formula of
           T -> tf True
@@ -54,6 +60,15 @@ instance (Combinable (Formula atom), Pretty atom, HasFixity atom, Ord atom) => P
           Imp f g -> co (BinOp f (:=>:) g)
           Iff f g -> co (BinOp f (:<=>:) g)
           Atom x -> at x
+
+instance (HasFixity atom, Pretty atom, Ord atom) => Literal (Formula atom) atom where
+    foldLiteral neg tf at formula =
+        case formula of
+          T -> tf True
+          F -> tf False
+          Not f -> neg f
+          Atom x -> at x
+          _ -> error ("Unexpected literal " ++ show (pretty formula))
 
 instance (Pretty atom, HasFixity atom, Ord atom) => Pretty (Formula atom) where
     pretty = prettyPropositional pretty topFixity

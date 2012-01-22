@@ -16,7 +16,7 @@ module Data.Logic.Harrison.Skolem
     , runSkolemT
     , specialize
     , skolemize
-    , literal
+    -- , literal
     , askolemize
     , skolemNormalForm
     -- , prenex'
@@ -25,13 +25,12 @@ module Data.Logic.Harrison.Skolem
 
 import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.State (StateT(runStateT))
-import Data.Logic.Classes.Apply (Apply(foldApply))
 import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (Constants(fromBool, asBool), true, false)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(atomic, exists, for_all, foldFirstOrder), Quant(..), quant, toPropositional)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(exists, for_all, foldFirstOrder), Quant(..), quant, toPropositional)
 import Data.Logic.Classes.Formula (Formula(..))
-import Data.Logic.Classes.Literal (Literal(foldLiteral, atomic))
+import Data.Logic.Classes.Literal (Literal(foldLiteral))
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import qualified Data.Logic.Classes.Skolem as C
@@ -55,8 +54,7 @@ import qualified Data.Set as Set
 simplify1 :: (FirstOrderFormula fof atom v,
               -- Formula fof term v,
               Atom atom term v,
-              Term term v f,
-              Eq fof) => fof -> fof
+              Term term v f) => fof -> fof
 simplify1 fm =
     foldFirstOrder qu co tf at fm
     where
@@ -68,21 +66,7 @@ simplify1 fm =
       tf = fromBool
       at _ = fm
 
-simplify1' :: (PropositionalFormula pf atom,
-               -- Formula pf term v,
-               Atom atom term v,
-               Term term v f, Eq pf) => pf -> pf
-simplify1' fm =
-    foldPropositional co tf at fm
-    where
-      co ((:~:) p) = foldPropositional nco (fromBool . not) (\ _ -> fm) p
-      co (BinOp l op r) = simplifyBinop l op r
-      nco ((:~:) p) = p
-      nco _ = fm
-      tf = fromBool
-      at _ = fm
-
-simplifyBinop :: forall p. (Constants p, Combinable p, Eq p) => p -> BinOp -> p -> p
+simplifyBinop :: forall p. (Constants p, Combinable p) => p -> BinOp -> p -> p
 simplifyBinop l op r =
     case (asBool l, op, asBool r) of
       (Just True,  (:&:), _         ) -> r
@@ -105,30 +89,14 @@ simplifyBinop l op r =
       _ -> binop l op r
 
 simplify :: (FirstOrderFormula fof atom v,
-             -- Formula fof term v,
              Atom atom term v,
-             Term term v f,
-             Ord fof) => fof -> fof
+             Term term v f) => fof -> fof
 simplify fm =
     foldFirstOrder qu co tf at fm
     where
       qu op x fm' = simplify1 (quant op x (simplify fm'))
       co ((:~:) fm') = simplify1 ((.~.) (simplify fm'))
       co (BinOp fm1 op fm2) = simplify1 (binop (simplify fm1) op (simplify fm2))
-      tf = fromBool
-      at _ = fm
-
-simplify' :: (PropositionalFormula pf atom,
-              -- Formula pf term v,
-              Atom atom term v,
-              Term term v f,
-              Eq pf) =>
-             pf -> pf
-simplify' fm =
-    foldPropositional co tf at fm
-    where
-      co ((:~:) fm') = simplify1' ((.~.) (simplify' fm'))
-      co (BinOp fm1 op fm2) = simplify1' (binop (simplify' fm1) op (simplify' fm2))
       tf = fromBool
       at _ = fm
 
@@ -161,21 +129,6 @@ nnf fm =
       nnfNotCombine (BinOp p (:|:) q) = nnf ((.~.) p) .&. nnf ((.~.) q)
       nnfNotCombine (BinOp p (:=>:) q) = nnf p .&. nnf ((.~.) q)
       nnfNotCombine (BinOp p (:<=>:) q) = (nnf p .&. nnf ((.~.) q)) .|. nnf ((.~.) p) .&. nnf q
-
-nnf' :: PropositionalFormula formula atom => formula -> formula
-nnf' fm =
-    foldPropositional nnfCombine (\ _ -> fm) (\ _ -> fm) fm
-    where
-      nnfCombine ((:~:) p) = foldPropositional nnfNotCombine (fromBool . not) (\ _ -> fm) p
-      nnfCombine (BinOp p (:=>:) q) = nnf' ((.~.) p) .|. (nnf' q)
-      nnfCombine (BinOp p (:<=>:) q) =  (nnf' p .&. nnf' q) .|. (nnf' ((.~.) p) .&. nnf' ((.~.) q))
-      nnfCombine (BinOp p (:&:) q) = nnf' p .&. nnf' q
-      nnfCombine (BinOp p (:|:) q) = nnf' p .|. nnf' q
-      nnfNotCombine ((:~:) p) = nnf' p
-      nnfNotCombine (BinOp p (:&:) q) = nnf' ((.~.) p) .|. nnf' ((.~.) q)
-      nnfNotCombine (BinOp p (:|:) q) = nnf' ((.~.) p) .&. nnf' ((.~.) q)
-      nnfNotCombine (BinOp p (:=>:) q) = nnf' p .&. nnf' ((.~.) q)
-      nnfNotCombine (BinOp p (:<=>:) q) = (nnf' p .&. nnf' ((.~.) q)) .|. nnf' ((.~.) p) .&. nnf' q
 
 -- ------------------------------------------------------------------------- 
 -- Prenex normal form.                                                       
@@ -232,30 +185,9 @@ prenex fm =
       co (BinOp l (:|:) r) = pullQuants (prenex l .|. prenex r)
       co _ = fm
 
--- |Recursivly apply pullQuants anywhere a quantifier might not be
--- leftmost.
-prenex' :: (PropositionalFormula formula atom,
-            -- Formula formula term v,
-            Atom atom term v,
-            Term term v f) => formula -> formula 
-prenex' fm =
-    foldPropositional co (\ _ -> fm) (\ _ -> fm) fm
-    where
-      co (BinOp l (:&:) r) = prenex' l .&. prenex' r
-      co (BinOp l (:|:) r) = prenex' l .|. prenex' r
-      co _ = fm
-
 -- |Convert to Prenex normal form, with all quantifiers at the left.
-pnf :: (FirstOrderFormula formula atom v, {-Formula formula term v,-} Atom atom term v, Term term v f, Ord formula) => formula -> formula
+pnf :: (FirstOrderFormula formula atom v, Atom atom term v, Term term v f) => formula -> formula
 pnf = prenex . nnf . simplify
-
--- |Convert to Prenex normal form, with all quantifiers at the left.
-pnf' :: (PropositionalFormula formula atom,
-         -- Formula formula term v,
-         Atom atom term v,
-         Term term v f,
-         Eq formula) => formula -> formula
-pnf' = prenex' . nnf' . simplify'
 
 -- ------------------------------------------------------------------------- 
 -- Get the functions in a term and formula.                                  
@@ -332,7 +264,7 @@ skolem :: (Monad m,
            Term term v f) =>
           fof -> SkolemT v term m fof
 skolem fm =
-    foldFirstOrder qu co (return . fromBool) (return . Data.Logic.Classes.FirstOrder.atomic) fm
+    foldFirstOrder qu co (return . fromBool) (return . atomic) fm
     where
       -- We encountered an existentially quantified variable y,
       -- allocate a new skolem function fx and do a substitution to
@@ -370,8 +302,7 @@ askolemize :: forall m fof atom term v f.
               (Monad m,
                FirstOrderFormula fof atom v,
                Atom atom term v,
-               Term term v f,
-               Ord fof) =>
+               Term term v f) =>
               fof -> SkolemT v term m fof
 askolemize = skolem . nnf . simplify
 
@@ -393,14 +324,15 @@ skolemize :: forall m fof atom term v f pf atom2. (Monad m,
               PropositionalFormula pf atom2,
               Atom atom term v,
               Term term v f,
-              Eq pf, Ord fof) =>
+              Eq pf) =>
              (atom -> atom2) -> fof -> SkolemT v term m pf
 skolemize ca fm = askolemize fm >>= return . (toPropositional ca :: fof -> pf) . specialize . pnf
 
+{-
 -- | Convert a first order formula into a disjunct of conjuncts of
 -- literals.  Note that this can convert any instance of
 -- FirstOrderFormula into any instance of Literal.
-literal :: forall fof atom term v p f lit. (Literal fof atom, Apply atom p term, Term term v f, Literal lit atom, Ord lit) =>
+literal :: forall fof atom term v p f lit. (Literal fof atom, Apply atom p term, Term term v f, Literal lit atom, Formula lit atom, Ord lit) =>
            fof -> Set.Set (Set.Set lit)
 literal fm =
     foldLiteral neg tf at fm
@@ -409,7 +341,8 @@ literal fm =
       neg x = Set.map (Set.map (.~.)) (literal x)
       tf = Set.singleton . Set.singleton . fromBool
       at :: atom -> Set.Set (Set.Set lit)
-      at x = foldApply (\ _ _ -> Set.singleton (Set.singleton (Data.Logic.Classes.Literal.atomic x))) tf x
+      at x = foldApply (\ _ _ -> Set.singleton (Set.singleton (atomic x))) tf x
+-}
 
 -- |We get Skolem Normal Form by skolemizing and then converting to
 -- Prenex Normal Form, and finally eliminating the remaining quantifiers.

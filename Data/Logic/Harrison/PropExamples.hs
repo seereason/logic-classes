@@ -10,6 +10,7 @@ module Data.Logic.Harrison.PropExamples
 import Data.Bits (Bits, shiftR)
 import Data.Logic.Classes.Combine ((.<=>.), (.=>.), (.&.), (.|.), Combinable, Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (true, false)
+import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), botFixity)
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
@@ -51,7 +52,7 @@ ramsey s t n =
   let vertices = Set.fromList [1 .. n] in
   let yesgrps = Set.map (allsets (2 :: Int)) (allsets s vertices)
       nogrps = Set.map (allsets (2 :: Int)) (allsets t vertices) in
-  let e xs = let [m, n] = Set.toAscList xs in atomic (P "p" m (Just n)) in
+  let e xs = let [m, n] = Set.toAscList xs in C.atomic (P "p" m (Just n)) in
   list_disj (Set.map (list_conj . Set.map e) yesgrps) .|. list_disj (Set.map (list_conj . Set.map (\ p -> (.~.)(e p))) nogrps)
 
 -- ------------------------------------------------------------------------- 
@@ -217,9 +218,9 @@ ripplecarry x y c out n =
 -- ------------------------------------------------------------------------- 
 
 mk_index :: forall formula a. PropositionalFormula formula (Atom a) => String -> a -> formula
-mk_index x i = atomic (P x i Nothing)
+mk_index x i = C.atomic (P x i Nothing)
 mk_index2 :: forall formula a. PropositionalFormula formula (Atom a) => String -> a -> a -> formula
-mk_index2 x i j = atomic (P x i (Just j))
+mk_index2 x i j = C.atomic (P x i (Just j))
 
 test02 = TestCase (assertEqual "ripplecarry x y c out 2"
                                (Combine (BinOp (Combine (BinOp (Combine (BinOp (Atom (P "OUT" 1 Nothing)) (:<=>:) (Combine (BinOp (Combine (BinOp (Atom (P "X" 1 Nothing)) (:<=>:) (Combine ((:~:) (Atom (P "Y" 1 Nothing)))))) (:<=>:) (Combine ((:~:) (Atom (P "C" 1 Nothing)))))))) (:&:)

@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE NoMonomorphismRestriction, OverloadedStrings, RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Harrison.Tableaux
     ( unify_literals
@@ -12,11 +12,11 @@ import qualified Data.Logic.Classes.Atom as C
 --import Data.Logic.Classes.Combine ((.&.), (.=>.))
 --import Data.Logic.Classes.Constants (false)
 import Data.Logic.Classes.Equals (AtomEq, zipAtomsEq)
---import Data.Logic.Classes.FirstOrder (FirstOrderFormula, exists, for_all)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula, exists, for_all)
 import Data.Logic.Classes.Formula (Formula(..))
 import Data.Logic.Classes.Negate (positive, (.~.))
 import Data.Logic.Classes.Literal (Literal, zipLiterals)
---import Data.Logic.Classes.Propositional (PropositionalFormula)
+import Data.Logic.Classes.Propositional (PropositionalFormula)
 import Data.Logic.Classes.Term (Term(..), vt)
 import Data.Logic.Harrison.FOL (subst, generalize)
 import Data.Logic.Harrison.Herbrand (davisputnam)
@@ -97,20 +97,35 @@ unify_refute djs env =
 -- Hence a Prawitz-like procedure (using unification on DNF).                
 -- ------------------------------------------------------------------------- 
 
--- prawitz_loop :: (PropositionalFormula pf atom, Term term v f, Eq pf, Ord pf) => Set.Set (Set.Set pf) -> [v] -> Set.Set (Set.Set pf) -> Int -> (Map.Map v term, Int)
+prawitz_loop :: forall atom v term f lit. (Literal lit atom, Term term v f, C.Atom atom term v, Ord lit) =>
+                Set.Set (Set.Set lit) -> [v] -> Set.Set (Set.Set lit) -> Int -> (Map.Map v term, Int)
 prawitz_loop djs0 fvs djs n =
     let l = length fvs in
     let newvars = map (\ k -> fromString ("_" ++ show (n * l + k))) [1..l] in
     let inst = Map.fromList (zip fvs (map vt newvars)) in
-    let djs1 = distrib' (Set.map (Set.map (subst inst)) djs0) djs in
+    let djs1 = distrib' (Set.map (Set.map (mapAtoms (atomic . substitute' inst))) djs0) djs in
     case unify_refute djs1 Map.empty of
       Failure _ -> prawitz_loop djs0 fvs djs1 (n + 1)
       Success env -> (env, n + 1)
+    where
+      substitute' :: Map.Map v term -> atom -> atom
+      substitute' = C.substitute
 
--- prawitz :: forall fof pf atom term f v. (FirstOrderFormula fof atom v, PropositionalFormula pf atom, Eq fof, Ord pf) => fof -> Int
+-- prawitz :: forall fof atom v. (FirstOrderFormula fof atom v, Ord fof) => fof -> Int
+prawitz :: forall fof atom term v f lit pf.
+           (FirstOrderFormula fof atom v,
+            PropositionalFormula pf atom,
+            Literal lit atom,
+            Term term v f,
+            C.Atom atom term v) =>
+           fof -> Int
 prawitz fm =
-    snd (prawitz_loop (simpdnf pf) (Set.toList (foldAtoms (\ s a -> Set.union (C.freeVariables a) s) Set.empty pf)) (Set.singleton Set.empty) 0)
-    where pf = runSkolem (skolemize id ((.~.)(generalize fm)))
+    snd (prawitz_loop dnf (Set.toList fvs) dnf0 0 :: (Map.Map v term, Int))
+    where
+      dnf0 = (Set.singleton Set.empty) :: Set.Set (Set.Set lit)
+      dnf = simpdnf pf :: Set.Set (Set.Set lit)
+      fvs = foldAtoms (\ s (a :: atom) -> Set.union (C.freeVariables a) s) Set.empty pf :: Set.Set v
+      pf = runSkolem (skolemize id ((.~.)(generalize fm))) :: pf
 
 -- ------------------------------------------------------------------------- 
 -- Examples.                                                                 
@@ -129,8 +144,18 @@ test01 = TestCase $ assertEqual "p20 - prawitz" expected input
 -- Comparison of number of ground instances.                                 
 -- ------------------------------------------------------------------------- 
 
-compare fm =
-    (prawitz fm, davisputnam fm)
+{-
+compare :: forall fof pf lit atom term v f.
+           (FirstOrderFormula fof atom v,
+            PropositionalFormula pf atom,
+            Literal pf atom,
+            Term term v f,
+            C.Atom atom term v,
+            IsString f) =>
+           (atom -> Set.Set (f, Int)) -> fof -> (Int, Failing Int)
+-}
+compare fa fm =
+    (prawitz fm, davisputnam fa fm)
 {-
 START_INTERACTIVE;;
 test02 = TestCase $ assertEqual "p19" expected input

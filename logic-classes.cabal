@@ -58,6 +58,7 @@ Library
                    Data.Logic.Normal.Implicative
                    Data.Logic.Resolution
                    Data.Logic.Satisfiable
+                   Data.Logic.Types.Common
                    Data.Logic.Types.FirstOrder
                    Data.Logic.Types.FirstOrderPublic
                    Data.Logic.Types.Harrison.Equal

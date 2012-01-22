@@ -81,13 +81,13 @@ instance (Constants (Formula v p f) {-, Ord v, Ord p, Ord f-}) => Combinable (Fo
     x .&.   y = Combine (BinOp  x (:&:)   y)
 
 instance (C.Predicate p, Function f v) => C.Formula (Formula v p f) (Predicate p (PTerm v f)) where
+    atomic (Equal t1 t2) = t1 .=. t2
+    atomic (Apply p ts) = pApp p ts
     foldAtoms = foldAtomsFirstOrder
     mapAtoms = mapAtomsFirstOrder
 
 instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)), Variable v, C.Predicate p, Function f v, Constants (Formula v p f), Combinable (Formula v p f)) =>
          PropositionalFormula (Formula v p f) (Predicate p (PTerm v f)) where
-    atomic (Equal t1 t2) = t1 .=. t2
-    atomic (Apply p ts) = pApp p ts
     foldPropositional co tf at formula =
         maybe testFm tf (asBool formula)
         where
@@ -147,10 +147,7 @@ instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)),
           (Combine x, Combine y) -> co x y
           (Predicate x, Predicate y) -> at x y
           _ -> Nothing
--}
-    atomic = Predicate
 
-{-
 instance (Constants (Formula v p f),
           Variable v, Ord v, Data v, Show v,
           Arity p, Constants p, Ord p, Data p, Show p,
@@ -163,8 +160,8 @@ instance (Constants (Formula v p f),
     atomic = Predicate
 -}
 
-instance (Constants p, Eq v, Eq p, Eq f, Constants (Predicate p (PTerm v f))) => Literal (Formula v p f) (Predicate p (PTerm v f)) where
-    atomic = Predicate
+instance (Constants p, Ord v, Ord p, Ord f, Constants (Predicate p (PTerm v f)), C.Formula (Formula v p f) (Predicate p (PTerm v f))
+         ) => Literal (Formula v p f) (Predicate p (PTerm v f)) where
     foldLiteral neg tf at f =
         case f of
           Quant _ _ _ -> error "Invalid literal"
@@ -197,7 +194,7 @@ instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)),
     fixity = fixityFirstOrder
 
 instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)), Variable v, C.Predicate p, Function f v) => Pretty (Formula v p f) where
-    pretty = prettyFirstOrder (\ _ -> pretty) pretty 0
+    pretty f = prettyFirstOrder (\ _ -> pretty) pretty 0 $ f
 
 instance HasFixity (Predicate p term) where
     fixity = const botFixity

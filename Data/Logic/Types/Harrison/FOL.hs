@@ -10,20 +10,18 @@ module Data.Logic.Types.Harrison.FOL
 import Data.Generics (Data, Typeable)
 import Data.List (intersperse)
 import Data.Logic.Classes.Arity
-import Data.Logic.Classes.Apply (Apply(..), Predicate, showApply)
+import Data.Logic.Classes.Apply (Apply(..), Predicate)
 --import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
-import Data.Logic.Classes.FirstOrder ({-FirstOrderFormula(..),-} showFirstOrder, foldAtomsFirstOrder, mapAtomsFirstOrder)
-import qualified Data.Logic.Classes.Formula as C
+--import Data.Logic.Classes.FirstOrder (foldAtomsFirstOrder, mapAtomsFirstOrder)
+--import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), Fixity(..), FixityDirection(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(vt, foldTerm, fApp))
---import Data.Logic.Classes.Variable (Variable(..))
 import qualified Data.Logic.Classes.Term as C
-import qualified Data.Logic.Classes.FirstOrder as C
-import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
-import qualified Data.Logic.Types.Harrison.Formulas.FirstOrder as H
-import qualified Data.Set as Set
+--import qualified Data.Logic.Classes.FirstOrder as C
+--import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
+import qualified Data.Logic.Types.Common ({- instance Variable String -})
 import Prelude hiding (pred)
 import Text.PrettyPrint (text, cat)
 
@@ -126,20 +124,6 @@ instance Term TermType String Function where
     foldTerm vfn _ (Var x) = vfn x
     foldTerm _ ffn (Fn f ts) = ffn f ts
     zipTerms = undefined
-
-{-
-instance Variable String where
-    variant x vars = if Set.member x vars then variant (x ++ "'") vars else x
-    prefix p x = p ++ x
-    prettyVariable = text
--}
-
-instance C.Formula (Formula FOL) FOL where
-    foldAtoms = foldAtomsFirstOrder
-    mapAtoms = mapAtomsFirstOrder
-
-instance Show (Formula FOL) where
-    show = showFirstOrder showApply
 
 instance HasFixity FOL where
     fixity = const (Fixity 10 InfixN)

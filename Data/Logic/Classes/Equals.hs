@@ -24,6 +24,7 @@ import Data.Logic.Classes.Arity (Arity(..))
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool), ifElse)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
+import Data.Logic.Classes.Formula (Formula(atomic))
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Pretty (Pretty(pretty))
 import Data.Logic.Classes.Term (Term, convertTerm, showTerm, prettyTerm, fvt, tsubst, funcs)
@@ -92,8 +93,8 @@ pApp :: (FirstOrderFormula formula atom v, AtomEq atom p term) => p -> [term] ->
 pApp p ts = atomic (applyEq p ts)
 
 -- | Versions of pApp specialized for different argument counts.
-pApp0 :: (FirstOrderFormula formula atom v, AtomEq atom p term) => p -> formula
-pApp0 p = atomic (apply0 p)
+pApp0 :: forall formula atom term v p. (FirstOrderFormula formula atom v, AtomEq atom p term) => p -> formula
+pApp0 p = atomic (apply0 p :: atom)
 pApp1 :: (FirstOrderFormula formula atom v, AtomEq atom p term) => p -> term -> formula
 pApp1 p a = atomic (apply1 p a)
 pApp2 :: (FirstOrderFormula formula atom v, AtomEq atom p term) => p -> term -> term -> formula

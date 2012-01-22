@@ -24,9 +24,6 @@ instance Show Prop where
 instance Pretty Prop where
     pretty = text . show
 
-instance Pretty String where
-    pretty = text
-
 instance HasFixity String where
     fixity = const botFixity
 

@@ -24,10 +24,13 @@ module Data.Logic.Classes.Propositional
     , disjunctiveNormalForm
     , disjunctiveNormalForm'
     , overatoms
+    , foldAtomsPropositional
+    , mapAtomsPropositional
     ) where
 
 import Data.Logic.Classes.Combine
 import Data.Logic.Classes.Constants (Constants(fromBool), asBool, prettyBool)
+import Data.Logic.Classes.Formula (Formula(atomic))
 import Data.Logic.Classes.Negate
 import Data.Logic.Classes.Pretty (Pretty, HasFixity(fixity), Fixity(Fixity), FixityDirection(..))
 import Data.SafeCopy (base, deriveSafeCopy)
@@ -50,10 +53,9 @@ import Text.PrettyPrint (Doc, text, (<>))
 -- without.  It is less obvious whether Constants is always required,
 -- but the implementation of functions like simplify would be more
 -- elaborate if we didn't have it, so we will require it.
-class (Ord formula, Negatable formula, Combinable formula, Constants formula, Pretty formula, HasFixity formula
-      ) => PropositionalFormula formula atom | formula -> atom where
+class (Ord formula, Negatable formula, Combinable formula, Constants formula,
+       Pretty formula, HasFixity formula, Formula formula atom) => PropositionalFormula formula atom | formula -> atom where
     -- | Build an atomic formula from the atom type.
-    atomic :: atom -> formula
     -- | A fold function that distributes different sorts of formula
     -- to its parameter functions, one to handle binary operators, one
     -- for negations, and one for atomic formulas.  See examples of its
@@ -318,6 +320,15 @@ foldAtomsPropositional f i pf =
 -- | Deprecated - use foldAtoms.
 overatoms :: forall formula atom r. PropositionalFormula formula atom => (atom -> r -> r) -> formula -> r -> r
 overatoms f fm b = foldAtomsPropositional (flip f) b fm
+
+mapAtomsPropositional :: forall formula atom. PropositionalFormula formula atom => (atom -> formula) -> formula -> formula
+mapAtomsPropositional f fm =
+    foldPropositional co tf at fm
+    where
+      co ((:~:) p) = mapAtomsPropositional f p
+      co (BinOp p op q) = binop (mapAtomsPropositional f p) op (mapAtomsPropositional f q)
+      tf flag = fromBool flag
+      at x = f x
 
 $(deriveSafeCopy 1 'base ''BinOp)
 $(deriveSafeCopy 1 'base ''Combination)

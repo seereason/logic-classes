@@ -10,10 +10,11 @@ import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(fromBool, asBool))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
+import Data.Logic.Classes.Formula (Formula(..))
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Pretty (HasFixity(fixity), Pretty(pretty), topFixity)
-import Data.Logic.Classes.Propositional (PropositionalFormula(..), clauseNormalForm', prettyPropositional, fixityPropositional)
+import Data.Logic.Classes.Propositional (PropositionalFormula(..), clauseNormalForm', prettyPropositional, fixityPropositional, foldAtomsPropositional, mapAtomsPropositional)
 import Data.Logic.Classes.Term (Term)
 import Data.Logic.Harrison.Skolem (SkolemT)
 import Data.Logic.Normal.Clause (clauseNormalForm)
@@ -31,8 +32,12 @@ instance {- Ord a => -} Combinable (PropForm a) where
     x .|.   y = DJ [x, y]
     x .&.   y = CJ [x, y]
 
-instance (Combinable (PropForm a), Pretty a, HasFixity a, Ord a) => PropositionalFormula (PropForm a) a where
+instance (Pretty a, HasFixity a, Ord a) => Formula (PropForm a) a where
     atomic = A
+    foldAtoms = foldAtomsPropositional
+    mapAtoms = mapAtomsPropositional
+
+instance (Combinable (PropForm a), Pretty a, HasFixity a, Ord a) => PropositionalFormula (PropForm a) a where
     foldPropositional co tf at formula =
         case formula of
           -- EJ [x,y,z,...] -> CJ [EJ [x,y], EJ[y,z], ...]

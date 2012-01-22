@@ -38,7 +38,7 @@ import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Apply (Apply(..), apply, apply0, apply1, apply2, apply3, apply4, apply5, apply6, apply7)
 import Data.Logic.Classes.Constants
 import Data.Logic.Classes.Combine
-import Data.Logic.Classes.Formula (Formula)
+import Data.Logic.Classes.Formula (Formula(atomic))
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), Fixity(..), FixityDirection(..))
 import qualified Data.Logic.Classes.Propositional as P
 import Data.Logic.Classes.Variable (Variable)
@@ -77,7 +77,6 @@ class ( Formula formula atom
                    -> (atom -> r)
                    -> formula
                    -> r
-    atomic :: atom -> formula
 
 zipFirstOrder :: FirstOrderFormula formula atom v =>
                  (Quant -> v -> formula -> Quant -> v -> formula -> Maybe r)
@@ -99,26 +98,26 @@ zipFirstOrder qu co tf at fm1 fm2 =
 -- benefits.
 data Quant = Forall | Exists deriving (Eq,Ord,Show,Read,Data,Typeable,Enum,Bounded)
 
-pApp :: (FirstOrderFormula formula atom v, Apply atom p term) => p -> [term] -> formula
-pApp p ts = atomic (apply p ts)
+pApp :: forall formula atom term v p. (FirstOrderFormula formula atom v, Apply atom p term) => p -> [term] -> formula
+pApp p ts = atomic (apply p ts :: atom)
 
 -- | Versions of pApp specialized for different argument counts.
-pApp0 :: (FirstOrderFormula formula atom v, Apply atom p term) => p -> formula
-pApp0 p = atomic (apply0 p)
-pApp1 :: (FirstOrderFormula formula atom v, Apply atom p term) => p -> term -> formula
-pApp1 p a = atomic (apply1 p a)
-pApp2 :: (FirstOrderFormula formula atom v, Apply atom p term) => p -> term -> term -> formula
-pApp2 p a b = atomic (apply2 p a b)
-pApp3 :: (FirstOrderFormula formula atom v, Apply atom p term) => p -> term -> term -> term -> formula
-pApp3 p a b c = atomic (apply3 p a b c)
-pApp4 :: (FirstOrderFormula formula atom v, Apply atom p term) => p -> term -> term -> term -> term -> formula
-pApp4 p a b c d = atomic (apply4 p a b c d)
-pApp5 :: (FirstOrderFormula formula atom v, Apply atom p term) => p -> term -> term -> term -> term -> term -> formula
-pApp5 p a b c d e = atomic (apply5 p a b c d e)
-pApp6 :: (FirstOrderFormula formula atom v, Apply atom p term) => p -> term -> term -> term -> term -> term -> term -> formula
-pApp6 p a b c d e f = atomic (apply6 p a b c d e f)
-pApp7 :: (FirstOrderFormula formula atom v, Apply atom p term) => p -> term -> term -> term -> term -> term -> term -> term -> formula
-pApp7 p a b c d e f g = atomic (apply7 p a b c d e f g)
+pApp0 :: forall formula atom term v p. (FirstOrderFormula formula atom v, Apply atom p term) => p -> formula
+pApp0 p = atomic (apply0 p :: atom)
+pApp1 :: forall formula atom term v p. (FirstOrderFormula formula atom v, Apply atom p term) => p -> term -> formula
+pApp1 p a = atomic (apply1 p a :: atom)
+pApp2 :: forall formula atom term v p. (FirstOrderFormula formula atom v, Apply atom p term) => p -> term -> term -> formula
+pApp2 p a b = atomic (apply2 p a b :: atom)
+pApp3 :: forall formula atom term v p. (FirstOrderFormula formula atom v, Apply atom p term) => p -> term -> term -> term -> formula
+pApp3 p a b c = atomic (apply3 p a b c :: atom)
+pApp4 :: forall formula atom term v p. (FirstOrderFormula formula atom v, Apply atom p term) => p -> term -> term -> term -> term -> formula
+pApp4 p a b c d = atomic (apply4 p a b c d :: atom)
+pApp5 :: forall formula atom term v p. (FirstOrderFormula formula atom v, Apply atom p term) => p -> term -> term -> term -> term -> term -> formula
+pApp5 p a b c d e = atomic (apply5 p a b c d e :: atom)
+pApp6 :: forall formula atom term v p. (FirstOrderFormula formula atom v, Apply atom p term) => p -> term -> term -> term -> term -> term -> term -> formula
+pApp6 p a b c d e f = atomic (apply6 p a b c d e f :: atom)
+pApp7 :: forall formula atom term v p. (FirstOrderFormula formula atom v, Apply atom p term) => p -> term -> term -> term -> term -> term -> term -> term -> formula
+pApp7 p a b c d e f g = atomic (apply7 p a b c d e f g :: atom)
 
 -- |for_all with a list of variables, for backwards compatibility.
 for_all' :: FirstOrderFormula formula atom v => [v] -> formula -> formula
@@ -184,7 +183,7 @@ toPropositional convertAtom formula =
       co (BinOp f1 op f2) = combine (BinOp (convert' f1) op (convert' f2))
       co ((:~:) f) = combine ((:~:) (convert' f))
       tf = fromBool
-      at = P.atomic . convertAtom
+      at = atomic . convertAtom
 
 -- | Display a formula in a format that can be read into the interpreter.
 showFirstOrder :: forall formula atom v. (FirstOrderFormula formula atom v, Show v) => (atom -> String) -> formula -> String
@@ -267,9 +266,9 @@ mapAtomsFirstOrder :: forall formula atom v. FirstOrderFormula formula atom v =>
 mapAtomsFirstOrder f fm =
     foldFirstOrder qu co tf at fm
     where
-      qu op v p = quant op v (onatoms f p)
-      co ((:~:) p) = onatoms f p
-      co (BinOp p op q) = binop (onatoms f p) op (onatoms f q)
+      qu op v p = quant op v (mapAtomsFirstOrder f p)
+      co ((:~:) p) = mapAtomsFirstOrder f p
+      co (BinOp p op q) = binop (mapAtomsFirstOrder f p) op (mapAtomsFirstOrder f q)
       tf flag = fromBool flag
       at x = f x
 

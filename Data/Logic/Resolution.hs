@@ -17,6 +17,7 @@ import Data.Logic.Classes.Apply (Predicate)
 import Data.Logic.Classes.Atom (Atom(isRename, getSubst))
 import Data.Logic.Classes.Constants (fromBool)
 import Data.Logic.Classes.Equals (AtomEq(foldAtomEq, equals), applyEq, zipAtomsEq)
+import Data.Logic.Classes.Formula (Formula(atomic))
 import Data.Logic.Classes.Literal (Literal(..), zipLiterals)
 import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF, neg, pos))
@@ -323,13 +324,13 @@ getTerms formula =
       p (Apply _ ts) = concatMap getTerms' ts
 -}
 
-replaceTerm :: (Literal lit atom, Atom atom term v, Term term v f, Eq term, AtomEq atom p term) => lit -> (term, term) -> Maybe lit
+replaceTerm :: forall lit atom term v p f. (Literal lit atom, Atom atom term v, Term term v f, Eq term, AtomEq atom p term) => lit -> (term, term) -> Maybe lit
 replaceTerm formula (tl', tr') =
     foldLiteral
           (\ _ -> error "error in replaceTerm")
-          (\ x -> Just (atomic (applyEq (fromBool x) [])))
+          (\ x -> Just (atomic (applyEq (fromBool x) [] :: atom)))
           (foldAtomEq (\ p ts -> Just (atomic (applyEq p (map (\ t -> replaceTerm' t) ts))))
-                      (\ x -> Just (atomic (applyEq (fromBool x) [])))
+                      (\ x -> Just (atomic (applyEq (fromBool x) [] :: atom)))
                       (\ t1 t2 -> 
                            let t1' = replaceTerm' t1
                                t2' = replaceTerm' t2 in
@@ -347,9 +348,9 @@ subst :: (Literal formula atom, AtomEq atom p term, Atom atom term v, Term term 
 subst formula theta =
     foldLiteral
           (\ _ -> Just formula)
-          (\ x -> Just (atomic (applyEq (fromBool x) [])))
+          (\ x -> Just (fromBool x))
           (foldAtomEq (\ p ts -> Just (atomic (applyEq p (substTerms ts theta))))
-                      (\ x -> Just (atomic (applyEq (fromBool x) [])))
+                      (Just . fromBool)
                       (\ t1 t2 ->
                            let t1' = substTerm t1 theta
                                t2' = substTerm t2 theta in

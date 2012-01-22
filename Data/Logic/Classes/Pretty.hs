@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeSynonymInstances #-}
 module Data.Logic.Classes.Pretty
     ( Pretty(pretty)
     , HasFixity(fixity)
@@ -8,7 +9,7 @@ module Data.Logic.Classes.Pretty
     ) where
 
 import qualified Language.Haskell.TH.Syntax as TH
-import Text.PrettyPrint (Doc)
+import Text.PrettyPrint (Doc, text)
 
 -- | The intent of this class is to be similar to Show, but only one
 -- way, with no corresponding Read class.  It doesn't really belong
@@ -52,3 +53,6 @@ topFixity = TH.Fixity 0 TH.InfixN
 -- parenthesization, such as function application.
 botFixity :: TH.Fixity
 botFixity = TH.Fixity 10 TH.InfixN
+
+instance Pretty String where
+    pretty = text

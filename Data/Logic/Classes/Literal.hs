@@ -14,7 +14,7 @@ import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Combine (Combination(..))
 import Data.Logic.Classes.Constants
 import qualified Data.Logic.Classes.FirstOrder as FOF
-import Data.Logic.Classes.Formula (Formula(foldAtoms))
+import Data.Logic.Classes.Formula (Formula(atomic))
 import Data.Logic.Classes.Pretty (HasFixity(..), Fixity(..), FixityDirection(..))
 import qualified Data.Logic.Classes.Propositional as P
 import Data.Logic.Classes.Negate
@@ -22,9 +22,8 @@ import Text.PrettyPrint (Doc, (<>), text, parens, nest)
 
 -- |Literals are the building blocks of the clause and implicative normal
 -- |forms.  They support negation and must include True and False elements.
-class (Negatable lit, Constants lit, HasFixity atom) => Literal lit atom | lit -> atom where
+class (Negatable lit, Constants lit, HasFixity atom, Formula lit atom, Ord lit) => Literal lit atom | lit -> atom where
     foldLiteral :: (lit -> r) -> (Bool -> r) -> (atom -> r) -> lit -> r
-    atomic :: atom -> lit
 
 zipLiterals :: Literal lit atom =>
                (lit -> lit -> Maybe r)
@@ -52,7 +51,7 @@ instance FirstOrderFormula fof atom v => Literal fof atom v where
 -- with a construct unsupported in a normal logic formula,
 -- i.e. quantifiers and formula combinators other than negation.
 fromFirstOrder :: forall formula atom v lit atom2.
-                  (FOF.FirstOrderFormula formula atom v, Literal lit atom2) =>
+                  (Formula lit atom2, FOF.FirstOrderFormula formula atom v, Literal lit atom2) =>
                   (atom -> atom2) -> formula -> Failing lit
 fromFirstOrder ca formula =
     FOF.foldFirstOrder (\ _ _ _ -> Failure ["fromFirstOrder"]) co (Success . fromBool) (Success . atomic . ca) formula
@@ -63,11 +62,11 @@ fromFirstOrder ca formula =
 
 fromLiteral :: forall lit atom v fof atom2. (Literal lit atom, FOF.FirstOrderFormula fof atom2 v) =>
                (atom -> atom2) -> lit -> fof
-fromLiteral ca lit = foldLiteral (\ p -> (.~.) (fromLiteral ca p)) fromBool (FOF.atomic . ca) lit
+fromLiteral ca lit = foldLiteral (\ p -> (.~.) (fromLiteral ca p)) fromBool (atomic . ca) lit
 
 toPropositional :: forall lit atom pf atom2. (Literal lit atom, P.PropositionalFormula pf atom2) =>
                    (atom -> atom2) -> lit -> pf
-toPropositional ca lit = foldLiteral (\ p -> (.~.) (toPropositional ca p)) fromBool (P.atomic . ca) lit
+toPropositional ca lit = foldLiteral (\ p -> (.~.) (toPropositional ca p)) fromBool (atomic . ca) lit
 
 {-
 prettyLit :: forall lit atom term v p f. (Literal lit atom v, Apply atom p term, Term term v f) =>

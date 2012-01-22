@@ -5,12 +5,12 @@ module Data.Logic.Harrison.DP
     ) where
 
 import Control.Applicative.Error (Failing(..))
+import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Negate (Negatable, (.~.), negated)
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
-import Data.Logic.Classes.Pretty (pretty)
 import Data.Logic.Harrison.DefCNF (NumAtom(..), defcnfs)
 import Data.Logic.Harrison.Lib (allpairs, maximize', minimize', defined, setmapfilter, (|->))
-import Data.Logic.Harrison.Prop (negative, positive, trivial, tautology)
+import Data.Logic.Harrison.Prop (negative, positive, trivial, tautology, cnf)
 import Data.Logic.Harrison.PropExamples (Atom(..), N, prime)
 import Data.Logic.Tests.HUnit
 import Data.Logic.Types.Propositional (Formula(..))
@@ -35,7 +35,7 @@ tests = convert (TestList [test01, test02, test03])
 -- The DP procedure.                                                         
 -- ------------------------------------------------------------------------- 
 
-one_literal_rule :: (PropositionalFormula pf a, Eq pf, Ord pf) => Set.Set (Set.Set pf) -> Failing (Set.Set (Set.Set pf))
+one_literal_rule :: (Literal lit atom, Ord lit) => Set.Set (Set.Set lit) -> Failing (Set.Set (Set.Set lit))
 one_literal_rule clauses =
     case Set.minView (Set.filter (\ cl -> Set.size cl == 1) clauses) of
       Nothing -> Failure ["one_literal_rule"]
@@ -45,7 +45,7 @@ one_literal_rule clauses =
           let clauses1 = Set.filter (\ cl -> not (Set.member u cl)) clauses in
           Success (Set.map (\ cl -> Set.delete u' cl) clauses1)
 
-affirmative_negative_rule :: (PropositionalFormula pf a, Eq pf, Ord pf) => Set.Set (Set.Set pf) -> Failing (Set.Set (Set.Set pf))
+affirmative_negative_rule :: (Literal lit atom, Ord lit) => Set.Set (Set.Set lit) -> Failing (Set.Set (Set.Set lit))
 affirmative_negative_rule clauses =
   let (neg',pos) = Set.partition negative (Set.flatten clauses) in
   let neg = Set.map (.~.) neg' in
@@ -56,8 +56,8 @@ affirmative_negative_rule clauses =
   then Failure ["affirmative_negative_rule"]
   else Success (Set.filter (\ cl -> Set.null (Set.intersection cl pure)) clauses)
 
-resolve_on :: forall pf atom. (PropositionalFormula pf atom, Ord pf) =>
-              pf -> Set.Set (Set.Set pf) -> Set.Set (Set.Set pf)
+resolve_on :: forall lit atom. (Literal lit atom, Ord lit) =>
+              lit -> Set.Set (Set.Set lit) -> Set.Set (Set.Set lit)
 resolve_on p clauses =
   let p' = (.~.) p
       (pos,notpos) = Set.partition (Set.member p) clauses in
@@ -74,8 +74,8 @@ resolution_blowup cls l =
       n = Set.size (Set.filter (Set.member ((.~.) l)) cls) in
   m * n - m - n
 
-resolution_rule :: forall pf atomic. (PropositionalFormula pf atomic, Ord pf) =>
-                   Set.Set (Set.Set pf) -> Failing (Set.Set (Set.Set pf))
+resolution_rule :: forall lit atom. (Literal lit atom, Ord lit) =>
+                   Set.Set (Set.Set lit) -> Failing (Set.Set (Set.Set lit))
 resolution_rule clauses =
     let pvs = Set.filter positive (Set.flatten clauses) in
     case minimize' (resolution_blowup clauses) pvs of
@@ -85,7 +85,8 @@ resolution_rule clauses =
 -- ------------------------------------------------------------------------- 
 -- Overall procedure.                                                        
 -- ------------------------------------------------------------------------- 
-        
+
+dp :: forall lit atom. (Literal lit atom, Ord lit) => Set.Set (Set.Set lit) -> Failing Bool        
 dp clauses =
   if Set.null clauses
   then Success True
@@ -102,12 +103,10 @@ dp clauses =
 -- Davis-Putnam satisfiability tester and tautology checker.                 
 -- ------------------------------------------------------------------------- 
 
-dpsat :: forall pf. (PropositionalFormula pf (Atom N), Ord pf) =>
-         pf -> Failing Bool
-dpsat fm = dp (defcnfs fm)
+dpsat :: forall pf atom. (PropositionalFormula pf atom, Literal pf atom, NumAtom atom, Ord pf) => pf -> Failing Bool
+dpsat fm = dp (defcnfs fm :: Set.Set (Set.Set pf))
 
-dptaut :: forall pf. (PropositionalFormula pf (Atom N), Ord pf) =>
-          pf -> Failing Bool
+dptaut :: forall pf atom. (PropositionalFormula pf atom, Literal pf atom, NumAtom atom, Ord pf) => pf -> Failing Bool
 dptaut fm = dpsat((.~.) fm) >>= return . not
 
 -- ------------------------------------------------------------------------- 
@@ -127,8 +126,8 @@ posneg_count cls l =
       n = Set.size(Set.filter (Set.member ((.~.) l)) cls) in
   m + n                                  
 
-dpll :: forall atomic pf. (PropositionalFormula pf atomic, Ord pf) =>
-        Set.Set (Set.Set pf) -> Failing Bool
+dpll :: forall lit atom. (Literal lit atom, Ord lit) =>
+        Set.Set (Set.Set lit) -> Failing Bool
 dpll clauses =       
   if clauses == Set.empty
   then Success True
@@ -150,11 +149,11 @@ dpll clauses =
                                 (Failure a, _) -> Failure a
                                 (_, Failure b) -> Failure b
 
-dpllsat :: forall pf. (PropositionalFormula pf (Atom N), Ord pf) =>
+dpllsat :: forall pf. (PropositionalFormula pf (Atom N), Literal pf (Atom N), Ord pf) =>
            pf -> Failing Bool
-dpllsat fm = dpll(defcnfs fm)
+dpllsat fm = dpll(defcnfs fm :: Set.Set (Set.Set pf))
 
-dplltaut :: forall pf. (PropositionalFormula pf (Atom N), Ord pf) =>
+dplltaut :: forall pf. (PropositionalFormula pf (Atom N), Literal pf (Atom N), Ord pf) =>
             pf -> Failing Bool
 dplltaut fm = dpllsat ((.~.) fm) >>= return . not
 
@@ -221,11 +220,11 @@ dpli cls trail =
                 Just p -> dpli cls (Set.insert (p :: pf, Guessed) trail')
                 Nothing -> Failure ["dpli"]
 
-dplisat :: forall pf. (PropositionalFormula pf (Atom N), Ord pf) =>
+dplisat :: forall pf atom. (PropositionalFormula pf atom, Literal pf atom, NumAtom atom, Ord pf) =>
            pf -> Failing Bool
-dplisat fm = dpli (defcnfs fm) Set.empty
+dplisat fm = dpli (defcnfs fm :: Set.Set (Set.Set pf)) Set.empty
 
-dplitaut :: forall pf. (PropositionalFormula pf (Atom N), Ord pf) =>
+dplitaut :: forall pf atom. (PropositionalFormula pf atom, Literal pf atom, NumAtom atom, Ord pf) =>
             pf -> Failing Bool
 dplitaut fm = dplisat((.~.) fm) >>= return . not
 
@@ -261,12 +260,12 @@ dplb cls trail =
               Just p -> dplb cls (Set.insert (p,Guessed) trail')
               Nothing -> Failure ["dpib"]
             
-dplbsat :: forall a. (PropositionalFormula a (Atom N), Ord a) =>
-           a -> Failing Bool
-dplbsat fm = dplb (defcnfs fm) Set.empty
+dplbsat :: forall pf atom. (PropositionalFormula pf atom, Literal pf atom, NumAtom atom, Ord pf) =>
+           pf -> Failing Bool
+dplbsat fm = dplb (defcnfs fm :: Set.Set (Set.Set pf)) Set.empty
 
-dplbtaut :: forall a. (PropositionalFormula a (Atom N), Ord a) =>
-            a -> Failing Bool
+dplbtaut :: forall pf atom. (PropositionalFormula pf atom, Literal pf atom, NumAtom atom, Ord pf) =>
+            pf -> Failing Bool
 dplbtaut fm = dplbsat((.~.) fm) >>= return . not
 
 -- ------------------------------------------------------------------------- 

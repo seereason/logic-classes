@@ -13,7 +13,8 @@ import Control.Applicative.Error (failing)
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
-import Data.Logic.Classes.Literal (Literal(atomic), fromFirstOrder)
+import Data.Logic.Classes.Formula (Formula(atomic))
+import Data.Logic.Classes.Literal (Literal, fromFirstOrder)
 import Data.Logic.Classes.Negate (Negatable, negated, (.~.))
 import Data.Logic.Harrison.Lib (setAny, allpairs)
 import Data.Logic.Harrison.Skolem (nnf)
@@ -65,7 +66,7 @@ purednf fm =
       tf = Set.singleton . Set.singleton . fromBool
       at _ = Set.singleton (Set.singleton fm)
 
-simpdnf' :: forall lit fof atom v. (FirstOrderFormula fof atom v, Literal lit atom, Ord lit) =>
+simpdnf' :: forall lit fof atom v. (FirstOrderFormula fof atom v, Literal lit atom, Formula lit atom, Ord lit) =>
             fof -> Set.Set (Set.Set lit)
 simpdnf' fm =
     foldFirstOrder qu co tf at fm
@@ -74,7 +75,7 @@ simpdnf' fm =
       co _ = def
       tf False = Set.empty
       tf True = Set.singleton Set.empty
-      at = Set.singleton . Set.singleton . Data.Logic.Classes.Literal.atomic
+      at = Set.singleton . Set.singleton . atomic
       def = Set.filter keep djs
       keep x = not (setAny (`Set.isProperSubsetOf` x) djs)
       djs = Set.filter (not . trivial) (purednf' (nnf fm))
@@ -109,7 +110,7 @@ simpcnf fm =
       co _ = def
       tf False = Set.singleton Set.empty
       tf True = Set.empty
-      at x = Set.singleton (Set.singleton (Data.Logic.Classes.FirstOrder.atomic x))
+      at x = Set.singleton (Set.singleton (atomic x))
       -- Discard any clause that is the proper subset of another clause
       def = Set.filter keep cjs
       keep x = not (setAny (`Set.isProperSubsetOf` x) cjs)
@@ -125,7 +126,7 @@ simpcnf' fm =
     foldFirstOrder (\ _ _ _ -> cjs') co tf at fm
     where
       co _ = cjs'
-      at = Set.singleton . Set.singleton . Data.Logic.Classes.Literal.atomic -- foldAtomEq (\ _ _ -> cjs') tf (\ _ _ -> cjs')
+      at = Set.singleton . Set.singleton . atomic -- foldAtomEq (\ _ _ -> cjs') tf (\ _ _ -> cjs')
       tf False = Set.singleton Set.empty
       tf True = Set.empty
       -- Discard any clause that is the proper subset of another clause

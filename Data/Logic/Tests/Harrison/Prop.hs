@@ -6,11 +6,12 @@ module Data.Logic.Tests.Harrison.Prop
 
 import Data.Logic.Classes.Combine (Combinable(..), (∨), (∧))
 import Data.Logic.Classes.Constants (true, false)
+import Data.Logic.Classes.Formula (atomic)
 import Data.Logic.Classes.Negate ((.~.), (¬))
 import Data.Logic.Classes.Propositional
 import Data.Logic.Harrison.Lib ((|=>))
 import Data.Logic.Harrison.Prop (eval, atoms, truthTable, tautology, pSubst, psimplify,
-                                 nnf, dnf, rawdnf, dual, purednf, trivial, cnf)
+                                 nnf, dnf', rawdnf, dual, purednf, trivial, cnf')
 import Data.Logic.Types.Harrison.Formulas.Propositional (Formula(..))
 import Data.Logic.Types.Harrison.Prop (Prop(..))
 import qualified Data.Map as Map
@@ -298,7 +299,7 @@ test28 = TestCase $ assertEqual "nnf 1 (p. 53)" expected input
 
 test29 :: Test
 test29 = TestCase $ assertEqual "dnf 1 (p. 56)" expected input
-    where input = (dnf fm, truthTable fm)
+    where input = (dnf' fm, truthTable fm)
           expected = (Or (And (Not r) p) (And r (And (Not p) q)),
                       ([P {pname = "p"}, P {pname = "q"}, P {pname = "r"}],
                        [([False,False,False],False),
@@ -316,7 +317,7 @@ test29 = TestCase $ assertEqual "dnf 1 (p. 56)" expected input
 
 test30 :: Test
 test30 = TestCase $ assertEqual "dnf 2 (p. 56)" expected input
-    where input = dnf (p .&. q .&. r .&. s .&. t .&. u .|. u .&. v :: Formula Prop)
+    where input = dnf' (p .&. q .&. r .&. s .&. t .&. u .|. u .&. v :: Formula Prop)
           expected = (v .&. u) .|. (q .&. (r .&. (s .&. (t .&. ((u .&. p))))))
           p = Atom (P "p")
           q = Atom (P "q")
@@ -374,7 +375,7 @@ test33 = TestCase $ assertEqual "trivial" expected input
 
 test34 :: Test
 test34 = TestCase $ assertEqual "dnf" expected input
-    where input = (dnf fm, tautology (Iff fm (dnf fm)))
+    where input = (dnf' fm, tautology (Iff fm (dnf' fm)))
           expected = (Or (And (Not r) p) (And r (And (Not p) q)), True)
           fm = (p .|. q .&. r) .&. (((.~.)p) .|. ((.~.)r))
           p = Atom (P "p")
@@ -387,7 +388,7 @@ test34 = TestCase $ assertEqual "dnf" expected input
 
 test35 :: Test
 test35 = TestCase $ assertEqual "cnf" expected input
-    where input = (cnf fm, tautology (Iff fm (cnf fm)))
+    where input = (cnf' fm, tautology (Iff fm (cnf' fm)))
           -- Fully parenthesized
           -- expected = (((atomic (P "r")) .|. (atomic (P "p"))) .&. (((((.~.)(atomic (P "r")))) .|. (((.~.)(atomic (P "p"))))) .&. ((atomic (P "q")) .|. (atomic (P "p")))),True)
           -- Edited
