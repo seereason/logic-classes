@@ -25,6 +25,7 @@ Library
                    Data.Logic.Classes.Constants
                    Data.Logic.Classes.Equals
                    Data.Logic.Classes.FirstOrder
+                   Data.Logic.Classes.Formula
                    Data.Logic.Classes.Literal
                    Data.Logic.Classes.Negate
                    Data.Logic.Classes.Pretty
@@ -80,6 +81,7 @@ Executable tests
                    Data.Logic.Tests.HUnit
                    Data.Logic.Tests.Logic
                    Data.Logic.Tests.TPTP
+                   Data.Logic.Tests.Harrison.Common
                    Data.Logic.Tests.Harrison.Equal
                    Data.Logic.Tests.Harrison.FOL
                    Data.Logic.Tests.Harrison.Meson
