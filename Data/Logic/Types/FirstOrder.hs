@@ -81,13 +81,12 @@ instance (Constants (Formula v p f) {-, Ord v, Ord p, Ord f-}) => Combinable (Fo
     x .&.   y = Combine (BinOp  x (:&:)   y)
 
 instance (C.Predicate p, Function f v) => C.Formula (Formula v p f) (Predicate p (PTerm v f)) where
-    atomic (Equal t1 t2) = t1 .=. t2
-    atomic (Apply p ts) = pApp p ts
+    atomic = Predicate
     foldAtoms = foldAtomsFirstOrder
     mapAtoms = mapAtomsFirstOrder
 
-instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)), Variable v, C.Predicate p, Function f v, Constants (Formula v p f), Combinable (Formula v p f)) =>
-         PropositionalFormula (Formula v p f) (Predicate p (PTerm v f)) where
+instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)), Variable v, C.Predicate p, Function f v, Constants (Formula v p f), Combinable (Formula v p f)
+         ) => PropositionalFormula (Formula v p f) (Predicate p (PTerm v f)) where
     foldPropositional co tf at formula =
         maybe testFm tf (asBool formula)
         where
@@ -130,8 +129,8 @@ instance C.Predicate p => AtomEq (Predicate p (PTerm v f)) p (PTerm v f) where
 instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)),
           AtomEq (Predicate p (PTerm v f)) p (PTerm v f),
           Constants (Formula v p f),
-          Variable v, C.Predicate p, Function f v) =>
-         FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v where
+          Variable v, C.Predicate p, Function f v
+         ) => FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v where
     for_all v x = Quant Forall v x
     exists v x = Quant Exists v x
     foldFirstOrder qu co tf at f =

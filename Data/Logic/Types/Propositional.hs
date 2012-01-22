@@ -48,7 +48,7 @@ instance (Pretty atom, HasFixity atom, Ord atom) => Literal (Formula atom) atom 
     foldLiteral neg tf at formula =
         case formula of
           Combine ((:~:) p) -> neg p
-          Combine _ -> error ("Literal: " ++ show (pretty formula))
+          Combine _ -> error ("Unexpected literal: " ++ show (pretty formula))
           Atom x -> at x
           T -> tf True
           F -> tf False

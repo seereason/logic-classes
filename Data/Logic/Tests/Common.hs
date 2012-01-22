@@ -55,7 +55,7 @@ import Data.Logic.Resolution (SetOfSupport)
 import qualified Data.Logic.Types.FirstOrder as P
 import qualified Data.Set as S
 import Data.String (IsString(fromString))
-import Text.PrettyPrint (Style(mode), renderStyle, style, Mode(OneLineMode))
+import Text.PrettyPrint (Style(mode), renderStyle, style, Mode(OneLineMode), (<>))
 
 --import PropLogic (PropForm)
 
@@ -158,7 +158,7 @@ instance Show AtomicFunction where
 
 prettyF :: AtomicFunction -> Doc
 prettyF (Fn s) = text s
-prettyF (Skolem v) = text ("sK" ++ show v)
+prettyF (Skolem v) = text "sK" <> pretty v
 
 instance Pretty AtomicFunction where
     pretty = prettyF

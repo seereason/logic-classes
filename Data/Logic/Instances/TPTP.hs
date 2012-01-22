@@ -59,7 +59,7 @@ instance Logic.Boolean AtomicWord where
 
 instance Logic.Pretty AtomicFunction where
     pretty (Atom w) = Logic.pretty w
-    pretty (StringLit s) = text (show s)
+    pretty (StringLit s) = text s
     pretty (NumberLit n) = text (show n)
     pretty (Skolem (V s)) = text ("sK" ++ s)
 

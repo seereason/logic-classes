@@ -22,7 +22,7 @@ instance Show Prop where
     show x = "P " ++ show (pname x)
 
 instance Pretty Prop where
-    pretty = text . show
+    pretty = text . pname
 
 instance HasFixity String where
     fixity = const botFixity
