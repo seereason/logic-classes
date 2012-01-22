@@ -59,6 +59,7 @@ Library
                    Data.Logic.Normal.Implicative
                    Data.Logic.Resolution
                    Data.Logic.Satisfiable
+                   Data.Logic.Tests.HUnit
                    Data.Logic.Types.Common
                    Data.Logic.Types.FirstOrder
                    Data.Logic.Types.FirstOrderPublic
@@ -78,7 +79,6 @@ Executable tests
  Other-Modules:    Data.Logic.Tests.Chiou0
                    Data.Logic.Tests.Common
                    Data.Logic.Tests.Data
-                   Data.Logic.Tests.HUnit
                    Data.Logic.Tests.Logic
                    Data.Logic.Tests.TPTP
                    Data.Logic.Tests.Harrison.Common
