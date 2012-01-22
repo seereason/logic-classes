@@ -225,8 +225,8 @@ data SkolemState v term
 newSkolemState :: SkolemState v term
 newSkolemState
     = SkolemState
-      { skolemCount = 1 -- ^ The next available skolem number.
-      , univQuant = []  -- ^ The current set of univerally quantified variables.
+      { skolemCount = 1
+      , univQuant = []
       }
 
 -- | The Skolem monad transformer
