@@ -214,8 +214,6 @@ data SkolemState v term
     = SkolemState
       { skolemCount :: Int
         -- ^ The next available Skolem number.
-      -- , skolemMap :: Map.Map v term
-      --   -- ^ Map from variables to applications of a Skolem function
       , univQuant :: [v]
         -- ^ The variables which are universally quantified in the
         -- current scope, in the order they were encountered.  During
