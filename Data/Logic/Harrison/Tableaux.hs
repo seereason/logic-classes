@@ -154,8 +154,7 @@ compare :: forall fof pf lit atom term v f.
             IsString f) =>
            (atom -> Set.Set (f, Int)) -> fof -> (Int, Failing Int)
 -}
-compare fa fm =
-    (prawitz fm, davisputnam fa fm)
+-- compare fa fm = (prawitz fm, davisputnam fa fm)
 {-
 START_INTERACTIVE;;
 test02 = TestCase $ assertEqual "p19" expected input
