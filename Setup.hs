@@ -15,5 +15,5 @@ main = defaultMainWithHooks simpleUserHooks {
        }
 
 runTestScript lbi =
-    system ("time " ++ buildDir lbi ++ "/tests/tests") >>= \ code ->
+    system (buildDir lbi ++ "/tests/tests") >>= \ code ->
     if code == ExitSuccess then return () else error "Test Failure"
