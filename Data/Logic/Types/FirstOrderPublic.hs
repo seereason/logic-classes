@@ -15,10 +15,10 @@ import Data.Data (Data)
 import Data.Logic.Classes.Apply (Predicate)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder, foldAtomsFirstOrder, mapAtomsFirstOrder)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder, foldAtomsFirstOrder, mapAtomsFirstOrder, fixityFirstOrder)
 import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Negate (Negatable(..))
-import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity)
+import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(fixity))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.Logic.Classes.Term (Function)
 import Data.Logic.Classes.Variable (Variable)
@@ -103,6 +103,9 @@ instance (C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)),
           Predicate p, Function f v, Variable v, Constants (N.Predicate p (N.PTerm v f)),
           FirstOrderFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) v) => Eq (Formula v p f) where
     a == b = compare a b == EQ
+
+instance (Predicate p, Function f v) => HasFixity (Formula v p f) where
+    fixity = fixityFirstOrder
 
 instance (C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)),
           C.Formula (N.Formula v p f) (N.Predicate p (N.PTerm v f)),
