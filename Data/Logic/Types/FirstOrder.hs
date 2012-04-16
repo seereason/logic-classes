@@ -29,7 +29,6 @@ import Data.Logic.Harrison.Tableaux (unifyAtomsEq)
 import Data.Logic.Resolution (isRenameOfAtomEq, getSubstAtomEq)
 import Data.SafeCopy (SafeCopy, base, deriveSafeCopy, extension, MigrateFrom(..))
 import Data.Typeable (Typeable)
-import Happstack.Data (deriveNewData)
 
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula v p f
@@ -201,8 +200,6 @@ instance HasFixity (Predicate p term) where
 $(deriveSafeCopy 1 'base ''PTerm)
 $(deriveSafeCopy 1 'base ''Formula)
 $(deriveSafeCopy 2 'extension ''Predicate)
-
-$(deriveNewData [''PTerm, ''Formula, ''Predicate])
 
 -- Migration --
 

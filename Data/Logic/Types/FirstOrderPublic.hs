@@ -27,7 +27,6 @@ import qualified Data.Logic.Types.FirstOrder as N
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set)
 import Data.Typeable (Typeable)
-import Happstack.Data (deriveNewData)
 
 -- |Convert between the public and internal representations.
 class Bijection p i where
@@ -115,5 +114,3 @@ instance (C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)),
     pretty formula = prettyFirstOrder (\ _prec a -> pretty a) pretty 0 formula
 
 $(deriveSafeCopy 1 'base ''Formula)
-
-$(deriveNewData [''Formula])

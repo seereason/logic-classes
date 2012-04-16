@@ -44,7 +44,6 @@ import qualified Data.Logic.Classes.Propositional as P
 import Data.Logic.Classes.Variable (Variable)
 import Data.SafeCopy (base, deriveSafeCopy)
 import qualified Data.Set as Set
-import Happstack.Data (deriveNewData)
 import Text.PrettyPrint (Doc, (<>), (<+>), text, parens, nest)
 
 -- |The 'FirstOrderFormula' type class.  Minimal implementation:
@@ -302,6 +301,3 @@ atom_union :: forall formula atom v a. (FirstOrderFormula formula atom v, Ord a)
 atom_union f fm = overatoms (\ h t -> Set.union (f h) t) fm Set.empty
 
 $(deriveSafeCopy 1 'base ''Quant)
-
-$(deriveNewData [''Quant])
-

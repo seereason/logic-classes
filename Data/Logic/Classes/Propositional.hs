@@ -35,7 +35,6 @@ import Data.Logic.Classes.Negate
 import Data.Logic.Classes.Pretty (Pretty, HasFixity(fixity), Fixity(Fixity), FixityDirection(..))
 import Data.SafeCopy (base, deriveSafeCopy)
 import qualified Data.Set.Extra as Set
-import Happstack.Data (deriveNewData)
 import Text.PrettyPrint (Doc, text, (<>))
 
 -- |A type class for propositional logic.  If the type we are writing
@@ -332,5 +331,3 @@ mapAtomsPropositional f fm =
 
 $(deriveSafeCopy 1 'base ''BinOp)
 $(deriveSafeCopy 1 'base ''Combination)
-
-$(deriveNewData [''BinOp, ''Combination])

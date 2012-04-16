@@ -1,5 +1,5 @@
 Name:             logic-classes
-Version:          1.4
+Version:          1.4.2
 Synopsis:         Framework for propositional and first order logic, theorem proving
 Description:      Package to support Propositional and First Order Logic.  It includes classes
                   representing the different types of formulas and terms, some instances of
@@ -8,6 +8,7 @@ Description:      Package to support Propositional and First Order Logic.  It in
                   resolution-based theorem prover for any instance of FirstOrderFormula.
 Homepage:         http://src.seereason.com/logic-classes
 License:          BSD3
+License-File:     COPYING
 Author:           David Fox <dsf@seereason.com>
 Maintainer:       SeeReason Partners <partners@seereason.com>
 Bug-Reports:      http://bugzilla.seereason.com/
@@ -69,13 +70,13 @@ Library
                    Data.Logic.Types.Harrison.Formulas.Propositional
                    Data.Logic.Types.Harrison.Prop
                    Data.Logic.Types.Propositional
- Build-Depends:    applicative-extras, base >= 4.3 && < 5, containers, fgl, happstack-data, HUnit, incremental-sat-solver,
+ Build-Depends:    applicative-extras, base >= 4.3 && < 5, containers, fgl, HUnit, incremental-sat-solver,
                    mtl, syb-with-class, text, PropLogic, pretty, safecopy, set-extra, syb, template-haskell
 
 Executable tests
  GHC-Options: -Wall -O2
  Main-Is: Data/Logic/Tests/Main.hs
- Build-Depends: applicative-extras, base, containers, happstack-data, HUnit, incremental-sat-solver, mtl,
+ Build-Depends: applicative-extras, base, containers, HUnit, incremental-sat-solver, mtl,
                 pretty, PropLogic, safecopy, set-extra, syb, template-haskell
  Other-Modules:    Data.Logic.Tests.Chiou0
                    Data.Logic.Tests.Common
