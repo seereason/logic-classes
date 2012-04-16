@@ -1,5 +1,5 @@
 Name:             logic-classes
-Version:          1.4.2
+Version:          1.4.3
 Synopsis:         Framework for propositional and first order logic, theorem proving
 Description:      Package to support Propositional and First Order Logic.  It includes classes
                   representing the different types of formulas and terms, some instances of
@@ -71,7 +71,7 @@ Library
                    Data.Logic.Types.Harrison.Prop
                    Data.Logic.Types.Propositional
  Build-Depends:    applicative-extras, base >= 4.3 && < 5, containers, fgl, HUnit, incremental-sat-solver,
-                   mtl, syb-with-class, text, PropLogic, pretty, safecopy, set-extra, syb, template-haskell
+                   mtl, syb-with-class, text, PropLogic >= 0.9.0.3, pretty, safecopy, set-extra, syb, template-haskell
 
 Executable tests
  GHC-Options: -Wall -O2
