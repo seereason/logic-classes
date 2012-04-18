@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE DeriveDataTypeable, RankNTypes, StandaloneDeriving #-}
 {-# OPTIONS_GHC -Wall -fno-warn-unused-binds #-}
 module Data.Logic.Harrison.Lib
     ( failing
@@ -36,6 +36,7 @@ module Data.Logic.Harrison.Lib
     ) where
 
 import Control.Applicative.Error (Failing(..), ErrorMsg)
+import Data.Generics
 import qualified Data.Map as Map
 import Data.Maybe
 import qualified Data.Set as Set
@@ -48,6 +49,20 @@ import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual)
 failing :: ([ErrorMsg] -> b) -> (a -> b) -> Failing a -> b
 failing f _ (Failure errs) = f errs
 failing _ f (Success a)    = f a
+ 
+instance Monad Failing where
+  return = Success
+  m >>= f =
+      case m of
+        (Failure errs) -> (Failure errs)
+        (Success a) -> f a
+  fail errMsg = Failure [errMsg]
+  
+deriving instance Typeable1 Failing
+deriving instance Data a => Data (Failing a)
+deriving instance Read a => Read (Failing a)
+deriving instance Eq a => Eq (Failing a)
+deriving instance Ord a => Ord (Failing a)
 
 (∅) :: Set.Set a
 (∅) = Set.empty
