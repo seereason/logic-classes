@@ -9,14 +9,13 @@ module Data.Logic.Harrison.Normal
     , simpcnf'
     ) where
 
-import Control.Applicative.Error (failing)
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Formula (Formula(atomic))
 import Data.Logic.Classes.Literal (Literal, fromFirstOrder)
 import Data.Logic.Classes.Negate (Negatable, negated, (.~.))
-import Data.Logic.Harrison.Lib (setAny, allpairs)
+import Data.Logic.Harrison.Lib (setAny, allpairs, failing)
 import Data.Logic.Harrison.Skolem (nnf)
 import qualified Data.Set.Extra as Set
 import Prelude hiding (negate)

@@ -6,8 +6,9 @@ module Data.Logic.Harrison.Unif
     , unifyAndApply
     ) where
 
-import Control.Applicative.Error (Failing(..), failing)
+import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Term (Term(..), tsubst)
+import Data.Logic.Harrison.Lib (failing)
 import qualified Data.Map as Map
 {-
 (* ========================================================================= *)

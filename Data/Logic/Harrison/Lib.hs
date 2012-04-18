@@ -1,7 +1,8 @@
 {-# LANGUAGE RankNTypes #-}
 {-# OPTIONS_GHC -Wall -fno-warn-unused-binds #-}
 module Data.Logic.Harrison.Lib
-    ( tests
+    ( failing
+    , tests
     , setAny
     , setAll
     -- , itlist2
@@ -34,11 +35,19 @@ module Data.Logic.Harrison.Lib
     , (∅)
     ) where
 
-import Control.Applicative.Error (Failing(..), failing)
+import Control.Applicative.Error (Failing(..), ErrorMsg)
 import qualified Data.Map as Map
 import Data.Maybe
 import qualified Data.Set as Set
 import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual)
+
+-- | Case analysis for the 'Failing' type, from unpublished changes to 
+-- the applicative-extras packages.  If the value is @'Failure'@, apply 
+-- the first function to @[ErrorMsg]@; if it is @'Success' a@, apply 
+-- the second function to @a@.
+failing :: ([ErrorMsg] -> b) -> (a -> b) -> Failing a -> b
+failing f _ (Failure errs) = f errs
+failing _ f (Success a)    = f a
 
 (∅) :: Set.Set a
 (∅) = Set.empty
