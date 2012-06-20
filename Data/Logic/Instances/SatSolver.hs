@@ -4,7 +4,7 @@ module Data.Logic.Instances.SatSolver where
 
 import Control.Monad.State (get, put)
 import Control.Monad.Trans (lift)
-import Data.Boolean.SatSolver
+import Data.Boolean.SatSolver (Literal(Pos, Neg), CNF, newSatSolver, assertTrue', solve)
 import Data.Generics (Data, Typeable)
 import qualified Data.Set.Extra as S
 import Data.Logic.Classes.Atom (Atom)
