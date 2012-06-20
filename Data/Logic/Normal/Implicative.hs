@@ -52,7 +52,7 @@ runLiteralMapM action = (runStateT action) (1, Map.empty) >>= return . fst
 -- formula has the form @a & b & c .=>. d | e | f@, where a thru f are
 -- literals.  One more restriction that is not implied by the type is
 -- that no literal can appear in both the pos set and the neg set.
-data (Negatable lit, Ord lit) => ImplicativeForm lit =
+data ImplicativeForm lit =
     INF {neg :: Set.Set lit, pos :: Set.Set lit}
     deriving (Eq, Ord, Data, Typeable, Show)
 

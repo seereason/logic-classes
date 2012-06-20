@@ -49,7 +49,7 @@ applyEq p ts =
 -- | A way to represent any predicate's name.  Frequently the equality
 -- predicate has no standalone representation in the p type, it is
 -- just a constructor in the atom type, or even the formula type.
-data Ord p => PredicateName p = Named p Int | Equals deriving (Eq, Ord, Show)
+data PredicateName p = Named p Int | Equals deriving (Eq, Ord, Show)
 
 instance (Pretty p, Ord p) => Pretty (PredicateName p) where
     pretty Equals = text "="
