@@ -1,3 +1,10 @@
+haskell-logic-classes (1.4.6) unstable; urgency=low
+
+  * Get rid of some deprecated datatype contexts.
+  * Fix bug in hackage build.
+
+ -- David Fox <dsf@seereason.com>  Wed, 20 Jun 2012 10:40:49 -0700
+
 haskell-logic-classes (1.4.5) unstable; urgency=low
 
   * Build with stock applicative-extras package.
