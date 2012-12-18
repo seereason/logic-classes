@@ -4,9 +4,8 @@ module Data.Logic.Tests.Harrison.Unif
     ( tests
     ) where
 
-import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Term (Term(fApp, vt), tsubst)
-import Data.Logic.Harrison.Lib (failing)
+import Data.Logic.Failing (Failing(..), failing)
 import Data.Logic.Harrison.Unif (fullUnify)
 import Data.Logic.Tests.HUnit ()
 import Data.Logic.Types.Harrison.FOL (TermType)

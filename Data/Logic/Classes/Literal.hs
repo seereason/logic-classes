@@ -10,7 +10,6 @@ module Data.Logic.Classes.Literal
     , foldAtomsLiteral
     ) where
 
-import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Combine (Combination(..))
 import Data.Logic.Classes.Constants
 import qualified Data.Logic.Classes.FirstOrder as FOF
@@ -18,7 +17,7 @@ import Data.Logic.Classes.Formula (Formula(atomic))
 import Data.Logic.Classes.Pretty (HasFixity(..), Fixity(..), FixityDirection(..))
 import qualified Data.Logic.Classes.Propositional as P
 import Data.Logic.Classes.Negate
-import Data.Logic.Harrison.Lib ({- instance Monad Failing -})
+import Data.Logic.Failing (Failing(..))
 import Text.PrettyPrint (Doc, (<>), text, parens, nest)
 
 -- |Literals are the building blocks of the clause and implicative normal

@@ -8,7 +8,6 @@ module Data.Logic.Harrison.Resolution
     , matchAtomsEq
     ) where
 
-import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Atom (Atom(match))
 import Data.Logic.Classes.Combine (Combination(..))
 import Data.Logic.Classes.Equals (AtomEq, zipAtomsEq)
@@ -18,9 +17,10 @@ import Data.Logic.Classes.Negate ((.~.), positive)
 import Data.Logic.Classes.Propositional (PropositionalFormula)
 import Data.Logic.Classes.Term (Term(vt, foldTerm))
 import Data.Logic.Classes.Variable (Variable(prefix))
+import Data.Logic.Failing (Failing(..), failing)
 import Data.Logic.Harrison.FOL (subst, fv, generalize, list_disj, list_conj)
 import Data.Logic.Harrison.Lib (settryfind, allpairs, allsubsets, setAny, setAll,
-                                allnonemptysubsets, (|->), apply, defined, failing)
+                                allnonemptysubsets, (|->), apply, defined)
 import Data.Logic.Harrison.Normal (simpdnf, simpcnf, trivial)
 import Data.Logic.Harrison.Skolem (pnf, SkolemT, askolemize, specialize)
 import Data.Logic.Harrison.Tableaux (unify_literals)

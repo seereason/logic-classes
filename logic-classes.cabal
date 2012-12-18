@@ -34,6 +34,7 @@ Library
                    Data.Logic.Classes.Skolem
                    Data.Logic.Classes.Term
                    Data.Logic.Classes.Variable
+                   Data.Logic.Failing
                    Data.Logic.Harrison.DefCNF
                    Data.Logic.Harrison.DP
                    Data.Logic.Harrison.Equal

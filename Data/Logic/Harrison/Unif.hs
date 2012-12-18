@@ -6,9 +6,8 @@ module Data.Logic.Harrison.Unif
     , unifyAndApply
     ) where
 
-import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Term (Term(..), tsubst)
-import Data.Logic.Harrison.Lib (failing)
+import Data.Logic.Failing (Failing(..), failing)
 import qualified Data.Map as Map
 {-
 (* ========================================================================= *)
@@ -34,6 +33,7 @@ isTrivial env x t =
           if any (failing (const False) id . isTrivial env x) args
           then Failure ["cyclic"]
           else Success False
+
 {-
     foldT (\ y -> y == x || (defined env y && istriv env x (apply env y)))
           (\ _ args -> if any (istriv env x) args then error "cyclic" else False)
