@@ -352,7 +352,7 @@ multiplier x u v out n =
 -- For large examples, should use "num" instead of "int" in these functions. 
 -- ------------------------------------------------------------------------- 
 
-bitlength :: forall b a. (Bits b, Num a) => b -> a
+bitlength :: forall b a. (Num a, Num b, Bits b) => b -> a
 bitlength x = if x == 0 then 0 else 1 + bitlength (shiftR x 1);;
 
 bit :: forall a b. (Num a, Eq a, Bits b, Integral b) => a -> b -> Bool
