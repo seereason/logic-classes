@@ -1,3 +1,11 @@
+haskell-logic-classes (1.4.7) unstable; urgency=low
+
+  * Copy the two modules from the incremental-sat-solver package
+    (version 0.1.7) into logic-classes with a changed export list
+    so our SatSolver instance can access the data types.
+
+ -- David Fox <dsf@seereason.com>  Sun, 06 Jan 2013 17:44:04 -0800
+
 haskell-logic-classes (1.4.6) unstable; urgency=low
 
   * Get rid of some deprecated datatype contexts.

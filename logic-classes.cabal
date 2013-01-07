@@ -1,5 +1,5 @@
 Name:             logic-classes
-Version:          1.4.6
+Version:          1.4.7
 Synopsis:         Framework for propositional and first order logic, theorem proving
 Description:      Package to support Propositional and First Order Logic.  It includes classes
                   representing the different types of formulas and terms, some instances of
@@ -71,13 +71,15 @@ Library
                    Data.Logic.Types.Harrison.Formulas.Propositional
                    Data.Logic.Types.Harrison.Prop
                    Data.Logic.Types.Propositional
- Build-Depends:    applicative-extras, base >= 4.3 && < 5, containers, fgl, HUnit, incremental-sat-solver,
+                   Data.Boolean
+                   Data.Boolean.SatSolver
+ Build-Depends:    applicative-extras, base >= 4.3 && < 5, containers, fgl, HUnit,
                    mtl, syb-with-class, text, PropLogic >= 0.9.0.3, pretty, safecopy, set-extra, syb, template-haskell
 
 Executable tests
  GHC-Options: -Wall -O2
  Main-Is: Data/Logic/Tests/Main.hs
- Build-Depends: applicative-extras, base, containers, HUnit, incremental-sat-solver, mtl,
+ Build-Depends: applicative-extras, base, containers, HUnit, mtl,
                 pretty, PropLogic, safecopy, set-extra, syb, template-haskell
  Other-Modules:    Data.Logic.Tests.Chiou0
                    Data.Logic.Tests.Common
