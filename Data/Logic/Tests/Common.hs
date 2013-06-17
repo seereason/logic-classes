@@ -177,7 +177,7 @@ instance Pretty TFormula where
 instance Eq Doc where
     a == b = show a == show b
 
-data (formula ~ TFormula, atom ~ TAtom, v ~ V) => TestFormula formula atom v
+data TestFormula formula atom v
     = TestFormula
       { formula :: formula
       , name :: String
@@ -185,7 +185,7 @@ data (formula ~ TFormula, atom ~ TAtom, v ~ V) => TestFormula formula atom v
       } -- deriving (Data, Typeable)
 
 -- |Some values that we might expect after transforming the formula.
-data (FirstOrderFormula formula atom v, formula ~ TFormula, atom ~ TAtom, v ~ V) => Expected formula atom v
+data Expected formula atom v
     = FirstOrderFormula formula
     | SimplifiedForm formula
     | NegationNormalForm formula
