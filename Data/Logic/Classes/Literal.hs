@@ -3,8 +3,6 @@
 module Data.Logic.Classes.Literal
     ( Literal(..)
     , zipLiterals
-    , fromFirstOrder
-    , fromLiteral
     , toPropositional
     , prettyLit
     , foldAtomsLiteral
@@ -12,7 +10,6 @@ module Data.Logic.Classes.Literal
 
 import Data.Logic.Classes.Combine (Combination(..))
 import Data.Logic.Classes.Constants
-import qualified Data.Logic.Classes.FirstOrder as FOF
 import Data.Logic.Classes.Formula (Formula(atomic))
 import Data.Logic.Classes.Pretty (HasFixity(..), Fixity(..), FixityDirection(..))
 import qualified Data.Logic.Classes.Propositional as P
@@ -46,23 +43,6 @@ instance FirstOrderFormula fof atom v => Literal fof atom v where
               co _ = error "instance Literal FirstOrderFormula"
     atomic = Data.Logic.Classes.FirstOrder.atomic
 -}
-
--- |Just like Logic.FirstOrder.convertFOF except it rejects anything
--- with a construct unsupported in a normal logic formula,
--- i.e. quantifiers and formula combinators other than negation.
-fromFirstOrder :: forall formula atom v lit atom2.
-                  (Formula lit atom2, FOF.FirstOrderFormula formula atom v, Literal lit atom2) =>
-                  (atom -> atom2) -> formula -> Failing lit
-fromFirstOrder ca formula =
-    FOF.foldFirstOrder (\ _ _ _ -> Failure ["fromFirstOrder"]) co (Success . fromBool) (Success . atomic . ca) formula
-    where
-      co :: Combination formula -> Failing lit
-      co ((:~:) f) =  fromFirstOrder ca f >>= return . (.~.)
-      co _ = Failure ["fromFirstOrder"]
-
-fromLiteral :: forall lit atom v fof atom2. (Literal lit atom, FOF.FirstOrderFormula fof atom2 v) =>
-               (atom -> atom2) -> lit -> fof
-fromLiteral ca lit = foldLiteral (\ p -> (.~.) (fromLiteral ca p)) fromBool (atomic . ca) lit
 
 toPropositional :: forall lit atom pf atom2. (Literal lit atom, P.PropositionalFormula pf atom2) =>
                    (atom -> atom2) -> lit -> pf

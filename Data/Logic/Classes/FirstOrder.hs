@@ -32,6 +32,8 @@ module Data.Logic.Classes.FirstOrder
     , onatoms
     , overatoms
     , atom_union
+    , fromFirstOrder
+    , fromLiteral
     ) where
 
 import Data.Generics (Data, Typeable)
@@ -39,9 +41,12 @@ import Data.Logic.Classes.Apply (Apply(..), apply, apply0, apply1, apply2, apply
 import Data.Logic.Classes.Constants
 import Data.Logic.Classes.Combine
 import Data.Logic.Classes.Formula (Formula(atomic))
+import Data.Logic.Classes.Literal (Literal, foldLiteral)
+import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), Fixity(..), FixityDirection(..))
 import qualified Data.Logic.Classes.Propositional as P
 import Data.Logic.Classes.Variable (Variable)
+import Data.Logic.Failing (Failing(..))
 import Data.SafeCopy (base, deriveSafeCopy)
 import qualified Data.Set as Set
 import Text.PrettyPrint (Doc, (<>), (<+>), text, parens, nest)
@@ -299,5 +304,22 @@ overatoms f fm b = foldAtomsFirstOrder (flip f) b fm
 atom_union :: forall formula atom v a. (FirstOrderFormula formula atom v, Ord a) =>
               (atom -> Set.Set a) -> formula -> Set.Set a
 atom_union f fm = overatoms (\ h t -> Set.union (f h) t) fm Set.empty
+
+-- |Just like Logic.FirstOrder.convertFOF except it rejects anything
+-- with a construct unsupported in a normal logic formula,
+-- i.e. quantifiers and formula combinators other than negation.
+fromFirstOrder :: forall formula atom v lit atom2.
+                  (Formula lit atom2, FirstOrderFormula formula atom v, Literal lit atom2) =>
+                  (atom -> atom2) -> formula -> Failing lit
+fromFirstOrder ca formula =
+    foldFirstOrder (\ _ _ _ -> Failure ["fromFirstOrder"]) co (Success . fromBool) (Success . atomic . ca) formula
+    where
+      co :: Combination formula -> Failing lit
+      co ((:~:) f) =  fromFirstOrder ca f >>= return . (.~.)
+      co _ = Failure ["fromFirstOrder"]
+
+fromLiteral :: forall lit atom v fof atom2. (Literal lit atom, FirstOrderFormula fof atom2 v) =>
+               (atom -> atom2) -> lit -> fof
+fromLiteral ca lit = foldLiteral (\ p -> (.~.) (fromLiteral ca p)) fromBool (atomic . ca) lit
 
 $(deriveSafeCopy 1 'base ''Quant)
