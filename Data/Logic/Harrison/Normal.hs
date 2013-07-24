@@ -11,9 +11,9 @@ module Data.Logic.Harrison.Normal
 
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), fromFirstOrder)
 import Data.Logic.Classes.Formula (Formula(atomic))
-import Data.Logic.Classes.Literal (Literal, fromFirstOrder)
+import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Negate (Negatable, negated, (.~.))
 import Data.Logic.Failing (failing)
 import Data.Logic.Harrison.Lib (setAny, allpairs)
