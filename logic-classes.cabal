@@ -1,5 +1,5 @@
 Name:             logic-classes
-Version:          1.4.7
+Version:          1.4.8
 Synopsis:         Framework for propositional and first order logic, theorem proving
 Description:      Package to support Propositional and First Order Logic.  It includes classes
                   representing the different types of formulas and terms, some instances of
@@ -15,6 +15,7 @@ Bug-Reports:      http://bugzilla.seereason.com/
 Category:         Logic, Theorem Provers
 Cabal-version:    >= 1.9
 Build-Type:       Simple
+Extra-Source-Files: changelog
 
 Library
  GHC-options: -Wall -O2

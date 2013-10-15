@@ -6,10 +6,12 @@ import Distribution.Simple
 import Distribution.Simple.LocalBuildInfo (LocalBuildInfo(buildDir))
 import Distribution.Simple.Program
 import System.Cmd
+import System.Directory (copyFile)
 import System.Exit
 
 main :: IO ()
-main = defaultMainWithHooks simpleUserHooks {
+main = copyFile "debian/changelog" "changelog" >>
+       defaultMainWithHooks simpleUserHooks {
          postBuild = \ _ _ _ lbi -> runTestScript lbi
        , runTests = \ _ _ _ lbi -> runTestScript lbi
        }

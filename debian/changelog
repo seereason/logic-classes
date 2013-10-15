@@ -1,3 +1,9 @@
+haskell-logic-classes (1.4.8) unstable; urgency=low
+
+  * Make changelog visible in hackage.
+
+ -- David Fox <dsf@seereason.com>  Tue, 15 Oct 2013 07:48:21 -0700
+
 haskell-logic-classes (1.4.7) unstable; urgency=low
 
   * Copy the two modules from the incremental-sat-solver package
