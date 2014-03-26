@@ -89,8 +89,8 @@ mk_defcnf fn fm =
   let (deflist {- :: [pf]-}) = Map.elems defs in
   Set.unions (simpcnf fm'' : map simpcnf deflist)
 
-defcnf1 :: forall pf lit atom. (PropositionalFormula pf atom, Literal lit atom, NumAtom atom, Ord lit) => pf -> pf
-defcnf1 fm = cnf (mk_defcnf maincnf fm :: Set.Set (Set.Set lit))
+defcnf1 :: forall pf lit atom. (PropositionalFormula pf atom, Literal lit atom, NumAtom atom, Ord lit) => lit -> atom -> pf -> pf
+defcnf1 _ _ fm = cnf (mk_defcnf maincnf fm :: Set.Set (Set.Set lit))
 
 
 -- ------------------------------------------------------------------------- 
@@ -134,8 +134,8 @@ andcnf trip@(fm,_defs,_n) =
 defcnfs :: (PropositionalFormula pf atom, Literal lit atom, NumAtom atom, Ord lit) => pf -> Set.Set (Set.Set lit)
 defcnfs fm = mk_defcnf andcnf fm
 
-defcnf2 :: forall pf lit atom.(PropositionalFormula pf atom, Literal lit atom, NumAtom atom, Ord lit) => pf -> pf
-defcnf2 fm = cnf (defcnfs fm :: Set.Set (Set.Set lit))
+defcnf2 :: forall pf lit atom.(PropositionalFormula pf atom, Literal lit atom, NumAtom atom, Ord lit) => lit -> atom -> pf -> pf
+defcnf2 _ _ fm = cnf (defcnfs fm :: Set.Set (Set.Set lit))
 
 -- ------------------------------------------------------------------------- 
 -- Examples.                                                                 
@@ -156,5 +156,5 @@ andcnf3 trip@(fm,_defs,_n) =
       co (BinOp p (:&:) q) = subcnf andcnf3 (.&.) p q trip
       co _ = maincnf trip
 
-defcnf3 :: forall pf lit atom. (PropositionalFormula pf atom, Literal lit atom, NumAtom atom, Ord lit) => pf -> pf
-defcnf3 fm = cnf (mk_defcnf andcnf3 fm :: Set.Set (Set.Set lit))
+defcnf3 :: forall pf lit atom. (PropositionalFormula pf atom, Literal lit atom, NumAtom atom, Ord lit) => lit -> atom -> pf -> pf
+defcnf3 _ _ fm = cnf (mk_defcnf andcnf3 fm :: Set.Set (Set.Set lit))

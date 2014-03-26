@@ -53,7 +53,7 @@ Library
                    Data.Logic.Harrison.Skolem
                    Data.Logic.Harrison.Tableaux
                    Data.Logic.Harrison.Unif
-                   Data.Logic.Instances.Chiou
+                   -- Data.Logic.Instances.Chiou
                    Data.Logic.Instances.PropLogic
                    Data.Logic.Instances.SatSolver
                    -- Data.Logic.Instances.TPTP

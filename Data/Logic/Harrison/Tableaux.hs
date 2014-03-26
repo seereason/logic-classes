@@ -1,4 +1,4 @@
-{-# LANGUAGE NoMonomorphismRestriction, OverloadedStrings, RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, NoMonomorphismRestriction, OverloadedStrings, RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Harrison.Tableaux
     ( unify_literals
@@ -112,6 +112,7 @@ prawitz_loop djs0 fvs djs n =
       substitute' = C.substitute
 
 -- prawitz :: forall fof atom v. (FirstOrderFormula fof atom v, Ord fof) => fof -> Int
+#if 0
 prawitz :: forall fof atom term v f lit pf.
            (FirstOrderFormula fof atom v,
             PropositionalFormula pf atom,
@@ -126,6 +127,7 @@ prawitz fm =
       dnf = simpdnf pf :: Set.Set (Set.Set lit)
       fvs = foldAtoms (\ s (a :: atom) -> Set.union (C.freeVariables a) s) Set.empty pf :: Set.Set v
       pf = runSkolem (skolemize id ((.~.)(generalize fm))) :: pf
+#endif
 
 -- ------------------------------------------------------------------------- 
 -- Examples.                                                                 

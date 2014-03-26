@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, MonoLocalBinds, NoMonomorphismRestriction, OverloadedStrings, RankNTypes, ScopedTypeVariables, TypeFamilies  #-}
-{-# OPTIONS -fno-warn-name-shadowing -fno-warn-missing-signatures #-}
+{-# OPTIONS -fno-warn-name-shadowing #-}
 module Data.Logic.Tests.Data
     ( tests
     , allFormulas
@@ -920,9 +920,7 @@ kbKnowledge :: forall formula atom term v p f. (formula ~ TFormula, atom ~ TAtom
                (String, [TestFormula formula atom v]) -> (String, [formula])
 kbKnowledge kb = (fst (kb :: (String, [TestFormula formula atom v])), map formula (snd kb))
 
-proofs :: forall formula atom term v p f. (formula ~ TFormula, atom ~ TAtom, v ~ V,
-                                           FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Ord formula, IsString v, IsString p, IsString f) =>
-          [TestProof formula term v]
+proofs :: forall term v f. (Term term v f, IsString v, Ord v) => [TestProof TFormula term v]
 proofs =
     let -- dog = pApp "Dog" :: [term] -> formula
         -- cat = pApp "Cat" :: [term] -> formula

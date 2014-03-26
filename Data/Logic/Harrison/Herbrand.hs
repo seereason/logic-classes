@@ -134,8 +134,8 @@ gilmore :: forall fof pf atom term v f.
             Atom atom term v,
             IsString f,
             Ord pf) =>
-           (atom -> Set.Set (f, Int)) -> fof -> Failing Int
-gilmore fa fm =
+           pf -> (atom -> Set.Set (f, Int)) -> fof -> Failing Int
+gilmore _ fa fm =
   let sfm = runSkolem (skolemize id ((.~.)(generalize fm))) :: pf in
   let fvs = Set.toList (foldAtoms (\ s (a :: atom) -> Set.union s (freeVariables a)) Set.empty sfm)
       (consts,funcs) = herbfuns fa sfm in
@@ -224,8 +224,8 @@ davisputnam :: forall fof atom term v lit f.
                 Atom atom term v,
                 IsString f,
                 Ord lit) =>
-               (atom -> Set.Set (f, Int)) -> fof -> Failing Int
-davisputnam fa fm =
+               lit -> (atom -> Set.Set (f, Int)) -> fof -> Failing Int
+davisputnam _ fa fm =
   let (sfm :: lit) = runSkolem (skolemize id ((.~.)(generalize fm))) in
   let fvs = Set.toList (foldAtoms (\ s (a :: atom) -> Set.union (freeVariables a) s) Set.empty sfm)
       (consts,funcs) = herbfuns fa sfm in
@@ -284,8 +284,8 @@ davisputnam' :: forall fof atom term lit v f pf.
                  Term term v f,
                  Atom atom term v,
                  IsString f) =>
-                (atom -> Set.Set (f, Int)) -> fof -> Failing Int
-davisputnam' fa fm =
+                lit -> pf -> (atom -> Set.Set (f, Int)) -> fof -> Failing Int
+davisputnam' _ _ fa fm =
     let (sfm :: pf) = runSkolem (skolemize id ((.~.)(generalize fm))) in
     let fvs = Set.toList (foldAtoms (\ s (a :: atom) -> Set.union (freeVariables a) s) Set.empty sfm)
         (consts,funcs) = herbfuns fa sfm in

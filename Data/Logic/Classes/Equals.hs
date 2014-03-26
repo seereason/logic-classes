@@ -34,7 +34,7 @@ import qualified Data.Set as Set
 import Text.PrettyPrint (Doc, (<>), (<+>), text, empty, parens, hcat, nest)
 
 -- | Its not safe to make Atom a superclass of AtomEq, because the Atom methods will fail on AtomEq instances.
-class Predicate p => AtomEq atom p term | atom -> p term, term -> atom p where
+class Predicate p => AtomEq atom p term | atom -> term, atom -> p where
     foldAtomEq :: (p -> [term] -> r) -> (Bool -> r) -> (term -> term -> r) -> atom -> r
     equals :: term -> term -> atom
     applyEq' :: p -> [term] -> atom
@@ -110,7 +110,7 @@ pApp6 p a b c d e f = atomic (apply6 p a b c d e f)
 pApp7 :: (FirstOrderFormula formula atom v, AtomEq atom p term) => p -> term -> term -> term -> term -> term -> term -> term -> formula
 pApp7 p a b c d e f g = atomic (apply7 p a b c d e f g)
 
-showFirstOrderFormulaEq :: (FirstOrderFormula fof atom v, AtomEq atom p term, Show term, Show v, Show p) => fof -> String
+showFirstOrderFormulaEq :: forall fof atom v p term. (FirstOrderFormula fof atom v, AtomEq atom p term, Show term, Show v, Show p) => fof -> String
 showFirstOrderFormulaEq fm =
     fst (sfo fm)
     where
