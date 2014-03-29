@@ -13,6 +13,7 @@ module Data.Logic.Tests.Harrison.FOL
 import Control.Applicative ((<$>), (<*>))
 import Control.Applicative.Error (Failing(..))
 import Control.Monad (filterM)
+import Data.Logic.Classes.Apply (pApp)
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (false)
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
@@ -90,7 +91,7 @@ example1 = fApp "sqrt" [fApp "-" [fApp "1" [], fApp "cos" [fApp "power" [fApp "+
 -- ------------------------------------------------------------------------- 
 
 example2 :: Formula FOL
-example2 = C.pApp "<" [fApp "+" [vt "x", vt "y"], vt "z"]
+example2 = pApp "<" [fApp "+" [vt "x", vt "y"], vt "z"]
 -- example2 = Atom (R "<" [Fn "+" [Var "x", Var "y"], Var "z"])
 
 -- ------------------------------------------------------------------------- 
@@ -98,8 +99,8 @@ example2 = C.pApp "<" [fApp "+" [vt "x", vt "y"], vt "z"]
 -- ------------------------------------------------------------------------- 
 
 example3 :: Formula FOL
-example3 = (for_all "x" (C.pApp "<" [vt "x", fApp "2" []] .=>.
-                         C.pApp "<=" [fApp "*" [fApp "2" [], vt "x"], fApp "3" []])) .|. false
+example3 = (for_all "x" (pApp "<" [vt "x", fApp "2" []] .=>.
+                         pApp "<=" [fApp "*" [fApp "2" [], vt "x"], fApp "3" []])) .|. false
 example4 :: TermType
 example4 = fApp "*" [fApp "2" [], vt "x"]
 

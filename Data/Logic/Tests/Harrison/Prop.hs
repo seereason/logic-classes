@@ -8,7 +8,6 @@ import Data.Logic.Classes.Combine (Combinable(..), (∨), (∧))
 import Data.Logic.Classes.Constants (true, false)
 import Data.Logic.Classes.Formula (atomic)
 import Data.Logic.Classes.Negate ((.~.), (¬))
-import Data.Logic.Classes.Propositional
 import Data.Logic.Harrison.Lib ((|=>))
 import Data.Logic.Harrison.Prop (eval, atoms, truthTable, tautology, pSubst, psimplify,
                                  nnf, dnf', rawdnf, dual, purednf, trivial, cnf')

@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, TypeFamilies, UndecidableInstances #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses,
+             RankNTypes, ScopedTypeVariables, TypeFamilies, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-missing-signatures #-}
 -- | The Apply class represents a type of atom the only supports predicate application.
 module Data.Logic.Classes.Apply
@@ -11,11 +12,13 @@ module Data.Logic.Classes.Apply
     , prettyApply
     , varApply
     , substApply
+    , pApp, pApp0, pApp1, pApp2, pApp3, pApp4, pApp5, pApp6, pApp7
     ) where
 
 import Data.Data (Data)
 import Data.Logic.Classes.Arity
 import Data.Logic.Classes.Constants
+import Data.Logic.Classes.Formula (Formula(atomic))
 import Data.Logic.Classes.Pretty (Pretty)
 import Data.Logic.Classes.Term (Term, showTerm, prettyTerm, fvt, tsubst)
 import Data.List (intercalate, intersperse)
@@ -62,7 +65,7 @@ showApply =
               (\ x -> if x then "true" else "false")
 
 prettyApply :: (Apply atom p term, Term term v f) => (v -> Doc) -> (p -> Doc) -> (f -> Doc) -> Int -> atom -> Doc
-prettyApply pv pp pf prec atom =
+prettyApply pv pp pf _prec atom =
     foldApply (\ p ts ->
                    pp p <> case ts of
                              [] -> empty
@@ -83,3 +86,24 @@ instance (Apply atom p term, Term term v f, Constants atom) => Formula atom term
     freeVariables = varApply
     substitute = substApply
 -}
+
+pApp :: forall formula atom term p. (Formula formula atom, Apply atom p term) => p -> [term] -> formula
+pApp p ts = atomic (apply p ts :: atom)
+
+-- | Versions of pApp specialized for different argument counts.
+pApp0 :: forall formula atom term p. (Formula formula atom, Apply atom p term) => p -> formula
+pApp0 p = atomic (apply0 p :: atom)
+pApp1 :: forall formula atom term p. (Formula formula atom, Apply atom p term) => p -> term -> formula
+pApp1 p a = atomic (apply1 p a :: atom)
+pApp2 :: forall formula atom term p. (Formula formula atom, Apply atom p term) => p -> term -> term -> formula
+pApp2 p a b = atomic (apply2 p a b :: atom)
+pApp3 :: forall formula atom term p. (Formula formula atom, Apply atom p term) => p -> term -> term -> term -> formula
+pApp3 p a b c = atomic (apply3 p a b c :: atom)
+pApp4 :: forall formula atom term p. (Formula formula atom, Apply atom p term) => p -> term -> term -> term -> term -> formula
+pApp4 p a b c d = atomic (apply4 p a b c d :: atom)
+pApp5 :: forall formula atom term p. (Formula formula atom, Apply atom p term) => p -> term -> term -> term -> term -> term -> formula
+pApp5 p a b c d e = atomic (apply5 p a b c d e :: atom)
+pApp6 :: forall formula atom term p. (Formula formula atom, Apply atom p term) => p -> term -> term -> term -> term -> term -> term -> formula
+pApp6 p a b c d e f = atomic (apply6 p a b c d e f :: atom)
+pApp7 :: forall formula atom term p. (Formula formula atom, Apply atom p term) => p -> term -> term -> term -> term -> term -> term -> term -> formula
+pApp7 p a b c d e f g = atomic (apply7 p a b c d e f g :: atom)

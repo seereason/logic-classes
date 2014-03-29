@@ -1,3 +1,11 @@
+haskell-logic-classes (1.5) unstable; urgency=low
+
+  * Move the pApp* functions from Data.Logic.Classes.FirstOrder to
+    Data.Logic.Classes.Apply, and let them work with any formula,
+    not just first order.
+
+ -- David Fox <dsf@seereason.com>  Sat, 29 Mar 2014 07:57:37 -0700
+
 haskell-logic-classes (1.4.8) unstable; urgency=low
 
   * Make changelog visible in hackage.

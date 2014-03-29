@@ -4,15 +4,6 @@ module Data.Logic.Classes.FirstOrder
     ( FirstOrderFormula(..)
     , Quant(..)
     , zipFirstOrder
-    , pApp
-    , pApp0
-    , pApp1
-    , pApp2
-    , pApp3
-    , pApp4
-    , pApp5
-    , pApp6
-    , pApp7
     , for_all'
     , exists'
     , quant
@@ -37,7 +28,6 @@ module Data.Logic.Classes.FirstOrder
     ) where
 
 import Data.Generics (Data, Typeable)
-import Data.Logic.Classes.Apply (Apply(..), apply, apply0, apply1, apply2, apply3, apply4, apply5, apply6, apply7)
 import Data.Logic.Classes.Constants
 import Data.Logic.Classes.Combine
 import Data.Logic.Classes.Formula (Formula(atomic))
@@ -101,27 +91,6 @@ zipFirstOrder qu co tf at fm1 fm2 =
 -- class, but it would add additional complexity with unclear
 -- benefits.
 data Quant = Forall | Exists deriving (Eq,Ord,Show,Read,Data,Typeable,Enum,Bounded)
-
-pApp :: forall formula atom term v p. (Formula formula atom, Apply atom p term) => p -> [term] -> formula
-pApp p ts = atomic (apply p ts :: atom)
-
--- | Versions of pApp specialized for different argument counts.
-pApp0 :: forall formula atom term p. (Formula formula atom, Apply atom p term) => p -> formula
-pApp0 p = atomic (apply0 p :: atom)
-pApp1 :: forall formula atom term p. (Formula formula atom, Apply atom p term) => p -> term -> formula
-pApp1 p a = atomic (apply1 p a :: atom)
-pApp2 :: forall formula atom term p. (Formula formula atom, Apply atom p term) => p -> term -> term -> formula
-pApp2 p a b = atomic (apply2 p a b :: atom)
-pApp3 :: forall formula atom term p. (Formula formula atom, Apply atom p term) => p -> term -> term -> term -> formula
-pApp3 p a b c = atomic (apply3 p a b c :: atom)
-pApp4 :: forall formula atom term p. (Formula formula atom, Apply atom p term) => p -> term -> term -> term -> term -> formula
-pApp4 p a b c d = atomic (apply4 p a b c d :: atom)
-pApp5 :: forall formula atom term p. (Formula formula atom, Apply atom p term) => p -> term -> term -> term -> term -> term -> formula
-pApp5 p a b c d e = atomic (apply5 p a b c d e :: atom)
-pApp6 :: forall formula atom term p. (Formula formula atom, Apply atom p term) => p -> term -> term -> term -> term -> term -> term -> formula
-pApp6 p a b c d e f = atomic (apply6 p a b c d e f :: atom)
-pApp7 :: forall formula atom term p. (Formula formula atom, Apply atom p term) => p -> term -> term -> term -> term -> term -> term -> term -> formula
-pApp7 p a b c d e f g = atomic (apply7 p a b c d e f g :: atom)
 
 -- |for_all with a list of variables, for backwards compatibility.
 for_all' :: FirstOrderFormula formula atom v => [v] -> formula -> formula

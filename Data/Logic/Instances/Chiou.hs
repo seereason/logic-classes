@@ -14,18 +14,17 @@ module Data.Logic.Instances.Chiou
     ) where
 
 import Data.Generics (Data, Typeable)
-import Data.Logic.Classes.Apply (Apply(..), Predicate)
+import Data.Logic.Classes.Apply (Apply(..), Predicate, pApp)
 import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Combine (Combinable(..), BinOp(..), Combination(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool, true, false)
 import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', pApp, prettyFirstOrder, fixityFirstOrder, foldAtomsFirstOrder, mapAtomsFirstOrder)
+import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', prettyFirstOrder, fixityFirstOrder, foldAtomsFirstOrder, mapAtomsFirstOrder)
 import Data.Logic.Classes.Formula (Formula(..))
 import Data.Logic.Classes.Negate (Negatable(..), (.~.))
 import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..))
 import Data.Logic.Classes.Term (Term(..), Function)
 import Data.Logic.Classes.Variable (Variable)
-import qualified Data.Logic.Classes.FirstOrder as L
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.String (IsString(..))
