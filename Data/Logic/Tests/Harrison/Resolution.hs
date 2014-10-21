@@ -18,7 +18,7 @@ import qualified Data.Set as Set
 import Data.String (IsString(..))
 import Prelude hiding (negate)
 -- import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual, Assertion)
-import Data.Logic.Tests.HUnit
+import Data.Logic.HUnit
 
 tests :: Test (Formula FOLEQ)
 tests = TestLabel "Data.Logic.Tests.Harrison.Resolution" $

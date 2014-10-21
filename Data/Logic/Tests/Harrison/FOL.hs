@@ -23,7 +23,7 @@ import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Term (Term(vt, fApp, foldTerm))
 import Data.Logic.Classes.Variable (Variable(..))
 import Data.Logic.Harrison.Lib ((|->))
-import Data.Logic.Tests.HUnit
+import Data.Logic.HUnit
 import Data.Logic.Types.Harrison.Equal (FOLEQ, PredName(..))
 import Data.Logic.Types.Harrison.FOL (TermType(..), FOL(..), Function(..))
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))

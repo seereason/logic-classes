@@ -16,7 +16,7 @@ import Data.Logic.Harrison.FOL (generalize, list_conj)
 import Data.Logic.Harrison.Meson(meson)
 import Data.Logic.Harrison.Normal (simpdnf)
 import Data.Logic.Harrison.Skolem (runSkolem, askolemize)
-import Data.Logic.Tests.HUnit
+import Data.Logic.HUnit
 import Data.Logic.Types.Harrison.Equal (FOLEQ)
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula)
 import Data.String (IsString(fromString))
