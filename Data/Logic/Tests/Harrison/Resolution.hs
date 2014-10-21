@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wall #-}
-module Data.Logic.Tests.Harrison.Resolution where
+module Harrison.Resolution where
 
 import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Combine (Combinable(..))

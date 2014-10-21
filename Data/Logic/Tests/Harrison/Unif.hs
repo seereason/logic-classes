@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall -Wwarn #-}
-module Data.Logic.Tests.Harrison.Unif
+module Harrison.Unif
     ( tests
     ) where
 

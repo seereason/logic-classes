@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, MonoLocalBinds, NoMonomorphismRestriction, OverloadedStrings, RankNTypes, ScopedTypeVariables, TypeFamilies  #-}
 {-# OPTIONS -fno-warn-name-shadowing #-}
-module Data.Logic.Tests.Data
+module Data
     ( tests
     , allFormulas
     , proofs
@@ -28,8 +28,8 @@ import Data.Logic.Classes.Skolem (Skolem(toSkolem))
 import qualified Data.Logic.Instances.Chiou as C
 import Data.Logic.KnowledgeBase (WithId(WithId, wiItem, wiIdent), Proof(..), ProofResult(..))
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
-import Data.Logic.Tests.Common (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof,
-                                TFormula, TAtom, TTerm, V, Pr, AtomicFunction, TTestFormula, TTestProof)
+import Common (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof,
+               TFormula, TAtom, TTerm, V, Pr, AtomicFunction, TTestFormula, TTestProof)
 --import Data.Logic.Types.FirstOrder (Predicate(..), PTerm(..))
 import Data.Map (fromList)
 import qualified Data.Set as S

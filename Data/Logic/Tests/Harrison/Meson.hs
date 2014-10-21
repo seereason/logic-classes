@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts, OverloadedStrings, RankNTypes, ScopedTypeVariables, TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
-module Data.Logic.Tests.Harrison.Meson where
+module Harrison.Meson where
 
 import Control.Applicative.Error (Failing(..))
 import qualified Data.Map as Map
@@ -16,14 +16,15 @@ import Data.Logic.Harrison.FOL (generalize, list_conj)
 import Data.Logic.Harrison.Meson(meson)
 import Data.Logic.Harrison.Normal (simpdnf)
 import Data.Logic.Harrison.Skolem (runSkolem, askolemize)
-import Data.Logic.Tests.Common (render)
-import Data.Logic.Tests.Harrison.Resolution (dpExampleFm)
 import Data.Logic.Tests.HUnit
 import Data.Logic.Types.Harrison.Equal (FOLEQ)
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula)
 import Data.String (IsString(fromString))
 import Prelude hiding (negate)
 -- import Test.HUnit (Test(TestCase, TestLabel), assertEqual)
+
+import Common (render)
+import Harrison.Resolution (dpExampleFm)
 
 tests :: Test (Formula FOLEQ)
 tests = TestLabel "Data.Logic.Tests.Harrison.Meson" $

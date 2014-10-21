@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleInstances, StandaloneDeriving #-}
-module Data.Logic.Tests.Harrison.Common where
+module Harrison.Common where
 
 import Data.Logic.Types.Harrison.Equal (FOLEQ(..))
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))

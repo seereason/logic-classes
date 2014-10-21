@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes,
              ScopedTypeVariables, TypeFamilies, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
-module Data.Logic.Tests.Harrison.FOL
+module Harrison.FOL
     ( tests1
     , tests2
     , example1

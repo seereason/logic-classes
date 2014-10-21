@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings,
              ScopedTypeVariables, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wall -Wwarn -fno-warn-name-shadowing -fno-warn-orphans #-}
-module Data.Logic.Tests.Logic (tests) where
+module Logic (tests) where
 
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), (⇒))
 import Data.Logic.Classes.Constants (Constants(..), true)
@@ -22,7 +22,7 @@ import Data.Logic.Harrison.Skolem (runSkolem, skolemize, pnf)
 import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Implicative (runNormal)
 import Data.Logic.Satisfiable (theorem, inconsistant)
-import Data.Logic.Tests.Common (TFormula, TAtom, TTerm, myTest)
+import Common (TFormula, TAtom, TTerm, myTest)
 import Data.Logic.Types.FirstOrder
 import qualified Data.Map as Map
 import qualified Data.Set.Extra as Set

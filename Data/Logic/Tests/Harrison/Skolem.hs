@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, RankNTypes, ScopedTypeVariables, TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
-module Data.Logic.Tests.Harrison.Skolem
+module Harrison.Skolem
     ( tests
     ) where
 

@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, RankNTypes #-}
-module Data.Logic.Tests.HUnit
+module Data.Logic.HUnit
     ( Test(..)
     , Assertion
     , T.assertEqual

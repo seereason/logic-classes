@@ -1,12 +1,12 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes, ScopedTypeVariables, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wall #-}
-module Data.Logic.Tests.Harrison.Equal where
+module Harrison.Equal where
 
--- ========================================================================= 
--- First order logic with equality.                                          
---                                                                           
--- Copyright (co) 2003-2007, John Harrison. (See "LICENSE.txt" for details.)  
--- ========================================================================= 
+-- =========================================================================
+-- First order logic with equality.
+--
+-- Copyright (co) 2003-2007, John Harrison. (See "LICENSE.txt" for details.)
+-- =========================================================================
 
 import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Combine (Combinable(..), (∧), (⇒))
@@ -19,7 +19,7 @@ import Data.Logic.Classes.Term (Term(..))
 import Data.Logic.Harrison.Equal (equalitize, function_congruence)
 import Data.Logic.Harrison.Meson (meson)
 import Data.Logic.Harrison.Skolem (runSkolem)
-import Data.Logic.Tests.Common (render)
+import Common (render)
 import Data.Logic.Types.Harrison.FOL (TermType(..))
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
 import Data.Logic.Types.Harrison.Equal (FOLEQ(..), PredName)

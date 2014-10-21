@@ -16,7 +16,6 @@ Build-Depends: debhelper (>= 7.0),
                libghc-mtl-prof,
                libghc-safecopy-prof,
                libghc-set-extra-prof,
-               libghc-syb-with-class-prof,
                libghc-text-prof
 Build-Depends-Indep: ghc-doc,
                      haddock,
@@ -28,7 +27,6 @@ Build-Depends-Indep: ghc-doc,
                      libghc-mtl-doc,
                      libghc-safecopy-doc,
                      libghc-set-extra-doc,
-                     libghc-syb-with-class-doc,
                      libghc-text-doc
 Standards-Version: 3.8.1
 

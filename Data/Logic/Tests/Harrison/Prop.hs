@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, ScopedTypeVariables, TypeFamilies #-}
 {-# OPTIONS_GHC -Wall -Wwarn #-}
-module Data.Logic.Tests.Harrison.Prop
+module Harrison.Prop
     ( tests
     ) where
 

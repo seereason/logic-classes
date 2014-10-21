@@ -3,7 +3,7 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes,
              ScopedTypeVariables, StandaloneDeriving, TypeFamilies, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wwarn #-}
-module Data.Logic.Tests.Common
+module Common
     ( render
     , myTest
       -- * Formula parameter types
