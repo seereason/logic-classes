@@ -37,7 +37,7 @@ deriving instance Typeable Literal
 instance ClauseNormalFormula CNF Literal where
     clauses = S.fromList . map S.fromList
     makeCNF = map S.toList . S.toList
-    satisfiable cnf = return . not . null $ assertTrue' cnf newSatSolver >>= solve
+    satisfiable cnf = return . not . (null :: [a] -> Bool) $ assertTrue' cnf newSatSolver >>= solve
 
 toCNF :: (Monad m,
           FirstOrderFormula formula atom v,

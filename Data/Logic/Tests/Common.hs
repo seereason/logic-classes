@@ -247,7 +247,7 @@ doTest f =
       doExpected (SatSolverCNF result) =
           myTest (name f ++ " SatSolver CNF") (norm result) (runNormal (SS.toCNF (formula f)))
       doExpected (SatSolverSat result) =
-          myTest (name f ++ " SatSolver CNF") result (null (runNormalT (SS.toCNF (formula f) >>= satisfiable)))
+          myTest (name f ++ " SatSolver CNF") result ((null :: [a] -> Bool) (runNormalT (SS.toCNF (formula f) >>= satisfiable)))
       p = id
 
       norm = map S.toList . S.toList . S.fromList . map S.fromList
