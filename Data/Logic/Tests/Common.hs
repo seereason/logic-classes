@@ -1,6 +1,6 @@
 -- |Types to use for creating test cases.  These are used in the Logic
 -- package test cases, and are exported for use in its clients.
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes,
+{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes,
              ScopedTypeVariables, StandaloneDeriving, TypeFamilies, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wwarn #-}
 module Common
@@ -173,9 +173,12 @@ instance Pretty TFormula where
 -}
 
 -- |This allows you to use an expression that returns the Doc type in a
--- unit test, such as prettyFirstOrder.
+-- unit test, such as prettyFirstOrder.  (This instance actually appears
+-- in version 1.1.1.2.  Maybe should have been a C-bump.)
+#if !MIN_VERSION_pretty(1,1,2)
 instance Eq Doc where
     a == b = show a == show b
+#endif
 
 data TestFormula formula atom v
     = TestFormula
