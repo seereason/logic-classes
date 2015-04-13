@@ -1,17 +1,17 @@
 Name:             logic-classes
-Version:          1.5
+Version:          1.5.1
 Synopsis:         Framework for propositional and first order logic, theorem proving
 Description:      Package to support Propositional and First Order Logic.  It includes classes
                   representing the different types of formulas and terms, some instances of
                   those classes for types used in other logic libraries, and implementations of
                   several logic algorithms, including conversion to normal form and a simple
                   resolution-based theorem prover for any instance of FirstOrderFormula.
-Homepage:         http://src.seereason.com/logic-classes
+Homepage:         https://github.com/seereason/logic-classes
 License:          BSD3
 License-File:     COPYING
 Author:           David Fox <dsf@seereason.com>
 Maintainer:       SeeReason Partners <partners@seereason.com>
-Bug-Reports:      http://bugzilla.seereason.com/
+Bug-Reports:      https://github.com/seereason/logic-classes/issues
 Category:         Logic, Theorem Provers
 Cabal-version:    >= 1.9
 Build-Type:       Simple

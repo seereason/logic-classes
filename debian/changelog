@@ -1,3 +1,9 @@
+haskell-logic-classes (1.5.1) unstable; urgency=low
+
+  * Update Homepage and Bug-Reports fields in cabal file
+
+ -- David Fox <dsf@seereason.com>  Mon, 13 Apr 2015 14:16:10 -0700
+
 haskell-logic-classes (1.5) unstable; urgency=low
 
   * Move the pApp* functions from Data.Logic.Classes.FirstOrder to
