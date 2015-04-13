@@ -76,7 +76,8 @@ Library
                    Data.Boolean.SatSolver
  Build-Depends:    applicative-extras, base >= 4.3 && < 5, containers, HUnit, mtl, pretty, PropLogic, safecopy, set-extra, syb, template-haskell
 
-Executable tests
+Test-Suite logic-classes-tests
+ Type: exitcode-stdio-1.0
  GHC-Options: -Wall -O2
  Hs-Source-Dirs: Data/Logic/Tests
  Main-Is: Main.hs
