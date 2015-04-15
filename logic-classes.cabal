@@ -1,5 +1,5 @@
 Name:             logic-classes
-Version:          1.5.1
+Version:          1.5.2
 Synopsis:         Framework for propositional and first order logic, theorem proving
 Description:      Package to support Propositional and First Order Logic.  It includes classes
                   representing the different types of formulas and terms, some instances of
