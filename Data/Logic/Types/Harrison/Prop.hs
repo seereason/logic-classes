@@ -13,7 +13,7 @@ import Prelude hiding (negate)
 import Text.PrettyPrint (text)
 
 -- =========================================================================
--- Basic stuff for propositional logic: datatype, parsing and printing.     
+-- Basic stuff for propositional logic: datatype, parsing and printing.
 -- =========================================================================
 
 newtype Prop = P {pname :: String} deriving (Read, Data, Typeable, Eq, Ord)

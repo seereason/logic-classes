@@ -205,7 +205,7 @@ resolution (inf1, theta1) (inf2, theta2) =
       tryUnify :: (Literal lit atom, Ord lit) =>
                   S.Set lit -> S.Set lit -> Maybe ((S.Set lit, Map.Map v term), (S.Set lit, Map.Map v term))
       tryUnify lhs rhs = tryUnify' lhs rhs S.empty
-                         
+
       tryUnify' :: (Literal lit atom, Ord lit) =>
                    S.Set lit -> S.Set lit -> S.Set lit -> Maybe ((S.Set lit, Map.Map v term), (S.Set lit, Map.Map v term))
       tryUnify' lhss _ _ | S.null lhss = Nothing
@@ -331,7 +331,7 @@ replaceTerm formula (tl', tr') =
           (\ x -> Just (atomic (applyEq (fromBool x) [] :: atom)))
           (foldAtomEq (\ p ts -> Just (atomic (applyEq p (map (\ t -> replaceTerm' t) ts))))
                       (\ x -> Just (atomic (applyEq (fromBool x) [] :: atom)))
-                      (\ t1 t2 -> 
+                      (\ t1 t2 ->
                            let t1' = replaceTerm' t1
                                t2' = replaceTerm' t2 in
                            if t1' == t2' then Nothing else Just (atomic (t1' `equals` t2'))))

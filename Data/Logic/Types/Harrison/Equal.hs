@@ -2,11 +2,11 @@
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Types.Harrison.Equal where
 
--- ========================================================================= 
--- First order logic with equality.                                          
---                                                                           
--- Copyright (co) 2003-2007, John Harrison. (See "LICENSE.txt" for details.)  
--- ========================================================================= 
+-- =========================================================================
+-- First order logic with equality.
+--
+-- Copyright (co) 2003-2007, John Harrison. (See "LICENSE.txt" for details.)
+-- =========================================================================
 
 import Data.Generics (Data, Typeable)
 import Data.List (intersperse)

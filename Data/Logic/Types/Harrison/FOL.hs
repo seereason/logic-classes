@@ -26,7 +26,7 @@ import Prelude hiding (pred)
 import Text.PrettyPrint (text, cat)
 
 -- -------------------------------------------------------------------------
--- Terms.                                                                   
+-- Terms.
 -- -------------------------------------------------------------------------
 
 data TermType
@@ -52,7 +52,7 @@ instance Apply FOL String TermType where
 instance Constants String where
     fromBool True = "true"
     fromBool False = "false"
-    asBool x 
+    asBool x
         | x == fromBool True = Just True
         | x == fromBool False = Just False
         | True = Nothing
