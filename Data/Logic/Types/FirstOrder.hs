@@ -212,7 +212,8 @@ data Predicate_v1 p term
 
 $(deriveSafeCopy 1 'base ''Predicate_v1)
 
-instance (SafeCopy p, SafeCopy term) => Migrate (Predicate p term) where
+instance (SafeCopy p, Data p, Typeable p, Ord p,
+          SafeCopy term, Data term, Typeable term, Ord term) => Migrate (Predicate p term) where
     type MigrateFrom (Predicate p term) = (Predicate_v1 p term)
     migrate (Equal_v1 t1 t2) = Equal t1 t2
     migrate (Apply_v1 p ts) = Apply p ts
