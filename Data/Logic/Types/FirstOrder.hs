@@ -31,7 +31,7 @@ import Data.SafeCopy (SafeCopy, base, deriveSafeCopy, extension, MigrateFrom(..)
 import Data.Typeable (Typeable)
 
 -- | The range of a formula is {True, False} when it has no free variables.
-data Formula v p f
+data (Data v, Data p, Data f, Ord v, Ord p, Ord f) => Formula v p f
     = Predicate (Predicate p (PTerm v f))
     | Combine (Combination (Formula v p f))
     | Quant Quant v (Formula v p f)
@@ -43,7 +43,7 @@ data Formula v p f
 -- combination of a predicate and its arguments.  This reduces the
 -- number of arguments to foldFirstOrder and makes it easier to manage the
 -- mapping of the different instances to the class methods.
-data Predicate p term
+data (Data p, Ord p, Data term, Ord term) => Predicate p term
     = Equal term term
     | Apply p [term]
     deriving (Eq, Ord, Data, Typeable, Show, Read)
@@ -58,22 +58,22 @@ data PTerm v f
                                     -- is another term.
     deriving (Eq, Ord, Data, Typeable, Show, Read)
 
-instance Negatable (Formula v p f) where
+instance (Data p, Data v, Data f, Ord p, Ord v, Ord f) => Negatable (Formula v p f) where
     negatePrivate x = Combine ((:~:) x)
     foldNegation normal inverted (Combine ((:~:) x)) = foldNegation inverted normal x
     foldNegation normal _ x = normal x
 
-instance Constants p => Constants (Formula v p f) where
+instance (Constants p, Data p, Data v, Data f, Ord p, Ord v, Ord f) => Constants (Formula v p f) where
     fromBool = Predicate . fromBool
     asBool (Predicate x) = asBool x
     asBool _ = Nothing
 
-instance Constants p => Constants (Predicate p (PTerm v f)) where
+instance (Data p, Constants p, Data v, Data f, Ord p, Ord v, Ord f) => Constants (Predicate p (PTerm v f)) where
     fromBool x = Apply (fromBool x) []
     asBool (Apply p _) = asBool p
     asBool _ = Nothing
 
-instance (Constants (Formula v p f) {-, Ord v, Ord p, Ord f-}) => Combinable (Formula v p f) where
+instance (Constants (Formula v p f), Data p, Data v, Data f, Ord p, Ord v, Ord f) => Combinable (Formula v p f) where
     x .<=>. y = Combine (BinOp  x (:<=>:) y)
     x .=>.  y = Combine (BinOp  x (:=>:)  y)
     x .|.   y = Combine (BinOp  x (:|:)   y)
@@ -119,7 +119,7 @@ instance (Arity p, Constants p) => Atom (Predicate p (PTerm v f)) p (PTerm v f) 
     apply' = Apply
 -}
 
-instance C.Predicate p => AtomEq (Predicate p (PTerm v f)) p (PTerm v f) where
+instance (C.Predicate p, Data v, Data f, Ord v, Ord f) => AtomEq (Predicate p (PTerm v f)) p (PTerm v f) where
     foldAtomEq ap tf _ (Apply p ts) = maybe (ap p ts) tf (asBool p)
     foldAtomEq _ _ eq (Equal t1 t2) = eq t1 t2
     equals = Equal
@@ -158,7 +158,7 @@ instance (Constants (Formula v p f),
     atomic = Predicate
 -}
 
-instance (Constants p, Ord v, Ord p, Ord f, Constants (Predicate p (PTerm v f)), C.Formula (Formula v p f) (Predicate p (PTerm v f))
+instance (Constants p, Ord v, Ord p, Ord f, Constants (Predicate p (PTerm v f)), C.Formula (Formula v p f) (Predicate p (PTerm v f)), Data p, Data v, Data f
          ) => Literal (Formula v p f) (Predicate p (PTerm v f)) where
     foldLiteral neg tf at f =
         case f of
