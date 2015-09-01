@@ -18,7 +18,7 @@ import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder, foldAtomsFirstOrder, mapAtomsFirstOrder, fixityFirstOrder)
 import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Negate (Negatable(..))
-import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(fixity))
+import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(fixity))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.Logic.Classes.Term (Function)
 import Data.Logic.Classes.Variable (Variable)
@@ -111,6 +111,6 @@ instance (C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)),
           Pretty v, Show v, Variable v,
           Pretty p, Show p, Predicate p,
           Pretty f, Show f, Function f v) => Pretty (Formula v p f) where
-    pretty formula = prettyFirstOrder (\ _prec a -> pretty a) pretty 0 formula
+    pPrint formula = prettyFirstOrder (\ _prec a -> pPrint a) pPrint 0 formula
 
 $(deriveSafeCopy 1 'base ''Formula)

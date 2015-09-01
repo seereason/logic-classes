@@ -15,7 +15,7 @@ import Data.Logic.Classes.Apply (Apply(..), Predicate)
 import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
 --import Data.Logic.Classes.FirstOrder (foldAtomsFirstOrder, mapAtomsFirstOrder)
 --import qualified Data.Logic.Classes.Formula as C
-import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), Fixity(..), FixityDirection(..))
+import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), Fixity(..), FixityDirection(..))
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(vt, foldTerm, fApp))
 import qualified Data.Logic.Classes.Term as C
@@ -41,8 +41,8 @@ instance Show TermType where
     show (Fn f ts) = "fApp " ++ show f ++ " " ++ show ts
 
 instance Pretty TermType where
-    pretty (Var v) = pretty v
-    pretty (Fn f ts) = cat ([pretty f, text "("] ++ intersperse (text ", ") (map pretty ts) ++ [text ")"])
+    pPrint (Var v) = pPrint v
+    pPrint (Fn f ts) = cat ([pPrint f, text "("] ++ intersperse (text ", ") (map pPrint ts) ++ [text ")"])
 
 instance Apply FOL String TermType where
     foldApply f tf (R p ts) = maybe (f p ts) tf (asBool p)
@@ -65,7 +65,7 @@ instance Predicate String
 
 {-
 instance Pretty String where
-    pretty = text
+    pPrint = text
 
 instance FirstOrderFormula (Formula FOL) FOL String where
     -- type C.Term (Formula FOL) = Term
@@ -93,7 +93,7 @@ instance FirstOrderFormula (Formula FOL) FOL String where
 -}
 
 instance Pretty FOL where
-    pretty (R p ts) = cat ([pretty p, text "("] ++ intersperse (text ", ") (map pretty ts) ++ [text ")"])
+    pPrint (R p ts) = cat ([pPrint p, text "("] ++ intersperse (text ", ") (map pPrint ts) ++ [text ")"])
 
 instance Arity String where
     arity _ = Nothing
@@ -106,8 +106,8 @@ data Function
     deriving (Eq, Ord, Data, Typeable, Show)
 
 instance Pretty Function where
-    pretty (FName s) = text s
-    pretty (Skolem v) = text ("sK" ++ v)
+    pPrint (FName s) = text s
+    pPrint (Skolem v) = text ("sK" ++ v)
 
 instance C.Function Function String
 

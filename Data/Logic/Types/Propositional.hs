@@ -7,7 +7,7 @@ import Data.Logic.Classes.Constants (Constants(..), asBool)
 import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
-import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), topFixity)
+import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), topFixity)
 import Data.Logic.Classes.Propositional (PropositionalFormula(..), prettyPropositional, fixityPropositional, foldAtomsPropositional, mapAtomsPropositional)
 
 -- | The range of a formula is {True, False} when it has no free variables.
@@ -48,7 +48,7 @@ instance (Pretty atom, HasFixity atom, Ord atom) => Literal (Formula atom) atom 
     foldLiteral neg tf at formula =
         case formula of
           Combine ((:~:) p) -> neg p
-          Combine _ -> error ("Unexpected literal: " ++ show (pretty formula))
+          Combine _ -> error ("Unexpected literal: " ++ show (pPrint formula))
           Atom x -> at x
           T -> tf True
           F -> tf False
@@ -62,7 +62,7 @@ instance (C.Formula (Formula atom) atom, Pretty atom, HasFixity atom, Ord atom) 
           F -> tf False
 
 instance (Pretty atom, HasFixity atom, Ord atom) => Pretty (Formula atom) where
-    pretty = prettyPropositional pretty topFixity
+    pPrint = prettyPropositional pPrint topFixity
 
 instance (Pretty atom, HasFixity atom, Ord atom) => HasFixity (Formula atom) where
     fixity = fixityPropositional

@@ -10,7 +10,7 @@ import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder, (�
 import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Negate (negated, (.~.))
-import Data.Logic.Classes.Pretty (pretty)
+import Data.Logic.Classes.Pretty (pPrint)
 import Data.Logic.Classes.Propositional (PropositionalFormula)
 import Data.Logic.Classes.Skolem (Skolem(..))
 import Data.Logic.Classes.Term (Term(..))
@@ -131,11 +131,11 @@ normalTests =
     TestList
     [TestCase (assertEqual
                "nnf"
-               (show (pretty (for_all' "x" (exists' "x2" ((s[x2] .&. ((.~.)(h[x2])) .|. h[x2] .&. ((.~.)(m[x2]))) .|. ((.~.)(s[x])) .|. m[x])) :: TFormula)))
+               (show (pPrint (for_all' "x" (exists' "x2" ((s[x2] .&. ((.~.)(h[x2])) .|. h[x2] .&. ((.~.)(m[x2]))) .|. ((.~.)(s[x])) .|. m[x])) :: TFormula)))
                -- <<forall x. exists x'. (S(x') /\ ~H(x') \/ H(x') /\ ~M(x')) \/ ~S(x) \/ M(x)>>
                -- ∀x. ∃x2. ((S(x2) ∧ ¬H(x2) ∨ H(x2) ∧ ¬M(x2)) ∨ ¬S(x) ∨ M(x))
                (show
-                (pretty
+                (pPrint
                  (pnf (((for_all' "x" (s[x] .=>. h[x])) .&. (for_all "x" (h[x] .=>. m[x]))) .=>.
                     (for_all "x" (s[x] .=>. m[x])) :: TFormula) :: TFormula))))]
 

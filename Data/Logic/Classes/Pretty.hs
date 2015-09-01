@@ -1,6 +1,7 @@
-{-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE CPP, FlexibleInstances, TypeSynonymInstances #-}
 module Data.Logic.Classes.Pretty
-    ( Pretty(pretty)
+    ( Logic(Logic, unLogic)
+    , Pretty(pPrint)
     , HasFixity(fixity)
     , TH.Fixity(..)
     , TH.FixityDirection(..)
@@ -9,6 +10,9 @@ module Data.Logic.Classes.Pretty
     ) where
 
 import qualified Language.Haskell.TH.Syntax as TH
+#if MIN_VERSION_pretty(1,1,2)
+import Text.PrettyPrint.HughesPJClass (Pretty(pPrint))
+#else
 import Text.PrettyPrint (Doc, text)
 
 -- | The intent of this class is to be similar to Show, but only one
@@ -19,6 +23,12 @@ import Text.PrettyPrint (Doc, text)
 -- often good enough.
 class Pretty x where
     pretty :: x -> Doc
+
+instance Pretty String where
+    pPrint = text
+#endif
+
+newtype Logic a = Logic {unLogic :: a}
 
 -- | A class used to do proper parenthesization of formulas.  If we
 -- nest a higher precedence formula inside a lower one parentheses can
@@ -53,6 +63,3 @@ topFixity = TH.Fixity 0 TH.InfixN
 -- parenthesization, such as function application.
 botFixity :: TH.Fixity
 botFixity = TH.Fixity 10 TH.InfixN
-
-instance Pretty String where
-    pretty = text

@@ -19,7 +19,7 @@ import Data.Logic.Classes.Equals (AtomEq(..), showFirstOrderFormulaEq, substAtom
 import Data.Logic.Classes.FirstOrder (fixityFirstOrder, mapAtomsFirstOrder, foldAtomsFirstOrder)
 import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (Literal(..))
-import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), Fixity(..), FixityDirection(..))
+import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), Fixity(..), FixityDirection(..))
 import qualified Data.Logic.Classes.Propositional as P
 import Data.Logic.Harrison.Resolution (matchAtomsEq)
 import Data.Logic.Harrison.Tableaux (unifyAtomsEq)
@@ -66,8 +66,8 @@ instance Constants FOLEQ where
 instance Predicate PredName
 
 instance Pretty PredName where
-    pretty (:=:) = text "="
-    pretty (Named s) = text s
+    pPrint (:=:) = text "="
+    pPrint (Named s) = text s
 
 -- | Using PredName for the predicate type is not quite appropriate
 -- here, but we need to implement this instance so we can use it as a
@@ -113,8 +113,8 @@ instance C.Formula (Formula FOLEQ) FOLEQ => P.PropositionalFormula (Formula FOLE
           Exists _ _ -> error "quantifier in propositional formula"
 
 instance Pretty FOLEQ where
-    pretty (EQUALS a b) = cat [pretty a, pretty (:=:), pretty b]
-    pretty (R s ts) = cat ([pretty s, pretty "("] ++ intersperse (text ", ") (map pretty ts) ++ [text ")"])
+    pPrint (EQUALS a b) = cat [pPrint a, pPrint (:=:), pPrint b]
+    pPrint (R s ts) = cat ([pPrint s, pPrint "("] ++ intersperse (text ", ") (map pPrint ts) ++ [text ")"])
 
 instance HasFixity (Formula FOLEQ) where
     fixity = fixityFirstOrder

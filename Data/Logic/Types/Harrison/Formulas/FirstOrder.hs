@@ -12,7 +12,7 @@ import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder, f
 import qualified Data.Logic.Classes.FirstOrder as C
 import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Negate (Negatable(..))
-import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity)
+import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity)
 import Data.Logic.Types.Common ({- instance Variable String -})
 
 data Formula a
@@ -70,4 +70,4 @@ instance (C.Formula (Formula a) a, Constants a, Pretty a, HasFixity a) => FirstO
           Exists v fm' -> qu C.Exists v fm'
 
 instance (FirstOrderFormula (Formula a) a String) => Pretty (Formula a) where
-    pretty = prettyFirstOrder (const pretty) pretty 0
+    pPrint = prettyFirstOrder (const pPrint) pPrint 0

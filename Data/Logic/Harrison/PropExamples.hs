@@ -12,7 +12,7 @@ import Data.Logic.Classes.Combine ((.<=>.), (.=>.), (.&.), (.|.), Combinable, Co
 import Data.Logic.Classes.Constants (true, false)
 import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), botFixity)
+import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), botFixity)
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.Logic.Harrison.Lib (allsets)
 import Data.Logic.Harrison.Prop (tautology, list_conj, list_disj, psimplify)
@@ -38,7 +38,7 @@ tests = TestList [test01, test02, test03]
 data Atom a = P String a (Maybe a) deriving (Eq, Ord, Show)
 
 instance Pretty (Atom N) where
-    pretty (P s n mm) = text (s ++ show n ++ maybe "" (\ m -> "." ++ show m) mm)
+    pPrint (P s n mm) = text (s ++ show n ++ maybe "" (\ m -> "." ++ show m) mm)
 
 instance HasFixity (Atom N) where
     fixity = const botFixity

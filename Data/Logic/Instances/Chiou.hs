@@ -22,7 +22,7 @@ import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), quant', prettyFirstOrder, fixityFirstOrder, foldAtomsFirstOrder, mapAtomsFirstOrder)
 import Data.Logic.Classes.Formula (Formula(..))
 import Data.Logic.Classes.Negate (Negatable(..), (.~.))
-import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..))
+import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..))
 import Data.Logic.Classes.Term (Term(..), Function)
 import Data.Logic.Classes.Variable (Variable)
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
@@ -123,7 +123,7 @@ instance Predicate p => AtomEq (Sentence v p f) p (CTerm v f) where
     applyEq' = Predicate
 
 instance (FirstOrderFormula (Sentence v p f) (Sentence v p f) v, Variable v, Predicate p, Function f v) => Pretty (Sentence v p f) where
-    pretty = prettyFirstOrder (\ _ a -> pretty a) pretty 0
+    pPrint = prettyFirstOrder (\ _ a -> pPrint a) pPrint 0
 
 instance (Formula (Sentence v p f) (Sentence v p f), Predicate p, Function f v, Variable v) => HasFixity (Sentence v p f) where
     fixity = fixityFirstOrder
@@ -234,7 +234,7 @@ instance (Arity p, Constants p, Combinable (NormalSentence v p f)) => Pred p (No
 
 instance (Formula (NormalSentence v p f) (NormalSentence v p f),
           Variable v, Predicate p, Function f v, Combinable (NormalSentence v p f)) => Pretty (NormalSentence v p f) where
-    pretty = prettyFirstOrder (\ _ a -> pretty a) pretty 0
+    pPrint = prettyFirstOrder (\ _ a -> pPrint a) pPrint 0
 
 instance (Predicate p, Function f v, Combinable (NormalSentence v p f)) => Formula (NormalSentence v p f) (NormalSentence v p f) where
     atomic x@(NFPredicate _ _) = x

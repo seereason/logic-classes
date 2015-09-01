@@ -37,7 +37,7 @@ import Data.Logic.Classes.Constants (Constants(..), prettyBool)
 import Data.Logic.Classes.Equals (AtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula, convertFOF, prettyFirstOrder)
 import Data.Logic.Classes.Literal (Literal)
-import Data.Logic.Classes.Pretty (Pretty(pretty))
+import Data.Logic.Classes.Pretty (Pretty(pPrint))
 import Data.Logic.Classes.Propositional (PropositionalFormula)
 import qualified Data.Logic.Classes.Skolem as C
 import Data.Logic.Classes.Term (Term(vt, fApp, foldTerm), Function)
@@ -63,7 +63,7 @@ import Text.PrettyPrint (Doc, text)
 
 -- | Render a Pretty instance in single line mode
 render :: Pretty a => a -> String
-render = renderStyle (style {mode = OneLineMode}) . pretty
+render = renderStyle (style {mode = OneLineMode}) . pPrint
 
 newtype V = V String deriving (Eq, Ord, Data, Typeable)
 
@@ -77,7 +77,7 @@ prettyV :: V -> Doc
 prettyV (V s) = text s
 
 instance Pretty V where
-    pretty = prettyV
+    pPrint = prettyV
 
 instance Variable V where
     prefix p (V s) = V (p ++ s)
@@ -130,7 +130,7 @@ prettyP Equals = text ".=."
 prettyP (Pr s) = text s
 
 instance Pretty Pr where
-    pretty = prettyP
+    pPrint = prettyP
 
 data AtomicFunction
     = Fn String
@@ -153,10 +153,10 @@ instance Show AtomicFunction where
 
 prettyF :: AtomicFunction -> Doc
 prettyF (Fn s) = text s
-prettyF (Skolem v) = text "sK" <> pretty v
+prettyF (Skolem v) = text "sK" <> pPrint v
 
 instance Pretty AtomicFunction where
-    pretty = prettyF
+    pPrint = prettyF
 
 type TFormula = P.Formula V Pr AtomicFunction
 type TAtom = P.Predicate Pr TTerm
@@ -164,7 +164,7 @@ type TTerm = P.PTerm V AtomicFunction
 
 {-
 instance Pretty TFormula where
-    pretty = prettyFirstOrder (const pretty) pretty 0
+    pPrint = prettyFirstOrder (const pPrint) pPrint 0
 -}
 
 -- |This allows you to use an expression that returns the Doc type in a
@@ -209,29 +209,15 @@ doTest (TestFormula formula name expected) =
     TestLabel name $ TestList $
     map (doExpected formula name) expected
 
-doExpected formula name expected@(FirstOrderFormula f') = doFirstOrderFormula formula name f'
-doExpected formula name expected@(SimplifiedForm f') = doSimplifiedForm formula name f'
-doExpected formula name expected@(PrenexNormalForm f') = doPrenexNormalForm formula name f'
-doExpected formula name expected@(NegationNormalForm f') = doNegationNormalForm formula name f'
-doExpected formula name expected@(SkolemNormalForm f') = doSkolemNormalForm formula name f'
-doExpected formula name expected@(SkolemNumbers f') = doSkolemNumbers formula name f'
-doExpected formula name expected@(ClauseNormalForm fss) = doClauseNormalForm formula name fss
-doExpected formula name expected@(TrivialClauses flags) = doTrivialClauses formula name flags
-doExpected formula name expected@(ConvertToChiou result) = doConvertToChiou formula name result
-doExpected formula name expected@(ChiouKB1 result) = doChiouKB1 formula name result
-doExpected formula name expected@(PropLogicSat result) = doPropLogicSat formula name result
-doExpected formula name expected@(SatSolverCNF result) = doSatSolverCNF formula name result
-doExpected formula name expected@(SatSolverSat result) = doSatSolverSat formula name result
-
-doFirstOrderFormula formula name f' = let label = (name ++ " original formula") in TestLabel label (TestCase (assertEqual label (p f') (p formula)))
-doSimplifiedForm formula name f' = let label = (name ++ " simplified") in TestLabel label (TestCase (assertEqual label (p f') (p (simplify formula))))
-doPrenexNormalForm formula name f' = let label = (name ++ " prenex normal form") in TestLabel label (TestCase (assertEqual label (p f') (p (pnf formula))))
-doNegationNormalForm formula name f' = let label = (name ++ " negation normal form") in TestLabel label (TestCase (assertEqual label (p f') (p (nnf . simplify $ formula))))
-doSkolemNormalForm formula name f' = let label = (name ++ " skolem normal form") in TestLabel label (TestCase (assertEqual label (p f') (p (runSkolem (skolemize id formula :: Skolem V (P.PTerm V AtomicFunction) TFormula)))))
-doSkolemNumbers formula name f' = let label = (name ++ " skolem numbers") in TestLabel label (TestCase (assertEqual label f' (skolemSet (runSkolem (skolemize id formula :: Skolem V (P.PTerm V AtomicFunction) TFormula)))))
-doClauseNormalForm formula name fss = let label = (name ++ " clause normal form") in TestLabel label (TestCase (assertEqual label fss (S.map (S.map p) (runSkolem (clauseNormalForm formula)))))
-doTrivialClauses formula name flags = let label = (name ++ " trivial clauses") in TestLabel label (TestCase (assertEqual label flags (map (\ (x :: S.Set TFormula) -> (trivial x, x)) (S.toList (runSkolem (clauseNormalForm (formula :: TFormula)))))))
-doConvertToChiou formula name result =
+doExpected formula name expected@(FirstOrderFormula f') = let label = (name ++ " original formula") in TestLabel label (TestCase (assertEqual label (p f') (p formula)))
+doExpected formula name expected@(SimplifiedForm f') = let label = (name ++ " simplified") in TestLabel label (TestCase (assertEqual label (p f') (p (simplify formula))))
+doExpected formula name expected@(PrenexNormalForm f') = let label = (name ++ " prenex normal form") in TestLabel label (TestCase (assertEqual label (p f') (p (pnf formula))))
+doExpected formula name expected@(NegationNormalForm f') = let label = (name ++ " negation normal form") in TestLabel label (TestCase (assertEqual label (p f') (p (nnf . simplify $ formula))))
+doExpected formula name expected@(SkolemNormalForm f') = let label = (name ++ " skolem normal form") in TestLabel label (TestCase (assertEqual label (p f') (p (runSkolem (skolemize id formula :: Skolem V (P.PTerm V AtomicFunction) TFormula)))))
+doExpected formula name expected@(SkolemNumbers f') = let label = (name ++ " skolem numbers") in TestLabel label (TestCase (assertEqual label f' (skolemSet (runSkolem (skolemize id formula :: Skolem V (P.PTerm V AtomicFunction) TFormula)))))
+doExpected formula name expected@(ClauseNormalForm fss) = let label = (name ++ " clause normal form") in TestLabel label (TestCase (assertEqual label fss (S.map (S.map p) (runSkolem (clauseNormalForm formula)))))
+doExpected formula name expected@(TrivialClauses flags) = let label = (name ++ " trivial clauses") in TestLabel label (TestCase (assertEqual label flags (map (\ (x :: S.Set TFormula) -> (trivial x, x)) (S.toList (runSkolem (clauseNormalForm (formula :: TFormula)))))))
+doExpected formula name expected@(ConvertToChiou result) =
           -- We need to convert formula to Chiou and see if it matches result.
           let ca :: TAtom -> Ch.Sentence V Pr AtomicFunction
               -- ca = undefined
@@ -244,10 +230,10 @@ doConvertToChiou formula name result =
               fn :: AtomicFunction -> [TTerm] -> Ch.CTerm V AtomicFunction
               fn f ts = fApp f (map ct ts) in
           let label = (name ++ " converted to Chiou") in TestLabel label (TestCase (assertEqual label result (convertFOF ca id formula :: Ch.Sentence V Pr AtomicFunction)))
-doChiouKB1 formula name result = let label = (name ++ " Chiou KB") in TestLabel label (TestCase (assertEqual label result (runProver' Nothing (loadKB [formula] >>= return . head))))
-doPropLogicSat formula name result = let label = (name ++ " PropLogic.satisfiable") in TestLabel label (TestCase (assertEqual label result (runSkolem (plSat formula))))
-doSatSolverCNF formula name result = let label = (name ++ " SatSolver CNF") in TestLabel label (TestCase (assertEqual label (norm result) (runNormal (SS.toCNF formula))))
-doSatSolverSat formula name result = let label = (name ++ " SatSolver CNF") in TestLabel label (TestCase (assertEqual label result ((null :: [a] -> Bool) (runNormalT (SS.toCNF formula >>= satisfiable)))))
+doExpected formula name expected@(ChiouKB1 result) = let label = (name ++ " Chiou KB") in TestLabel label (TestCase (assertEqual label result (runProver' Nothing (loadKB [formula] >>= return . head))))
+doExpected formula name expected@(PropLogicSat result) = let label = (name ++ " PropLogic.satisfiable") in TestLabel label (TestCase (assertEqual label result (runSkolem (plSat formula))))
+doExpected formula name expected@(SatSolverCNF result) = let label = (name ++ " SatSolver CNF") in TestLabel label (TestCase (assertEqual label (norm result) (runNormal (SS.toCNF formula))))
+doExpected formula name expected@(SatSolverSat result) = let label = (name ++ " SatSolver CNF") in TestLabel label (TestCase (assertEqual label result ((null :: [a] -> Bool) (runNormalT (SS.toCNF formula >>= satisfiable)))))
 
 p = id
 

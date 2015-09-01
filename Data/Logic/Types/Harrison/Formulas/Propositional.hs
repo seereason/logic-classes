@@ -9,7 +9,7 @@ import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
-import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), topFixity)
+import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), topFixity)
 import Data.Logic.Classes.Propositional (PropositionalFormula(..), prettyPropositional, fixityPropositional, foldAtomsPropositional, mapAtomsPropositional)
 
 data Formula a
@@ -68,10 +68,10 @@ instance (HasFixity atom, Pretty atom, Ord atom) => Literal (Formula atom) atom 
           F -> tf False
           Not f -> neg f
           Atom x -> at x
-          _ -> error ("Unexpected literal " ++ show (pretty formula))
+          _ -> error ("Unexpected literal " ++ show (pPrint formula))
 
 instance (Pretty atom, HasFixity atom, Ord atom) => Pretty (Formula atom) where
-    pretty = prettyPropositional pretty topFixity
+    pPrint = prettyPropositional pPrint topFixity
 
 instance (Pretty atom, HasFixity atom, Ord atom) => HasFixity (Formula atom) where
     fixity = fixityPropositional

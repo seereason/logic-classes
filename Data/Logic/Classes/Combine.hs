@@ -21,7 +21,7 @@ module Data.Logic.Classes.Combine
 
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Negate (Negatable, (.~.))
-import Data.Logic.Classes.Pretty (Pretty(pretty))
+import Data.Logic.Classes.Pretty (Pretty(pPrint))
 import Text.PrettyPrint (Doc, text)
 
 -- | A type class for logical formulas.  Minimal implementation:
@@ -120,4 +120,4 @@ prettyBinOp (:&:) = text "∧"
 prettyBinOp (:|:) = text "∨"
 
 instance Pretty BinOp where
-    pretty = prettyBinOp
+    pPrint = prettyBinOp

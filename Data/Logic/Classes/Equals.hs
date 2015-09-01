@@ -26,7 +26,7 @@ import Data.Logic.Classes.Constants (Constants(fromBool), ifElse)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..))
 import Data.Logic.Classes.Formula (Formula(atomic))
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Pretty (Pretty(pretty))
+import Data.Logic.Classes.Pretty (Pretty(pPrint))
 import Data.Logic.Classes.Term (Term, convertTerm, showTerm, prettyTerm, fvt, tsubst, funcs)
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
@@ -52,8 +52,8 @@ applyEq p ts =
 data PredicateName p = Named p Int | Equals deriving (Eq, Ord, Show)
 
 instance (Pretty p, Ord p) => Pretty (PredicateName p) where
-    pretty Equals = text "="
-    pretty (Named p _) = pretty p
+    pPrint Equals = text "="
+    pPrint (Named p _) = pPrint p
 
 zipAtomsEq :: AtomEq atom p term =>
               (p -> [term] -> p -> [term] -> Maybe r)

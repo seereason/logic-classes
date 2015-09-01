@@ -27,7 +27,7 @@ import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), prettyFi
 import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
-import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), botFixity)
+import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), botFixity)
 import Data.Logic.Classes.Term (Term(..), Function)
 import Data.Logic.Classes.Variable (Variable(..))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
@@ -192,14 +192,14 @@ instance (C.Predicate p, Variable v, Function f v) => C.Atom (Predicate p (PTerm
 instance (Variable v, Pretty v,
           C.Predicate p, Pretty p,
           Function f v, Pretty f) => Pretty (Predicate p (PTerm v f)) where
-    pretty atom = prettyAtomEq pretty pretty pretty 0 atom
+    pPrint atom = prettyAtomEq pPrint pPrint pPrint 0 atom
 
 instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)),
           C.Predicate p, Variable v, Function f v, HasFixity (Predicate p (PTerm v f))) => HasFixity (Formula v p f) where
     fixity = fixityFirstOrder
 
 instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)), Variable v, C.Predicate p, Function f v) => Pretty (Formula v p f) where
-    pretty f = prettyFirstOrder (\ _ -> pretty) pretty 0 $ f
+    pPrint f = prettyFirstOrder (\ _ -> pPrint) pPrint 0 $ f
 
 instance HasFixity (Predicate p term) where
     fixity = const botFixity

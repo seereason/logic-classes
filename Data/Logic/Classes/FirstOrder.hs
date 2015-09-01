@@ -33,7 +33,7 @@ import Data.Logic.Classes.Combine
 import Data.Logic.Classes.Formula (Formula(atomic))
 import Data.Logic.Classes.Literal (Literal, foldLiteral)
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Pretty (Pretty(pretty), HasFixity(..), Fixity(..), FixityDirection(..))
+import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), Fixity(..), FixityDirection(..))
 import qualified Data.Logic.Classes.Propositional as P
 import Data.Logic.Classes.Variable (Variable)
 import Data.Logic.Failing (Failing(..))
@@ -186,10 +186,10 @@ prettyFirstOrder pa pv pprec formula =
                case cm of
                  (BinOp f1 op f2) ->
                      case op of
-                       (:=>:) -> (prettyFirstOrder pa pv 2 f1 <+> pretty op <+> prettyFirstOrder pa pv prec f2)
-                       (:<=>:) -> (prettyFirstOrder pa pv 2 f1 <+> pretty op <+> prettyFirstOrder pa pv prec f2)
-                       (:&:) -> (prettyFirstOrder pa pv 3 f1 <+> pretty op <+> prettyFirstOrder pa pv prec f2)
-                       (:|:) -> (prettyFirstOrder pa pv 4 f1 <+> pretty op <+> prettyFirstOrder pa pv prec f2)
+                       (:=>:) -> (prettyFirstOrder pa pv 2 f1 <+> pPrint op <+> prettyFirstOrder pa pv prec f2)
+                       (:<=>:) -> (prettyFirstOrder pa pv 2 f1 <+> pPrint op <+> prettyFirstOrder pa pv prec f2)
+                       (:&:) -> (prettyFirstOrder pa pv 3 f1 <+> pPrint op <+> prettyFirstOrder pa pv prec f2)
+                       (:|:) -> (prettyFirstOrder pa pv 4 f1 <+> pPrint op <+> prettyFirstOrder pa pv prec f2)
                  ((:~:) f) -> text "¬" {-"~"-} <> prettyFirstOrder pa pv prec f)
           (text . ifElse "true" "false")
           (pa prec)

@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Data.Logic.Classes.Constants
     ( Constants(asBool, fromBool)
     , ifElse
@@ -8,7 +9,7 @@ module Data.Logic.Classes.Constants
     , prettyBool
     ) where
 
-import Data.Logic.Classes.Pretty (Pretty(pretty))
+import Data.Logic.Classes.Pretty (Pretty(pPrint), Logic(..))
 import Text.PrettyPrint (Doc, text)
 
 -- |Some types in the Logic class heirarchy need to have True and
@@ -36,5 +37,5 @@ prettyBool :: Bool -> Doc
 prettyBool True = text "⊨"
 prettyBool False = text "⊭"
 
-instance Pretty Bool where
-    pretty = prettyBool
+instance Pretty (Logic Bool) where
+    pPrint = prettyBool . unLogic

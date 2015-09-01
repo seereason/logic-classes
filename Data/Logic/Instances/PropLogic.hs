@@ -13,7 +13,7 @@ import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
 import Data.Logic.Classes.Formula (Formula(..))
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
-import Data.Logic.Classes.Pretty (HasFixity(fixity), Pretty(pretty), topFixity)
+import Data.Logic.Classes.Pretty (HasFixity(fixity), Pretty(pPrint), topFixity)
 import Data.Logic.Classes.Propositional (PropositionalFormula(..), clauseNormalForm', prettyPropositional, fixityPropositional, foldAtomsPropositional, mapAtomsPropositional)
 import Data.Logic.Classes.Term (Term)
 import Data.Logic.Harrison.Skolem (SkolemT)
@@ -69,7 +69,7 @@ instance Constants (PropForm formula) where
     asBool _ = Nothing
 
 instance (PropositionalFormula (PropForm atom) atom, Pretty atom, HasFixity atom) => Pretty (PropForm atom) where
-    pretty = prettyPropositional pretty topFixity
+    pPrint = prettyPropositional pPrint topFixity
 
 instance (PropositionalFormula (PropForm atom) atom, HasFixity atom) => HasFixity (PropForm atom) where
     fixity = fixityPropositional
