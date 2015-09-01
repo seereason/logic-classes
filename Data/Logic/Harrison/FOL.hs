@@ -219,11 +219,11 @@ fv :: forall formula atom term v.
       (FirstOrderFormula formula atom v,
        Atom atom term v) => formula -> Set.Set v
 fv fm =
-    foldFirstOrder qu co tf at fm
+    foldFirstOrder quantify compliment tf at fm
     where
-      qu _ x p = Set.delete x (fv p)
-      co ((:~:) p) = fv p
-      co (BinOp p _ q) = Set.union (fv p) (fv q)
+      quantify _ x p = Set.delete x (fv p)
+      compliment ((:~:) p) = fv p
+      compliment (BinOp p _ q) = Set.union (fv p) (fv q)
       tf _ = Set.empty
       at = allVariables
 
