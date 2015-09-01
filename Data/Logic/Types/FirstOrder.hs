@@ -1,5 +1,12 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
-             GeneralizedNewtypeDeriving, MultiParamTypeClasses, TemplateHaskell, TypeFamilies, UndecidableInstances #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS -fno-warn-missing-signatures -fno-warn-orphans #-}
 -- |Data types which are instances of the Logic type class for use
 -- when you just want to use the classes and you don't have a
@@ -31,7 +38,7 @@ import Data.SafeCopy (SafeCopy, base, deriveSafeCopy, extension, MigrateFrom(..)
 import Data.Typeable (Typeable)
 
 -- | The range of a formula is {True, False} when it has no free variables.
-data (Data v, Data p, Data f, Ord v, Ord p, Ord f) => Formula v p f
+data Formula v p f
     = Predicate (Predicate p (PTerm v f))
     | Combine (Combination (Formula v p f))
     | Quant Quant v (Formula v p f)
@@ -43,7 +50,7 @@ data (Data v, Data p, Data f, Ord v, Ord p, Ord f) => Formula v p f
 -- combination of a predicate and its arguments.  This reduces the
 -- number of arguments to foldFirstOrder and makes it easier to manage the
 -- mapping of the different instances to the class methods.
-data (Data p, Ord p, Data term, Ord term) => Predicate p term
+data Predicate p term
     = Equal term term
     | Apply p [term]
     deriving (Eq, Ord, Data, Typeable, Show, Read)
@@ -212,8 +219,7 @@ data Predicate_v1 p term
 
 $(deriveSafeCopy 1 'base ''Predicate_v1)
 
-instance (SafeCopy p, Data p, Typeable p, Ord p,
-          SafeCopy term, Data term, Typeable term, Ord term) => Migrate (Predicate p term) where
+instance (SafeCopy p, SafeCopy term) => Migrate (Predicate p term) where
     type MigrateFrom (Predicate p term) = (Predicate_v1 p term)
     migrate (Equal_v1 t1 t2) = Equal t1 t2
     migrate (Apply_v1 p ts) = Apply p ts
