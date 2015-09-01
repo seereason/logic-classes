@@ -14,7 +14,7 @@ import Data.Logic.Harrison.Skolem (SkolemT)
 import Data.Logic.KnowledgeBase (ProverT, runProver', Proof(..), ProofResult(..), loadKB, theoremKB {-, askKB, showKB-})
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
 import Data.Logic.Resolution (SetOfSupport)
-import Common (V(..), AtomicFunction(..), TFormula, TTerm, myTest)
+import Common (V(..), AtomicFunction(..), TFormula, TTerm)
 import Data.Map (fromList)
 import qualified Data.Set as S
 import Test.HUnit
@@ -24,7 +24,8 @@ tests = TestLabel "Test.Chiou0" $ TestList [loadTest, proofTest1, proofTest2]
 
 loadTest :: Test
 loadTest =
-    myTest "Chiuo0 - loadKB test" expected (runProver' Nothing (loadKB sentences))
+    let label = "Chiuo0 - loadKB test" in
+    TestLabel label (TestCase (assertEqual label expected (runProver' Nothing (loadKB sentences))))
     where
       expected :: [Proof TFormula]
       expected = [Proof Invalid (S.fromList [makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem "x") []])]),
@@ -36,7 +37,8 @@ loadTest =
                   Proof Invalid (S.fromList [makeINF' ([(pApp ("Cat") [vt ("x")])]) ([(pApp ("Animal") [vt ("x")])])])]
 
 proofTest1 :: Test
-proofTest1 = myTest "Chiuo0 - proof test 1" proof1 (runProver' Nothing (loadKB sentences >> theoremKB (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []] :: TFormula)))
+proofTest1 = let label = "Chiuo0 - proof test 1" in
+             TestLabel label (TestCase (assertEqual label proof1 (runProver' Nothing (loadKB sentences >> theoremKB (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []] :: TFormula)))))
 
 inf' :: (Negatable lit, Ord lit) => [lit] -> [lit] -> ImplicativeForm lit
 inf' l1 l2 = INF (S.fromList l1) (S.fromList l2)
@@ -57,7 +59,8 @@ proof1 = (False,
             (makeINF' ([(pApp ("Owns") [fApp ("Curiosity") [],vt ("y")])]) ([]),fromList [])]))
 
 proofTest2 :: Test
-proofTest2 = myTest "Chiuo0 - proof test 2" proof2 (runProver' Nothing (loadKB sentences >> theoremKB conjecture))
+proofTest2 = let label = "Chiuo0 - proof test 2" in
+             TestLabel label (TestCase (assertEqual label proof2 (runProver' Nothing (loadKB sentences >> theoremKB conjecture))))
     where
       conjecture :: TFormula
       conjecture = (pApp "Kills" [fApp "Curiosity" [], fApp (Fn "Tuna") []])

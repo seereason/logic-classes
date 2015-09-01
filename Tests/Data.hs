@@ -48,17 +48,17 @@ prenexNormalForm true :: Formula V Pr AtomicFunction
 :m +Data.Logic.Normal.Negation
 -}
 
-tests :: [TTestFormula] -> [TTestProof] -> Test
+tests :: [Test] -> [TTestProof] -> Test
 tests fs ps =
-    TestLabel "Test.Data" $ TestList (map doTest fs ++ map doProof ps)
+    TestLabel "Test.Data" $ TestList (fs ++ map doProof ps)
 
-allFormulas :: [TTestFormula]
+allFormulas :: [Test]
 allFormulas = (formulas ++
-               concatMap snd [animalKB, chang43KB] ++
+               map doTest (concatMap snd [animalKB, chang43KB]) ++
                animalConjectures ++
                [chang43Conjecture, chang43ConjectureRenamed])
 
-formulas :: [TTestFormula]
+formulas :: [Test]
 formulas =
     let n = (.~.)
         p = pApp "p"
@@ -73,37 +73,42 @@ formulas =
         t0 = t []
         (x, y, z, u, v, w) = (vt "x" :: TTerm, vt "y" :: TTerm, vt "z" :: TTerm, vt "u" :: TTerm, vt "v" :: TTerm, vt "w" :: TTerm)
         z2 = vt "z2" :: TTerm in
-    
-    [ 
+    [ doTest $
       TestFormula
       { formula = p0 .|. q0 .&. r0 .|. n s0 .&. n t0
       , name = "operator precedence"
       , expected = [ FirstOrderFormula (p0 .|. (q0 .&. r0) .|. ((n s0) .&. (n t0))) ] }
-    , TestFormula
+    , doTest $
+      TestFormula
       { formula = pApp (fromBool True) []
       , name = "True"
       , expected = [ClauseNormalForm  (toSS [])] }
-    , TestFormula
+    , doTest $
+      TestFormula
       { formula = pApp (fromBool False) []
       , name = "False"
       , expected = [ClauseNormalForm  (toSS [[]])] }
-    , TestFormula
+    , doTest $
+      TestFormula
       { formula = pApp "p" []
       , name = "p"
       , expected = [ClauseNormalForm  (toSS [[pApp "p" []]])] }
     , let p = pApp "p" [] in
+      doTest $
       TestFormula
       { formula = p .&. ((.~.) (p))
       , name = "p&~p"
       , expected = [ PrenexNormalForm ((pApp ("p") []) .&. (((.~.) (pApp ("p") []))))
                    , ClauseNormalForm (toSS [[(p)], [((.~.) (p))]])
                    ] }
-    , TestFormula
+    , doTest $
+      TestFormula
       { formula = pApp "p" [vt "x"]
       , name = "p[x]"
       , expected = [ClauseNormalForm  (toSS [[pApp "p" [x]]])] }
     , let f = pApp "f"
           q = pApp "q" in
+      doTest $
       TestFormula
       { name = "iff"
       , formula = for_all "x" (for_all "y" (q [x, y] .<=>. for_all "z" (f [z, x] .<=>. f [z, y])))
@@ -153,22 +158,26 @@ formulas =
                              ((.~.) (pApp2 ("f") (fApp (toSkolem "z") [vt ("x"),vt ("y")]) (vt ("y"))))]])
                    ]
       }
-    , TestFormula
+    , doTest $
+      TestFormula
       { name = "move quantifiers out"
       , formula = (for_all "x" (pApp "p" [x]) .&. (pApp "q" [x]))
       , expected = [PrenexNormalForm (for_all "x2" ((pApp "p" [vt ("x2")]) .&. ((pApp "q" [vt ("x")]))))]
       }
-    , TestFormula
+    , doTest $
+      TestFormula
       { name = "skolemize2"
       , formula = exists "x" (for_all "y" (pApp "loves" [x, y]))
       , expected = [SkolemNormalForm (pApp ("loves") [fApp (toSkolem "x") [],y])]
       }
-    , TestFormula
+    , doTest $
+      TestFormula
       { name = "skolemize3"
       , formula = for_all "y" (exists "x" (pApp "loves" [x, y]))
       , expected = [SkolemNormalForm (pApp ("loves") [fApp (toSkolem "x") [y],y])]
       }
-    , TestFormula
+    , doTest $
+      TestFormula
       { formula = exists "x" (for_all' ["y", "z"]
                               (exists "u"
                                (for_all "v"
@@ -182,7 +191,8 @@ formulas =
                                                  vt ("v"),
                                                  fApp (toSkolem "w") [vt ("v"), vt ("y"),vt ("z")]]) ]
       }
-    , TestFormula
+    , doTest $
+      TestFormula
       { name = "chang example 4.2"
       -- ∀x ∃y∃z ~P(x,y) & Q(x,z) | R(x,y,z)
       , formula = for_all "x" (exists' ["y", "z"] (((((.~.) (pApp "P" [x, y])) .&. pApp "Q" [x, z]) .|. pApp "R" [x, y, z])))
@@ -198,15 +208,18 @@ formulas =
                       [(pApp ("Q") [vt ("x"),vt ("z")]),
                        (pApp ("R") [vt ("x"),vt ("y"),vt ("z")])]]) ]
       }
-    , TestFormula
+    , doTest $
+      TestFormula
       { formula = n p0 .|. q0 .&. p0 .|. r0 .&. n q0 .&. n r0
       , name = "chang 7.2.1a - unsat"
       , expected = [ SatSolverSat False ] }
-    , TestFormula
+    , doTest $
+      TestFormula
       { formula = p0 .|. q0 .|. r0 .&. n p0 .&. n q0 .&. n r0 .|. s0 .&. n s0
       , name = "chang 7.2.1b - unsat"
       , expected = [ SatSolverSat False ] }
-    , TestFormula
+    , doTest $
+      TestFormula
       { formula = p0 .|. q0 .&. q0 .|. r0 .&. r0 .|. s0 .&. n r0 .|. n p0 .&. n s0 .|. n q0 .&. n q0 .|. n r0
       , name = "chang 7.2.1c - unsat"
       , expected = [ SatSolverSat False ] }
@@ -214,6 +227,7 @@ formulas =
           f = pApp "f"
           sk1 = f [fApp (toSkolem "x") [x,x,y,z],y]
           sk2 = f [fApp (toSkolem "x") [x,x,y,z],x] in
+      doTest $
       TestFormula
       { name = "distribute bug test"
       , formula = ((((.~.) (q [x,y])) .|.
@@ -233,6 +247,7 @@ formulas =
           y = vt "y" :: TTerm
           x' = vt "x" :: C.CTerm V AtomicFunction
           y' = vt "y" :: C.CTerm V AtomicFunction in
+      doTest $
       TestFormula
       { name = "convert to Chiou 1"
       , formula = exists "x" (x .=. y)
@@ -242,6 +257,7 @@ formulas =
           s' = pApp "s"
           x' = vt "x"
           y' = vt "y" in
+      doTest $
       TestFormula
       { name = "convert to Chiou 2"
       , formula = s [fApp ("a") [x, y]]
@@ -254,6 +270,7 @@ formulas =
           h' = pApp "h"
           m' = pApp "m"
           x' = vt "x" in
+      doTest $
       TestFormula
       { name = "convert to Chiou 3"
       , formula = for_all "x" (((s [x] .=>. h [x]) .&. (h [x] .=>. m [x])) .=>. (s [x] .=>. m [x]))
@@ -261,6 +278,7 @@ formulas =
       }
     , let taller a b = pApp "taller" [a, b]
           wise a = pApp "wise" [a] in
+      doTest $
       TestFormula
       { name = "cnf test 1"
       , formula = for_all "y" (for_all "x" (taller y x .|. wise x) .=>. wise y)
@@ -271,7 +289,8 @@ formulas =
                       [(pApp ("wise") [vt ("y")]),
                        ((.~.) (pApp ("wise") [fApp (toSkolem "x") [vt ("y")]]))]])]
       }
-    , TestFormula
+    , doTest $
+      TestFormula
       { name = "cnf test 2"
       , formula = ((.~.) (exists "x" (pApp "s" [x] .&. pApp "q" [x])))
       , expected = [ ClauseNormalForm (toSS 
@@ -284,22 +303,26 @@ formulas =
                                         ((.~.) (pApp "q" [vt "x"]))]] -}
                    ]
       }
-    , TestFormula
+    , doTest $
+      TestFormula
       { name = "cnf test 3"
       , formula = (for_all "x" (p [x] .=>. (q [x] .|. r [x])))
       , expected = [ClauseNormalForm (toSS [[((.~.) (pApp "p" [vt "x"])),(pApp "q" [vt "x"]),(pApp "r" [vt "x"])]])]
       }
-    , TestFormula
+    , doTest $
+      TestFormula
       { name = "cnf test 4"
       , formula = ((.~.) (exists "x" (p [x] .=>. exists "y" (q [y]))))
       , expected = [ClauseNormalForm (toSS [[(pApp "p" [vt "x"])],[((.~.) (pApp "q" [vt "y"]))]])]
       }
-    , TestFormula
+    , doTest $
+      TestFormula
       { name = "cnf test 5"
       , formula = (for_all "x" (q [x] .|. r [x] .=>. s [x]))
       , expected = [ClauseNormalForm (toSS [[((.~.) (pApp "q" [vt "x"])),(pApp "s" [vt "x"])],[((.~.) (pApp "r" [vt "x"])),(pApp "s" [vt "x"])]])]
       }
-    , TestFormula
+    , doTest $
+      TestFormula
       { name = "cnf test 6"
       , formula = (exists "x" (p0 .=>. pApp "f" [x]))
       , expected = [ClauseNormalForm (toSS [[((.~.) (pApp "p" [])),(pApp "f" [fApp (toSkolem "x") []])]])]
@@ -307,6 +330,7 @@ formulas =
     , let p = pApp "p" []
           f' = pApp "f" [x]
           f = pApp "f" [fApp (toSkolem "x") []] in
+      doTest $
       TestFormula
       { name = "cnf test 7"
       , formula = exists "x" (p .<=>. f')
@@ -316,7 +340,8 @@ formulas =
                                      (False,S.fromList [((.~.) (pApp ("f") [fApp (toSkolem "x") []])),(pApp ("p") [])])]
                    , ClauseNormalForm (toSS [[(f), ((.~.) p)], [p, ((.~.) f)]])]
       }
-    , TestFormula
+    , doTest $
+      TestFormula
       { name = "cnf test 8"
       , formula = (for_all "z" (exists "y" (for_all "x" (pApp "f" [x, y] .<=>. (pApp "f" [x, z] .&. ((.~.) (pApp "f" [x, x])))))))
       , expected = [ClauseNormalForm 
@@ -327,6 +352,7 @@ formulas =
     , let f = pApp "f" 
           q = pApp "q"
           (x, y, z) = (vt "x" :: TTerm, vt "y" :: TTerm, vt "z" :: TTerm) in
+      doTest $
       TestFormula
       { name = "cnf test 9"
       , formula = (for_all "x" (for_all "x" (for_all "y" (q [x, y] .<=>. for_all "z" (f [z, x] .<=>. f [z, y])))))
@@ -361,7 +387,8 @@ formulas =
                        ((.~.) (pApp2 ("f") (fApp (toSkolem "z") [vt ("x"),vt ("y")]) (vt ("y"))))]])
                    ]
       }
-    , TestFormula
+    , doTest $
+      TestFormula
       { name = "cnf test 10"
       , formula = (for_all "x" (exists "y" ((p [x, y] .<=. for_all "x" (exists "z" (q [y, x, z]) .=>. r [y])))))
       , expected = [ClauseNormalForm
@@ -372,7 +399,8 @@ formulas =
                        ((.~.) (pApp ("r") [fApp (toSkolem "y") [vt "x"]]))]])
                    ]
       }
-    , TestFormula
+    , doTest $
+      TestFormula
       { name = "cnf test 11"
       , formula = (for_all "x" (for_all "z" (p [x, z] .=>. exists "y" ((.~.) (q [x, y] .|. ((.~.) (r [y, z])))))))
       , expected = [ClauseNormalForm
@@ -380,7 +408,8 @@ formulas =
                     [[((.~.) (pApp "p" [vt "x",vt "z"])),((.~.) (pApp "q" [vt "x",fApp (toSkolem "y") [vt "x",vt "z"]]))],
                      [((.~.) (pApp "p" [vt "x",vt "z"])),(pApp "r" [fApp (toSkolem "y") [vt "x",vt "z"],vt "z"])]])]
       }
-    , TestFormula
+    , doTest $
+      TestFormula
       { name = "cnf test 12"
       , formula = ((p0 .=>. q0) .=>. (((.~.) r0) .=>. (s0 .&. t0)))
       , expected = [ClauseNormalForm
@@ -390,21 +419,30 @@ formulas =
                      [(pApp "p" []),(pApp "r" []),(pApp "t" [])],
                      [((.~.) (pApp "q" [])),(pApp "r" []),(pApp "t" [])]])]
       }
+    , doTest $
+      TestFormula
+      { name = "cnf test 13"
+      , formula = (for_all "x" ( x .=. x .=>. for_all "x" (exists "y" ((x .=. y)))))
+      , expected = [ClauseNormalForm (toSS [[((.~.) (pApp "p" [])),(pApp "f" [fApp (toSkolem "x") []])]])]
+      }
     , let p = pApp "p" []
           true = pApp (fromBool True) []
           false = pApp (fromBool False) [] in
+      doTest $
       TestFormula
       { name = "psimplify 50"
       , formula = true .=>. (p .<=>. (p .<=>. false))
       , expected = [ SimplifiedForm (p .<=>. (.~.) p) ] }
     , let true = pApp (fromBool True) []
           false = pApp (fromBool False) [] in
+      doTest $
       TestFormula
       { name = "psimplify 51"
       , formula = (((pApp "x" [] .=>. pApp "y" []) .=>. true) .|. false)
       , expected = [ SimplifiedForm (pApp (fromBool True) []) ] }
     , let false = pApp (fromBool False) []
           q = pApp "q" [] in
+      doTest $
       TestFormula
       { name = "simplify 140.3"
       , formula = (for_all "x"
@@ -413,7 +451,8 @@ formulas =
                    (exists "z" q))
       , expected = [ SimplifiedForm ((for_all "x" (pApp "p" [vt "x"])) .=>.
                                         (pApp "q" [])) ] }
-    , TestFormula
+    , doTest $
+      TestFormula
       { name = "nnf 141.1"
       , formula = ((for_all "x" (pApp "p" [vt "x"])) .=>. ((exists "y" (pApp "q" [vt "y"])) .<=>. (exists "z" (pApp "p" [vt "z"] .&. pApp "q" [vt "z"]))))
       , expected = [ NegationNormalForm 
@@ -421,7 +460,8 @@ formulas =
                       ((((exists "y" (pApp "q" [vt "y"])) .&. ((exists "z" ((pApp "p" [vt "z"]) .&. ((pApp "q" [vt "z"])))))) .|.
                         (((for_all "y" ((.~.) (pApp "q" [vt "y"]))) .&.
                           ((for_all "z" (((.~.) (pApp "p" [vt "z"])) .|. (((.~.) (pApp "q" [vt "z"]))))))))))) ] }
-    , TestFormula
+    , doTest $
+      TestFormula
       { name = "pnf 144.1"
       , formula = (for_all "x" (pApp "p" [vt "x"] .|. pApp "r" [vt "y"]) .=>.
                    (exists "y" (exists "z" (pApp "q" [vt "y"] .|. ((.~.) (exists "z" (pApp "p" [vt "z"] .&. pApp "q" [vt "z"])))))))
@@ -433,6 +473,7 @@ formulas =
     , let (x, y, u, v) = (vt "x" :: TTerm, vt "y" :: TTerm, vt "u" :: TTerm, vt "v" :: TTerm)
           fv = fApp (toSkolem "v") [u,x]
           fy = fApp (toSkolem "y") [x] in
+      doTest $
       TestFormula
       { name = "snf 150.1"
       , formula = (exists "y" (pApp "<" [x, y] .=>. for_all "u" (exists "v" (pApp "<" [fApp "*" [x, u], fApp "*" [y, v]]))))
@@ -440,6 +481,7 @@ formulas =
     , let p x = pApp "p" [x]
           q x = pApp "q" [x]
           (x, y, z) = (vt "x" :: TTerm, vt "y" :: TTerm, vt "z" :: TTerm) in
+      doTest $
       TestFormula
       { name = "snf 150.2"
       , formula = (for_all "x" (p x .=>. (exists "y" (exists "z" (q y .|. (.~.) (exists "z" (p z .&. (q z))))))))
@@ -502,14 +544,14 @@ animalKB =
        }
      ])
 
-animalConjectures :: [TTestFormula]
+animalConjectures :: [Test]
 animalConjectures =
     let kills = pApp "Kills"
         jack = fApp "Jack" []
         tuna = fApp "Tuna" []
         curiosity = fApp "Curiosity" [] in
 
-    map (withKB animalKB) $
+    map (doTest . withKB animalKB) $
      [ TestFormula
        { formula = kills [jack, tuna]             -- False
        , name = "jack kills tuna"
@@ -685,11 +727,11 @@ chang43KB =
                     , expected = [] }
       ])
 
-chang43Conjecture :: TTestFormula
+chang43Conjecture :: Test
 chang43Conjecture =
     let e = (fApp "e" [])
         (x, u, v, w) = (vt "x" :: TTerm, vt "u" :: TTerm, vt "v" :: TTerm, vt "w" :: TTerm) in
-    withKB chang43KB $
+    doTest . withKB chang43KB $
     TestFormula { name = "G is commutative"
                 , formula = for_all "x" (pApp "P" [x, x, e] .=>. (for_all' ["u", "v", "w"] (pApp "P" [u, v, w] .=>. pApp "P" [v, u, w]))) 
                 , expected =
@@ -844,12 +886,13 @@ chang43Conjecture =
 > putStrLn (runNormal (cnfTrace f))
 -}
 
-chang43ConjectureRenamed :: TTestFormula
+chang43ConjectureRenamed :: Test
 chang43ConjectureRenamed =
     let e = fApp "e" []
         (x, y, z, u, v, w) = (vt "x" :: TTerm, vt "y" :: TTerm, vt "z" :: TTerm, vt "u" :: TTerm, vt "v" :: TTerm, vt "w" :: TTerm)
         (u2, v2, w2, x2, y2, z2, u3, v3, w3, x3, y3, z3, x4, x5, x6, x7, x8) =
             (vt "u2" :: TTerm, vt "v2" :: TTerm, vt "w2" :: TTerm, vt "x2" :: TTerm, vt "y2" :: TTerm, vt "z2" :: TTerm, vt "u3" :: TTerm, vt "v3" :: TTerm, vt "w3" :: TTerm, vt "x3" :: TTerm, vt "y3" :: TTerm, vt "z3" :: TTerm, vt "x4" :: TTerm, vt "x5" :: TTerm, vt "x6" :: TTerm, vt "x7" :: TTerm, vt "x8" :: TTerm) in
+    doTest $
     TestFormula { name = "chang 43 renamed"
                 , formula = (.~.) ((for_all' ["x", "y"] (exists "z" (pApp "P" [x,y,z])) .&.
                                     for_all' ["x2", "y2", "z2", "u", "v", "w"] (pApp "P" [x2, y2, u] .&. pApp "P" [y2, z2, v] .&. pApp "P" [u, z2, w] .=>. pApp "P" [x2, v, w]) .&.

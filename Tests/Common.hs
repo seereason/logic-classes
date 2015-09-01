@@ -5,7 +5,6 @@
 {-# OPTIONS -Wwarn #-}
 module Common
     ( render
-    , myTest
       -- * Formula parameter types
     , V(..)
     , Pr(..)
@@ -20,7 +19,7 @@ module Common
       -- * Test case types
     , TestFormula(..)
     , Expected(..)
-    , doTest
+    , doTest, doExpected
     , TestProof(..)
     , TTestProof
     , ProofExpected(..)
@@ -65,10 +64,6 @@ import Text.PrettyPrint (Doc, text)
 -- | Render a Pretty instance in single line mode
 render :: Pretty a => a -> String
 render = renderStyle (style {mode = OneLineMode}) . pretty
-
-myTest :: (Show a, Eq a) => String -> a -> a -> Test
-myTest label expected input =
-    TestLabel label $ TestCase (assertEqual label expected input)
 
 newtype V = V String deriving (Eq, Ord, Data, Typeable)
 
@@ -210,28 +205,34 @@ deriving instance Show (Ch.CTerm V AtomicFunction)
 type TTestFormula = TestFormula TFormula TAtom V
 
 doTest :: TTestFormula -> Test
-doTest f =
-    TestLabel (name f) $ TestList $ 
-    map doExpected (expected f)
-    where
-      doExpected (FirstOrderFormula f') =
-          myTest (name f ++ " original formula") (p f') (p (formula f))
-      doExpected (SimplifiedForm f') =
-          myTest (name f ++ " simplified") (p f') (p (simplify (formula f)))
-      doExpected (PrenexNormalForm f') =
-          myTest (name f ++ " prenex normal form") (p f') (p (pnf (formula f)))
-      doExpected (NegationNormalForm f') =
-          myTest (name f ++ " negation normal form") (p f') (p (nnf . simplify $ (formula f)))
-      doExpected (SkolemNormalForm f') =
-          myTest (name f ++ " skolem normal form") (p f') (p (runSkolem (skolemize id (formula f) :: Skolem V (P.PTerm V AtomicFunction) TFormula)))
-      doExpected (SkolemNumbers f') =
-          myTest (name f ++ " skolem numbers") f' (skolemSet (runSkolem (skolemize id (formula f) :: Skolem V (P.PTerm V AtomicFunction) TFormula)))
-      doExpected (ClauseNormalForm fss) =
-          myTest (name f ++ " clause normal form") fss (S.map (S.map p) (runSkolem (clauseNormalForm (formula f))))
-      doExpected (TrivialClauses flags) =
-          myTest (name f ++ " trivial clauses") flags (map (\ (x :: S.Set TFormula) -> (trivial x, x)) (S.toList (runSkolem (clauseNormalForm (formula f :: TFormula)))))
-      doExpected (ConvertToChiou result) =
-          -- We need to convert (formula f) to Chiou and see if it matches result.
+doTest (TestFormula formula name expected) =
+    TestLabel name $ TestList $
+    map (doExpected formula name) expected
+
+doExpected formula name expected@(FirstOrderFormula f') = doFirstOrderFormula formula name f'
+doExpected formula name expected@(SimplifiedForm f') = doSimplifiedForm formula name f'
+doExpected formula name expected@(PrenexNormalForm f') = doPrenexNormalForm formula name f'
+doExpected formula name expected@(NegationNormalForm f') = doNegationNormalForm formula name f'
+doExpected formula name expected@(SkolemNormalForm f') = doSkolemNormalForm formula name f'
+doExpected formula name expected@(SkolemNumbers f') = doSkolemNumbers formula name f'
+doExpected formula name expected@(ClauseNormalForm fss) = doClauseNormalForm formula name fss
+doExpected formula name expected@(TrivialClauses flags) = doTrivialClauses formula name flags
+doExpected formula name expected@(ConvertToChiou result) = doConvertToChiou formula name result
+doExpected formula name expected@(ChiouKB1 result) = doChiouKB1 formula name result
+doExpected formula name expected@(PropLogicSat result) = doPropLogicSat formula name result
+doExpected formula name expected@(SatSolverCNF result) = doSatSolverCNF formula name result
+doExpected formula name expected@(SatSolverSat result) = doSatSolverSat formula name result
+
+doFirstOrderFormula formula name f' = let label = (name ++ " original formula") in TestLabel label (TestCase (assertEqual label (p f') (p formula)))
+doSimplifiedForm formula name f' = let label = (name ++ " simplified") in TestLabel label (TestCase (assertEqual label (p f') (p (simplify formula))))
+doPrenexNormalForm formula name f' = let label = (name ++ " prenex normal form") in TestLabel label (TestCase (assertEqual label (p f') (p (pnf formula))))
+doNegationNormalForm formula name f' = let label = (name ++ " negation normal form") in TestLabel label (TestCase (assertEqual label (p f') (p (nnf . simplify $ formula))))
+doSkolemNormalForm formula name f' = let label = (name ++ " skolem normal form") in TestLabel label (TestCase (assertEqual label (p f') (p (runSkolem (skolemize id formula :: Skolem V (P.PTerm V AtomicFunction) TFormula)))))
+doSkolemNumbers formula name f' = let label = (name ++ " skolem numbers") in TestLabel label (TestCase (assertEqual label f' (skolemSet (runSkolem (skolemize id formula :: Skolem V (P.PTerm V AtomicFunction) TFormula)))))
+doClauseNormalForm formula name fss = let label = (name ++ " clause normal form") in TestLabel label (TestCase (assertEqual label fss (S.map (S.map p) (runSkolem (clauseNormalForm formula)))))
+doTrivialClauses formula name flags = let label = (name ++ " trivial clauses") in TestLabel label (TestCase (assertEqual label flags (map (\ (x :: S.Set TFormula) -> (trivial x, x)) (S.toList (runSkolem (clauseNormalForm (formula :: TFormula)))))))
+doConvertToChiou formula name result =
+          -- We need to convert formula to Chiou and see if it matches result.
           let ca :: TAtom -> Ch.Sentence V Pr AtomicFunction
               -- ca = undefined
               ca (P.Apply p ts) = Ch.Predicate p (map ct ts)
@@ -242,18 +243,15 @@ doTest f =
               cv = vt
               fn :: AtomicFunction -> [TTerm] -> Ch.CTerm V AtomicFunction
               fn f ts = fApp f (map ct ts) in
-          myTest (name f ++ " converted to Chiou") result (convertFOF ca id (formula f) :: Ch.Sentence V Pr AtomicFunction)
-      doExpected (ChiouKB1 result) =
-          myTest (name f ++ " Chiou KB") result (runProver' Nothing (loadKB [formula f] >>= return . head))
-      doExpected (PropLogicSat result) =
-          myTest (name f ++ " PropLogic.satisfiable") result (runSkolem (plSat (formula f)))
-      doExpected (SatSolverCNF result) =
-          myTest (name f ++ " SatSolver CNF") (norm result) (runNormal (SS.toCNF (formula f)))
-      doExpected (SatSolverSat result) =
-          myTest (name f ++ " SatSolver CNF") result ((null :: [a] -> Bool) (runNormalT (SS.toCNF (formula f) >>= satisfiable)))
-      p = id
+          let label = (name ++ " converted to Chiou") in TestLabel label (TestCase (assertEqual label result (convertFOF ca id formula :: Ch.Sentence V Pr AtomicFunction)))
+doChiouKB1 formula name result = let label = (name ++ " Chiou KB") in TestLabel label (TestCase (assertEqual label result (runProver' Nothing (loadKB [formula] >>= return . head))))
+doPropLogicSat formula name result = let label = (name ++ " PropLogic.satisfiable") in TestLabel label (TestCase (assertEqual label result (runSkolem (plSat formula))))
+doSatSolverCNF formula name result = let label = (name ++ " SatSolver CNF") in TestLabel label (TestCase (assertEqual label (norm result) (runNormal (SS.toCNF formula))))
+doSatSolverSat formula name result = let label = (name ++ " SatSolver CNF") in TestLabel label (TestCase (assertEqual label result ((null :: [a] -> Bool) (runNormalT (SS.toCNF formula >>= satisfiable)))))
 
-      norm = map S.toList . S.toList . S.fromList . map S.fromList
+p = id
+
+norm = map S.toList . S.toList . S.fromList . map S.fromList
 
 {-
 skolemNormalForm' f = (skolem' . nnf . simplify $ f) >>= return . prenex' . nnf' . simplify'
@@ -317,12 +315,10 @@ doProof p =
     where
       doExpected :: ProofExpected formula v term -> [Test]
       doExpected (ChiouResult result) =
-          [myTest (proofName p ++ " with " ++ fst (proofKnowledge p) ++ " using Chiou prover")
-                  result
-                  (runProver' Nothing (loadKB kb >> theoremKB c))]
+          [let label = (proofName p ++ " with " ++ fst (proofKnowledge p) ++ " using Chiou prover") in
+           TestLabel label (TestCase (assertEqual label result (runProver' Nothing (loadKB kb >> theoremKB c))))]
       doExpected (ChiouKB result) =
-          [myTest (proofName p ++ " with " ++ fst (proofKnowledge p) ++ " Chiou knowledge base")
-                  result
-                  (runProver' Nothing (loadKB kb >> getKB))]
+          [let label = (proofName p ++ " with " ++ fst (proofKnowledge p) ++ " Chiou knowledge base") in
+           TestLabel label (TestCase (assertEqual label result (runProver' Nothing (loadKB kb >> getKB))))]
       kb = snd (proofKnowledge p) :: [formula]
       c = conjecture p :: formula

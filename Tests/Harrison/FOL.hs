@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes,
+{-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes,
              ScopedTypeVariables, TypeFamilies, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 module Harrison.FOL
@@ -10,7 +10,9 @@ module Harrison.FOL
     , example4
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative ((<$>), (<*>))
+#endif
 import Control.Applicative.Error (Failing(..))
 import Control.Monad (filterM)
 import Data.Logic.Classes.Apply (pApp)
@@ -145,30 +147,30 @@ modInterp n =
             ((:=:),[x, y]) -> x == y
             _ -> error "uninterpreted predicate"
 
--- test01 :: forall formula atom term v p f. TestFormula formula atom term v p f => Test formula
+test01 :: TestFormula formula atom term v p f => Test formula
 test01 = TestCase $ assertEqual "holds bool test (p. 126)" expected input
     where input = holds boolInterp Map.empty (for_all "x" (vt "x" .=. fApp "0" [] .|. vt "x" .=. fApp "1" []) :: Formula FOLEQ)
           expected = Success True
--- test02 :: forall formula atom term v p f. TestFormula formula atom term v p f => Test formula
+test02 :: TestFormula formula atom term v p f => Test formula
 test02 = TestCase $ assertEqual "holds mod test 1 (p. 126)" expected input
     where input =  holds (modInterp 2) Map.empty (for_all "x" (vt "x" .=. (fApp "0" [] :: TermType) .|. vt "x" .=. (fApp "1" [] :: TermType)) :: Formula FOLEQ)
           expected = Success True
--- test03 :: forall formula atom term v p f. TestFormula formula atom term v p f => Test formula
+test03 :: TestFormula formula atom term v p f => Test formula
 test03 = TestCase $ assertEqual "holds mod test 2 (p. 126)" expected input
     where input =  holds (modInterp 3) Map.empty (for_all "x" (vt "x" .=. fApp "0" [] .|. vt "x" .=. fApp "1" []) :: Formula FOLEQ)
           expected = Success False
 
--- test04 :: forall formula atom term v p f. TestFormula formula atom term v p f => Test formula
+test04 :: TestFormula formula atom term v p f => Test formula
 test04 = TestCase $ assertEqual "holds mod test 3 (p. 126)" expected input
     where input = filterM (\ n -> holds (modInterp n) Map.empty fm) [1..45]
                   where fm = for_all "x" ((.~.) (vt "x" .=. fApp "0" []) .=>. exists "y" (fApp "*" [vt "x", vt "y"] .=. fApp "1" [])) :: Formula FOLEQ
           expected = Success [1,2,3,5,7,11,13,17,19,23,29,31,37,41,43]
 
--- test05 :: forall formula atom term v p f. TestFormula formula atom term v p f => Test formula
+test05 :: TestFormula formula atom term v p f => Test formula
 test05 = TestCase $ assertEqual "holds mod test 4 (p. 129)" expected input
     where input = holds (modInterp 3) Map.empty ((for_all "x" (vt "x" .=. fApp "0" [])) .=>. fApp "1" [] .=. fApp "0" [] :: Formula FOLEQ)
           expected = Success True
--- test06 :: forall formula atom term v p f. TestFormula formula atom term v p f => Test formula
+test06 :: TestFormula formula atom term v p f => Test formula
 test06 = TestCase $ assertEqual "holds mod test 5 (p. 129)" expected input
     where input = holds (modInterp 3) Map.empty (for_all "x" (vt "x" .=. fApp "0" [] .=>. fApp "1" [] .=. fApp "0" []) :: Formula FOLEQ)
           expected = Success False
@@ -177,15 +179,15 @@ test06 = TestCase $ assertEqual "holds mod test 5 (p. 129)" expected input
 -- Variant function and examples.                                            
 -- ------------------------------------------------------------------------- 
 
--- test07 :: forall formula atom term v p f. TestFormula formula atom term v p f => Test formula
+test07 :: TestFormula formula atom term v p f => Test formula
 test07 = TestCase $ assertEqual "variant 1 (p. 133)" expected input
     where input = variant "x" (Set.fromList ["y", "z"]) :: String
           expected = "x"
--- test08 :: forall formula atom term v p f. TestFormula formula atom term v p f => Test formula
+test08 :: TestFormula formula atom term v p f => Test formula
 test08 = TestCase $ assertEqual "variant 2 (p. 133)" expected input
     where input = variant "x" (Set.fromList ["x", "y"]) :: String
           expected = "x'"
--- test09 :: forall formula atom term v p f. TestFormula formula atom term v p f => Test formula
+test09 :: TestFormula formula atom term v p f => Test formula
 test09 = TestCase $ assertEqual "variant 3 (p. 133)" expected input
     where input = variant "x" (Set.fromList ["x", "x'"]) :: String
           expected = "x''"

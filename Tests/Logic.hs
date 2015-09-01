@@ -22,7 +22,7 @@ import Data.Logic.Harrison.Skolem (runSkolem, skolemize, pnf)
 import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Implicative (runNormal)
 import Data.Logic.Satisfiable (theorem, inconsistant)
-import Common (TFormula, TAtom, TTerm, myTest)
+import Common (TFormula, TAtom, TTerm)
 import Data.Logic.Types.FirstOrder
 import qualified Data.Map as Map
 import qualified Data.Set.Extra as Set
@@ -44,22 +44,25 @@ formCase s expected input = TestLabel s $ TestCase (assertEqual s expected input
 precTests :: Test
 precTests =
     TestList
-    [ myTest "Logic - prec test 1"
-               ((a .&. b) .|. c)
-               (a .&. b .|. c)
+    [ let label = "Logic - prec test 1" in
+      TestLabel label (TestCase (assertEqual label
+                                 ((a .&. b) .|. c)
+                                 (a .&. b .|. c)))
       -- You can't apply .~. without parens:
       -- :type (.~. a)   -> (FormulaPF -> t) -> t
       -- :type ((.~.) a) -> FormulaPF
-    , myTest "Logic - prec test 2"
-               (((.~.) a) .&. b)
-               ((.~.) a .&. b :: TFormula)
+    , let label = "Logic - prec test 2" in
+      TestLabel label (TestCase (assertEqual label
+                                 (((.~.) a) .&. b)
+                                 ((.~.) a .&. b :: TFormula)))
     -- I switched the precedence of .&. and .|. from infixl to infixr to get
     -- some of the test cases to match the answers given on the miami.edu site,
     -- but maybe I should switch them back and adjust the answer given in the
     -- test case.
-    , myTest "Logic - prec test 3"
-               ((a .&. b) .&. c) -- infixl, with infixr we get (a .&. (b .&. c))
-               (a .&. b .&. c :: TFormula)
+    , let label = "Logic - prec test 3" in
+      TestLabel label (TestCase (assertEqual label
+                                 ((a .&. b) .&. c) -- infixl, with infixr we get (a .&. (b .&. c))
+                                 (a .&. b .&. c :: TFormula)))
     , let x = vt "x" :: TTerm
           y = vt "y" :: TTerm
           -- This is not the desired result, but it is the result we
@@ -69,7 +72,8 @@ precTests =
           -- input of examples from Harrison won't always work.
           expected = ((∀) "y" (pApp "g" [y])) ⇒ (pApp "f" [y]) :: TFormula
           input =     (∀) "y" (pApp "g" [y])  ⇒ (pApp "f" [y]) :: TFormula in
-      myTest "Logic - prec test 4" expected input
+      let label = "Logic - prec test 4" in
+      TestLabel label (TestCase (assertEqual label expected input))
     , TestCase (assertEqual "Logic - Find a free variable"
                 (fv (for_all "x" (x .=. y) :: TFormula))
                 (Set.singleton "y"))
@@ -142,7 +146,7 @@ normalTests =
 -- the corresponding operator of a PropositionalFormula instance.
 {-
 test9a :: Test
-test9a = TestCase 
+test9a = TestCase
            (assertEqual "Logic - convert to PropLogic"
             expected
             (flatten (cnf' (for_all "x" (for_all "y" (q [x, y] .<=>. for_all "z" (f [z, x] .<=>. f [z, y])))))))
@@ -221,14 +225,39 @@ theoremTests =
         socrates1 = (for_all "x"   (s [x] .=>. h [x]) .&. for_all "x" (h [x] .=>. m [x]))  .=>.  for_all "x" (s [x] .=>. m [x])  :: TFormula -- First two clauses grouped - compare to 5
         socrates2 =  for_all "x" (((s [x] .=>. h [x]) .&.             (h [x] .=>. m [x]))  .=>.              (s [x] .=>. m [x])) :: TFormula -- shared binding for x
         socrates3 = (for_all "x"  ((s [x] .=>. h [x]) .&.             (h [x] .=>. m [x]))) .=>. (for_all "y" (s [y] .=>. m [y])) :: TFormula -- First two clauses share x, third is renamed y
-        socrates5 =  for_all "x"   (s [x] .=>. h [x]) .&. for_all "x" (h [x] .=>. m [x])   .=>.  for_all "x" (s [x] .=>. m [x])  :: TFormula -- like 1, but less parens - check precedence 
+        socrates5 =  for_all "x"   (s [x] .=>. h [x]) .&. for_all "x" (h [x] .=>. m [x])   .=>.  for_all "x" (s [x] .=>. m [x])  :: TFormula -- like 1, but less parens - check precedence
         socrates6 =  for_all "x"   (s [x] .=>. h [x]) .&. for_all "y" (h [y] .=>. m [y])   .=>.  for_all "z" (s [z] .=>. m [z])  :: TFormula -- Like 5, but with variables renamed
-        socrates7 =  for_all "x"  ((s [x] .=>. h [x]) .&.             (h [x] .=>. m [x])   .&.               (m [x] .=>. ((.~.) (s [x])))) .&. (s [fApp "socrates" []]) in 
+        socrates7 =  for_all "x"  ((s [x] .=>. h [x]) .&.             (h [x] .=>. m [x])   .&.               (m [x] .=>. ((.~.) (s [x])))) .&. (s [fApp "socrates" []])
+        equality1 = for_all "x" ( x .=. x .=>. for_all "x" (exists "y" ((x .=. y)))) :: TFormula
+        equality2 = for_all "x" ( x .=. x .=>. for_all "x" ((.~.) (for_all "y" ((.~.) (x .=. y))))) :: TFormula -- convert existential
+    in
     TestList
-    [ myTest "Logic - theorem test 1"
+    [ let label = "Logic - equality1" in
+      TestLabel label (TestCase (assertEqual label
+                                 (False,(fromList [fromList [Predicate (Equal (Var "x2") (FunApp (toSkolem "y") [Var "x2"])),
+                                                             Combine ((:~:) (Predicate (Equal (Var "x") (Var "x"))))]],
+                                         ([Equal (Var "x") (Var "x"),
+                                           Equal (Var "x2") (FunApp (toSkolem "y") [Var "x2"])],
+                                          [([False,False],True),
+                                           ([False,True ],True),
+                                           ([True, False],False),
+                                           ([True, True ],True)])))
+                                 (runNormal (theorem equality1), table equality1)))
+    , let label = "Logic - equality2" in
+      TestLabel label (TestCase (assertEqual label
+                (False,(fromList [fromList [Predicate (Equal (Var "x2") (FunApp (toSkolem "y") [Var "x2"])),Combine ((:~:) (Predicate (Equal (Var "x") (Var "x"))))]],
+                        ([Equal (Var "x") (Var "x"),Equal (Var "x2") (FunApp (toSkolem "y") [Var "x2"])],
+                         [([False,False],True),
+                          ([False,True],True),
+                          ([True,False],False),
+                          ([True,True],True)])))
+                (runNormal (theorem equality2), table equality2)))
+    , let label = "Logic - theorem test 1" in
+      TestLabel label (TestCase (assertEqual label
                 (True,(Set.empty, ([]{-Just (CJ [])-},[([],True)])))
-                (runNormal (theorem socrates2), table socrates2)
-    , myTest "Logic - theorem test 1a"
+                (runNormal (theorem socrates2), table socrates2)))
+    , let label = "Logic - theorem test 1a" in
+      TestLabel label (TestCase (assertEqual label
                 (False,
                  False,
                  (fromList [fromList [Predicate (Apply "H" [FunApp (toSkolem "x") []]),
@@ -280,11 +309,12 @@ theoremTests =
                    ([True,      True,   True,   False,  True],  True),
                    ([True,      True,   True,   True,   False], True),
                    ([True,      True,   True,   True,   True],  True)])))
-                
+
                 (runNormal (theorem socrates3),
                  runNormal (inconsistant socrates3),
-                 table socrates3)
-    , myTest "socrates1 truth table"
+                 table socrates3)))
+    , let label = "socrates1 truth table" in
+      TestLabel label (TestCase (assertEqual label
              (let skx = fApp (toSkolem "x") in
               (fromList [fromList [Predicate (Apply "H" [FunApp (toSkolem "x") []]),
                                    Predicate (Apply "M" [Var "x"]),
@@ -341,23 +371,24 @@ theoremTests =
                 ([True, True, True, False,True], True),
                 ([True, True, True, True, False],True),
                 ([True, True, True, True, True], True)])))
-                (table socrates1)
+                (table socrates1)))
 
     , let skx = fApp (toSkolem "x")
           {- sky = fApp (toSkolem "y") -} in
-      myTest "Socrates formula skolemized"
-              -- ((s[skx []] .&. (.~.)(h[skx []]) .|. h[sky[]] .&. (.~.)(m[sky []])) .|. (.~.)(s[z]) .|. m[z])
+      let label = "Socrates formula skolemized" in
+      TestLabel label (TestCase (assertEqual label
                  ((s[skx []] .&. (.~.)(h[skx []]) .|. h[skx[]] .&. (.~.)(m[skx []])) .|. (.~.)(s[x]) .|. m[x])
-                 (runSkolem (skolemize id socrates5) :: TFormula)
+                 (runSkolem (skolemize id socrates5) :: TFormula)))
 
     , let skx = fApp (toSkolem "x")
           sky = fApp (toSkolem "y") in
-      myTest "Socrates formula skolemized"
-              -- ((s[skx []] .&. (.~.)(h[skx []]) .|. h[sky[]] .&. (.~.)(m[sky []])) .|. (.~.)(s[z]) .|. m[z])
+      let label = "Socrates formula skolemized" in
+      TestLabel label (TestCase (assertEqual label
                  ((s[skx []] .&. (.~.)(h[skx []]) .|. h[sky[]] .&. (.~.)(m[sky []])) .|. (.~.)(s[z]) .|. m[z])
-                 (runSkolem (skolemize id socrates6) :: TFormula)
+                 (runSkolem (skolemize id socrates6) :: TFormula)))
 
-    , myTest "Logic - socrates is not mortal"
+    , let label = "Logic - socrates is not mortal" in
+      TestLabel label (TestCase (assertEqual label
                 (False,
                  False,
                  (fromList [fromList [Predicate (Apply "H" [Var "x"]),
@@ -404,7 +435,7 @@ theoremTests =
                 -- M(x) is false, the remaining lines would all be zero,
                 -- the argument would be inconsistant (an anti-theorem.)
                 -- How can we modify the formula to make these lines 0?
-                (runNormal (theorem socrates7), runNormal (inconsistant socrates7), table socrates7, runNormal (clauseNormalForm socrates7) :: Set.Set (Set.Set TFormula))
+                (runNormal (theorem socrates7), runNormal (inconsistant socrates7), table socrates7, runNormal (clauseNormalForm socrates7) :: Set.Set (Set.Set TFormula))))
     , let (formula :: TFormula) =
               (for_all "x" (pApp "L" [vt "x"] .=>. pApp "F" [vt "x"]) .&. -- All logicians are funny
                exists "x" (pApp "L" [vt "x"])) .=>.                            -- Someone is a logician
@@ -436,7 +467,8 @@ theoremTests =
                        ([True,True,False,True],True),
                        ([True,True,True,False],False),
                        ([True,True,True,True],False)]))
-      in myTest "Logic - gensler189" expected input
+      in let label = "Logic - gensler189" in
+         TestLabel label (TestCase (assertEqual label expected input))
     , let (formula :: TFormula) =
               (for_all "x" (pApp "L" [vt "x"] .=>. pApp "F" [vt "x"]) .&. -- All logicians are funny
                exists "y" (pApp "L" [vt (fromString "y")])) .=>.           -- Someone is a logician
@@ -453,7 +485,8 @@ theoremTests =
                        (Apply ("L") [vt ("y")]),
                        (Apply ("L") [fApp (toSkolem "x") []])],
                       [([False,False,False,False],True),([False,False,False,True],True),([False,False,True,False],True),([False,False,True,True],True),([False,True,False,False],True),([False,True,False,True],True),([False,True,True,False],True),([False,True,True,True],True),([True,False,False,False],True),([True,False,False,True],True),([True,False,True,False],False),([True,False,True,True],True),([True,True,False,False],True),([True,True,False,True],True),([True,True,True,False],False),([True,True,True,True],False)]))
-      in myTest "Logic - gensler189 renamed" expected input
+      in let label = "Logic - gensler189 renamed" in
+         TestLabel label (TestCase (assertEqual label expected input))
     ]
 
 toSS :: Ord a => [[a]] -> Set.Set (Set.Set a)
