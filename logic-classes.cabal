@@ -79,6 +79,6 @@ Library
 Test-Suite logic-classes-tests
  Type: exitcode-stdio-1.0
  GHC-Options: -Wall -O2
- Hs-Source-Dirs: Data/Logic/Tests
+ Hs-Source-Dirs: Tests
  Main-Is: Main.hs
  Build-Depends: applicative-extras, base, containers, HUnit, logic-classes, mtl, pretty, PropLogic, set-extra, syb
