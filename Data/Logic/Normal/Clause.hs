@@ -32,7 +32,7 @@ module Data.Logic.Normal.Clause
     , cnfTrace
     ) where
 
-import Data.List (intersperse)
+import Data.List as List (intersperse, map)
 import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Equals (AtomEq, prettyAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder)
@@ -41,7 +41,7 @@ import Data.Logic.Classes.Propositional (PropositionalFormula)
 import Data.Logic.Classes.Term (Term)
 import Data.Logic.Harrison.Normal (simpcnf')
 import Data.Logic.Harrison.Skolem (skolemize, SkolemT, pnf, nnf, simplify)
-import qualified Data.Set.Extra as Set
+import Data.Set.Extra as Set (fromSS, Set)
 import Text.PrettyPrint (Doc, hcat, vcat, text, nest, ($$), brackets, render)
 
 -- |Convert to Skolem Normal Form and then distribute the disjunctions over the conjunctions:
@@ -86,8 +86,7 @@ cnfTrace pv pp pf f =
                         text "Negation Normal Form:" $$ nest 2 (prettyFirstOrder (prettyAtomEq pv pp pf) pv 0 (nnf . simplify $ f)),
                         text "Prenex Normal Form:" $$ nest 2 (prettyFirstOrder (prettyAtomEq pv pp pf) pv 0 (pnf f)),
                         text "Skolem Normal Form:" $$ nest 2 (prettyFirstOrder (prettyAtomEq pv pp pf) pv 0 snf),
-                        text "Clause Normal Form:" $$ vcat (map prettyClause (fromSS cnf))]), cnf)
+                        text "Clause Normal Form:" $$ vcat (List.map prettyClause (fromSS cnf))]), cnf)
     where
       prettyClause (clause :: [lit]) =
-          nest 2 . brackets . hcat . intersperse (text ", ") . map (nest 2 . brackets . prettyLit (prettyAtomEq pv pp pf) pv 0) $ clause
-      fromSS = (map Set.toList) . Set.toList 
+          nest 2 . brackets . hcat . intersperse (text ", ") . List.map (nest 2 . brackets . prettyLit (prettyAtomEq pv pp pf) pv 0) $ clause

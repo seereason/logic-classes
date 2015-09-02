@@ -1,35 +1,34 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings,
              RankNTypes, ScopedTypeVariables, StandaloneDeriving, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-missing-signatures -fno-warn-orphans #-}
-module Logic.Instances.TPTP where
+module Data.Logic.Instances.TPTP where
 
 import Codec.TPTP (F(..), Formula, BinOp(..), V(..), T(..), Term0(..), AtomicWord(..), Formula0(..), InfixPred(..))
 import qualified Codec.TPTP as TPTP
 import Control.Monad.Identity (Identity(..))
 import Data.Char (isDigit, ord)
 import Data.Generics (Data, Typeable)
+import Data.Set (member)
 import Data.String (IsString(..))
-import qualified Logic.FirstOrder as Logic
-import Logic.FirstOrder (FirstOrderFormula(..), Term(..), Pretty(..), Predicate(..), Variable(next), pApp)
-import qualified Logic.Logic as Logic
-import Logic.Logic (Negatable(..), Logic(..), Boolean(..))
-import qualified Logic.Propositional as Logic
+import Data.Logic (Arity(..), FirstOrderFormula(..), Term(..), Pretty(..), Predicate(..), PropositionalFormula(..), Skolem(..), Variable(variant), pApp)
+import Data.Logic (Negatable(..), Logic(..))
 import Text.PrettyPrint (text)
 
 -- |Generate a series of variable names.
 instance Variable V where
-    one = V "VS1"
-    next (V s) =
-        V (case break (not . isDigit) (reverse s) of
-             ("", "SV") -> "VS1"
-             (digits, "SV") -> "VS" ++ show (1 + read (reverse digits) :: Int)
-             _ -> "VS1")
+    -- one = V "VS1"
+    variant x@(V s) xs = if member x xs then variant (V (next s)) xs else x
+        where
+          next s = case break (not . isDigit) (reverse s) of
+                     ("", "SV") -> "VS1"
+                     (digits, "SV") -> "VS" ++ show (1 + read (reverse digits) :: Int)
+                     _ -> "VS1"
 
-instance Logic.Arity AtomicWord where
+instance Data.Logic.Arity AtomicWord where
     arity _ = Nothing
 
-instance Logic.Pretty V where
-    pretty (V s) = text s
+instance Data.Logic.Pretty V where
+    pPrint (V s) = text s
 
 mn = 'x'
 pref = 'x'
@@ -48,25 +47,27 @@ data AtomicFunction
 instance IsString AtomicFunction where
     fromString = Atom . AtomicWord
 
-instance Logic.Skolem AtomicFunction where
+instance Data.Logic.Skolem AtomicFunction where
     toSkolem = Skolem . V . ("sK" ++) . show
-    fromSkolem (Skolem (V s)) = Just (read (drop 2 s) :: Int)
-    fromSkolem _ = Nothing
+    -- fromSkolem (Skolem (V s)) = Just (read (drop 2 s) :: Int)
+    -- fromSkolem _ = Nothing
 
+{-
 -- |This is not a safe way to implement booleans.
-instance Logic.Boolean AtomicWord where
+instance Data.Logic.Boolean AtomicWord where
     fromBool = AtomicWord . show
+-}
 
-instance Logic.Pretty AtomicFunction where
-    pretty (Atom w) = Logic.pretty w
-    pretty (StringLit s) = text s
-    pretty (NumberLit n) = text (show n)
-    pretty (Skolem (V s)) = text ("sK" ++ s)
+instance Data.Logic.Pretty AtomicFunction where
+    pPrint (Atom w) = pPrint w
+    pPrint (StringLit s) = text s
+    pPrint (NumberLit n) = text (show n)
+    pPrint (Skolem (V s)) = text ("sK" ++ s)
 
-instance Logic.Pretty AtomicWord where
-    pretty (AtomicWord s) = text s
+instance Data.Logic.Pretty AtomicWord where
+    pPrint (AtomicWord s) = text s
 
-instance Logic.Negatable Formula where
+instance Data.Logic.Negatable Formula where
     negated (F (Identity ((:~:) x))) = not (negated x)
     negated _ = False
     (.~.) (F (Identity ((:~:) x))) = x
@@ -75,7 +76,7 @@ instance Logic.Negatable Formula where
 -- |If this looks confusing, it is because TPTP has the same operators
 -- as Logic, the .&. on the left is the Logic method name and .&. on
 -- the right is the TPTP function.
-instance Logic.Logic Formula where
+instance Data.Logic.Logic Formula where
     x .<=>. y = x .<=>. y
     x .=>.  y = x .=>. y
     x .<=.  y = x .<=. y
@@ -88,7 +89,7 @@ instance Logic.Logic Formula where
 -- |For types designed to represent first order (predicate) logic, it
 -- is easiest to make the atomic type the same as the formula type,
 -- and then raise an error if we see unexpected non-atomic formulas.
-instance Logic.PropositionalFormula Formula Formula where
+instance Data.Logic.PropositionalFormula Formula Formula where
     atomic (F (Identity (InfixPred t1 (:=:) t2))) = t1 .=. t2
     atomic (F (Identity (InfixPred t1 (:!=:) t2))) = t1 .!=. t2
     atomic (F (Identity (PredApp p ts))) = pApp p ts
@@ -116,7 +117,7 @@ instance Logic.PropositionalFormula Formula Formula where
               p' p ts = a (F (Identity (PredApp p ts)))
               unwrapF' (F x) = F x -- copoint x
 
-instance Logic.FirstOrderFormula Formula (T Identity) V AtomicWord AtomicFunction where
+instance Data.Logic.FirstOrderFormula Formula (T Identity) V AtomicWord AtomicFunction where
     for_all vars x = for_all vars x
     exists vars x = exists vars x
     -- Use the TPTP fold to implement the Logic fold.  This means
@@ -158,7 +159,7 @@ instance Logic.FirstOrderFormula Formula (T Identity) V AtomicWord AtomicFunctio
     pApp6 p a b c d e f = TPTP.pApp p [a,b,c,d,e,f]
     pApp7 p a b c d e f g = TPTP.pApp p [a,b,c,d,e,f,g]
 
-instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Logic.Term (T Identity) V AtomicFunction where
+instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Data.Logic.Term (T Identity) V AtomicFunction where
     foldT v fa term =
         -- We call the foldT function from the TPTP package here, which
         -- has a different signature from the foldT method we are

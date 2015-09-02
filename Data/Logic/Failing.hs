@@ -20,7 +20,7 @@ instance Monad Failing where
         (Success a) -> f a
   fail errMsg = Failure [errMsg]
 
-deriving instance Typeable1 Failing
+deriving instance Typeable Failing
 deriving instance Data a => Data (Failing a)
 deriving instance Read a => Read (Failing a)
 deriving instance Eq a => Eq (Failing a)

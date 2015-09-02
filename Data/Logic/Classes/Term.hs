@@ -54,7 +54,7 @@ showTerm term =
     foldTerm v f term
     where
       v :: v -> String
-      v v' = "vt (" ++ show v' ++ ")"
+      v v' = "vt (" ++ showVariable v' ++ ")"
       f :: f -> [term] -> String
       f fn ts = "fApp (" ++ show fn ++ ") [" ++ intercalate "," (map showTerm ts) ++ "]"
 

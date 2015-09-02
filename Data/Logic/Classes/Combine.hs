@@ -69,7 +69,11 @@ infixl 4  .&., ∧
 data Combination formula
     = BinOp formula BinOp formula
     | (:~:) formula
-    deriving (Eq, Ord, Data, Typeable, Show, Read)
+    deriving (Eq, Ord, Data, Typeable)
+
+instance Show formula => Show (Combination formula) where
+    show ((:~:) f) = "(.~.) (" ++ show f ++ ")"
+    show (BinOp f op g) = "(" ++ show f ++ ") " ++ show op ++ " (" ++ show g ++ ")"
 
 -- | A helper function for building folds:
 -- @
@@ -90,7 +94,13 @@ data BinOp
     |  (:=>:)  -- ^ Implication
     |  (:&:)  -- ^ AND
     |  (:|:)  -- ^ OR
-    deriving (Eq, Ord, Data, Typeable, Enum, Bounded, Show, Read)
+    deriving (Eq, Ord, Data, Typeable, Enum, Bounded)
+
+instance Show BinOp where
+    show (:|:) = ".|."
+    show (:&:) = ".&."
+    show (:<=>:) = ".<=>."
+    show (:=>:) = ".=>."
 
 binop :: Combinable formula => formula -> BinOp -> formula -> formula
 binop a (:&:) b = a .&. b

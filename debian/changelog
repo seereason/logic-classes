@@ -1,3 +1,14 @@
+haskell-logic-classes (1.5.2) unstable; urgency=low
+
+  * Make the Show instances output more general expressions
+  * Drop support for pretty < 1.1.2
+  * Update the Skolem class documentation
+  * start fixing Data.Logic.Instances.TPTP
+  * Move TFormula test instance from Tests/Common.hs to Data.Logic.Instances.Test
+  * Make the unit test code more understandable
+
+ -- David Fox <dsf@seereason.com>  Wed, 02 Sep 2015 12:29:57 -0700
+
 haskell-logic-classes (1.5.1) unstable; urgency=low
 
   * Update Homepage and Bug-Reports fields in cabal file

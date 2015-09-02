@@ -19,7 +19,8 @@ Extra-Source-Files: changelog
 
 Library
  GHC-options: -Wall -O2
- Exposed-Modules:  Data.Logic.Classes.Apply
+ Exposed-Modules:  Data.Logic
+                   Data.Logic.Classes.Apply
                    Data.Logic.Classes.Arity
                    Data.Logic.Classes.Atom
                    Data.Logic.Classes.ClauseNormalForm
@@ -57,6 +58,7 @@ Library
                    Data.Logic.Instances.Chiou
                    Data.Logic.Instances.PropLogic
                    Data.Logic.Instances.SatSolver
+                   Data.Logic.Instances.Test
                    -- Data.Logic.Instances.TPTP
                    Data.Logic.KnowledgeBase
                    Data.Logic.Normal.Clause
@@ -74,11 +76,11 @@ Library
                    Data.Logic.Types.Propositional
                    Data.Boolean
                    Data.Boolean.SatSolver
- Build-Depends:    applicative-extras, base >= 4.3 && < 5, containers, HUnit, mtl, pretty, PropLogic, safecopy, set-extra, syb, template-haskell
+ Build-Depends:    applicative-extras, base >= 4.3 && < 5, containers, HUnit, mtl, pretty >= 1.1.2, PropLogic, safecopy, set-extra, syb, template-haskell
 
 Test-Suite logic-classes-tests
  Type: exitcode-stdio-1.0
  GHC-Options: -Wall -O2
  Hs-Source-Dirs: Tests
  Main-Is: Main.hs
- Build-Depends: applicative-extras, base, containers, HUnit, logic-classes, mtl, pretty, PropLogic, set-extra, syb
+ Build-Depends: applicative-extras, base, containers, HUnit, logic-classes, mtl, pretty >= 1.1.2, PropLogic, set-extra, syb

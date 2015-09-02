@@ -26,6 +26,7 @@ import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Term (Term)
 import Data.Logic.Harrison.Skolem (SkolemT, runSkolemT)
 import Data.Logic.Normal.Clause (clauseNormalForm)
+import Data.Maybe (isJust)
 import qualified Data.Set.Extra as Set
 import qualified Data.Map as Map
 import Text.PrettyPrint (Doc, cat, text, hsep)

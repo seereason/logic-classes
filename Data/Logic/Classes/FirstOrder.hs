@@ -90,7 +90,11 @@ zipFirstOrder qu co tf at fm1 fm2 =
 -- 'Data.Logic.Propositional', could be additional parameters to the type
 -- class, but it would add additional complexity with unclear
 -- benefits.
-data Quant = Forall | Exists deriving (Eq,Ord,Show,Read,Data,Typeable,Enum,Bounded)
+data Quant = Forall | Exists deriving (Eq,Ord,Data,Typeable,Enum,Bounded)
+
+instance Show Quant where
+    show Forall = "for_all"
+    show Exists = "exists"
 
 -- |for_all with a list of variables, for backwards compatibility.
 for_all' :: FirstOrderFormula formula atom v => [v] -> formula -> formula

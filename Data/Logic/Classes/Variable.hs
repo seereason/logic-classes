@@ -29,4 +29,4 @@ variants v0 =
     where iter' s v = let v' = variant v s in v' : iter' (Set.insert v s) v'
 
 showVariable :: Variable v => v -> String
-showVariable v = "fromString (" ++ show (show (prettyVariable v)) ++ ")"
+showVariable v = "(fromString (" ++ show (show (prettyVariable v)) ++ "))"

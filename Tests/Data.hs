@@ -26,15 +26,16 @@ import Data.Logic.Classes.Skolem (Skolem(toSkolem))
 --import Data.Logic.Classes.Negate (Negatable(..))
 --import qualified Data.Logic.Classes.Literal as N
 import qualified Data.Logic.Instances.Chiou as C
+import Data.Logic.Instances.Test (TFormula, TAtom, TTerm, V, Pr, AtomicFunction)
 import Data.Logic.KnowledgeBase (WithId(WithId, wiItem, wiIdent), Proof(..), ProofResult(..))
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
-import Common (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof,
-               TFormula, TAtom, TTerm, V, Pr, AtomicFunction, TTestFormula, TTestProof)
+import Common (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof, TTestProof)
 --import Data.Logic.Types.FirstOrder (Predicate(..), PTerm(..))
 import Data.Map (fromList)
 import qualified Data.Set as S
 import Data.String (IsString)
 import Test.HUnit
+import Text.PrettyPrint.HughesPJClass (prettyShow)
 
 {-
 :m +Data.Logic.Test
@@ -419,11 +420,13 @@ formulas =
                      [(pApp "p" []),(pApp "r" []),(pApp "t" [])],
                      [((.~.) (pApp "q" [])),(pApp "r" []),(pApp "t" [])]])]
       }
-    , doTest $
+    , let (f :: TFormula) = for_all "x" ( x .=. x) .=>. for_all "x" (exists "y" ((x .=. y))) in
+      doTest $
       TestFormula
-      { name = "cnf test 13"
-      , formula = (for_all "x" ( x .=. x .=>. for_all "x" (exists "y" ((x .=. y)))))
-      , expected = [ClauseNormalForm (toSS [[((.~.) (pApp "p" [])),(pApp "f" [fApp (toSkolem "x") []])]])]
+      { name = "cnf test 13 " ++ prettyShow f
+      , formula = f
+        -- [[x = sKy[x], ¬sKx[] = sKx[]]]
+      , expected = [ClauseNormalForm (toSS [[x .=. fApp (toSkolem "y") [x], (.~.) (fApp (toSkolem "x") [] .=. fApp (toSkolem "x") [])]])]
       }
     , let p = pApp "p" []
           true = pApp (fromBool True) []
@@ -488,7 +491,7 @@ formulas =
       , expected = [ SkolemNormalForm (((.~.) (p x)) .|. (q (fApp (toSkolem "y") []) .|. (((.~.) (p z)) .|. ((.~.) (q z))))) ] }
     ]
 
-animalKB :: (String, [TTestFormula])
+animalKB :: (String, [TestFormula TFormula TAtom V])
 animalKB =
     let x = vt "x"
         y = vt "y"
@@ -707,7 +710,7 @@ socratesConjectures =
      ]
 -}
 
-chang43KB :: (String, [TTestFormula])
+chang43KB :: (String, [TestFormula TFormula TAtom V])
 chang43KB = 
     let e = fApp "e" []
         (x, y, z, u, v, w) = (vt "x" :: TTerm, vt "y" :: TTerm, vt "z" :: TTerm, vt "u" :: TTerm, vt "v" :: TTerm, vt "w" :: TTerm) in

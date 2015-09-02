@@ -19,10 +19,10 @@ import Data.Logic.Harrison.FOL (fv, subst, list_conj, list_disj)
 import Data.Logic.Harrison.Normal (trivial)
 import Data.Logic.Harrison.Prop (TruthTable, truthTable)
 import Data.Logic.Harrison.Skolem (runSkolem, skolemize, pnf)
+import Data.Logic.Instances.Test (TFormula, TAtom, TTerm)
 import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Implicative (runNormal)
 import Data.Logic.Satisfiable (theorem, inconsistant)
-import Common (TFormula, TAtom, TTerm)
 import Data.Logic.Types.FirstOrder
 import qualified Data.Map as Map
 import qualified Data.Set.Extra as Set
@@ -228,7 +228,7 @@ theoremTests =
         socrates5 =  for_all "x"   (s [x] .=>. h [x]) .&. for_all "x" (h [x] .=>. m [x])   .=>.  for_all "x" (s [x] .=>. m [x])  :: TFormula -- like 1, but less parens - check precedence
         socrates6 =  for_all "x"   (s [x] .=>. h [x]) .&. for_all "y" (h [y] .=>. m [y])   .=>.  for_all "z" (s [z] .=>. m [z])  :: TFormula -- Like 5, but with variables renamed
         socrates7 =  for_all "x"  ((s [x] .=>. h [x]) .&.             (h [x] .=>. m [x])   .&.               (m [x] .=>. ((.~.) (s [x])))) .&. (s [fApp "socrates" []])
-        equality1 = for_all "x" ( x .=. x .=>. for_all "x" (exists "y" ((x .=. y)))) :: TFormula
+        equality1 = for_all "x" ( x .=. x) .=>. for_all "x" (exists "y" ((x .=. y))) :: TFormula
         equality2 = for_all "x" ( x .=. x .=>. for_all "x" ((.~.) (for_all "y" ((.~.) (x .=. y))))) :: TFormula -- convert existential
     in
     TestList
@@ -245,12 +245,14 @@ theoremTests =
                                  (runNormal (theorem equality1), table equality1)))
     , let label = "Logic - equality2" in
       TestLabel label (TestCase (assertEqual label
-                (False,(fromList [fromList [Predicate (Equal (Var "x2") (FunApp (toSkolem "y") [Var "x2"])),Combine ((:~:) (Predicate (Equal (Var "x") (Var "x"))))]],
-                        ([Equal (Var "x") (Var "x"),Equal (Var "x2") (FunApp (toSkolem "y") [Var "x2"])],
-                         [([False,False],True),
-                          ([False,True],True),
-                          ([True,False],False),
-                          ([True,True],True)])))
+                (True,(fromList [fromList [Predicate (Equal (Var "x") (FunApp (toSkolem "y") [Var "x"])),
+                                           Combine ((:~:) (Predicate (Equal (FunApp (toSkolem "x") []) (FunApp (toSkolem "x") []))))]],
+                       ([Equal (Var "x") (FunApp (toSkolem "y") [Var "x"]),
+                         Equal (FunApp (toSkolem "x") []) (FunApp (toSkolem "x") [])],
+                        [([False,False],True),
+                         ([False,True],False),
+                         ([True,False],True),
+                         ([True,True],True)])))
                 (runNormal (theorem equality2), table equality2)))
     , let label = "Logic - theorem test 1" in
       TestLabel label (TestCase (assertEqual label

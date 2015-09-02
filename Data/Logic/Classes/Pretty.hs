@@ -10,9 +10,8 @@ module Data.Logic.Classes.Pretty
     ) where
 
 import qualified Language.Haskell.TH.Syntax as TH
-#if MIN_VERSION_pretty(1,1,2)
 import Text.PrettyPrint.HughesPJClass (Pretty(pPrint))
-#else
+{-
 import Text.PrettyPrint (Doc, text)
 
 -- | The intent of this class is to be similar to Show, but only one
@@ -26,7 +25,7 @@ class Pretty x where
 
 instance Pretty String where
     pPrint = text
-#endif
+-}
 
 newtype Logic a = Logic {unLogic :: a}
 

@@ -1,4 +1,5 @@
-import Common (TestFormula, TestProof, V, TFormula, TAtom, TTerm, doTest)
+import Common (TestFormula, TestProof, doTest)
+import Data.Logic.Instances.Test (V, TFormula, TAtom, TTerm)
 import System.Exit
 import Test.HUnit
 import qualified Data.Logic.Harrison.DP as DP

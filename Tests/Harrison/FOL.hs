@@ -10,9 +10,6 @@ module Harrison.FOL
     , example4
     ) where
 
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative ((<$>), (<*>))
-#endif
 import Control.Applicative.Error (Failing(..))
 import Control.Monad (filterM)
 import Data.Logic.Classes.Apply (pApp)

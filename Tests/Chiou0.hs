@@ -14,7 +14,7 @@ import Data.Logic.Harrison.Skolem (SkolemT)
 import Data.Logic.KnowledgeBase (ProverT, runProver', Proof(..), ProofResult(..), loadKB, theoremKB {-, askKB, showKB-})
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
 import Data.Logic.Resolution (SetOfSupport)
-import Common (V(..), AtomicFunction(..), TFormula, TTerm)
+import Data.Logic.Instances.Test (V(..), AtomicFunction(..), TFormula, TTerm)
 import Data.Map (fromList)
 import qualified Data.Set as S
 import Test.HUnit

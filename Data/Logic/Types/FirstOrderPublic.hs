@@ -36,7 +36,7 @@ class Bijection p i where
 -- |The new Formula type is just a wrapper around the Native instance
 -- (which eventually should be renamed the Internal instance.)  No
 -- derived Eq or Ord instances.
-data (Data p, Ord p, Data v, Ord v, Data f, Ord f) => Formula v p f = Formula {unFormula :: N.Formula v p f} deriving (Data, Typeable, Show)
+data Formula v p f = Formula {unFormula :: N.Formula v p f} deriving (Data, Typeable)
 
 instance (Data p, Ord p, Data v, Ord v, Data f, Ord f) => Bijection (Formula v p f) (N.Formula v p f) where
     public = Formula
@@ -81,7 +81,8 @@ instance (C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)),
 
 instance (C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)),
           C.Formula (N.Formula v p f) (N.Predicate p (N.PTerm v f)),
-          Show v, Show p, Show f, HasFixity (Formula v p f), Variable v, Predicate p,
+          HasFixity (Formula v p f), Variable v, Predicate p,
+          -- Show v, Show p, Show f, 
           Function f v) => PropositionalFormula (Formula v p f) (N.Predicate p (N.PTerm v f)) where
     foldPropositional co tf at f = foldPropositional co' tf at (intern f :: N.Formula v p f)
         where co' x = co (public x)
@@ -108,9 +109,10 @@ instance (Predicate p, Function f v) => HasFixity (Formula v p f) where
 
 instance (C.Formula (Formula v p f) (N.Predicate p (N.PTerm v f)),
           C.Formula (N.Formula v p f) (N.Predicate p (N.PTerm v f)),
-          Pretty v, Show v, Variable v,
-          Pretty p, Show p, Predicate p,
-          Pretty f, Show f, Function f v) => Pretty (Formula v p f) where
+          Variable v, Predicate p,
+          Pretty v, Pretty p, Pretty f,
+          -- Show v, Show p, Show f,
+          Function f v) => Pretty (Formula v p f) where
     pPrint formula = prettyFirstOrder (\ _prec a -> pPrint a) pPrint 0 formula
 
 $(deriveSafeCopy 1 'base ''Formula)

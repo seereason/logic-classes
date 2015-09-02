@@ -18,17 +18,18 @@ module Data.Logic.Types.FirstOrder
     ) where
 
 import Data.Data (Data)
+import Data.List (intercalate)
 import qualified Data.Logic.Classes.Apply as C
 import qualified Data.Logic.Classes.Atom as C
 import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (Constants(..), asBool)
-import Data.Logic.Classes.Equals (AtomEq(..), (.=.), pApp, substAtomEq, varAtomEq, prettyAtomEq)
+import Data.Logic.Classes.Equals (AtomEq(..), substAtomEq, varAtomEq, prettyAtomEq)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), prettyFirstOrder, fixityFirstOrder, foldAtomsFirstOrder, mapAtomsFirstOrder)
 import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), botFixity)
-import Data.Logic.Classes.Term (Term(..), Function)
+import Data.Logic.Classes.Term (Term(..), Function, showTerm)
 import Data.Logic.Classes.Variable (Variable(..))
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.Logic.Harrison.Resolution (matchAtomsEq)
@@ -44,7 +45,12 @@ data Formula v p f
     | Quant Quant v (Formula v p f)
     -- Note that a derived Eq instance is not going to tell us that
     -- a&b is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).
-    deriving (Eq, Ord, Data, Typeable, Show, Read)
+    deriving (Eq, Ord, Data, Typeable)
+
+instance (Show v, Show p, Show f, Function f v) => Show (Formula v p f) where
+    show (Predicate p) = show p
+    show (Combine c) = show c
+    show (Quant q v f) = show q ++ " " ++ show v ++ " (" ++ show f ++ ")"
 
 -- |A temporary type used in the fold method to represent the
 -- combination of a predicate and its arguments.  This reduces the
@@ -53,7 +59,11 @@ data Formula v p f
 data Predicate p term
     = Equal term term
     | Apply p [term]
-    deriving (Eq, Ord, Data, Typeable, Show, Read)
+    deriving (Eq, Ord, Data, Typeable)
+
+instance (Show p, Show term) => Show (Predicate p term) where
+    show (Equal a b) = show a ++ " .=. " ++ show b
+    show (Apply p ts) = "pApp " ++ show p ++ " [" ++ intercalate ", " (map show ts) ++ "]"
 
 -- | The range of a term is an element of a set.
 data PTerm v f
@@ -63,7 +73,10 @@ data PTerm v f
                                     -- Constants are encoded as
                                     -- nullary functions.  The result
                                     -- is another term.
-    deriving (Eq, Ord, Data, Typeable, Show, Read)
+    deriving (Eq, Ord, Data, Typeable)
+
+instance (Show v, Show f, Function f v) => Show (PTerm v f) where
+    show = showTerm
 
 instance (Data p, Data v, Data f, Ord p, Ord v, Ord f) => Negatable (Formula v p f) where
     negatePrivate x = Combine ((:~:) x)
