@@ -1,4 +1,4 @@
-haskell-logic-classes (1.5.2) unstable; urgency=low
+haskell-logic-classes (1.5.3) unstable; urgency=low
 
   * Make the Show instances output more general expressions
   * Drop support for pretty < 1.1.2
