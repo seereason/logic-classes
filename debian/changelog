@@ -6,6 +6,7 @@ haskell-logic-classes (1.5.2) unstable; urgency=low
   * start fixing Data.Logic.Instances.TPTP
   * Move TFormula test instance from Tests/Common.hs to Data.Logic.Instances.Test
   * Make the unit test code more understandable
+  * Replace the isSkolem method of class Skolem with fromSkolem
 
  -- David Fox <dsf@seereason.com>  Wed, 02 Sep 2015 12:29:57 -0700
 

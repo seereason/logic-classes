@@ -104,8 +104,8 @@ instance Function AtomicFunction V
 
 instance C.Skolem AtomicFunction V where
     toSkolem = Skolem
-    isSkolem (Skolem _) = True
-    isSkolem _ = False
+    fromSkolem (Skolem v) = Just v
+    fromSkolem _ = Nothing
 
 instance IsString AtomicFunction where
     fromString = Fn

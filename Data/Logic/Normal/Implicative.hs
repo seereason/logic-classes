@@ -20,7 +20,7 @@ import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Constants (true, ifElse)
 import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
 import Data.Logic.Classes.Propositional (PropositionalFormula)
-import Data.Logic.Classes.Skolem (Skolem(isSkolem))
+import Data.Logic.Classes.Skolem (Skolem(fromSkolem))
 import Data.Logic.Classes.Literal (Literal(..))
 import Data.Logic.Classes.Negate (Negatable(..))
 import Data.Logic.Classes.Term (Term)
@@ -112,7 +112,7 @@ implicativeNormalForm formula =
                       f
       split :: (Set.Set lit, Set.Set lit) -> Set.Set (Set.Set lit, Set.Set lit)
       split (lhs, rhs) =
-          if any isSkolem (gFind rhs :: [f])
+          if any (isJust . fromSkolem) (gFind rhs :: [f])
           then Set.map (\ x -> (lhs, Set.singleton x)) rhs
           else Set.singleton (lhs, rhs)
 

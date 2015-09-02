@@ -106,8 +106,8 @@ instance IsString (AtomicFunction v) where
 
 instance Variable v => Skolem (AtomicFunction v) v where
     toSkolem = AtomicSkolemFunction
-    isSkolem (AtomicSkolemFunction _) = True
-    isSkolem _ = False
+    fromSkolem (AtomicSkolemFunction v) = Just v
+    fromSkolem _ = Nothing
 
 -- The Atom type is not cleanly distinguished from the Sentence type, so we need an Atom instance for Sentence.
 instance (Variable v, Predicate p, Function f v) => Apply (Sentence v p f) p (CTerm v f) where

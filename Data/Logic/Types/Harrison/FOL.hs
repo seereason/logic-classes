@@ -113,8 +113,8 @@ instance C.Function Function String
 
 instance Skolem Function String where
     toSkolem = Skolem
-    isSkolem (Skolem _) = True
-    isSkolem _ = False
+    fromSkolem (Skolem v) = Just v
+    fromSkolem _ = Nothing
 
 instance Term TermType String Function where
     -- type V Term = String

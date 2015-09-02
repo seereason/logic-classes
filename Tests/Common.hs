@@ -150,9 +150,7 @@ skolemSet =
     List.foldr ins Set.empty . skolemList
     where
       ins :: f -> Set f -> Set f
-      ins f s = if isSkolem f
-                then insert f s
-                else s
+      ins f s = maybe s (const (Set.insert f s)) (fromSkolem f)
       skolemList :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Data f, Typeable f, Data formula) => formula -> [f]
       skolemList inf = gFind inf :: (Typeable f => [f])
 

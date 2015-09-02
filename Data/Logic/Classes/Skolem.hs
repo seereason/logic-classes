@@ -13,5 +13,7 @@ import Data.Logic.Classes.Variable (Variable)
 -- quantifiers and obtained the formula P[x,y,sKz[x,y]].
 class Variable v => Skolem f v | f -> v where
     toSkolem :: v -> f     -- ^ Turn a variable into the corresponding skolem function
-    isSkolem  :: f -> Bool
-    -- ^ True if this is a skolem function
+    fromSkolem  :: f -> Maybe v
+    -- ^ If this is a skolem function return the variable it replaced.
+    -- This used to be a predicate, but a Maybe v helps implement the
+    -- Show instance.
