@@ -54,7 +54,6 @@ Library
                    Data.Logic.Harrison.Skolem
                    Data.Logic.Harrison.Tableaux
                    Data.Logic.Harrison.Unif
-                   Data.Logic.HUnit
                    Data.Logic.Instances.Chiou
                    Data.Logic.Instances.PropLogic
                    Data.Logic.Instances.SatSolver

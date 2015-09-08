@@ -12,10 +12,10 @@ import Data.Logic.Harrison.DefCNF (NumAtom(..), defcnfs)
 import Data.Logic.Harrison.Lib (allpairs, maximize', minimize', defined, setmapfilter, (|->))
 import Data.Logic.Harrison.Prop (negative, positive, trivial, tautology, cnf)
 import Data.Logic.Harrison.PropExamples (Atom(..), N, prime)
-import Data.Logic.HUnit
 import Data.Logic.Types.Propositional (Formula(..))
 import qualified Data.Map as Map
 import qualified Data.Set.Extra as Set
+import Test.HUnit
 
 import Debug.Trace
 
@@ -23,7 +23,7 @@ instance NumAtom (Atom N) where
     ma n = P "p" n Nothing
     ai (P _ n _) = n
 
-tests = convert (TestList [test01, test02, test03])
+tests = TestList [test01, test02, test03]
 
 -- ========================================================================= 
 -- The Davis-Putnam and Davis-Putnam-Loveland-Logemann procedures.           
@@ -86,7 +86,7 @@ resolution_rule clauses =
 -- Overall procedure.                                                        
 -- ------------------------------------------------------------------------- 
 
-dp :: forall lit atom. (Literal lit atom, Ord lit) => Set.Set (Set.Set lit) -> Failing Bool        
+dp :: forall lit atom. (Literal lit atom, Ord lit, Pretty lit) => Set.Set (Set.Set lit) -> Failing Bool
 dp clauses =
   if Set.null clauses
   then Success True

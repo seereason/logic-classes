@@ -16,17 +16,16 @@ import Data.Logic.Harrison.FOL (generalize, list_conj)
 import Data.Logic.Harrison.Meson(meson)
 import Data.Logic.Harrison.Normal (simpdnf)
 import Data.Logic.Harrison.Skolem (runSkolem, askolemize)
-import Data.Logic.HUnit
 import Data.Logic.Types.Harrison.Equal (FOLEQ)
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula)
 import Data.String (IsString(fromString))
 import Prelude hiding (negate)
--- import Test.HUnit (Test(TestCase, TestLabel), assertEqual)
+import Test.HUnit (Test(TestCase, TestLabel, TestList), assertEqual)
 
 import Common (render)
 import Harrison.Resolution (dpExampleFm)
 
-tests :: Test (Formula FOLEQ)
+tests :: Test
 tests = TestLabel "Data.Logic.Tests.Harrison.Meson" $
         TestList [test01, test02]
 
@@ -34,7 +33,7 @@ tests = TestLabel "Data.Logic.Tests.Harrison.Meson" $
 -- Example.                                                                  
 -- ------------------------------------------------------------------------- 
 
-test01 :: Test (Formula FOLEQ)
+test01 :: Test
 test01 = TestLabel "Data.Logic.Tests.Harrison.Meson" $ TestCase $ assertEqual "meson dp example (p. 220)" expected input
     where input = runSkolem (meson (Just 10) (dpExampleFm :: Formula FOLEQ))
           expected = Set.singleton (
@@ -58,7 +57,7 @@ test01 = TestLabel "Data.Logic.Tests.Harrison.Meson" $ TestCase $ assertEqual "m
                                    )
           vt' = vt . fromString
 
-test02 :: Test (Formula FOLEQ)
+test02 :: Test
 test02 =
     TestLabel "Data.Logic.Tests.Harrison.Meson" $
     TestList [TestCase (assertEqual "meson dp example, step 1 (p. 220)"

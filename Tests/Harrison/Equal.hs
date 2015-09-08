@@ -26,19 +26,19 @@ import Data.Logic.Types.Harrison.Equal (FOLEQ(..), PredName)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
-import Data.Logic.HUnit
+import Test.HUnit
 
 -- type TF = TestFormula (Formula FOL) FOL TermType String String Function
 -- type TFE = TestFormulaEq (Formula FOLEQ) FOLEQ TermType String String Function
 
-tests :: Test (Formula FOLEQ)
+tests :: Test
 tests = TestLabel "Data.Logic.Tests.Harrison.Equal" $ TestList [test01, test02, test03, test04]
 
 -- ------------------------------------------------------------------------- 
 -- Example.                                                                  
 -- ------------------------------------------------------------------------- 
 
-test01 :: Test (Formula FOLEQ)
+test01 :: Test
 test01 = TestCase $ assertEqual "function_congruence" expected input
     where input = map function_congruence [(fromString "f", 3 :: Int), (fromString "+",2)]
           expected :: [Set.Set (Formula FOLEQ)]
@@ -67,11 +67,11 @@ test01 = TestCase $ assertEqual "function_congruence" expected input
 -- A simple example (see EWD1266a and the application to Morley's theorem).  
 -- ------------------------------------------------------------------------- 
 
-test :: (Show a, Eq a) => String -> a -> a -> Test (Formula FOLEQ)
+test :: (Show a, Eq a) => String -> a -> a -> Test
 test label expected input = TestLabel label $ TestCase $ assertEqual label expected input
 
-test02 :: Test (Formula FOLEQ)
-test02 = test "equalitize 1 (p. 241)" (expected, expectedProof) input
+test02 :: Test
+test02 = TestCase $ assertEqual "equalitize 1 (p. 241)" (expected, expectedProof) input
     where input = (render ewd, runSkolem (meson (Just 10) ewd))
           ewd = equalitize fm :: Formula FOLEQ
           fm :: Formula FOLEQ
@@ -157,7 +157,7 @@ wishnu = ((∃) ("x") ((x .=. f[g[x]]) ∧ (∀) ("x'") ((x' .=. f[g[x']]) ⇒ (
       f terms = fApp (fromString "f") terms
       g terms = fApp (fromString "g") terms
 
-test03 :: Test (Formula FOLEQ)
+test03 :: Test
 test03 = TestLabel "equalitize 2" $ TestCase $ assertEqual "equalitize 2 (p. 241)" (render expected, expectedProof) input
     where -- This depth is not sufficient to finish. It shoudl work with 16, but that takes a long time.
           input = (render (equalitize wishnu), runSkolem (meson (Just 50) wishnu))
@@ -191,8 +191,8 @@ test03 = TestLabel "equalitize 2" $ TestCase $ assertEqual "equalitize 2 (p. 241
 -- More challenging equational problems. (Size 18, 61814 seconds.)           
 -- ------------------------------------------------------------------------- 
 
-test04 :: Test (Formula FOLEQ)
-test04 = test "equalitize 3 (p. 248)" (render expected, expectedProof) input
+test04 :: Test
+test04 = TestCase $ assertEqual "equalitize 3 (p. 248)" (render expected, expectedProof) input
     where
       input = (render (equalitize fm), runSkolem (meson (Just 20) . equalitize $ fm))
       fm :: Formula FOLEQ

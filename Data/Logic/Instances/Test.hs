@@ -5,9 +5,8 @@ module Data.Logic.Instances.Test
     ( V(..)
     , Pr(..)
     , AtomicFunction(..)
-    , TFormula
-    , TAtom
-    , TTerm
+    , MyFormula, MyAtom, MyTerm
+    , TFormula, TAtom, TTerm -- deprecated
     , prettyV
     , prettyP
     , prettyF
@@ -121,9 +120,13 @@ prettyF (Skolem v) = text "sK" <> pPrint v
 instance Pretty AtomicFunction where
     pPrint = prettyF
 
-type TFormula = P.Formula V Pr AtomicFunction
-type TAtom = P.Predicate Pr TTerm
-type TTerm = P.PTerm V AtomicFunction
+type MyFormula = P.Formula V Pr AtomicFunction
+type MyAtom = P.Predicate Pr TTerm
+type MyTerm = P.PTerm V AtomicFunction
+
+type TFormula = MyFormula
+type TAtom = MyAtom
+type TTerm = MyTerm
 
 {-
 instance Pretty TFormula where

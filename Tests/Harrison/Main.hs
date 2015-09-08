@@ -13,28 +13,23 @@ import qualified Harrison.Unif as Unif
 import Data.Logic.Types.Harrison.Equal (FOLEQ, PredName)
 import Data.Logic.Types.Harrison.FOL (FOL, TermType, Function)
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
-import Data.Logic.HUnit
-import qualified Test.HUnit as T
---import Data.String (IsString)
-
-instance TestFormula (Formula FOL) FOL TermType String String Function
-instance TestFormulaEq (Formula FOLEQ) FOLEQ TermType String PredName Function
+import Test.HUnit
 
 instance Show (Formula FOL) where
     show = show . pPrint
 
-main = T.runTestTT tests
+main = runTestTT tests
 
-tests :: T.Test
+tests :: Test
 tests =
-    T.TestList
+    TestList
          [ Lib.tests
          , Prop.tests
-         , convert (FOL.tests1 :: Test (Formula FOL))
-         , convert (FOL.tests2 :: Test (Formula FOLEQ))
+         , FOL.tests1
+         , FOL.tests2
          , Unif.tests
          , Skolem.tests
-         , convert (Resolution.tests :: Test (Formula FOLEQ))
-         , convert (Equal.tests :: Test (Formula FOLEQ))
-         , convert (Meson.tests :: Test (Formula FOLEQ))
+         , Resolution.tests
+         , Equal.tests
+         , Meson.tests
          ]

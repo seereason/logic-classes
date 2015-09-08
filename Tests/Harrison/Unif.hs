@@ -7,7 +7,6 @@ module Harrison.Unif
 import Data.Logic.Classes.Term (Term(fApp, vt), tsubst)
 import Data.Logic.Failing (Failing(..), failing)
 import Data.Logic.Harrison.Unif (fullUnify)
-import Data.Logic.HUnit ()
 import Data.Logic.Types.Harrison.FOL (TermType)
 import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual)
 

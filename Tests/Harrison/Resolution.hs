@@ -17,10 +17,9 @@ import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula)
 import qualified Data.Set as Set
 import Data.String (IsString(..))
 import Prelude hiding (negate)
--- import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual, Assertion)
-import Data.Logic.HUnit
+import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual, Assertion)
 
-tests :: Test (Formula FOLEQ)
+tests :: Test
 tests = TestLabel "Data.Logic.Tests.Harrison.Resolution" $
         TestList [test01, test02, test03, test04, test05]
 
@@ -28,7 +27,7 @@ tests = TestLabel "Data.Logic.Tests.Harrison.Resolution" $
 -- Barber's paradox is an example of why we need factoring.                  
 -- ------------------------------------------------------------------------- 
 
-test01 :: Test (Formula FOLEQ)
+test01 :: Test
 test01 = TestCase $ assertEqual "Barber's paradox (p. 181)" expected input
     where input = simpcnf (runSkolem (skolemize id ((.~.)barb)))
           barb :: Formula FOLEQ
@@ -45,7 +44,7 @@ test01 = TestCase $ assertEqual "Barber's paradox (p. 181)" expected input
 -- Simple example that works well.                                           
 -- ------------------------------------------------------------------------- 
 
-test02 :: Test (Formula FOLEQ)
+test02 :: Test
 test02 = TestCase $ assertEqual "Davis-Putnam example" expected input
     where input = runSkolem (resolution1 (dpExampleFm :: Formula FOLEQ))
           expected = Set.singleton (Success True)
@@ -65,7 +64,7 @@ dpExampleFm = exists "x" . exists "y" .for_all "z" $
 -- This is now a lot quicker.                                                
 -- ------------------------------------------------------------------------- 
 
-test03 :: Test (Formula FOLEQ)
+test03 :: Test
 test03 = TestCase $ assertEqual "Davis-Putnam example 2" expected input
     where input = runSkolem (resolution2 (dpExampleFm :: Formula FOLEQ))
           expected = Set.singleton (Success True)
@@ -74,7 +73,7 @@ test03 = TestCase $ assertEqual "Davis-Putnam example 2" expected input
 -- Example: the (in)famous Los problem.                                      
 -- ------------------------------------------------------------------------- 
 
-test04 :: Test (Formula FOLEQ)
+test04 :: Test
 test04 = TestCase $ assertEqual "Los problem (p. 198)" expected input
     where input = runSkolem (presolution losFm)
           expected = Set.fromList [Success True]
@@ -93,7 +92,7 @@ losFm = (for_all x (for_all y (for_all z (p [vt x, vt y] .=>. p [vt y, vt z] .=>
       p = pApp (fromString "P")
       q = pApp (fromString "Q")
 
-test05 :: Test (Formula FOLEQ)
+test05 :: Test
 test05 = TestCase $ assertEqual "Socrates syllogism" expected input
     where input = (runSkolem (resolution1 socrates),
                    runSkolem (resolution2 socrates),

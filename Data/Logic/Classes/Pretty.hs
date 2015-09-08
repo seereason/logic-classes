@@ -9,8 +9,11 @@ module Data.Logic.Classes.Pretty
     , botFixity
     ) where
 
+import Data.Monoid ((<>))
+import Data.List as List (intersperse, map)
+import Data.Set as Set (Set, toAscList)
 import qualified Language.Haskell.TH.Syntax as TH
-import Text.PrettyPrint.HughesPJClass (Pretty(pPrint))
+import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), text)
 {-
 import Text.PrettyPrint (Doc, text)
 
@@ -62,3 +65,6 @@ topFixity = TH.Fixity 0 TH.InfixN
 -- parenthesization, such as function application.
 botFixity :: TH.Fixity
 botFixity = TH.Fixity 10 TH.InfixN
+
+instance Pretty a => Pretty (Set a) where
+    pPrint s = text "{" <> mconcat (intersperse (text ", ") (List.map pPrint (Set.toAscList s))) <> text "}"

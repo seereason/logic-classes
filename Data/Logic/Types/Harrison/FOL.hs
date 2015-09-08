@@ -22,6 +22,7 @@ import qualified Data.Logic.Classes.Term as C
 --import qualified Data.Logic.Classes.FirstOrder as C
 --import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
 import qualified Data.Logic.Types.Common ({- instance Variable String -})
+import Data.String (IsString(fromString))
 import Prelude hiding (pred)
 import Text.PrettyPrint (text, cat)
 
@@ -104,6 +105,9 @@ data Function
     = FName String
     | Skolem String
     deriving (Eq, Ord, Data, Typeable, Show)
+
+instance IsString Function where
+    fromString = FName
 
 instance Pretty Function where
     pPrint (FName s) = text s
