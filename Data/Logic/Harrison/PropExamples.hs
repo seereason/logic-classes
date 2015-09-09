@@ -43,7 +43,11 @@ instance Pretty (Atom N) where
 instance HasFixity (Atom N) where
     fixity = const botFixity
 
-type N = Int
+type N = Integer
+
+type F = Formula (Atom N)
+
+deriving instance Show F
 
 ramsey :: forall formula.
           (PropositionalFormula formula (Atom N), Ord formula) =>
@@ -369,21 +373,12 @@ prime p =
   let [x, y, out] = map mk_index ["x", "y", "out"] in
   let m i j = (x i) .&. (y j)
       [u, v] = map mk_index2 ["u", "v"] in
-  let (n :: Int) = bitlength p in
+  let (n :: Integer) = bitlength p in
   (.~.) (multiplier m u v out (n - 1) .&. congruent_to out p (max n (2 * n - 2)))
 
 -- ------------------------------------------------------------------------- 
 -- Examples.                                                                 
 -- ------------------------------------------------------------------------- 
-
-type F = Formula (Atom Int)
-
-deriving instance Show F
-
-{-
-instance Constants F where
-    fromBool True = 
--}
 
 test03 :: Test
 test03 =

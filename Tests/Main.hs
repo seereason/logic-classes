@@ -2,6 +2,7 @@ import Common (TestFormula, TestProof, doTest)
 import Data.Logic.Instances.Test (V, TFormula, TAtom, TTerm)
 import System.Exit
 import Test.HUnit
+import qualified Data.Logic.Harrison.DefCNF as DefCNF
 import qualified Data.Logic.Harrison.DP as DP
 import qualified Data.Logic.Harrison.PropExamples as PropExamples
 import qualified Harrison.Main as Harrison
@@ -18,6 +19,7 @@ main =
                          Data.tests formulas proofs,
                          Harrison.tests,
                          PropExamples.tests,
+                         DefCNF.tests,
                          DP.tests]) >>=
     doCounts
     where

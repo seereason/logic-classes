@@ -7,6 +7,7 @@ module Data.Logic.Harrison.DP
 import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Literal (Literal)
 import Data.Logic.Classes.Negate (Negatable, (.~.), negated)
+import Data.Logic.Classes.Pretty (Pretty)
 import Data.Logic.Classes.Propositional (PropositionalFormula(..))
 import Data.Logic.Harrison.DefCNF (NumAtom(..), defcnfs)
 import Data.Logic.Harrison.Lib (allpairs, maximize', minimize', defined, setmapfilter, (|->))
