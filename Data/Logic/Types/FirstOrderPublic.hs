@@ -36,7 +36,7 @@ class Bijection p i where
 -- |The new Formula type is just a wrapper around the Native instance
 -- (which eventually should be renamed the Internal instance.)  No
 -- derived Eq or Ord instances.
-data Formula v p f = Formula {unFormula :: N.Formula v p f} deriving (Data, Typeable)
+data Formula v p f = Formula {unFormula :: N.Formula v p f} deriving (Data, Typeable, Show)
 
 instance (Data p, Ord p, Data v, Ord v, Data f, Ord f) => Bijection (Formula v p f) (N.Formula v p f) where
     public = Formula
