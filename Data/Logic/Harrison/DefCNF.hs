@@ -8,6 +8,7 @@ module Data.Logic.Harrison.DefCNF
     , defcnf3
     ) -} where
 
+import Data.List (intercalate)
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..), (.&.), (.|.), (.<=>.))
 import Data.Logic.Classes.Formula (Formula(atomic))
 import Data.Logic.Classes.Literal (Literal)
@@ -118,16 +119,16 @@ test02 =
         fm :: P.Formula Atom
         fm = (p .|. (q .&. ((.~.)r))) .&. s in
     TestCase $ assertEqual "defcnf1 (p | (q & ~r)) & s"
-                           (unlines ["(¬s ∨ p_3 ∨ ¬p_2) ∧ ",
-                                     "(p ∨ p_1 ∨ ¬p_2) ∧ ",
-                                     "(p_1 ∨ r ∨ ¬q) ∧ ",
-                                     "(p_2 ∨ ¬p) ∧ ",
-                                     "(p_2 ∨ ¬p_1) ∧ ",
-                                     "(p_2 ∨ ¬p_3) ∧ ",
-                                     "(q ∨ ¬p_1) ∧ ",
-                                     "(s ∨ ¬p_3) ∧ ",
-                                     "p_3 ∧ ",
-                                     "(¬r ∨ ¬p_1)"])
+                           (intercalate " ∧ " ["(¬s ∨ p_3 ∨ ¬p_2)",
+                                               "(p ∨ p_1 ∨ ¬p_2)",
+                                               "(p_1 ∨ r ∨ ¬q)",
+                                               "(p_2 ∨ ¬p)",
+                                               "(p_2 ∨ ¬p_1)",
+                                               "(p_2 ∨ ¬p_3)",
+                                               "(q ∨ ¬p_1)",
+                                               "(s ∨ ¬p_3)",
+                                               "p_3",
+                                               "(¬r ∨ ¬p_1)"])
                            (prettyShow ((defcnf1 (undefined :: P.Formula Atom) (undefined :: Atom) fm :: P.Formula Atom)))
 
 -- ------------------------------------------------------------------------- 
@@ -176,11 +177,11 @@ test03 =
         fm :: P.Formula Atom
         fm = (p .|. (q .&. ((.~.)r))) .&. s in
     TestCase $ assertEqual "defcnf (p | (q & ~r)) & s (p. 78)"
-                           (unlines ["(p_1 ∨ r ∨ ¬q) ∧ ",
-                                     "(p_1 ∨ p) ∧ ",
-                                     "(q ∨ ¬p_1) ∧ ",
-                                     "s ∧ ",
-                                     "(¬r ∨ ¬p_1)"])
+                           (intercalate " ∧ " ["(p_1 ∨ r ∨ ¬q)",
+                                               "(p_1 ∨ p)",
+                                               "(q ∨ ¬p_1)",
+                                               "s",
+                                               "(¬r ∨ ¬p_1)"])
                            (prettyShow ((defcnf (undefined :: P.Formula Atom) (undefined :: Atom) fm :: P.Formula Atom)))
 -- ------------------------------------------------------------------------- 
 -- Version that guarantees 3-CNF.                                            

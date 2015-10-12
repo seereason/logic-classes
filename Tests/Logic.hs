@@ -236,23 +236,20 @@ theoremTests =
     TestList
     [ let label = "Logic - equality1" in
       TestLabel label (TestCase (assertEqual label
-                                 (False,(fromList [fromList [Predicate (Equal (Var "x2") (FunApp (toSkolem "y") [Var "x2"])),
-                                                             Combine ((:~:) (Predicate (Equal (Var "x") (Var "x"))))]],
-                                         ([Equal (Var "x") (Var "x"),
-                                           Equal (Var "x2") (FunApp (toSkolem "y") [Var "x2"])],
-                                          [([False,False],True),
-                                           ([False,True ],True),
-                                           ([True, False],False),
-                                           ([True, True ],True)])))
-                                 (runNormal (theorem equality1), table equality1)))
+                                 (False,
+                                  concat ["({{x = sKy[x], \172sKx[] = sKx[]}},\n",
+                                          " ([x = sKy[x], sKx[] = sKx[]],\n",
+                                          "  [([False, False], True), ([False, True], False),\n",
+                                          "   ([True, False], True), ([True, True], True)]))"])
+                                 (runNormal (theorem equality1), prettyShow (table equality1))))
     , let label = "Logic - equality2" in
       TestLabel label (TestCase (assertEqual label
-                (True,unlines
-                      ["({{x = sKy[x], ¬sKx[] = sKx[]}},",
-                       " ([x = sKy[x], sKx[] = sKx[]],",
-                       "  [([False, False], True), ([False, True], False),",
-                       "   ([True, False], True), ([True, True], True)]))"])
-                (runNormal (theorem equality2), prettyShow (table equality2))))
+                                 (False,
+                                  concat ["({{x2 = sKy[x2], \172x = x}},\n",
+                                          " ([x = x, x2 = sKy[x2]],\n",
+                                          "  [([False, False], True), ([False, True], True),\n",
+                                          "   ([True, False], False), ([True, True], True)]))"])
+                                 (runNormal (theorem equality2), prettyShow (table equality2))))
     , let label = "Logic - theorem test 1" in
       TestLabel label (TestCase (assertEqual label
                 (True,(Set.empty, ([]{-Just (CJ [])-},[([],True)])))
