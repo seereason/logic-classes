@@ -10,15 +10,15 @@ module Data.Logic.Types.Harrison.Equal where
 
 import Data.Generics (Data, Typeable)
 import Data.List (intersperse)
-import Data.Logic.Classes.Apply (Apply(..), Predicate)
+import Data.Logic.Classes.Apply (HasPredicate(..), IsPredicate)
 import Data.Logic.Classes.Arity (Arity(..))
 import qualified Data.Logic.Classes.Atom as C
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
-import Data.Logic.Classes.Equals (AtomEq(..), showFirstOrderFormulaEq, substAtomEq, varAtomEq)
-import Data.Logic.Classes.FirstOrder (fixityFirstOrder, mapAtomsFirstOrder, foldAtomsFirstOrder)
+import Data.Logic.Classes.Constants (HasBoolean(fromBool), asBool)
+import Data.Logic.Classes.Equals (HasEquals(isEquals), HasEquality(..), showFirstOrderFormulaEq, substAtomEq, varAtomEq)
+import Data.Logic.Classes.FirstOrder (fixityFirstOrder)
 import qualified Data.Logic.Classes.Formula as C
-import Data.Logic.Classes.Literal (Literal(..))
+import Data.Logic.Classes.Literal (IsLiteral(..))
 import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), Fixity(..), FixityDirection(..))
 import qualified Data.Logic.Classes.Propositional as P
 import Data.Logic.Harrison.Resolution (matchAtomsEq)
@@ -47,7 +47,7 @@ instance IsString PredName where
     fromString "=" = (:=:)
     fromString s = Named s
 
-instance Constants PredName where
+instance HasBoolean PredName where
     fromBool True = Named "true"
     fromBool False = Named "false"
     asBool x
@@ -55,7 +55,7 @@ instance Constants PredName where
         | x == fromBool False = Just False
         | True = Nothing
 
-instance Constants FOLEQ where
+instance HasBoolean FOLEQ where
     fromBool x = R (fromBool x) []
     asBool (R p _)
         | fromBool True == p = Just True
@@ -63,7 +63,7 @@ instance Constants FOLEQ where
         | True = Nothing
     asBool _ = Nothing
 
-instance Predicate PredName
+instance IsPredicate PredName
 
 instance Pretty PredName where
     pPrint (:=:) = text "="
@@ -72,12 +72,12 @@ instance Pretty PredName where
 -- | Using PredName for the predicate type is not quite appropriate
 -- here, but we need to implement this instance so we can use it as a
 -- superclass of AtomEq below.
-instance Apply FOLEQ PredName TermType where
-    foldApply f _ (EQUALS t1 t2) = f (:=:) [t1, t2]
-    foldApply f tf (R p ts) = maybe (f (Named p) ts) tf (asBool (Named p))
-    apply' (Named p) ts = R p ts
-    apply' (:=:) [t1, t2] = EQUALS t1 t2
-    apply' (:=:) _ = error "arity"
+instance HasPredicate FOLEQ PredName TermType where
+    foldPredicate f (EQUALS t1 t2) = f (:=:) [t1, t2]
+    foldPredicate f (R p ts) = f (Named p) ts
+    applyPredicate (Named p) ts = R p ts
+    applyPredicate (:=:) [t1, t2] = EQUALS t1 t2
+    applyPredicate (:=:) _ = error "arity"
 
 {-
 instance FirstOrderFormula (Formula FOLEQ) FOLEQ String where
@@ -98,7 +98,7 @@ instance FirstOrderFormula (Formula FOLEQ) FOLEQ String where
     atomic = Atom
 -}
 
-instance C.Formula (Formula FOLEQ) FOLEQ => P.PropositionalFormula (Formula FOLEQ) FOLEQ where
+instance C.IsFormula (Formula FOLEQ) FOLEQ => P.IsPropositional (Formula FOLEQ) FOLEQ where
     foldPropositional co tf at fm =
         case fm of
           F -> tf False
@@ -119,25 +119,31 @@ instance Pretty FOLEQ where
 instance HasFixity (Formula FOLEQ) where
     fixity = fixityFirstOrder
 
-instance C.Formula (Formula FOLEQ) FOLEQ => Literal (Formula FOLEQ) FOLEQ where
+instance C.IsFormula (Formula FOLEQ) FOLEQ => IsLiteral (Formula FOLEQ) FOLEQ where
     foldLiteral neg tf at lit =
         case lit of
           F -> tf False
           T -> tf True
           Atom a -> at a
           Not fm' -> neg fm'
-          _ -> error "Literal (Formula FOLEQ)"
+          _ -> error "IsLiteral (Formula FOLEQ)"
 
 -- instance PredicateEq PredName where
 --     eqp = (:=:)
 
-instance AtomEq FOLEQ PredName TermType where
-    foldAtomEq pr tf _ (R p ts) = maybe (pr (Named p) ts) tf (asBool (Named p))
-    foldAtomEq _ _ eq (EQUALS t1 t2) = eq t1 t2
-    equals = EQUALS
-    applyEq' (Named s) ts = R s ts
-    applyEq' (:=:) [t1, t2] = EQUALS t1 t2
-    applyEq' _ _ = error "arity"
+instance HasEquals PredName where
+    isEquals (:=:) = True
+    isEquals _ = False
+
+instance HasEquality FOLEQ PredName TermType where
+    foldEquals ap (EQUALS lhs rhs) = Just (ap lhs rhs)
+    foldEquals _ _ = Nothing
+    -- foldAtomEq pr _ (R p ts) = pr (Named p) ts
+    -- foldAtomEq _ eq (EQUALS t1 t2) = eq t1 t2
+    applyEquals = EQUALS
+    -- applyEq' (Named s) ts = R s ts
+    -- applyEq' (:=:) [t1, t2] = EQUALS t1 t2
+    -- applyEq' _ _ = error "arity"
 
 instance C.Atom FOLEQ TermType String where
     substitute = substAtomEq

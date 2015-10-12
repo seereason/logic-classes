@@ -1,5 +1,5 @@
 module Data.Logic.Classes.Variable
-    ( Variable(..)
+    ( IsVariable(..)
     , variants
     , showVariable
     ) where
@@ -10,7 +10,7 @@ import qualified Data.Set as Set
 import Data.String (IsString)
 import Text.PrettyPrint (Doc)
 
-class (Ord v, IsString v, Data v, Pretty v) => Variable v where
+class (Ord v, IsString v, Data v, Pretty v) => IsVariable v where
     variant :: v -> Set.Set v -> v
     -- ^ Return a variable based on v but different from any set
     -- element.  The result may be v itself if v is not a member of
@@ -23,10 +23,10 @@ class (Ord v, IsString v, Data v, Pretty v) => Variable v where
     -- ^ Pretty print a variable
 
 -- | Return an infinite list of variations on v
-variants :: Variable v => v -> [v]
+variants :: IsVariable v => v -> [v]
 variants v0 =
     iter' Set.empty v0
     where iter' s v = let v' = variant v s in v' : iter' (Set.insert v s) v'
 
-showVariable :: Variable v => v -> String
+showVariable :: IsVariable v => v -> String
 showVariable v = "(fromString (" ++ show (show (prettyVariable v)) ++ "))"

@@ -10,14 +10,14 @@ module Data.Logic.Types.Harrison.FOL
 import Data.Generics (Data, Typeable)
 import Data.List (intersperse)
 import Data.Logic.Classes.Arity
-import Data.Logic.Classes.Apply (Apply(..), Predicate)
+import Data.Logic.Classes.Apply (HasPredicate(..), IsPredicate)
 --import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (Constants(fromBool), asBool)
---import Data.Logic.Classes.FirstOrder (foldAtomsFirstOrder, mapAtomsFirstOrder)
+import Data.Logic.Classes.Constants (HasBoolean(fromBool), asBool)
+--import Data.Logic.Classes.FirstOrder (foldAtomsFirstOrder, onatomsFirstOrder)
 --import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), Fixity(..), FixityDirection(..))
-import Data.Logic.Classes.Skolem (Skolem(..))
-import Data.Logic.Classes.Term (Term(vt, foldTerm, fApp))
+import Data.Logic.Classes.Skolem (HasSkolem(..))
+import Data.Logic.Classes.Term (IsTerm(vt, foldTerm, fApp))
 import qualified Data.Logic.Classes.Term as C
 --import qualified Data.Logic.Classes.FirstOrder as C
 --import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
@@ -45,12 +45,12 @@ instance Pretty TermType where
     pPrint (Var v) = pPrint v
     pPrint (Fn f ts) = cat ([pPrint f, text "("] ++ intersperse (text ", ") (map pPrint ts) ++ [text ")"])
 
-instance Apply FOL String TermType where
-    foldApply f tf (R p ts) = maybe (f p ts) tf (asBool p)
-    apply' = R
+instance HasPredicate FOL String TermType where
+    foldPredicate ap (R p ts) = ap p ts
+    applyPredicate = R
 
 -- | This is probably dangerous.
-instance Constants String where
+instance HasBoolean String where
     fromBool True = "true"
     fromBool False = "false"
     asBool x
@@ -58,11 +58,11 @@ instance Constants String where
         | x == fromBool False = Just False
         | True = Nothing
 
-instance Constants FOL where
+instance HasBoolean FOL where
     fromBool x = R (fromBool x) []
     asBool (R p _) = asBool p
 
-instance Predicate String
+instance IsPredicate String
 
 {-
 instance Pretty String where
@@ -115,12 +115,12 @@ instance Pretty Function where
 
 instance C.Function Function String
 
-instance Skolem Function String where
+instance HasSkolem Function String where
     toSkolem = Skolem
     fromSkolem (Skolem v) = Just v
     fromSkolem _ = Nothing
 
-instance Term TermType String Function where
+instance IsTerm TermType String Function where
     -- type V Term = String
     -- type Fn Term = String
     vt = Var

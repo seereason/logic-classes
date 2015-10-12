@@ -12,16 +12,16 @@ module Data.Logic.Harrison.FOL
     , generalize
     ) where
 
-import Data.Logic.Classes.Apply (Apply(..), apply)
+import Data.Logic.Classes.Apply (HasPredicate(..), apply)
 import Data.Logic.Classes.Atom (Atom(allVariables, substitute))
-import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
-import Data.Logic.Classes.Constants (Constants (fromBool), true, false)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), quant)
-import Data.Logic.Classes.Formula (Formula(atomic))
+import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..), binop)
+import Data.Logic.Classes.Constants (HasBoolean (fromBool), true, false)
+import Data.Logic.Classes.FirstOrder (IsQuantified(..), quant)
+import Data.Logic.Classes.Formula (IsFormula(atomic))
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Propositional (PropositionalFormula(..))
-import Data.Logic.Classes.Term (Term(vt), fvt)
-import Data.Logic.Classes.Variable (Variable(..))
+import Data.Logic.Classes.Propositional (IsPropositional(..))
+import Data.Logic.Classes.Term (IsTerm(vt), fvt)
+import Data.Logic.Classes.Variable (IsVariable(..))
 import Data.Logic.Harrison.Formulas.FirstOrder (on_atoms)
 import Data.Logic.Harrison.Lib ((|->), setAny)
 import qualified Data.Map as Map
@@ -39,9 +39,9 @@ import Prelude hiding (pred)
 -- Interpretation of formulas.                                               
 -- ------------------------------------------------------------------------- 
 
-eval :: FirstOrderFormula formula atom v => formula -> (atom -> Bool) -> Bool
+eval :: IsQuantified formula atom v => formula -> (atom -> Bool) -> Bool
 eval fm v =
-    foldFirstOrder qu co id at fm
+    foldQuantified qu co id at fm
     where
       qu _ _ p = eval p v
       co ((:~:) p) = not (eval p v)
@@ -51,13 +51,13 @@ eval fm v =
       co (BinOp p (:<=>:) q) = eval p v == eval q v
       at = v
 
-list_conj :: (Constants formula, Combinable formula) => Set.Set formula -> formula
+list_conj :: (HasBoolean formula, IsCombinable formula) => Set.Set formula -> formula
 list_conj l = maybe true (\ (x, xs) -> Set.fold (.&.) x xs) (Set.minView l)
 
-list_disj :: (Constants formula, Combinable formula) => Set.Set formula -> formula
+list_disj :: (HasBoolean formula, IsCombinable formula) => Set.Set formula -> formula
 list_disj l = maybe false (\ (x, xs) -> Set.fold (.|.) x xs) (Set.minView l)
 
-mkLits :: (FirstOrderFormula formula atom v, Ord formula) =>
+mkLits :: (IsQuantified formula atom v, Ord formula) =>
           Set.Set formula -> (atom -> Bool) -> formula
 mkLits pvs v = list_conj (Set.map (\ p -> if eval p v then p else (.~.) p) pvs)
 
@@ -65,8 +65,8 @@ mkLits pvs v = list_conj (Set.map (\ p -> if eval p v then p else (.~.) p) pvs)
 -- Special case of applying a subfunction to the top *terms*.               
 -- -------------------------------------------------------------------------
 
-on_formula :: forall fol atom term v p. (FirstOrderFormula fol atom v, Apply atom p term) => (term -> term) -> fol -> fol
-on_formula f = on_atoms (foldApply (\ p ts -> atomic (apply p (map f ts) :: atom)) fromBool)
+on_formula :: forall fol atom term v p. (IsQuantified fol atom v, HasPredicate atom p term) => (term -> term) -> fol -> fol
+on_formula f = on_atoms (foldPredicate (\ p ts -> atomic (apply p (map f ts) :: atom)))
 
 -- ------------------------------------------------------------------------- 
 -- Parsing of terms.                                                         
@@ -202,10 +202,10 @@ END_INTERACTIVE;;
 
 -- | Return all variables occurring in a formula.
 var :: forall formula atom term v.
-       (FirstOrderFormula formula atom v,
+       (IsQuantified formula atom v,
         Atom atom term v) => formula -> Set.Set v
 var fm =
-    foldFirstOrder qu co tf at fm
+    foldQuantified qu co tf at fm
     where
       qu _ x p = Set.insert x (var p)
       co ((:~:) p) = var p
@@ -216,10 +216,10 @@ var fm =
 
 -- | Return the variables that occur free in a formula.
 fv :: forall formula atom term v.
-      (FirstOrderFormula formula atom v,
+      (IsQuantified formula atom v,
        Atom atom term v) => formula -> Set.Set v
 fv fm =
-    foldFirstOrder quantify compliment tf at fm
+    foldQuantified quantify compliment tf at fm
     where
       quantify _ x p = Set.delete x (fv p)
       compliment ((:~:) p) = fv p
@@ -228,7 +228,7 @@ fv fm =
       at = allVariables
 
 -- | Return the variables in a propositional formula.
-fv' :: forall formula atom term v. (PropositionalFormula formula atom, Atom atom term v, Ord v) => formula -> Set.Set v
+fv' :: forall formula atom term v. (IsPropositional formula atom, Atom atom term v, Ord v) => formula -> Set.Set v
 fv' fm =
     foldPropositional co tf allVariables fm
     where
@@ -240,19 +240,19 @@ fv' fm =
 -- Universal closure of a formula.                                           
 -- ------------------------------------------------------------------------- 
 
-generalize :: (FirstOrderFormula formula atom v, Atom atom term v) => formula -> formula
+generalize :: (IsQuantified formula atom v, Atom atom term v) => formula -> formula
 generalize fm = Set.fold for_all fm (fv fm)
 
 -- ------------------------------------------------------------------------- 
 -- Substitution in formulas, with variable renaming.                         
 -- ------------------------------------------------------------------------- 
 
-subst :: (FirstOrderFormula formula atom v,
-          Term term v f,
+subst :: (IsQuantified formula atom v,
+          IsTerm term v f,
           Atom atom term v) =>
          Map.Map v term -> formula -> formula
 subst env fm =
-    foldFirstOrder qu co tf at fm
+    foldQuantified qu co tf at fm
     where
       qu op x p = quant op x' (subst ((x |-> vt x') env) p)
           where
@@ -264,10 +264,10 @@ subst env fm =
       tf = fromBool
       at = atomic . substitute env
 
-subst' :: (PropositionalFormula formula atom,
+subst' :: (IsPropositional formula atom,
            -- Formula formula term v,
            Atom atom term v,
-           Term term v f) =>
+           IsTerm term v f) =>
           Map.Map v term -> formula -> formula
 subst' env fm =
     foldPropositional co tf at fm
@@ -279,14 +279,14 @@ subst' env fm =
 
 {-
 -- |Replace each free occurrence of variable old with term new.
-substitute :: forall formula atom term v f. (FirstOrderFormula formula atom v, Term term v f) => v -> term -> (atom -> formula) -> formula -> formula
+substitute :: forall formula atom term v f. (IsQuantified formula atom v, IsTerm term v f) => v -> term -> (atom -> formula) -> formula -> formula
 substitute old new atom formula =
     foldTerm (\ new' -> if old == new' then formula else substitute' formula)
              (\ _ _ -> substitute' formula)
              new
     where
       substitute' =
-          foldFirstOrder -- If the old variable appears in a quantifier
+          foldQuantified -- If the old variable appears in a quantifier
                 -- we can stop doing the substitution.
                 (\ q v f' -> quant q v (if old == v then f' else substitute' f'))
                 (\ cm -> case cm of

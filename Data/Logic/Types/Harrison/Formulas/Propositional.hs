@@ -4,13 +4,13 @@ module Data.Logic.Types.Harrison.Formulas.Propositional
     ( Formula(..)
     ) where
 
-import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
+import Data.Logic.Classes.Constants (HasBoolean(..))
+import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..))
 import qualified Data.Logic.Classes.Formula as C
-import Data.Logic.Classes.Literal (Literal(..))
-import Data.Logic.Classes.Negate (Negatable(..))
+import Data.Logic.Classes.Literal (IsLiteral(..))
+import Data.Logic.Classes.Negate (IsNegatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), topFixity)
-import Data.Logic.Classes.Propositional (PropositionalFormula(..), prettyPropositional, fixityPropositional, foldAtomsPropositional, mapAtomsPropositional)
+import Data.Logic.Classes.Propositional (IsPropositional(..), prettyPropositional, fixityPropositional, overatomsPropositional, onatomsPropositional)
 
 data Formula a
     = F
@@ -23,32 +23,32 @@ data Formula a
     | Iff (Formula a) (Formula a)
     deriving (Eq, Ord)
 
-instance Negatable (Formula atom) where
-    negatePrivate T = F
-    negatePrivate F = T
-    negatePrivate x = Not x
+instance IsNegatable (Formula atom) where
+    naiveNegate T = F
+    naiveNegate F = T
+    naiveNegate x = Not x
     foldNegation normal inverted (Not x) = foldNegation inverted normal x
     foldNegation normal _ x = normal x
 
-instance Constants (Formula a) where
+instance HasBoolean (Formula a) where
     fromBool True = T
     fromBool False = F
     asBool T = Just True
     asBool F = Just False
     asBool _ = Nothing
 
-instance Combinable (Formula a) where
+instance IsCombinable (Formula a) where
     a .<=>. b = Iff a b
     a .=>. b = Imp a b
     a .|. b = Or a b
     a .&. b = And a b
 
-instance (Pretty atom, HasFixity atom, Ord atom) => C.Formula (Formula atom) atom where
+instance (Pretty atom, HasFixity atom, Ord atom) => C.IsFormula (Formula atom) atom where
     atomic = Atom
-    foldAtoms = foldAtomsPropositional
-    mapAtoms = mapAtomsPropositional
+    overatoms = overatomsPropositional
+    onatoms = onatomsPropositional
 
-instance (Combinable (Formula atom), Pretty atom, HasFixity atom, Ord atom) => PropositionalFormula (Formula atom) atom where
+instance (IsCombinable (Formula atom), Pretty atom, HasFixity atom, Ord atom) => IsPropositional (Formula atom) atom where
     -- The atom type for this formula is the same as its first type parameter.
     foldPropositional co tf at formula =
         case formula of
@@ -61,7 +61,7 @@ instance (Combinable (Formula atom), Pretty atom, HasFixity atom, Ord atom) => P
           Iff f g -> co (BinOp f (:<=>:) g)
           Atom x -> at x
 
-instance (HasFixity atom, Pretty atom, Ord atom) => Literal (Formula atom) atom where
+instance (HasFixity atom, Pretty atom, Ord atom) => IsLiteral (Formula atom) atom where
     foldLiteral neg tf at formula =
         case formula of
           T -> tf True

@@ -10,11 +10,11 @@ module Data.Logic.Harrison.Normal
     ) where
 
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), fromFirstOrder)
-import Data.Logic.Classes.Formula (Formula(atomic))
-import Data.Logic.Classes.Literal (Literal)
-import Data.Logic.Classes.Negate (Negatable, negated, (.~.))
+import Data.Logic.Classes.Constants (HasBoolean(..))
+import Data.Logic.Classes.FirstOrder (IsQuantified(..), fromFirstOrder)
+import Data.Logic.Classes.Formula (IsFormula(atomic))
+import Data.Logic.Classes.Literal (IsLiteral)
+import Data.Logic.Classes.Negate (IsNegatable, negated, (.~.))
 import Data.Logic.Failing (failing)
 import Data.Logic.Harrison.Lib (setAny, allpairs)
 import Data.Logic.Harrison.Skolem (nnf)
@@ -32,7 +32,7 @@ distrib' s1 s2 = allpairs (Set.union) s1 s2
 -- Filtering out trivial disjuncts (in this guise, contradictory).           
 -- ------------------------------------------------------------------------- 
 
-trivial :: (Negatable lit, Ord lit) => Set.Set lit -> Bool
+trivial :: (IsNegatable lit, Ord lit) => Set.Set lit -> Bool
 trivial lits =
     not . Set.null $ Set.intersection neg (Set.map (.~.) pos)
     where (neg, pos) = Set.partition negated lits
@@ -41,10 +41,10 @@ trivial lits =
 -- With subsumption checking, done very naively (quadratic).                 
 -- ------------------------------------------------------------------------- 
 
-simpdnf :: (FirstOrderFormula fof atom v, Eq fof, Ord fof) =>
+simpdnf :: (IsQuantified fof atom v, Eq fof, Ord fof) =>
            fof -> Set.Set (Set.Set fof)
 simpdnf fm =
-    foldFirstOrder qu co tf at fm
+    foldQuantified qu co tf at fm
     where
       qu _ _ _ = def
       co _ = def
@@ -55,9 +55,9 @@ simpdnf fm =
       keep x = not (setAny (`Set.isProperSubsetOf` x) djs)
       djs = Set.filter (not . trivial) (purednf (nnf fm))
 
-purednf :: (FirstOrderFormula fof atom v, Ord fof) => fof -> Set.Set (Set.Set fof)
+purednf :: (IsQuantified fof atom v, Ord fof) => fof -> Set.Set (Set.Set fof)
 purednf fm =
-    foldFirstOrder qu co tf at fm
+    foldQuantified qu co tf at fm
     where
       qu _ _ _ = Set.singleton (Set.singleton fm)
       co (BinOp p (:&:) q) = distrib' (purednf p) (purednf q)
@@ -66,10 +66,10 @@ purednf fm =
       tf = Set.singleton . Set.singleton . fromBool
       at _ = Set.singleton (Set.singleton fm)
 
-simpdnf' :: forall lit fof atom v. (FirstOrderFormula fof atom v, Literal lit atom, Formula lit atom, Ord lit) =>
+simpdnf' :: forall lit fof atom v. (IsQuantified fof atom v, IsLiteral lit atom, IsFormula lit atom, Ord lit) =>
             fof -> Set.Set (Set.Set lit)
 simpdnf' fm =
-    foldFirstOrder qu co tf at fm
+    foldQuantified qu co tf at fm
     where
       qu _ _ _ = def
       co _ = def
@@ -80,10 +80,10 @@ simpdnf' fm =
       keep x = not (setAny (`Set.isProperSubsetOf` x) djs)
       djs = Set.filter (not . trivial) (purednf' (nnf fm))
 
-purednf' :: forall lit fof atom v. (FirstOrderFormula fof atom v, Literal lit atom, Ord lit) =>
+purednf' :: forall lit fof atom v. (IsQuantified fof atom v, IsLiteral lit atom, Ord lit) =>
             fof -> Set.Set (Set.Set lit)
 purednf' fm =
-    foldFirstOrder (\ _ _ _ -> x) co (\ _ -> x) (\ _ -> x)  fm
+    foldQuantified (\ _ _ _ -> x) co (\ _ -> x) (\ _ -> x)  fm
     where
       -- co :: Combination formula -> Set.Set (Set.Set lit)
       co (BinOp p (:&:) q) = Set.distrib (purednf' p) (purednf' q)
@@ -98,13 +98,13 @@ purednf' fm =
 
 -- It would be nice to share code this way, but the caller needs to
 -- specify the intermediate lit type, which is a pain.
--- simpcnf :: forall fof lit atom v. (FirstOrderFormula fof atom v, Ord fof, Literal lit atom v, Eq lit, Ord lit) => fof -> Set.Set (Set.Set fof)
+-- simpcnf :: forall fof lit atom v. (IsQuantified fof atom v, Ord fof, IsLiteral lit atom v, Eq lit, Ord lit) => fof -> Set.Set (Set.Set fof)
 -- simpcnf fm = Set.map (Set.map (fromLiteral id :: lit -> fof)) . simpcnf' $ fm
 
-simpcnf :: forall fof atom v. (FirstOrderFormula fof atom v, Ord fof) => fof -> Set.Set (Set.Set fof)
+simpcnf :: forall fof atom v. (IsQuantified fof atom v, Ord fof) => fof -> Set.Set (Set.Set fof)
 simpcnf fm =
     -- Set.map (Set.map (fromLiteral id :: lit -> fof)) . simpcnf' $ fm
-    foldFirstOrder qu co tf at fm
+    foldQuantified qu co tf at fm
     where
       qu _ _ _ = def
       co _ = def
@@ -116,14 +116,14 @@ simpcnf fm =
       keep x = not (setAny (`Set.isProperSubsetOf` x) cjs)
       cjs = Set.filter (not . trivial) (purecnf fm)
 
-purecnf :: forall fof atom v. (FirstOrderFormula fof atom v, Ord fof) => fof -> Set.Set (Set.Set fof)
+purecnf :: forall fof atom v. (IsQuantified fof atom v, Ord fof) => fof -> Set.Set (Set.Set fof)
 purecnf fm = Set.map (Set.map ({-simplify .-} (.~.))) (purednf (nnf ((.~.) fm)))
 
 -- Alternative versions, these should be merged
 
-simpcnf' :: forall lit fof atom v. (FirstOrderFormula fof atom v, Literal lit atom, Ord lit) => fof -> Set.Set (Set.Set lit)
+simpcnf' :: forall lit fof atom v. (IsQuantified fof atom v, IsLiteral lit atom, Ord lit) => fof -> Set.Set (Set.Set lit)
 simpcnf' fm =
-    foldFirstOrder (\ _ _ _ -> cjs') co tf at fm
+    foldQuantified (\ _ _ _ -> cjs') co tf at fm
     where
       co _ = cjs'
       at = Set.singleton . Set.singleton . atomic -- foldAtomEq (\ _ _ -> cjs') tf (\ _ _ -> cjs')
@@ -135,5 +135,5 @@ simpcnf' fm =
       cjs = Set.filter (not . trivial) (purecnf' (nnf fm)) -- :: Set.Set (Set.Set lit)
 
 -- | CNF: (a | b | c) & (d | e | f)
-purecnf' :: forall lit fof atom v. (FirstOrderFormula fof atom v, Literal lit atom, Ord lit) => fof -> Set.Set (Set.Set lit)
+purecnf' :: forall lit fof atom v. (IsQuantified fof atom v, IsLiteral lit atom, Ord lit) => fof -> Set.Set (Set.Set lit)
 purecnf' fm = Set.map (Set.map (.~.)) (purednf' (nnf ((.~.) fm)))

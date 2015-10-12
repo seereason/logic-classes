@@ -1,4 +1,4 @@
--- | PropositionalFormula is a multi-parameter type class for
+-- | IsPropositional is a multi-parameter type class for
 -- representing instance of propositional (aka zeroth order) logic
 -- datatypes.  These are formulas which have truth values, but no "for
 -- all" or "there exists" quantifiers and thus no variables or terms
@@ -10,7 +10,7 @@
              MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TemplateHaskell, UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Data.Logic.Classes.Propositional
-    ( PropositionalFormula(..)
+    ( IsPropositional(..)
     , showPropositional
     , prettyPropositional
     , fixityPropositional
@@ -23,14 +23,13 @@ module Data.Logic.Classes.Propositional
     , clauseNormalFormAlt'
     , disjunctiveNormalForm
     , disjunctiveNormalForm'
-    , overatoms
-    , foldAtomsPropositional
-    , mapAtomsPropositional
+    , overatomsPropositional
+    , onatomsPropositional
     ) where
 
 import Data.Logic.Classes.Combine
-import Data.Logic.Classes.Constants (Constants(fromBool), asBool, prettyBool)
-import Data.Logic.Classes.Formula (Formula(atomic))
+import Data.Logic.Classes.Constants (HasBoolean(fromBool), asBool, prettyBool)
+import Data.Logic.Classes.Formula (IsFormula(atomic))
 import Data.Logic.Classes.Negate
 import Data.Logic.Classes.Pretty (Pretty, HasFixity(fixity), Fixity(Fixity), FixityDirection(..))
 import Data.SafeCopy (base, deriveSafeCopy)
@@ -49,11 +48,11 @@ import Text.PrettyPrint (Doc, text, (<>))
 -- The Ord superclass is required so we can put formulas in sets
 -- during the normal form computations.  Negatable and Combinable are
 -- also considered basic operations that we can't build this package
--- without.  It is less obvious whether Constants is always required,
+-- without.  It is less obvious whether HasBoolean is always required,
 -- but the implementation of functions like simplify would be more
 -- elaborate if we didn't have it, so we will require it.
-class (Ord formula, Negatable formula, Combinable formula, Constants formula,
-       Pretty formula, HasFixity formula, Formula formula atom) => PropositionalFormula formula atom | formula -> atom where
+class (Ord formula, IsNegatable formula, IsCombinable formula, HasBoolean formula,
+       Pretty formula, HasFixity formula, IsFormula formula atom) => IsPropositional formula atom | formula -> atom where
     -- | Build an atomic formula from the atom type.
     -- | A fold function that distributes different sorts of formula
     -- to its parameter functions, one to handle binary operators, one
@@ -65,7 +64,7 @@ class (Ord formula, Negatable formula, Combinable formula, Constants formula,
                       -> formula -> r
 
 -- | Show a formula in a format that can be evaluated 
-showPropositional :: (PropositionalFormula formula atom) => (atom -> String) -> formula -> String
+showPropositional :: (IsPropositional formula atom) => (atom -> String) -> formula -> String
 showPropositional showAtom formula =
     foldPropositional co tf at formula
     where
@@ -81,7 +80,7 @@ showPropositional showAtom formula =
       showFormOp (:|:) = ".|."
 
 -- | Show a formula in a visually pleasing format.
-prettyPropositional :: (PropositionalFormula formula atom, HasFixity formula) =>
+prettyPropositional :: (IsPropositional formula atom, HasFixity formula) =>
                        (atom -> Doc)
                     -> Fixity        -- ^ The fixity of the parent formula.  If the operator being formatted here
                                      -- has a lower precedence it needs to be parenthesized.
@@ -99,7 +98,7 @@ prettyPropositional prettyAtom (Fixity pprec _pdir) formula =
       parenIf False x = x
       fix@(Fixity prec _dir) = fixity formula
 
-fixityPropositional :: (HasFixity atom, PropositionalFormula formula atom) => formula -> Fixity
+fixityPropositional :: (HasFixity atom, IsPropositional formula atom) => formula -> Fixity
 fixityPropositional formula =
     foldPropositional co tf at formula
     where
@@ -114,8 +113,8 @@ fixityPropositional formula =
 -- |Convert any instance of a propositional logic expression to any
 -- other using the supplied atom conversion function.
 convertProp :: forall formula1 atom1 formula2 atom2.
-               (PropositionalFormula formula1 atom1,
-                PropositionalFormula formula2 atom2) =>
+               (IsPropositional formula1 atom1,
+                IsPropositional formula2 atom2) =>
                (atom1 -> atom2) -> formula1 -> formula2
 convertProp convertA formula =
     foldPropositional c fromBool a formula
@@ -126,7 +125,7 @@ convertProp convertA formula =
       a = atomic . convertA
 
 -- | Simplify and recursively apply nnf.
-negationNormalForm :: (PropositionalFormula formula atom) => formula -> formula
+negationNormalForm :: (IsPropositional formula atom) => formula -> formula
 negationNormalForm = nnf . psimplify
 
 -- |Eliminate => and <=> and move negations inwards:
@@ -142,17 +141,17 @@ negationNormalForm = nnf . psimplify
 -- ~~P  P
 -- @
 -- 
-nnf :: (PropositionalFormula formula atom) => formula -> formula
+nnf :: (IsPropositional formula atom) => formula -> formula
 nnf fm = foldPropositional (nnfCombine fm) fromBool (\ _ -> fm) fm
 
-nnfCombine :: (PropositionalFormula formula atom) => formula -> Combination formula -> formula
+nnfCombine :: (IsPropositional formula atom) => formula -> Combination formula -> formula
 nnfCombine fm ((:~:) p) = foldPropositional nnfNotCombine (fromBool . not) (\ _ -> fm) p
 nnfCombine _ (BinOp p (:=>:) q) = nnf ((.~.) p) .|. (nnf q)
 nnfCombine _ (BinOp p (:<=>:) q) =  (nnf p .&. nnf q) .|. (nnf ((.~.) p) .&. nnf ((.~.) q))
 nnfCombine _ (BinOp p (:&:) q) = nnf p .&. nnf q
 nnfCombine _ (BinOp p (:|:) q) = nnf p .|. nnf q
 
-nnfNotCombine :: (PropositionalFormula formula atom) => Combination formula -> formula
+nnfNotCombine :: (IsPropositional formula atom) => Combination formula -> formula
 nnfNotCombine ((:~:) p) = nnf p
 nnfNotCombine (BinOp p (:&:) q) = nnf ((.~.) p) .|. nnf ((.~.) q)
 nnfNotCombine (BinOp p (:|:) q) = nnf ((.~.) p) .&. nnf ((.~.) q)
@@ -160,7 +159,7 @@ nnfNotCombine (BinOp p (:=>:) q) = nnf p .&. nnf ((.~.) q)
 nnfNotCombine (BinOp p (:<=>:) q) = (nnf p .&. nnf ((.~.) q)) .|. nnf ((.~.) p) .&. nnf q
 
 -- |Do a bottom-up recursion to simplify a propositional formula.
-psimplify :: (PropositionalFormula formula atom) => formula -> formula
+psimplify :: (IsPropositional formula atom) => formula -> formula
 psimplify fm =
     foldPropositional co tf at fm
     where
@@ -191,7 +190,7 @@ psimplify fm =
 --  False <=> P -> ~P
 -- @
 -- 
-psimplify1 :: forall formula atom. (PropositionalFormula formula atom) => formula -> formula
+psimplify1 :: forall formula atom. (IsPropositional formula atom) => formula -> formula
 psimplify1 fm =
     foldPropositional simplifyCombine (\ _ -> fm) (\ _ -> fm) fm
     where
@@ -220,10 +219,10 @@ psimplify1 fm =
       simplifyNotCombine _ = fm
       simplifyNotAtom x = (.~.) (atomic x)
 
-clauseNormalForm' :: (PropositionalFormula formula atom) => formula -> Set.Set (Set.Set formula)
+clauseNormalForm' :: (IsPropositional formula atom) => formula -> Set.Set (Set.Set formula)
 clauseNormalForm' = simp purecnf . negationNormalForm
 
-clauseNormalForm :: forall formula atom. (PropositionalFormula formula atom) => formula -> formula
+clauseNormalForm :: forall formula atom. (IsPropositional formula atom) => formula -> formula
 clauseNormalForm formula =
     case clean (lists cnf) of
       [] -> fromBool True
@@ -234,10 +233,10 @@ clauseNormalForm formula =
       cnf = clauseNormalForm' formula
 
 -- |I'm not sure of the clauseNormalForm functions above are wrong or just different.
-clauseNormalFormAlt' :: (PropositionalFormula formula atom) => formula -> Set.Set (Set.Set formula)
+clauseNormalFormAlt' :: (IsPropositional formula atom) => formula -> Set.Set (Set.Set formula)
 clauseNormalFormAlt' = simp purecnf' . negationNormalForm
 
-clauseNormalFormAlt :: forall formula atom. (PropositionalFormula formula atom) => formula -> formula
+clauseNormalFormAlt :: forall formula atom. (IsPropositional formula atom) => formula -> formula
 clauseNormalFormAlt formula =
     case clean (lists cnf) of
       [] -> fromBool True
@@ -247,7 +246,7 @@ clauseNormalFormAlt formula =
       lists = Set.toList . Set.map Set.toList
       cnf = clauseNormalFormAlt' formula
 
-disjunctiveNormalForm :: (PropositionalFormula formula atom) => formula -> formula
+disjunctiveNormalForm :: (IsPropositional formula atom) => formula -> formula
 disjunctiveNormalForm formula =
     case clean (lists dnf) of
       [] -> fromBool False
@@ -257,10 +256,10 @@ disjunctiveNormalForm formula =
       lists = Set.toList . Set.map Set.toList
       dnf = disjunctiveNormalForm' formula
 
-disjunctiveNormalForm' :: (PropositionalFormula formula atom, Eq formula) => formula -> Set.Set (Set.Set formula)
+disjunctiveNormalForm' :: (IsPropositional formula atom, Eq formula) => formula -> Set.Set (Set.Set formula)
 disjunctiveNormalForm' = simp purednf . negationNormalForm
 
-simp :: forall formula atom. (PropositionalFormula formula atom) =>
+simp :: forall formula atom. (IsPropositional formula atom) =>
         (formula -> Set.Set (Set.Set formula)) -> formula -> Set.Set (Set.Set formula)
 simp purenf fm =
     case (compare fm (fromBool False), compare fm (fromBool True)) of
@@ -274,15 +273,15 @@ simp purenf fm =
       cjs = Set.filter (not . trivial) (purenf (nnf fm)) :: Set.Set (Set.Set formula)
 
 -- |Harrison page 59.  Look for complementary pairs in a clause.
-trivial :: (Negatable lit, Ord lit) => Set.Set lit -> Bool
+trivial :: (IsNegatable lit, Ord lit) => Set.Set lit -> Bool
 trivial lits =
     not . Set.null $ Set.intersection (Set.map (.~.) n) p
     where (n, p) = Set.partition negated lits
 
-purecnf :: forall formula atom. (PropositionalFormula formula atom) => formula -> Set.Set (Set.Set formula)
+purecnf :: forall formula atom. (IsPropositional formula atom) => formula -> Set.Set (Set.Set formula)
 purecnf fm = Set.map (Set.map (.~.)) (purednf (nnf ((.~.) fm)))
 
-purednf :: forall formula atom. (PropositionalFormula formula atom) => formula -> Set.Set (Set.Set formula)
+purednf :: forall formula atom. (IsPropositional formula atom) => formula -> Set.Set (Set.Set formula)
 purednf fm =
     foldPropositional c (\ _ -> x) (\ _ -> x)  fm
     where
@@ -293,7 +292,7 @@ purednf fm =
       x :: Set.Set (Set.Set formula)
       x = Set.singleton (Set.singleton (convertProp id fm)) :: Set.Set (Set.Set formula)
 
-purecnf' :: forall formula atom. (PropositionalFormula formula atom) => formula -> Set.Set (Set.Set formula)
+purecnf' :: forall formula atom. (IsPropositional formula atom) => formula -> Set.Set (Set.Set formula)
 purecnf' fm =
     foldPropositional c (\ _ -> x) (\ _ -> x)  fm
     where
@@ -309,23 +308,23 @@ purecnf' fm =
 -- ------------------------------------------------------------------------- 
 
 -- | Use this to implement foldAtoms
-foldAtomsPropositional :: PropositionalFormula pf atom => (r -> atom -> r) -> r -> pf -> r
-foldAtomsPropositional f i pf =
-        foldPropositional co (const i) (f i) pf
+-- overatomsPropositional :: IsPropositional pf atom => (r -> atom -> r) -> r -> pf -> r
+overatomsPropositional :: IsPropositional pf atom => (atom -> r -> r) -> pf -> r -> r
+overatomsPropositional f pf i =
+        foldPropositional co (const i) (flip f i) pf
         where
-          co ((:~:) pf') = foldAtomsPropositional f i pf'
-          co (BinOp p _ q) = foldAtomsPropositional f (foldAtomsPropositional f i q) p
+          co ((:~:) pf') = overatomsPropositional f pf' i
+          co (BinOp p _ q) = overatomsPropositional f p (overatomsPropositional f q i)
 
--- | Deprecated - use foldAtoms.
-overatoms :: forall formula atom r. PropositionalFormula formula atom => (atom -> r -> r) -> formula -> r -> r
-overatoms f fm b = foldAtomsPropositional (flip f) b fm
+-- overatoms :: forall formula atom r. IsPropositional formula atom => (atom -> r -> r) -> formula -> r -> r
+-- overatoms f fm b = overatomsPropositional f fm b
 
-mapAtomsPropositional :: forall formula atom. PropositionalFormula formula atom => (atom -> formula) -> formula -> formula
-mapAtomsPropositional f fm =
+onatomsPropositional :: forall formula atom. IsPropositional formula atom => (atom -> formula) -> formula -> formula
+onatomsPropositional f fm =
     foldPropositional co tf at fm
     where
-      co ((:~:) p) = mapAtomsPropositional f p
-      co (BinOp p op q) = binop (mapAtomsPropositional f p) op (mapAtomsPropositional f q)
+      co ((:~:) p) = onatomsPropositional f p
+      co (BinOp p op q) = binop (onatomsPropositional f p) op (onatomsPropositional f q)
       tf flag = fromBool flag
       at x = f x
 

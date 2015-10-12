@@ -1,12 +1,11 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
              MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TemplateHaskell, UndecidableInstances #-}
 module Data.Logic.Classes.FirstOrder
-    ( FirstOrderFormula(..)
+    ( IsQuantified(..)
     , Quant(..)
     , zipFirstOrder
     , for_all'
     , exists'
-    , quant
     , (!)
     , (?)
     , (∀)
@@ -18,10 +17,8 @@ module Data.Logic.Classes.FirstOrder
     , showFirstOrder
     , prettyFirstOrder
     , fixityFirstOrder
-    , foldAtomsFirstOrder
-    , mapAtomsFirstOrder
-    , onatoms
-    , overatoms
+    , overatomsFirstOrder
+    , onatomsFirstOrder
     , atom_union
     , fromFirstOrder
     , fromLiteral
@@ -30,114 +27,114 @@ module Data.Logic.Classes.FirstOrder
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Constants
 import Data.Logic.Classes.Combine
-import Data.Logic.Classes.Formula (Formula(atomic))
-import Data.Logic.Classes.Literal (Literal, foldLiteral)
+import Data.Logic.Classes.Formula (IsFormula(atomic, overatoms))
+import Data.Logic.Classes.Literal (IsLiteral, foldLiteral)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), Fixity(..), FixityDirection(..))
 import qualified Data.Logic.Classes.Propositional as P
-import Data.Logic.Classes.Variable (Variable)
+import Data.Logic.Classes.Variable (IsVariable)
 import Data.Logic.Failing (Failing(..))
 import Data.SafeCopy (base, deriveSafeCopy)
 import qualified Data.Set as Set
 import Text.PrettyPrint (Doc, (<>), (<+>), text, parens, nest)
 
--- |The 'FirstOrderFormula' type class.  Minimal implementation:
--- @for_all, exists, foldFirstOrder, foldTerm, (.=.), pApp0-pApp7, fApp, var@.  The
+-- |The 'IsQuantified' type class.  Minimal implementation:
+-- @for_all, exists, foldQuantified, foldTerm, (.=.), pApp0-pApp7, fApp, var@.  The
 -- functional dependencies are necessary here so we can write
 -- functions that don't fix all of the type parameters.  For example,
 -- without them the univquant_free_vars function gives the error @No
--- instance for (FirstOrderFormula Formula atom V)@ because the
+-- instance for (IsQuantified Formula atom V)@ because the
 -- function doesn't mention the Term type.
-class ( Formula formula atom
-      , Combinable formula  -- Basic logic operations
-      , Constants formula
-      , Constants atom
+class ( IsFormula formula atom
+      , IsCombinable formula  -- Basic logic operations
+      , HasBoolean formula
+      , HasBoolean atom
       , HasFixity atom
-      , Variable v
+      , IsVariable v
       , Pretty atom, Pretty v
-      ) => FirstOrderFormula formula atom v | formula -> atom v where
-    -- | Universal quantification - for all x (formula x)
+      ) => IsQuantified formula atom v | formula -> atom v where
+    quant :: Quant -> v -> formula -> formula
+
     for_all :: v -> formula -> formula
-    -- | Existential quantification - there exists x such that (formula x)
+    for_all = quant (:!:)
     exists ::  v -> formula -> formula
+    exists = quant (:?:)
 
     -- | A fold function similar to the one in 'PropositionalFormula'
     -- but extended to cover both the existing formula types and the
-    -- ones introduced here.  @foldFirstOrder (.~.) quant binOp infixPred pApp@
+    -- ones introduced here.  @foldQuantified (.~.) quant binOp infixPred pApp@
     -- is a no op.  The argument order is taken from Logic-TPTP.
-    foldFirstOrder :: (Quant -> v -> formula -> r)
+    foldQuantified :: (Quant -> v -> formula -> r)
                    -> (Combination formula -> r)
                    -> (Bool -> r)
                    -> (atom -> r)
                    -> formula
                    -> r
 
-zipFirstOrder :: FirstOrderFormula formula atom v =>
+zipFirstOrder :: IsQuantified formula atom v =>
                  (Quant -> v -> formula -> Quant -> v -> formula -> Maybe r)
               -> (Combination formula -> Combination formula -> Maybe r)
               -> (Bool -> Bool -> Maybe r)
               -> (atom -> atom -> Maybe r)
               -> formula -> formula -> Maybe r
 zipFirstOrder qu co tf at fm1 fm2 =
-    foldFirstOrder qu' co' tf' at' fm1
+    foldQuantified qu' co' tf' at' fm1
     where
-      qu' op1 v1 p1 = foldFirstOrder (qu op1 v1 p1) (\ _ -> Nothing) (\ _ -> Nothing) (\ _ -> Nothing) fm2
-      co' c1 = foldFirstOrder (\ _ _ _ -> Nothing) (co c1) (\ _ -> Nothing) (\ _ -> Nothing) fm2
-      tf' x1 = foldFirstOrder (\ _ _ _ -> Nothing) (\ _ -> Nothing) (tf x1) (\ _ -> Nothing) fm2
-      at' atom1 = foldFirstOrder (\ _ _ _ -> Nothing) (\ _ -> Nothing) (\ _ -> Nothing) (at atom1) fm2
+      qu' op1 v1 p1 = foldQuantified (qu op1 v1 p1) (\ _ -> Nothing) (\ _ -> Nothing) (\ _ -> Nothing) fm2
+      co' c1 = foldQuantified (\ _ _ _ -> Nothing) (co c1) (\ _ -> Nothing) (\ _ -> Nothing) fm2
+      tf' x1 = foldQuantified (\ _ _ _ -> Nothing) (\ _ -> Nothing) (tf x1) (\ _ -> Nothing) fm2
+      at' atom1 = foldQuantified (\ _ _ _ -> Nothing) (\ _ -> Nothing) (\ _ -> Nothing) (at atom1) fm2
 
 -- |The 'Quant' and 'InfixPred' types, like the BinOp type in
 -- 'Data.Logic.Propositional', could be additional parameters to the type
 -- class, but it would add additional complexity with unclear
 -- benefits.
-data Quant = Forall | Exists deriving (Eq,Ord,Data,Typeable,Enum,Bounded)
+data Quant = (:!:) -- ^ for_all
+           | (:?:) -- ^ exists
+             deriving (Eq,Ord,Data,Typeable,Enum,Bounded, Show)
 
+{-
 instance Show Quant where
-    show Forall = "for_all"
-    show Exists = "exists"
+    show (:!:) = "for_all"
+    show (:?:) = "exists"
+-}
 
 -- |for_all with a list of variables, for backwards compatibility.
-for_all' :: FirstOrderFormula formula atom v => [v] -> formula -> formula
+for_all' :: IsQuantified formula atom v => [v] -> formula -> formula
 for_all' vs f = foldr for_all f vs
 
 -- |exists with a list of variables, for backwards compatibility.
-exists' :: FirstOrderFormula formula atom v => [v] -> formula -> formula
+exists' :: IsQuantified formula atom v => [v] -> formula -> formula
 exists' vs f = foldr for_all f vs
 
 -- |Names for for_all and exists inspired by the conventions of the
 -- TPTP project.
-(!) :: FirstOrderFormula formula atom v => v -> formula -> formula
+(!) :: IsQuantified formula atom v => v -> formula -> formula
 (!) = for_all
-(?) :: FirstOrderFormula formula atom v => v -> formula -> formula
+(?) :: IsQuantified formula atom v => v -> formula -> formula
 (?) = exists
 
 -- Irrelevant, because these are always used as prefix operators, never as infix.
 infixr 9 !, ?, ∀, ∃
 
 -- | ∀ can't be a function when -XUnicodeSyntax is enabled.
-(∀) :: FirstOrderFormula formula atom v => v -> formula -> formula
+(∀) :: IsQuantified formula atom v => v -> formula -> formula
 (∀) = for_all
-(∃) :: FirstOrderFormula formula atom v => v -> formula -> formula
+(∃) :: IsQuantified formula atom v => v -> formula -> formula
 (∃) = exists
-
--- | Helper function for building folds.
-quant :: FirstOrderFormula formula atom v => 
-         Quant -> v -> formula -> formula
-quant Forall v f = for_all v f
-quant Exists v f = exists v f
 
 -- |Legacy version of quant from when we supported lists of quantified
 -- variables.  It also has the virtue of eliding quantifications with
 -- empty variable lists (by calling for_all' and exists'.)
-quant' :: FirstOrderFormula formula atom v => 
+quant' :: IsQuantified formula atom v => 
          Quant -> [v] -> formula -> formula
-quant' Forall = for_all'
-quant' Exists = exists'
+quant' (:!:) = for_all'
+quant' (:?:) = exists'
 
-convertFOF :: (FirstOrderFormula formula1 atom1 v1, FirstOrderFormula formula2 atom2 v2) =>
+convertFOF :: (IsQuantified formula1 atom1 v1, IsQuantified formula2 atom2 v2) =>
               (atom1 -> atom2) -> (v1 -> v2) -> formula1 -> formula2
 convertFOF convertA convertV formula =
-    foldFirstOrder qu co tf (atomic . convertA) formula
+    foldQuantified qu co tf (atomic . convertA) formula
     where
       convert' = convertFOF convertA convertV
       qu x v f = quant x (convertV v) (convert' f)
@@ -149,11 +146,11 @@ convertFOF convertA convertV formula =
 -- will return Nothing if there are any quantifiers, or if it runs
 -- into an atom that it is unable to convert.
 toPropositional :: forall formula1 atom v formula2 atom2.
-                   (FirstOrderFormula formula1 atom v,
-                    P.PropositionalFormula formula2 atom2) =>
+                   (IsQuantified formula1 atom v,
+                    P.IsPropositional formula2 atom2) =>
                    (atom -> atom2) -> formula1 -> formula2
 toPropositional convertAtom formula =
-    foldFirstOrder qu co tf at formula
+    foldQuantified qu co tf at formula
     where
       convert' = toPropositional convertAtom
       qu _ _ _ = error "toPropositional: invalid argument"
@@ -163,12 +160,12 @@ toPropositional convertAtom formula =
       at = atomic . convertAtom
 
 -- | Display a formula in a format that can be read into the interpreter.
-showFirstOrder :: forall formula atom v. (FirstOrderFormula formula atom v, Show v) => (atom -> String) -> formula -> String
+showFirstOrder :: forall formula atom v. (IsQuantified formula atom v, Show v) => (atom -> String) -> formula -> String
 showFirstOrder sa formula =
-    foldFirstOrder qu co tf at formula
+    foldQuantified qu co tf at formula
     where
-      qu Forall v f = "(for_all " ++ show v ++ " " ++ showFirstOrder sa f ++ ")"
-      qu Exists v f = "(exists " ++  show v ++ " " ++ showFirstOrder sa f ++ ")"
+      qu (:!:) v f = "(for_all " ++ show v ++ " " ++ showFirstOrder sa f ++ ")"
+      qu (:?:) v f = "(exists " ++  show v ++ " " ++ showFirstOrder sa f ++ ")"
       co (BinOp f1 op f2) = "(" ++ parenForm f1 ++ " " ++ showCombine op ++ " " ++ parenForm f2 ++ ")"
       co ((:~:) f) = "((.~.) " ++ showFirstOrder sa f ++ ")"
       tf x = if x then "true" else "false"
@@ -180,11 +177,11 @@ showFirstOrder sa formula =
       showCombine (:&:) = ".&."
       showCombine (:|:) = ".|."
 
-prettyFirstOrder :: forall formula atom v. (FirstOrderFormula formula atom v) =>
+prettyFirstOrder :: forall formula atom v. (IsQuantified formula atom v) =>
                       (Int -> atom -> Doc) -> (v -> Doc) -> Int -> formula -> Doc
 prettyFirstOrder pa pv pprec formula =
     parensIf (pprec > prec) $
-    foldFirstOrder
+    foldQuantified
           (\ qop v f -> prettyQuant qop <> pv v <> text "." <+> (prettyFirstOrder pa pv prec f))
           (\ cm ->
                case cm of
@@ -202,12 +199,12 @@ prettyFirstOrder pa pv pprec formula =
       Fixity prec _ = fixityFirstOrder formula
       parensIf False = id
       parensIf _ = parens . nest 1
-      prettyQuant Forall = text "∀" -- "!"
-      prettyQuant Exists = text "∃" -- "?"
+      prettyQuant (:!:) = text "∀"
+      prettyQuant (:?:) = text "∃"
 
-fixityFirstOrder :: (HasFixity atom, FirstOrderFormula formula atom v) => formula -> Fixity
+fixityFirstOrder :: (HasFixity atom, IsQuantified formula atom v) => formula -> Fixity
 fixityFirstOrder formula =
-    foldFirstOrder qu co tf at formula
+    foldQuantified qu co tf at formula
     where
       qu _ _ _ = Fixity 10 InfixN
       co ((:~:) _) = Fixity 5 InfixN
@@ -221,60 +218,53 @@ fixityFirstOrder formula =
 -- | Examine the formula to find the list of outermost universally
 -- quantified variables, and call a function with that list and the
 -- formula after the quantifiers are removed.
-withUnivQuants :: FirstOrderFormula formula atom v => ([v] -> formula -> r) -> formula -> r
+withUnivQuants :: IsQuantified formula atom v => ([v] -> formula -> r) -> formula -> r
 withUnivQuants fn formula =
     doFormula [] formula
     where
       doFormula vs f =
-          foldFirstOrder
+          foldQuantified
                 (doQuant vs)
                 (\ _ -> fn (reverse vs) f)
                 (\ _ -> fn (reverse vs) f)
                 (\ _ -> fn (reverse vs) f)
                 f
-      doQuant vs Forall v f = doFormula (v : vs) f
-      doQuant vs Exists v f = fn (reverse vs) (exists v f)
+      doQuant vs (:!:) v f = doFormula (v : vs) f
+      doQuant vs (:?:) v f = fn (reverse vs) (exists v f)
 
 -- ------------------------------------------------------------------------- 
 -- Apply a function to the atoms, otherwise keeping structure.               
 -- ------------------------------------------------------------------------- 
 
-mapAtomsFirstOrder :: forall formula atom v. FirstOrderFormula formula atom v => (atom -> formula) -> formula -> formula
-mapAtomsFirstOrder f fm =
-    foldFirstOrder qu co tf at fm
+onatomsFirstOrder :: forall formula atom v. IsQuantified formula atom v => (atom -> formula) -> formula -> formula
+onatomsFirstOrder f fm =
+    foldQuantified qu co tf at fm
     where
-      qu op v p = quant op v (mapAtomsFirstOrder f p)
-      co ((:~:) p) = mapAtomsFirstOrder f p
-      co (BinOp p op q) = binop (mapAtomsFirstOrder f p) op (mapAtomsFirstOrder f q)
+      qu op v p = quant op v (onatomsFirstOrder f p)
+      co ((:~:) p) = onatomsFirstOrder f p
+      co (BinOp p op q) = binop (onatomsFirstOrder f p) op (onatomsFirstOrder f q)
       tf flag = fromBool flag
       at x = f x
-
--- | Deprecated - use mapAtoms
-onatoms :: forall formula atom v. (FirstOrderFormula formula atom v) => (atom -> formula) -> formula -> formula
-onatoms = mapAtomsFirstOrder
 
 -- ------------------------------------------------------------------------- 
 -- Formula analog of list iterator "itlist".                                 
 -- -------------------------------------------------------------------------
 
-foldAtomsFirstOrder :: FirstOrderFormula fof atom v => (r -> atom -> r) -> r -> fof -> r
-foldAtomsFirstOrder f i fof =
-        foldFirstOrder qu co (const i) (f i) fof
+-- overatomsFirstOrder :: IsQuantified fof atom v => (r -> atom -> r) -> r -> fof -> r
+-- overatomsFirstOrder f i fof =
+overatomsFirstOrder :: forall fof atom v r. IsQuantified fof atom v => (atom -> r -> r) -> fof -> r -> r
+overatomsFirstOrder f fof r0 =
+        foldQuantified qu co (const r0) (flip f r0) fof
         where
-          qu _ _ fof' = foldAtomsFirstOrder f i fof'
-          co ((:~:) fof') = foldAtomsFirstOrder f i fof'
-          co (BinOp p _ q) = foldAtomsFirstOrder f (foldAtomsFirstOrder f i q) p
-
--- | Deprecated - use foldAtoms
-overatoms :: forall formula atom v r. FirstOrderFormula formula atom v =>
-             (atom -> r -> r) -> formula -> r -> r
-overatoms f fm b = foldAtomsFirstOrder (flip f) b fm
+          qu _ _ fof' = overatomsFirstOrder f fof' r0
+          co ((:~:) fof') = overatomsFirstOrder f fof' r0
+          co (BinOp p _ q) = overatomsFirstOrder f p (overatomsFirstOrder f q r0)
 
 -- ------------------------------------------------------------------------- 
 -- Special case of a union of the results of a function over the atoms.      
 -- ------------------------------------------------------------------------- 
 
-atom_union :: forall formula atom v a. (FirstOrderFormula formula atom v, Ord a) =>
+atom_union :: forall formula atom v a. (IsQuantified formula atom v, Ord a) =>
               (atom -> Set.Set a) -> formula -> Set.Set a
 atom_union f fm = overatoms (\ h t -> Set.union (f h) t) fm Set.empty
 
@@ -282,16 +272,16 @@ atom_union f fm = overatoms (\ h t -> Set.union (f h) t) fm Set.empty
 -- with a construct unsupported in a normal logic formula,
 -- i.e. quantifiers and formula combinators other than negation.
 fromFirstOrder :: forall formula atom v lit atom2.
-                  (Formula lit atom2, FirstOrderFormula formula atom v, Literal lit atom2) =>
+                  (IsFormula lit atom2, IsQuantified formula atom v, IsLiteral lit atom2) =>
                   (atom -> atom2) -> formula -> Failing lit
 fromFirstOrder ca formula =
-    foldFirstOrder (\ _ _ _ -> Failure ["fromFirstOrder"]) co (Success . fromBool) (Success . atomic . ca) formula
+    foldQuantified (\ _ _ _ -> Failure ["fromFirstOrder"]) co (Success . fromBool) (Success . atomic . ca) formula
     where
       co :: Combination formula -> Failing lit
       co ((:~:) f) =  fromFirstOrder ca f >>= return . (.~.)
       co _ = Failure ["fromFirstOrder"]
 
-fromLiteral :: forall lit atom v fof atom2. (Literal lit atom, FirstOrderFormula fof atom2 v) =>
+fromLiteral :: forall lit atom v fof atom2. (IsLiteral lit atom, IsQuantified fof atom2 v) =>
                (atom -> atom2) -> lit -> fof
 fromLiteral ca lit = foldLiteral (\ p -> (.~.) (fromLiteral ca p)) fromBool (atomic . ca) lit
 

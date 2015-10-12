@@ -3,7 +3,7 @@
 -- propositional and first order logic are here.
 {-# LANGUAGE DeriveDataTypeable #-}
 module Data.Logic.Classes.Combine
-    ( Combinable(..)
+    ( IsCombinable(..)
     , Combination(..)
     , combine
     , BinOp(..)
@@ -20,7 +20,7 @@ module Data.Logic.Classes.Combine
     ) where
 
 import Data.Generics (Data, Typeable)
-import Data.Logic.Classes.Negate (Negatable, (.~.))
+import Data.Logic.Classes.Negate (IsNegatable, (.~.))
 import Data.Logic.Classes.Pretty (Pretty(pPrint))
 import Text.PrettyPrint (Doc, text)
 
@@ -28,7 +28,7 @@ import Text.PrettyPrint (Doc, text)
 -- @
 --  (.|.)
 -- @
-class (Negatable formula) => Combinable formula where
+class (IsNegatable formula) => IsCombinable formula where
     -- | Disjunction/OR
     (.|.) :: formula -> formula -> formula
 
@@ -80,7 +80,7 @@ instance Show formula => Show (Combination formula) where
 --   foldPropositional combine atomic
 -- @
 -- is a no-op.
-combine :: Combinable formula => Combination formula -> formula
+combine :: IsCombinable formula => Combination formula -> formula
 combine (BinOp f1 (:<=>:) f2) = f1 .<=>. f2
 combine (BinOp f1 (:=>:) f2) = f1 .=>. f2
 combine (BinOp f1 (:&:) f2) = f1 .&. f2
@@ -102,25 +102,25 @@ instance Show BinOp where
     show (:<=>:) = ".<=>."
     show (:=>:) = ".=>."
 
-binop :: Combinable formula => formula -> BinOp -> formula -> formula
+binop :: IsCombinable formula => formula -> BinOp -> formula -> formula
 binop a (:&:) b = a .&. b
 binop a (:|:) b = a .|. b
 binop a (:=>:) b = a .=>. b
 binop a (:<=>:) b = a .<=>. b
 
-(∧) :: Combinable formula => formula -> formula -> formula
+(∧) :: IsCombinable formula => formula -> formula -> formula
 (∧) = (.&.)
-(∨) :: Combinable formula => formula -> formula -> formula
+(∨) :: IsCombinable formula => formula -> formula -> formula
 (∨) = (.|.)
 -- | ⇒ can't be a function when -XUnicodeSyntax is enabled.
-(⇒) :: Combinable formula => formula -> formula -> formula
+(⇒) :: IsCombinable formula => formula -> formula -> formula
 (⇒) = (.=>.)
-(⇔) :: Combinable formula => formula -> formula -> formula
+(⇔) :: IsCombinable formula => formula -> formula -> formula
 (⇔) = (.<=>.)
 
-(==>) :: Combinable formula => formula -> formula -> formula
+(==>) :: IsCombinable formula => formula -> formula -> formula
 (==>) = (.=>.)
-(<=>) :: Combinable formula => formula -> formula -> formula
+(<=>) :: IsCombinable formula => formula -> formula -> formula
 (<=>) = (.<=>.)
 
 prettyBinOp :: BinOp -> Doc

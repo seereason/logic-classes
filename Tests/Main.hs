@@ -1,5 +1,5 @@
-import Common (TestFormula, TestProof, doTest)
-import Data.Logic.Instances.Test (V, TFormula, TAtom, TTerm)
+import Common (TestProof)
+import Data.Logic.Instances.Test (V, TFormula, TTerm)
 import System.Exit
 import Test.HUnit
 import qualified Data.Logic.Harrison.DefCNF as DefCNF

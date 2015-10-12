@@ -13,14 +13,14 @@ module Harrison.FOL
 import Control.Applicative.Error (Failing(..))
 import Control.Monad (filterM)
 import Data.Logic.Classes.Apply (pApp)
-import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
+import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (false)
-import Data.Logic.Classes.Equals (AtomEq(..), (.=.))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
+import Data.Logic.Classes.Equals (HasEquality(..), (.=.), foldAtomEq)
+import Data.Logic.Classes.FirstOrder (IsQuantified(..))
 import qualified Data.Logic.Classes.FirstOrder as C
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Term (Term(vt, fApp, foldTerm))
-import Data.Logic.Classes.Variable (Variable(..))
+import Data.Logic.Classes.Term (IsTerm(vt, fApp, foldTerm))
+import Data.Logic.Classes.Variable (IsVariable(..))
 import Data.Logic.Harrison.Lib ((|->))
 import Data.Logic.Types.Harrison.Equal (FOLEQ, PredName(..))
 import Data.Logic.Types.Harrison.FOL (TermType(..), FOL(..), Function(..))
@@ -42,7 +42,7 @@ tests2 = TestLabel "Data.Logic.Tests.Harrison.FOL" $
 -- Semantics, implemented of course for finite domains only.                 
 -- ------------------------------------------------------------------------- 
 
-termval :: (Term term v f, Show v) =>
+termval :: (IsTerm term v f, Show v) =>
            ([a], f -> [a] -> a, p -> [a] -> Bool)
         -> Map.Map v a
         -> term
@@ -53,17 +53,17 @@ termval m@(_domain, func, _pred) v tm =
              tm
 
 holds :: forall formula atom term v p f a.
-         (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Show v, Eq a) =>
+         (IsQuantified formula atom v, HasEquality atom p term, IsTerm term v f, Show v, Eq a) =>
          ([a], f -> [a] -> a, p -> [a] -> Bool)
       -> Map.Map v a
       -> formula
       -> Failing Bool
 holds m@(domain, _func, pred) v fm =
-    foldFirstOrder qu co tf at fm
+    foldQuantified qu co tf at fm
     where
       qu op x p = mapM (\ a -> holds m ((|->) x a v) p) domain >>= return . (asPred op) (== True)
-      asPred C.Exists = any
-      asPred C.Forall = all
+      asPred (C.:?:) = any
+      asPred (C.:!:) = all
       co ((:~:) p) = holds m v p >>= return . not
       co (BinOp p (:|:) q) = (||) <$> (holds m v p) <*> (holds m v q)
       co (BinOp p (:&:) q) = (&&) <$> (holds m v p) <*> (holds m v q)
@@ -71,7 +71,7 @@ holds m@(domain, _func, pred) v fm =
       co (BinOp p (:<=>:) q) = (==) <$> (holds m v p) <*> (holds m v q)
       tf x = Success x
       at :: atom -> Failing Bool
-      at = foldAtomEq (\ r args -> mapM (termval m v) args >>= return . pred r) return (\ t1 t2 -> return $ termval m v t1 == termval m v t2)
+      at = foldAtomEq (\ r args -> mapM (termval m v) args >>= return . pred r) (\ t1 t2 -> return $ termval m v t1 == termval m v t2)
 
 -- | This becomes a method in FirstOrderFormulaEq, so it is not exported here.
 -- (.=.) :: TermType -> TermType -> Formula FOL

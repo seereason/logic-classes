@@ -6,7 +6,7 @@ module Data.Logic.Harrison.Unif
     , unifyAndApply
     ) where
 
-import Data.Logic.Classes.Term (Term(..), tsubst)
+import Data.Logic.Classes.Term (IsTerm(..), tsubst)
 import Data.Logic.Failing (Failing(..), failing)
 import qualified Data.Map as Map
 {-
@@ -21,7 +21,7 @@ let rec istriv env x t =
     Var y -> y = x or defined env y & istriv env x (apply env y)
   | Fn(f,args) -> exists (istriv env x) args & failwith "cyclic";;
 -}
-isTrivial :: Term term v f => Map.Map v term -> v -> term -> Failing Bool
+isTrivial :: IsTerm term v f => Map.Map v term -> v -> term -> Failing Bool
 isTrivial env x t =
     foldTerm v f t
     where
@@ -56,7 +56,7 @@ let rec unify env eqs =
         if defined env x then unify env ((apply env x,t)::oth)
         else unify (if istriv env x t then env else (x|->t) env) oth;;
 -}
-unify :: Term term v f => Map.Map v term -> [(term,term)] -> Failing (Map.Map v term)
+unify :: IsTerm term v f => Map.Map v term -> [(term,term)] -> Failing (Map.Map v term)
 unify env [] = Success env
 unify env ((a,b):oth) =
     foldTerm (vr b) (\ f fargs -> foldTerm (vr a) (fn f fargs) b) a
@@ -79,7 +79,7 @@ let rec solve env =
   let env' = mapf (tsubst env) env in
   if env' = env then env else solve env';;
 -}
-solve :: Term term v f => Map.Map v term -> Map.Map v term
+solve :: IsTerm term v f => Map.Map v term -> Map.Map v term
 solve env =
     if env' == env then env else solve env'
     where env' = Map.map (tsubst env) env
@@ -91,7 +91,7 @@ solve env =
 
 let fullunify eqs = solve (unify undefined eqs);;
 -}
-fullUnify :: Term term v f => [(term,term)] -> Failing (Map.Map v term)
+fullUnify :: IsTerm term v f => [(term,term)] -> Failing (Map.Map v term)
 fullUnify eqs = failing Failure (Success . solve) (unify Map.empty eqs)
 {-
 
@@ -104,7 +104,7 @@ let unify_and_apply eqs =
   let apply (t1,t2) = tsubst i t1,tsubst i t2 in
   map apply eqs;;
 -}
-unifyAndApply :: Term term v f => [(term, term)] -> Failing [(term, term)]
+unifyAndApply :: IsTerm term v f => [(term, term)] -> Failing [(term, term)]
 unifyAndApply eqs =
     case fullUnify eqs of
       Failure x -> Failure x

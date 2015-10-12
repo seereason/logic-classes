@@ -11,18 +11,18 @@ import Control.Applicative.Error (Failing(..))
 import qualified Data.Logic.Classes.Atom as C
 --import Data.Logic.Classes.Combine ((.&.), (.=>.))
 --import Data.Logic.Classes.Constants (false)
-import Data.Logic.Classes.Equals (AtomEq, zipAtomsEq)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula, exists, for_all)
-import Data.Logic.Classes.Formula (Formula(..))
+import Data.Logic.Classes.Equals (HasEquality, zipAtomsEq)
+--import Data.Logic.Classes.FirstOrder (IsQuantified, exists, for_all)
+import Data.Logic.Classes.Formula (IsFormula(..))
 import Data.Logic.Classes.Negate (positive, (.~.))
-import Data.Logic.Classes.Literal (Literal, zipLiterals)
-import Data.Logic.Classes.Propositional (PropositionalFormula)
-import Data.Logic.Classes.Term (Term(..), vt)
-import Data.Logic.Harrison.FOL (subst, generalize)
-import Data.Logic.Harrison.Herbrand (davisputnam)
+import Data.Logic.Classes.Literal (IsLiteral, zipLiterals)
+--import Data.Logic.Classes.Propositional (IsPropositional)
+import Data.Logic.Classes.Term (IsTerm(..), vt)
+--import Data.Logic.Harrison.FOL (subst, generalize)
+--import Data.Logic.Harrison.Herbrand (davisputnam)
 import Data.Logic.Harrison.Lib (allpairs, settryfind, distrib')
-import Data.Logic.Harrison.Prop (simpdnf)
-import Data.Logic.Harrison.Skolem (runSkolem, skolemize)
+--import Data.Logic.Harrison.Prop (simpdnf)
+--import Data.Logic.Harrison.Skolem (runSkolem, skolemize)
 import Data.Logic.Harrison.Unif (unify)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -40,9 +40,9 @@ import Debug.Trace (trace)
 -- ------------------------------------------------------------------------- 
 
 unify_literals :: forall lit atom term v f.
-                  (Literal lit atom,
+                  (IsLiteral lit atom,
                    C.Atom atom term v,
-                   Term term v f) =>
+                   IsTerm term v f) =>
                   Map.Map v term -> lit -> lit -> Failing (Map.Map v term)
 unify_literals env f1 f2 =
     maybe err id (zipLiterals co tf at f1 f2)
@@ -55,16 +55,15 @@ unify_literals env f1 f2 =
       err = Failure ["Can't unify literals"]
 
 unifyAtomsEq :: forall v f atom p term.
-                (AtomEq atom p term, Term term v f) =>
+                (HasEquality atom p term, IsTerm term v f) =>
                 Map.Map v term -> atom -> atom -> Failing (Map.Map v term)
 unifyAtomsEq env a1 a2 =
-    maybe err id (zipAtomsEq ap tf eq a1 a2)
+    maybe err id (zipAtomsEq ap eq a1 a2)
     where
       ap p1 ts1 p2 ts2 =
           if p1 == p2 && length ts1 == length ts2
           then Just $ unify env (zip ts1 ts2)
           else Nothing
-      tf p q = if p == q then Just $ unify env [] else Nothing
       eq pl pr ql qr = Just $ unify env [(pl, ql), (pr, qr)]
       err = Failure ["Can't unify atoms"]
 
@@ -73,9 +72,9 @@ unifyAtomsEq env a1 a2 =
 -- ------------------------------------------------------------------------- 
 
 unify_complements :: forall lit atom term v f.
-                     (Literal lit atom,
+                     (IsLiteral lit atom,
                       C.Atom atom term v,
-                      Term term v f) =>
+                      IsTerm term v f) =>
                      Map.Map v term -> lit -> lit -> Failing (Map.Map v term)
 unify_complements env p q = unify_literals env p ((.~.) q)
 
@@ -83,7 +82,7 @@ unify_complements env p q = unify_literals env p ((.~.) q)
 -- Unify and refute a set of disjuncts.                                      
 -- ------------------------------------------------------------------------- 
 
-unify_refute :: (Literal lit atom, Term term v f, C.Atom atom term v, Ord lit) => Set.Set (Set.Set lit) -> Map.Map v term -> Failing (Map.Map v term)
+unify_refute :: (IsLiteral lit atom, IsTerm term v f, C.Atom atom term v, Ord lit) => Set.Set (Set.Set lit) -> Map.Map v term -> Failing (Map.Map v term)
 unify_refute djs env =
     case Set.minView djs of
       Nothing -> Success env
@@ -97,13 +96,13 @@ unify_refute djs env =
 -- Hence a Prawitz-like procedure (using unification on DNF).                
 -- ------------------------------------------------------------------------- 
 
-prawitz_loop :: forall atom v term f lit. (Literal lit atom, Term term v f, C.Atom atom term v, Ord lit) =>
+prawitz_loop :: forall atom v term f lit. (IsLiteral lit atom, IsTerm term v f, C.Atom atom term v, Ord lit) =>
                 Set.Set (Set.Set lit) -> [v] -> Set.Set (Set.Set lit) -> Int -> (Map.Map v term, Int)
 prawitz_loop djs0 fvs djs n =
     let l = length fvs in
     let newvars = map (\ k -> fromString ("_" ++ show (n * l + k))) [1..l] in
     let inst = Map.fromList (zip fvs (map vt newvars)) in
-    let djs1 = distrib' (Set.map (Set.map (mapAtoms (atomic . substitute' inst))) djs0) djs in
+    let djs1 = distrib' (Set.map (Set.map (onatoms (atomic . substitute' inst))) djs0) djs in
     case unify_refute djs1 Map.empty of
       Failure _ -> prawitz_loop djs0 fvs djs1 (n + 1)
       Success env -> (env, n + 1)
@@ -111,13 +110,13 @@ prawitz_loop djs0 fvs djs n =
       substitute' :: Map.Map v term -> atom -> atom
       substitute' = C.substitute
 
--- prawitz :: forall fof atom v. (FirstOrderFormula fof atom v, Ord fof) => fof -> Int
+-- prawitz :: forall fof atom v. (IsQuantified fof atom v, Ord fof) => fof -> Int
 #if 0
 prawitz :: forall fof atom term v f lit pf.
-           (FirstOrderFormula fof atom v,
-            PropositionalFormula pf atom,
-            Literal lit atom,
-            Term term v f,
+           (IsQuantified fof atom v,
+            IsPropositional pf atom,
+            IsLiteral lit atom,
+            IsTerm term v f,
             C.Atom atom term v) =>
            fof -> Int
 prawitz fm =
@@ -148,10 +147,10 @@ test01 = TestCase $ assertEqual "p20 - prawitz" expected input
 
 {-
 compare :: forall fof pf lit atom term v f.
-           (FirstOrderFormula fof atom v,
-            PropositionalFormula pf atom,
-            Literal pf atom,
-            Term term v f,
+           (IsQuantified fof atom v,
+            IsPropositional pf atom,
+            IsLiteral pf atom,
+            IsTerm term v f,
             C.Atom atom term v,
             IsString f) =>
            (atom -> Set.Set (f, Int)) -> fof -> (Int, Failing Int)

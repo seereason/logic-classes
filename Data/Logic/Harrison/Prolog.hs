@@ -3,8 +3,8 @@
 module Data.Logic.Harrison.Prolog where
 
 import Data.Logic.Classes.Atom (Atom)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula)
-import Data.Logic.Classes.Term (Term(vt))
+import Data.Logic.Classes.FirstOrder (IsQuantified)
+import Data.Logic.Classes.Term (IsTerm(vt))
 import Data.String (IsString (fromString))
 import Data.Logic.Harrison.FOL (fv, subst, list_conj)
 import qualified Data.Map as Map
@@ -18,7 +18,7 @@ import qualified Data.Set as Set
 -- Rename a rule.                                                            
 -- ------------------------------------------------------------------------- 
 
-renamerule :: forall fof atom term v f. (FirstOrderFormula fof atom v, {-Formula fof term v,-} Atom atom term v, Term term v f, Ord fof) =>
+renamerule :: forall fof atom term v f. (IsQuantified fof atom v, {-Formula fof term v,-} Atom atom term v, IsTerm term v f, Ord fof) =>
               Int -> (Set.Set fof, fof) -> ((Set.Set fof, fof), Int)
 renamerule k (asm,c) =
     ((Set.map inst asm, inst c), k + Set.size fvs)

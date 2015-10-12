@@ -34,11 +34,11 @@ module Data.Logic.Normal.Clause
 
 import Data.List as List (intersperse, map)
 import Data.Logic.Classes.Atom (Atom)
-import Data.Logic.Classes.Equals (AtomEq, prettyAtomEq)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder)
-import Data.Logic.Classes.Literal (Literal(..), prettyLit)
-import Data.Logic.Classes.Propositional (PropositionalFormula)
-import Data.Logic.Classes.Term (Term)
+import Data.Logic.Classes.Equals (HasEquality, prettyAtomEq)
+import Data.Logic.Classes.FirstOrder (IsQuantified(..), prettyFirstOrder)
+import Data.Logic.Classes.Literal (IsLiteral(..), prettyLit)
+import Data.Logic.Classes.Propositional (IsPropositional)
+import Data.Logic.Classes.Term (IsTerm)
 import Data.Logic.Harrison.Normal (simpcnf')
 import Data.Logic.Harrison.Skolem (skolemize, SkolemT, pnf, nnf, simplify)
 import Data.Set.Extra as Set (fromSS, Set)
@@ -54,23 +54,23 @@ import Text.PrettyPrint (Doc, hcat, vcat, text, nest, ($$), brackets, render)
 -- 
 clauseNormalForm :: forall formula atom term v f lit m.
                     (Monad m,
-                     FirstOrderFormula formula atom v,
-                     PropositionalFormula formula atom,
+                     IsQuantified formula atom v,
+                     IsPropositional formula atom,
                      Atom atom term v,
-                     Term term v f,
-                     Literal lit atom,
+                     IsTerm term v f,
+                     IsLiteral lit atom,
                      Ord formula, Ord lit) =>
                     formula -> SkolemT v term m (Set.Set (Set.Set lit))
 clauseNormalForm fm = skolemize id fm >>= return . (simpcnf' :: formula -> Set.Set (Set.Set lit))
 
 cnfTrace :: forall m formula atom term v p f lit.
             (Monad m,
-             FirstOrderFormula formula atom v,
-             PropositionalFormula formula atom,
+             IsQuantified formula atom v,
+             IsPropositional formula atom,
              Atom atom term v,
-             AtomEq atom p term,
-             Term term v f,
-             Literal lit atom,
+             HasEquality atom p term,
+             IsTerm term v f,
+             IsLiteral lit atom,
              Ord formula, Ord lit) =>
             (v -> Doc)
          -> (p -> Doc)

@@ -16,13 +16,15 @@ module Data
 
 import Data.Boolean.SatSolver (Literal(..))
 --import Data.Generics (Data, Typeable)
-import Data.Logic.Classes.Combine (Combinable(..))
-import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.Equals (AtomEq, (.=.), pApp, pApp2)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), for_all', exists')
+import Data.Logic.Classes.Apply (HasPredicate, pApp)
+import Data.Logic.Classes.Combine (IsCombinable(..))
+import Data.Logic.Classes.Constants (HasBoolean(..))
+import Data.Logic.Classes.Equals (HasEquality, (.=.))
+import Data.Logic.Classes.FirstOrder (IsQuantified(..), for_all', exists')
+import Data.Logic.Classes.Formula (IsFormula)
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Term (Term(..))
-import Data.Logic.Classes.Skolem (Skolem(toSkolem))
+import Data.Logic.Classes.Term (IsTerm(..))
+import Data.Logic.Classes.Skolem (HasSkolem(toSkolem))
 --import Data.Logic.Classes.Negate (Negatable(..))
 --import qualified Data.Logic.Classes.Literal as N
 import qualified Data.Logic.Instances.Chiou as C
@@ -36,6 +38,9 @@ import qualified Data.Set as S
 import Data.String (IsString)
 import Test.HUnit
 import Text.PrettyPrint.HughesPJClass (prettyShow)
+
+pApp2 :: (IsFormula formula atom, HasPredicate atom p term) => p -> term -> term -> formula
+pApp2 p a b = pApp p [a, b]
 
 {-
 :m +Data.Logic.Test
@@ -660,6 +665,7 @@ animalConjectures =
        }
      ]
 
+--socratesKB :: (Ord formula, IsString t, IsString p, IsQuantified formula atom1 v, HasPredicate atom p term, IsTerm term v f) => (t, [TestFormula formula atom v])
 socratesKB =
     let x = vt "x"
         socrates x = pApp "Socrates" [x]
@@ -947,7 +953,7 @@ chang43ConjectureRenamed =
                     ]
                 }
 
-withKB :: forall formula atom term v p f. (formula ~ TFormula, atom ~ TAtom, v ~ V, FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
+withKB :: forall formula atom term v p f. (formula ~ TFormula, atom ~ TAtom, v ~ V, IsQuantified formula atom v, HasEquality atom p term, IsTerm term v f) =>
           (String, [TestFormula formula atom v]) -> TestFormula formula atom v -> TestFormula formula atom v
 withKB (kbName, knowledge) conjecture =
     conjecture { name = name conjecture ++ " with " ++ kbName ++ " knowledge base"
@@ -962,11 +968,11 @@ withKB (kbName, knowledge) conjecture =
       conj (x:xs) = x .&. conj xs
 
 kbKnowledge :: forall formula atom term v p f. (formula ~ TFormula, atom ~ TAtom, v ~ V,
-                                                FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f) =>
+                                                IsQuantified formula atom v, HasEquality atom p term, IsTerm term v f) =>
                (String, [TestFormula formula atom v]) -> (String, [formula])
 kbKnowledge kb = (fst (kb :: (String, [TestFormula formula atom v])), map formula (snd kb))
 
-proofs :: forall term v f. (Term term v f, IsString v, Ord v) => [TestProof TFormula term v]
+proofs :: forall term v f. (IsTerm term v f, IsString v, Ord v) => [TestProof TFormula term v]
 proofs =
     let -- dog = pApp "Dog" :: [term] -> formula
         -- cat = pApp "Cat" :: [term] -> formula

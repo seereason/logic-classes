@@ -12,7 +12,7 @@ import qualified Data.Set as Set
 --import Data.Logic.Classes.Constants (Constants(..))
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Propositional (PropositionalFormula(..))
+import Data.Logic.Classes.Propositional (IsPropositional(..))
 
 -- ------------------------------------------------------------------------- 
 -- General parsing of iterated infixes.                                      
@@ -160,14 +160,14 @@ let dest_imp fm =
   match fm with Imp(p,q) -> (p,q) | _ -> failwith "dest_imp";;
 -}
 
-antecedent :: PropositionalFormula formula atomic => formula -> formula
+antecedent :: IsPropositional formula atomic => formula -> formula
 antecedent formula =
     foldPropositional c (error "antecedent") (error "antecedent") formula
     where
       c (BinOp p (:=>:) _) = p
       c _ = error "antecedent"
 
-consequent :: PropositionalFormula formula atomic => formula -> formula
+consequent :: IsPropositional formula atomic => formula -> formula
 consequent formula =
     foldPropositional c (error "consequent") (error "consequent") formula
     where
@@ -178,7 +178,7 @@ consequent formula =
 -- Apply a function to the atoms, otherwise keeping structure.               
 -- ------------------------------------------------------------------------- 
 
-on_atoms :: PropositionalFormula formula atomic => (atomic -> formula) -> formula -> formula
+on_atoms :: IsPropositional formula atomic => (atomic -> formula) -> formula -> formula
 on_atoms f fm =
     foldPropositional co tf at fm
     where 
@@ -191,7 +191,7 @@ on_atoms f fm =
 -- Formula analog of list iterator "itlist".                                 
 -- ------------------------------------------------------------------------- 
 
-over_atoms :: (PropositionalFormula formula atomic) => (atomic -> b -> b) -> formula -> b -> b
+over_atoms :: (IsPropositional formula atomic) => (atomic -> b -> b) -> formula -> b -> b
 over_atoms f fm b =
     foldPropositional co tf at fm
     where
@@ -204,5 +204,5 @@ over_atoms f fm b =
 -- Special case of a union of the results of a function over the atoms.      
 -- ------------------------------------------------------------------------- 
 
-atom_union :: (PropositionalFormula formula atomic, Ord b) => (atomic -> Set.Set b) -> formula -> Set.Set b
+atom_union :: (IsPropositional formula atomic, Ord b) => (atomic -> Set.Set b) -> formula -> Set.Set b
 atom_union f fm = over_atoms (\ h t -> Set.union (f h) t) fm Set.empty

@@ -10,8 +10,8 @@ import qualified Harrison.Prop as Prop
 import qualified Harrison.Resolution as Resolution
 import qualified Harrison.Skolem as Skolem
 import qualified Harrison.Unif as Unif
-import Data.Logic.Types.Harrison.Equal (FOLEQ, PredName)
-import Data.Logic.Types.Harrison.FOL (FOL, TermType, Function)
+--import Data.Logic.Types.Harrison.Equal (FOLEQ, PredName)
+import Data.Logic.Types.Harrison.FOL (FOL)
 import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
 import Test.HUnit
 

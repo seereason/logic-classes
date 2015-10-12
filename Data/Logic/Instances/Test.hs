@@ -1,6 +1,5 @@
 -- | Formula instance used in the unit tests.
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleInstances, MultiParamTypeClasses, TypeFamilies #-}
 module Data.Logic.Instances.Test
     ( V(..)
     , Pr(..)
@@ -14,14 +13,15 @@ module Data.Logic.Instances.Test
 
 import Data.Char (isDigit)
 import Data.Generics (Data, Typeable)
-import Data.Logic.Classes.Apply (Predicate)
+import Data.Logic.Classes.Apply (IsPredicate, HasPredicate(..))
 import Data.Logic.Classes.Arity (Arity(arity))
-import Data.Logic.Classes.Constants (Constants(..), prettyBool)
+import Data.Logic.Classes.Constants (HasBoolean(..), prettyBool)
+import Data.Logic.Classes.Equals (HasEquals(isEquals), HasEquality(..))
 import Data.Logic.Classes.Pretty (Pretty(pPrint))
-import qualified Data.Logic.Classes.Skolem as C (Skolem(..))
+import qualified Data.Logic.Classes.Skolem as C (HasSkolem(..))
 import Data.Logic.Classes.Term (Function)
-import Data.Logic.Classes.Variable (Variable(..))
-import qualified Data.Logic.Types.FirstOrder as P (Formula, Predicate, PTerm)
+import Data.Logic.Classes.Variable (IsVariable(..))
+import qualified Data.Logic.Types.FirstOrder as P (Formula, Predicate(..), PTerm)
 import Data.Monoid ((<>))
 import Data.Set as Set (member)
 import Data.String (IsString(fromString))
@@ -41,7 +41,7 @@ prettyV (V s) = text s
 instance Pretty V where
     pPrint = prettyV
 
-instance Variable V where
+instance IsVariable V where
     prefix p (V s) = V (p ++ s)
     variant x@(V s) xs = if member x xs then variant (V (next s)) xs else x
     prettyVariable (V s) = text s
@@ -61,12 +61,32 @@ data Pr
     | Equ
     deriving (Eq, Ord, Data, Typeable)
 
-instance Predicate Pr
+instance IsPredicate Pr
+
+instance HasEquals Pr where
+    isEquals Equ = True
+    isEquals _ = False
+
+{-
+instance HasPredicate (P.Predicate Pr (P.PTerm V AtomicFunction)) Pr (P.PTerm V AtomicFunction) where
+    foldPredicate ap (P.Apply p ts) = ap p ts
+    foldPredicate ap (P.Equal lhs rhs) = ap Equ [lhs, rhs]
+    applyPredicate Equ [lhs, rhs] = P.Equal lhs rhs -- Should this happen?  Or should this be done by applyEquals?
+    applyPredicate T [] = P.Apply (fromBool True) []
+    applyPredicate F [] = P.Apply (fromBool False) []
+    applyPredicate p@(Pr _) ts = P.Apply p ts
+    applyPredicate p _ = error ("applyPredicate " ++ show p ++ ": arity error")
+
+instance HasEquality (P.Predicate Pr (P.PTerm V AtomicFunction)) Pr (P.PTerm V AtomicFunction) where
+    foldEquals f (P.Equal lhs rhs) = Just (f lhs rhs)
+    foldEquals _ _ = Nothing
+    applyEquals = P.Equal
+-}
 
 instance IsString Pr where
     fromString = Pr
 
-instance Constants Pr where
+instance HasBoolean Pr where
     fromBool True = T
     fromBool False = F
     asBool T = Just True
@@ -101,7 +121,7 @@ data AtomicFunction
 
 instance Function AtomicFunction V
 
-instance C.Skolem AtomicFunction V where
+instance C.HasSkolem AtomicFunction V where
     toSkolem = Skolem
     fromSkolem (Skolem v) = Just v
     fromSkolem _ = Nothing

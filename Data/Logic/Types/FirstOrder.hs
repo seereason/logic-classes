@@ -19,19 +19,19 @@ module Data.Logic.Types.FirstOrder
 
 import Data.Data (Data)
 import Data.List (intercalate)
-import qualified Data.Logic.Classes.Apply as C
+import Data.Logic.Classes.Apply as C
 import qualified Data.Logic.Classes.Atom as C
-import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (Constants(..), asBool)
-import Data.Logic.Classes.Equals (AtomEq(..), substAtomEq, varAtomEq, prettyAtomEq)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), Quant(..), prettyFirstOrder, fixityFirstOrder, foldAtomsFirstOrder, mapAtomsFirstOrder)
+import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..))
+import Data.Logic.Classes.Constants (HasBoolean(..), asBool)
+import Data.Logic.Classes.Equals (HasEquals, HasEquality(..), substAtomEq, varAtomEq, prettyAtomEq)
+import Data.Logic.Classes.FirstOrder (IsQuantified(..), Quant(..), prettyFirstOrder, fixityFirstOrder, overatomsFirstOrder, onatomsFirstOrder)
 import qualified Data.Logic.Classes.Formula as C
-import Data.Logic.Classes.Literal (Literal(..))
-import Data.Logic.Classes.Negate (Negatable(..))
+import Data.Logic.Classes.Literal (IsLiteral(..))
+import Data.Logic.Classes.Negate (IsNegatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), botFixity)
-import Data.Logic.Classes.Term (Term(..), Function, showTerm)
-import Data.Logic.Classes.Variable (Variable(..))
-import Data.Logic.Classes.Propositional (PropositionalFormula(..))
+import Data.Logic.Classes.Term (IsTerm(..), Function, showTerm)
+import Data.Logic.Classes.Variable (IsVariable(..))
+import Data.Logic.Classes.Propositional (IsPropositional(..))
 import Data.Logic.Harrison.Resolution (matchAtomsEq)
 import Data.Logic.Harrison.Tableaux (unifyAtomsEq)
 import Data.Logic.Resolution (isRenameOfAtomEq, getSubstAtomEq)
@@ -70,7 +70,7 @@ data PTerm v f
     = Var v                         -- ^ A variable, either free or
                                     -- bound by an enclosing quantifier.
     | FunApp f [PTerm v f]           -- ^ Function application.
-                                    -- Constants are encoded as
+                                    -- HasBoolean are encoded as
                                     -- nullary functions.  The result
                                     -- is another term.
     deriving (Eq, Ord, Data, Typeable)
@@ -78,34 +78,34 @@ data PTerm v f
 instance (Show v, Show f, Function f v) => Show (PTerm v f) where
     show = showTerm
 
-instance (Data p, Data v, Data f, Ord p, Ord v, Ord f) => Negatable (Formula v p f) where
-    negatePrivate x = Combine ((:~:) x)
+instance (Data p, Data v, Data f, Ord p, Ord v, Ord f) => IsNegatable (Formula v p f) where
+    naiveNegate x = Combine ((:~:) x)
     foldNegation normal inverted (Combine ((:~:) x)) = foldNegation inverted normal x
     foldNegation normal _ x = normal x
 
-instance (Constants p, Data p, Data v, Data f, Ord p, Ord v, Ord f) => Constants (Formula v p f) where
+instance (HasBoolean p, Data p, Data v, Data f, Ord p, Ord v, Ord f) => HasBoolean (Formula v p f) where
     fromBool = Predicate . fromBool
     asBool (Predicate x) = asBool x
     asBool _ = Nothing
 
-instance (Data p, Constants p, Data v, Data f, Ord p, Ord v, Ord f) => Constants (Predicate p (PTerm v f)) where
+instance (Data p, HasBoolean p, Data v, Data f, Ord p, Ord v, Ord f) => HasBoolean (Predicate p (PTerm v f)) where
     fromBool x = Apply (fromBool x) []
     asBool (Apply p _) = asBool p
     asBool _ = Nothing
 
-instance (Constants (Formula v p f), Data p, Data v, Data f, Ord p, Ord v, Ord f) => Combinable (Formula v p f) where
+instance (HasBoolean (Formula v p f), Data p, Data v, Data f, Ord p, Ord v, Ord f) => IsCombinable (Formula v p f) where
     x .<=>. y = Combine (BinOp  x (:<=>:) y)
     x .=>.  y = Combine (BinOp  x (:=>:)  y)
     x .|.   y = Combine (BinOp  x (:|:)   y)
     x .&.   y = Combine (BinOp  x (:&:)   y)
 
-instance (C.Predicate p, Function f v) => C.Formula (Formula v p f) (Predicate p (PTerm v f)) where
+instance (HasEquals p, C.HasPredicate (Predicate p (PTerm v f)) p (PTerm v f), Function f v) => C.IsFormula (Formula v p f) (Predicate p (PTerm v f)) where
     atomic = Predicate
-    foldAtoms = foldAtomsFirstOrder
-    mapAtoms = mapAtomsFirstOrder
+    overatoms = overatomsFirstOrder
+    onatoms = onatomsFirstOrder
 
-instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)), Variable v, C.Predicate p, Function f v, Constants (Formula v p f), Combinable (Formula v p f)
-         ) => PropositionalFormula (Formula v p f) (Predicate p (PTerm v f)) where
+instance (C.HasPredicate (Predicate p (PTerm v f)) p (PTerm v f), C.IsFormula (Formula v p f) (Predicate p (PTerm v f)), IsVariable v, HasEquals p, Function f v, HasBoolean (Formula v p f), IsCombinable (Formula v p f)
+         ) => IsPropositional (Formula v p f) (Predicate p (PTerm v f)) where
     foldPropositional co tf at formula =
         maybe testFm tf (asBool formula)
         where
@@ -115,7 +115,7 @@ instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)), Variable v, C.Pre
                 Combine x -> co x
                 Predicate x -> at x
 
-instance (Variable v, Function f v) => Term (PTerm v f) v f where
+instance (IsVariable v, Function f v) => IsTerm (PTerm v f) v f where
     foldTerm vf fn t =
         case t of
           Var v -> vf v
@@ -129,7 +129,7 @@ instance (Variable v, Function f v) => Term (PTerm v f) v f where
     fApp x args = FunApp x args
 
 {-
-instance (Arity p, Constants p) => Atom (Predicate p (PTerm v f)) p (PTerm v f) where
+instance (Arity p, HasBoolean p) => Atom (Predicate p (PTerm v f)) p (PTerm v f) where
     foldAtom ap (Apply p ts) = ap p ts
     foldAtom ap (Constant x) = ap (fromBool x) []
     foldAtom _ _ = error "foldAtom Predicate"
@@ -139,20 +139,34 @@ instance (Arity p, Constants p) => Atom (Predicate p (PTerm v f)) p (PTerm v f) 
     apply' = Apply
 -}
 
-instance (C.Predicate p, Data v, Data f, Ord v, Ord f) => AtomEq (Predicate p (PTerm v f)) p (PTerm v f) where
-    foldAtomEq ap tf _ (Apply p ts) = maybe (ap p ts) tf (asBool p)
-    foldAtomEq _ _ eq (Equal t1 t2) = eq t1 t2
-    equals = Equal
-    applyEq' = Apply
+instance IsPredicate p => HasPredicate (Predicate p (PTerm v f)) p (PTerm v f) where
+    foldPredicate ap (Apply p ts) = ap p ts
+    foldPredicate _ap (Equal _lhs _rhs) = error "Attempt to use foldPredicate on Predicate.Equal"
+    applyPredicate p ts = Apply p ts
 
-instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)),
-          AtomEq (Predicate p (PTerm v f)) p (PTerm v f),
-          Constants (Formula v p f),
-          Variable v, C.Predicate p, Function f v
-         ) => FirstOrderFormula (Formula v p f) (Predicate p (PTerm v f)) v where
-    for_all v x = Quant Forall v x
-    exists v x = Quant Exists v x
-    foldFirstOrder qu co tf at f =
+{-
+instance (p ~ AtomicPredicate description, term ~ PTerm v f, atom ~ Predicate p term,
+            Data description, Ord description, Pretty description) => HasEquality atom p term where
+    foldEquals f (Equal lhs rhs) = Just (f lhs rhs)
+    foldEquals _ _ = Nothing
+    applyEquals = Equal
+-}
+
+instance (C.HasPredicate (Predicate p (PTerm v f)) p (PTerm v f), HasEquals p, Data v, Data f, Ord v, Ord f) => HasEquality (Predicate p (PTerm v f)) p (PTerm v f) where
+    foldEquals ap (Equal t1 t2) = Just (ap t1 t2)
+    foldEquals _ _ = Nothing
+    -- foldAtomEq ap _ (Apply p ts) = ap p ts
+    -- foldAtomEq _ eq (Equal t1 t2) = eq t1 t2
+    applyEquals = Equal
+    -- applyEq' = Apply
+
+instance (C.IsFormula (Formula v p f) (Predicate p (PTerm v f)),
+          HasEquality (Predicate p (PTerm v f)) p (PTerm v f),
+          HasBoolean (Formula v p f),
+          IsVariable v, C.IsPredicate p, Function f v
+         ) => IsQuantified (Formula v p f) (Predicate p (PTerm v f)) v where
+    quant = Quant
+    foldQuantified qu co tf at f =
         maybe testFm tf (asBool f)
             where testFm = case f of
                              Quant op v f' -> qu op v f'
@@ -166,20 +180,20 @@ instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)),
           (Predicate x, Predicate y) -> at x y
           _ -> Nothing
 
-instance (Constants (Formula v p f),
-          Variable v, Ord v, Data v, Show v,
-          Arity p, Constants p, Ord p, Data p, Show p,
-          Skolem f, Ord f, Data f, Show f) => Literal (Formula v p f) (Predicate p (PTerm v f)) v where
+instance (HasBoolean (Formula v p f),
+          IsVariable v, Ord v, Data v, Show v,
+          Arity p, HasBoolean p, Ord p, Data p, Show p,
+          Skolem f, Ord f, Data f, Show f) => IsLiteral (Formula v p f) (Predicate p (PTerm v f)) v where
     foldLiteral co tf at l =
         case l of
           (Combine ((:~:) x)) -> co x
           (Predicate p) -> at p
-          _ -> error "Literal (Formula v p f)"
+          _ -> error "IsLiteral (Formula v p f)"
     atomic = Predicate
 -}
 
-instance (Constants p, Ord v, Ord p, Ord f, Constants (Predicate p (PTerm v f)), C.Formula (Formula v p f) (Predicate p (PTerm v f)), Data p, Data v, Data f
-         ) => Literal (Formula v p f) (Predicate p (PTerm v f)) where
+instance (HasBoolean p, Ord v, Ord p, Ord f, HasBoolean (Predicate p (PTerm v f)), C.IsFormula (Formula v p f) (Predicate p (PTerm v f)), Data p, Data v, Data f
+         ) => IsLiteral (Formula v p f) (Predicate p (PTerm v f)) where
     foldLiteral neg tf at f =
         case f of
           Quant _ _ _ -> error "Invalid literal"
@@ -191,7 +205,7 @@ instance (Constants p, Ord v, Ord p, Ord f, Constants (Predicate p (PTerm v f)),
                               then tf False
                               else at p
 
-instance (C.Predicate p, Variable v, Function f v) => C.Atom (Predicate p (PTerm v f)) (PTerm v f) v where
+instance (C.HasPredicate (Predicate p (PTerm v f)) p (PTerm v f), HasEquals p, IsVariable v, Function f v) => C.Atom (Predicate p (PTerm v f)) (PTerm v f) v where
     substitute = substAtomEq
     freeVariables = varAtomEq
     allVariables = varAtomEq
@@ -202,16 +216,16 @@ instance (C.Predicate p, Variable v, Function f v) => C.Atom (Predicate p (PTerm
     isRename = isRenameOfAtomEq
     getSubst = getSubstAtomEq
 
-instance (Variable v, Pretty v,
-          C.Predicate p, Pretty p,
+instance (C.HasPredicate (Predicate p (PTerm v f)) p (PTerm v f),
+          IsVariable v, Pretty v, HasEquals p, Pretty p,
           Function f v, Pretty f) => Pretty (Predicate p (PTerm v f)) where
     pPrint atom = prettyAtomEq pPrint pPrint pPrint 0 atom
 
-instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)),
-          C.Predicate p, Variable v, Function f v, HasFixity (Predicate p (PTerm v f))) => HasFixity (Formula v p f) where
+instance (C.HasPredicate (Predicate p (PTerm v f)) p (PTerm v f), C.IsFormula (Formula v p f) (Predicate p (PTerm v f)),
+          HasEquals p, IsVariable v, Function f v, HasFixity (Predicate p (PTerm v f))) => HasFixity (Formula v p f) where
     fixity = fixityFirstOrder
 
-instance (C.Formula (Formula v p f) (Predicate p (PTerm v f)), Variable v, C.Predicate p, Function f v) => Pretty (Formula v p f) where
+instance (C.HasPredicate (Predicate p (PTerm v f)) p (PTerm v f), C.IsFormula (Formula v p f) (Predicate p (PTerm v f)), IsVariable v, HasEquals p, Function f v) => Pretty (Formula v p f) where
     pPrint f = prettyFirstOrder (\ _ -> pPrint) pPrint 0 $ f
 
 instance HasFixity (Predicate p term) where

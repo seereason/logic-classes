@@ -6,12 +6,12 @@ module Data.Logic.Types.Harrison.Formulas.FirstOrder
     ) where
 
 --import Data.Char (isDigit)
-import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), prettyFirstOrder, foldAtomsFirstOrder, mapAtomsFirstOrder)
+import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..))
+import Data.Logic.Classes.Constants (HasBoolean(..))
+import Data.Logic.Classes.FirstOrder (IsQuantified(..), prettyFirstOrder, overatomsFirstOrder, onatomsFirstOrder)
 import qualified Data.Logic.Classes.FirstOrder as C
 import qualified Data.Logic.Classes.Formula as C
-import Data.Logic.Classes.Negate (Negatable(..))
+import Data.Logic.Classes.Negate (IsNegatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity)
 import Data.Logic.Types.Common ({- instance Variable String -})
 
@@ -28,35 +28,35 @@ data Formula a
     | Exists String (Formula a)
     deriving (Eq, Ord)
 
-instance Negatable (Formula atom) where
-    negatePrivate T = F
-    negatePrivate F = T
-    negatePrivate x = Not x
+instance IsNegatable (Formula atom) where
+    naiveNegate T = F
+    naiveNegate F = T
+    naiveNegate x = Not x
     foldNegation normal inverted (Not x) = foldNegation inverted normal x
     foldNegation normal _ x = normal x
 
-instance Constants (Formula a) where
+instance HasBoolean (Formula a) where
     fromBool True = T
     fromBool False = F
     asBool T = Just True
     asBool F = Just False
     asBool _ = Nothing
 
-instance Combinable (Formula a) where
+instance IsCombinable (Formula a) where
     a .<=>. b = Iff a b
     a .=>. b = Imp a b
     a .|. b = Or a b
     a .&. b = And a b
 
-instance (Constants a, Pretty a, HasFixity a) => C.Formula (Formula a) a where
+instance (HasBoolean a, Pretty a, HasFixity a) => C.IsFormula (Formula a) a where
     atomic = Atom
-    foldAtoms = foldAtomsFirstOrder
-    mapAtoms = mapAtomsFirstOrder
+    overatoms = overatomsFirstOrder
+    onatoms = onatomsFirstOrder
 
-instance (C.Formula (Formula a) a, Constants a, Pretty a, HasFixity a) => FirstOrderFormula (Formula a) a String where
-    for_all = Forall
-    exists = Exists
-    foldFirstOrder qu co tf at fm =
+instance (C.IsFormula (Formula a) a, HasBoolean a, Pretty a, HasFixity a) => IsQuantified (Formula a) a String where
+    quant (C.:!:) = Forall 
+    quant (C.:?:) = Exists
+    foldQuantified qu co tf at fm =
         case fm of
           F -> tf False
           T -> tf True
@@ -66,8 +66,8 @@ instance (C.Formula (Formula a) a, Constants a, Pretty a, HasFixity a) => FirstO
           Or fm1 fm2 -> co (BinOp fm1 (:|:) fm2)
           Imp fm1 fm2 -> co (BinOp fm1 (:=>:) fm2)
           Iff fm1 fm2 -> co (BinOp fm1 (:<=>:) fm2)
-          Forall v fm' -> qu C.Forall v fm'
-          Exists v fm' -> qu C.Exists v fm'
+          Forall v fm' -> qu (C.:!:) v fm'
+          Exists v fm' -> qu (C.:?:) v fm'
 
-instance (FirstOrderFormula (Formula a) a String) => Pretty (Formula a) where
+instance (IsQuantified (Formula a) a String) => Pretty (Formula a) where
     pPrint = prettyFirstOrder (const pPrint) pPrint 0

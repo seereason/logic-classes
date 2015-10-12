@@ -10,11 +10,11 @@ module Data.Logic.Harrison.DefCNF
 
 import Data.List (intercalate)
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..), (.&.), (.|.), (.<=>.))
-import Data.Logic.Classes.Formula (Formula(atomic))
-import Data.Logic.Classes.Literal (Literal)
+import Data.Logic.Classes.Formula (IsFormula(atomic, overatoms))
+import Data.Logic.Classes.Literal (IsLiteral)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Pretty
-import Data.Logic.Classes.Propositional (PropositionalFormula(foldPropositional), overatoms)
+import Data.Logic.Classes.Propositional (IsPropositional(foldPropositional))
 import Data.Logic.Harrison.Prop (nenf, simpcnf, cnf, cnf')
 import qualified Data.Logic.Types.Propositional as P
 -- import Data.Logic.Types.Harrison.Prop (Prop(P))
@@ -57,14 +57,14 @@ test01 =
 -- Make a stylized variable and update the index.                            
 -- ------------------------------------------------------------------------- 
 
-mkprop :: forall pf atom. (PropositionalFormula pf atom, NumAtom atom) => Integer -> (pf, Integer)
+mkprop :: forall pf atom. (IsPropositional pf atom, NumAtom atom) => Integer -> (pf, Integer)
 mkprop n = (atomic (ma n :: atom), n + 1)
 
 -- ------------------------------------------------------------------------- 
 -- Core definitional CNF procedure.                                          
 -- ------------------------------------------------------------------------- 
 
-maincnf :: (NumAtom atom, PropositionalFormula pf atom) => (pf, Map.Map pf pf, Integer) -> (pf, Map.Map pf pf, Integer)
+maincnf :: (NumAtom atom, IsPropositional pf atom) => (pf, Map.Map pf pf, Integer) -> (pf, Map.Map pf pf, Integer)
 maincnf trip@(fm, _defs, _n) =
     foldPropositional co tf at fm
     where
@@ -76,7 +76,7 @@ maincnf trip@(fm, _defs, _n) =
       tf _ = trip
       at _ = trip
 
-defstep :: (PropositionalFormula pf atom, NumAtom atom, Ord pf) => (pf -> pf -> pf) -> (pf, pf) -> (pf, Map.Map pf pf, Integer) -> (pf, Map.Map pf pf, Integer)
+defstep :: (IsPropositional pf atom, NumAtom atom, Ord pf) => (pf -> pf -> pf) -> (pf, pf) -> (pf, Map.Map pf pf, Integer) -> (pf, Map.Map pf pf, Integer)
 defstep op (p,q) (_fm, defs, n) =
   let (fm1,defs1,n1) = maincnf (p,defs,n) in
   let (fm2,defs2,n2) = maincnf (q,defs1,n1) in
@@ -96,7 +96,7 @@ max_varindex atom n = max n (ai atom)
 -- Overall definitional CNF.                                                 
 -- ------------------------------------------------------------------------- 
 
-mk_defcnf :: forall pf lit atom. (PropositionalFormula pf atom, Literal lit atom, NumAtom atom, Ord lit) =>
+mk_defcnf :: forall pf lit atom. (IsPropositional pf atom, IsLiteral lit atom, NumAtom atom, Ord lit) =>
              ((pf, Map.Map pf pf, Integer) -> (pf, Map.Map pf pf, Integer)) -> pf -> Set.Set (Set.Set lit)
 mk_defcnf fn fm =
   let fm' = nenf fm in
@@ -105,7 +105,7 @@ mk_defcnf fn fm =
   let (deflist {- :: [pf]-}) = Map.elems defs in
   Set.unions (simpcnf fm'' : Prelude.map simpcnf deflist)
 
-defcnf1 :: forall pf lit atom. (PropositionalFormula pf atom, Literal lit atom, NumAtom atom, Ord lit) => lit -> atom -> pf -> pf
+defcnf1 :: forall pf lit atom. (IsPropositional pf atom, IsLiteral lit atom, NumAtom atom, Ord lit) => lit -> atom -> pf -> pf
 defcnf1 _ _ fm = cnf (mk_defcnf maincnf fm :: Set.Set (Set.Set lit))
 
 
@@ -135,7 +135,7 @@ test02 =
 -- Version tweaked to exploit initial structure.                             
 -- ------------------------------------------------------------------------- 
 
-subcnf :: (PropositionalFormula pf atom, NumAtom atom) =>
+subcnf :: (IsPropositional pf atom, NumAtom atom) =>
           ((pf, Map.Map pf pf, Integer) -> (pf, Map.Map pf pf, Integer))
        -> (pf -> pf -> pf)
        -> pf
@@ -147,24 +147,24 @@ subcnf sfn op p q (_fm,defs,n) =
   let (fm2,defs2,n2) = sfn (q,defs1,n1) in
   (op fm1 fm2, defs2, n2)
 
-orcnf :: (NumAtom atom, PropositionalFormula pf atom) => (pf, Map.Map pf pf, Integer) -> (pf, Map.Map pf pf, Integer)
+orcnf :: (NumAtom atom, IsPropositional pf atom) => (pf, Map.Map pf pf, Integer) -> (pf, Map.Map pf pf, Integer)
 orcnf trip@(fm,_defs,_n) =
     foldPropositional co (\ _ -> maincnf trip) (\ _ -> maincnf trip) fm
     where
       co (BinOp p (:|:) q) = subcnf orcnf (.|.) p q trip
       co _ = maincnf trip
 
-andcnf :: (PropositionalFormula pf atom, NumAtom atom, Ord pf) => (pf, Map.Map pf pf, Integer) -> (pf, Map.Map pf pf, Integer)
+andcnf :: (IsPropositional pf atom, NumAtom atom, Ord pf) => (pf, Map.Map pf pf, Integer) -> (pf, Map.Map pf pf, Integer)
 andcnf trip@(fm,_defs,_n) =
     foldPropositional co (\ _ -> orcnf trip) (\ _ -> orcnf trip) fm
     where
       co (BinOp p (:&:) q) = subcnf andcnf (.&.) p q trip
       co _ = orcnf trip
 
-defcnfs :: (PropositionalFormula pf atom, Literal lit atom, NumAtom atom, Ord lit) => pf -> Set.Set (Set.Set lit)
+defcnfs :: (IsPropositional pf atom, IsLiteral lit atom, NumAtom atom, Ord lit) => pf -> Set.Set (Set.Set lit)
 defcnfs fm = mk_defcnf andcnf fm
 
-defcnf :: forall pf lit atom.(PropositionalFormula pf atom, Literal lit atom, NumAtom atom, Ord lit) => lit -> atom -> pf -> pf
+defcnf :: forall pf lit atom.(IsPropositional pf atom, IsLiteral lit atom, NumAtom atom, Ord lit) => lit -> atom -> pf -> pf
 defcnf _ _ fm = cnf (defcnfs fm :: Set.Set (Set.Set lit))
 
 -- ------------------------------------------------------------------------- 
@@ -187,14 +187,14 @@ test03 =
 -- Version that guarantees 3-CNF.                                            
 -- ------------------------------------------------------------------------- 
 
-andcnf3 :: (PropositionalFormula pf atom, NumAtom atom, Ord pf) => (pf, Map.Map pf pf, Integer) -> (pf, Map.Map pf pf, Integer)
+andcnf3 :: (IsPropositional pf atom, NumAtom atom, Ord pf) => (pf, Map.Map pf pf, Integer) -> (pf, Map.Map pf pf, Integer)
 andcnf3 trip@(fm,_defs,_n) =
     foldPropositional co (\ _ -> maincnf trip) (\ _ -> maincnf trip) fm
     where
       co (BinOp p (:&:) q) = subcnf andcnf3 (.&.) p q trip
       co _ = maincnf trip
 
-defcnf3 :: forall pf lit atom. (PropositionalFormula pf atom, Literal lit atom, NumAtom atom, Ord lit) => lit -> atom -> pf -> pf
+defcnf3 :: forall pf lit atom. (IsPropositional pf atom, IsLiteral lit atom, NumAtom atom, Ord lit) => lit -> atom -> pf -> pf
 defcnf3 _ _ fm = cnf (mk_defcnf andcnf3 fm :: Set.Set (Set.Set lit))
 
 tests = TestList [test01, test02, test03]

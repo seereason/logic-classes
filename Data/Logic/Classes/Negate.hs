@@ -1,5 +1,5 @@
 module Data.Logic.Classes.Negate
-     ( Negatable(..)
+     ( IsNegatable(..)
      , negated
      , (.~.)
      , (¬)
@@ -10,23 +10,23 @@ module Data.Logic.Classes.Negate
 -- |The class of formulas that can be negated.  There are some types
 -- that can be negated but do not support the other Boolean Logic
 -- operators, such as the 'Literal' class.
-class Negatable formula where
+class IsNegatable formula where
     -- | Negate a formula in a naive fashion, the operators below
     -- prevent double negation.
-    negatePrivate :: formula -> formula
+    naiveNegate :: formula -> formula
     -- | Test whether a formula is negated or normal
     foldNegation :: (formula -> r) -- ^ called for normal formulas
                  -> (formula -> r) -- ^ called for negated formulas
                  -> formula -> r
 -- | Is this formula negated at the top level?
-negated :: Negatable formula => formula -> Bool
+negated :: IsNegatable formula => formula -> Bool
 negated = foldNegation (const False) (not . negated)
 
 -- | Negate the formula, avoiding double negation
-(.~.) :: Negatable formula => formula -> formula
-(.~.) = foldNegation negatePrivate id
+(.~.) :: IsNegatable formula => formula -> formula
+(.~.) = foldNegation naiveNegate id
 
-(¬) :: Negatable formula => formula -> formula
+(¬) :: IsNegatable formula => formula -> formula
 (¬) = (.~.)
 
 infix 5 .~., ¬
@@ -35,8 +35,8 @@ infix 5 .~., ¬
 -- Some operations on literals.  (These names are used in Harrison's code.)
 -- ------------------------------------------------------------------------- 
 
-negative :: Negatable formula => formula -> Bool
+negative :: IsNegatable formula => formula -> Bool
 negative = negated
 
-positive :: Negatable formula => formula -> Bool
+positive :: IsNegatable formula => formula -> Bool
 positive = not . negative

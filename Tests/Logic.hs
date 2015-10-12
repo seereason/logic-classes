@@ -4,30 +4,27 @@
 module Logic (tests) where
 
 import Data.List as List (map)
-import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), (⇒))
-import Data.Logic.Classes.Constants (Constants(..), true)
-import Data.Logic.Classes.Equals (AtomEq, (.=.), pApp, pApp1, showAtomEq)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), showFirstOrder, (∀))
+import Data.Logic.Classes.Apply (pApp)
+import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), (⇒))
+import Data.Logic.Classes.Equals ((.=.), showAtomEq)
+import Data.Logic.Classes.FirstOrder (IsQuantified(..), showFirstOrder, (∀))
 import Data.Logic.Classes.Atom (Atom)
-import Data.Logic.Classes.Literal (Literal)
-import Data.Logic.Classes.Negate (negated, (.~.))
+import Data.Logic.Classes.Literal (IsLiteral)
+import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Pretty (pPrint)
-import Data.Logic.Classes.Propositional (PropositionalFormula)
-import Data.Logic.Classes.Skolem (Skolem(..))
-import Data.Logic.Classes.Term (Term(..))
-import Data.Logic.Classes.Variable (Variable)
+import Data.Logic.Classes.Propositional (IsPropositional)
+import Data.Logic.Classes.Skolem (HasSkolem(..))
+import Data.Logic.Classes.Term (IsTerm(..))
 import Data.Logic.Harrison.FOL (fv, subst, list_conj, list_disj)
-import Data.Logic.Harrison.Normal (trivial)
 import Data.Logic.Harrison.Prop (TruthTable, truthTable)
 import Data.Logic.Harrison.Skolem (runSkolem, skolemize, pnf)
-import Data.Logic.Instances.Test (MyFormula, MyAtom, MyTerm)
+import Data.Logic.Instances.Test (MyFormula, MyTerm)
 import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Implicative (runNormal)
 import Data.Logic.Satisfiable (theorem, inconsistant)
 import Data.Logic.Types.FirstOrder
-import Data.Map as Map (Map, singleton)
-import Data.Set.Extra as Set (Set, singleton, toList, empty, fromList, map, minView, fold)
-import Data.Set.Extra (fromList)
+import Data.Map as Map (singleton)
+import Data.Set.Extra as Set (Set, singleton, toList, empty, fromList, map {-, minView, fold-})
 import Data.String (IsString(fromString))
 -- import PropLogic (PropForm(..), TruthTable, truthTable)
 import qualified TextDisplay as TD
@@ -38,7 +35,7 @@ tests :: Test
 tests = TestLabel "Test.Logic" $ TestList [precTests, normalTests, theoremTests]
 
 {-
-formCase :: (FirstOrderFormula TFormula TAtom V, AtomEq TAtom Pr TTerm, Term TTerm V AtomicFunction) =>
+formCase :: (IsQuantified TFormula TAtom V, HasEquality TAtom Pr TTerm, Term TTerm V AtomicFunction) =>
             String -> TFormula -> TFormula -> Test
 formCase s expected input = TestLabel s $ TestCase (assertEqual s expected input)
 -}
@@ -65,7 +62,7 @@ precTests =
       TestLabel label (TestCase (assertEqual label
                                  ((a .&. b) .&. c) -- infixl, with infixr we get (a .&. (b .&. c))
                                  (a .&. b .&. c :: MyFormula)))
-    , let x = vt "x" :: MyTerm
+    , let -- x = vt "x" :: MyTerm
           y = vt "y" :: MyTerm
           -- This is not the desired result, but it is the result we
           -- will get due to the fact that function application
@@ -122,6 +119,7 @@ y = vt (fromString "y")
 z :: MyTerm
 z = vt (fromString "z")
 
+normalTests :: Test
 normalTests =
     let s = pApp "S"
         h = pApp "H"
@@ -141,11 +139,11 @@ normalTests =
                  (pnf (((for_all' "x" (s[x] .=>. h[x])) .&. (for_all "x" (h[x] .=>. m[x]))) .=>.
                     (for_all "x" (s[x] .=>. m[x])) :: MyFormula) :: MyFormula))))]
 
--- |Here is an example of automatic conversion from a FirstOrderFormula
--- instance to a PropositionalFormula instance.  The result is PropForm
+-- |Here is an example of automatic conversion from a IsQuantified
+-- instance to a IsPropositional instance.  The result is PropForm
 -- a where a is the original type, but the a values will always be
 -- "atomic" formulas, never the operators which can be converted into
--- the corresponding operator of a PropositionalFormula instance.
+-- the corresponding operator of a IsPropositional instance.
 {-
 test9a :: Test
 test9a = TestCase
@@ -542,19 +540,19 @@ prepare formula = ({- flatten . -} fromJust . toPropositional convertA . cnf . (
 convertA = Just . A
 -}
          {- forall formula atom term v p f.
-         (FirstOrderFormula formula atom v,
-          PropositionalFormula formula atom,
+         (IsQuantified formula atom v,
+          IsPropositional formula atom,
           Atom atom term v,
-          AtomEq atom p term,
-          Constants p, Eq p, Term term v f, Literal formula atom v,
+          HasEquality atom p term,
+          HasBoolean p, Eq p, Term term v f, IsLiteral formula atom v,
           Ord formula, Skolem f v, IsString v, Variable v, TD.Display formula) => -}
 
 table :: forall formula atom term v f.
-         (FirstOrderFormula formula atom v,
-          PropositionalFormula formula atom,
-          Literal formula atom,
+         (IsQuantified formula atom v,
+          IsPropositional formula atom,
+          IsLiteral formula atom,
           Atom atom term v,
-          Term term v f,
+          IsTerm term v f,
           Ord formula, Ord atom) =>
          formula -> (Set.Set (Set.Set formula), TruthTable atom)
 table f =
@@ -565,13 +563,15 @@ table f =
       cnf' = list_conj (Set.map list_disj cnf :: Set.Set formula) -- CJ (map (DJ . map n) cnf)
       cnf :: Set.Set (Set.Set formula)
       cnf = runNormal (clauseNormalForm f)
-      fromSS = List.map Set.toList . Set.toList
+      -- fromSS = List.map Set.toList . Set.toList
       -- n f = (if negated f then (.~.) . atomic . (.~.) else atomic) $ f
       -- list_disj = setFoldr1 (.|.)
       -- list_conj = setFoldr1 (.&.)
 
+{-
 setFoldr1 :: (a -> a -> a) -> Set.Set a -> a
 setFoldr1 f s =
     case Set.minView s of
       Nothing -> error "setFoldr1"
       Just (x, s') -> Set.fold f x s'
+-}

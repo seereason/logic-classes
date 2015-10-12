@@ -9,13 +9,14 @@ module Harrison.Equal where
 -- =========================================================================
 
 import Control.Applicative.Error (Failing(..))
-import Data.Logic.Classes.Combine (Combinable(..), (∧), (⇒))
+import Data.Logic.Classes.Apply (pApp)
+import Data.Logic.Classes.Combine (IsCombinable(..), (∧), (⇒))
 --import Data.Logic.Classes.Constants (true)
-import Data.Logic.Classes.Equals ((.=.), pApp)
+import Data.Logic.Classes.Equals ((.=.))
 import Data.Logic.Classes.FirstOrder ((∃), (∀))
 --import Data.Logic.Classes.Pretty (Pretty(pretty))
-import Data.Logic.Classes.Skolem (Skolem(..))
-import Data.Logic.Classes.Term (Term(..))
+import Data.Logic.Classes.Skolem (HasSkolem(..))
+import Data.Logic.Classes.Term (IsTerm(..))
 import Data.Logic.Harrison.Equal (equalitize, function_congruence)
 import Data.Logic.Harrison.Meson (meson)
 import Data.Logic.Harrison.Skolem (runSkolem)

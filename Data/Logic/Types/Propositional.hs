@@ -2,13 +2,13 @@
 module Data.Logic.Types.Propositional where
 
 import Data.Generics (Data, Typeable)
-import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (Constants(..), asBool)
+import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..))
+import Data.Logic.Classes.Constants (HasBoolean(..), asBool)
 import qualified Data.Logic.Classes.Formula as C
-import Data.Logic.Classes.Literal (Literal(..))
-import Data.Logic.Classes.Negate (Negatable(..))
+import Data.Logic.Classes.Literal (IsLiteral(..))
+import Data.Logic.Classes.Negate (IsNegatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), topFixity)
-import Data.Logic.Classes.Propositional (PropositionalFormula(..), prettyPropositional, fixityPropositional, foldAtomsPropositional, mapAtomsPropositional)
+import Data.Logic.Classes.Propositional (IsPropositional(..), prettyPropositional, fixityPropositional, overatomsPropositional, onatomsPropositional)
 
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula atom
@@ -20,31 +20,31 @@ data Formula atom
     -- a&b is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).
     deriving (Eq,Ord,Data,Typeable)
 
-instance Negatable (Formula atom) where
-    negatePrivate x = Combine ((:~:) x)
+instance IsNegatable (Formula atom) where
+    naiveNegate x = Combine ((:~:) x)
     foldNegation normal inverted (Combine ((:~:) x)) = foldNegation inverted normal x
     foldNegation normal _ x = normal x
 
-instance (Ord atom) => Combinable (Formula atom) where
+instance (Ord atom) => IsCombinable (Formula atom) where
     x .<=>. y = Combine (BinOp  x (:<=>:) y)
     x .=>.  y = Combine (BinOp  x (:=>:)  y)
     x .|.   y = Combine (BinOp  x (:|:)   y)
     x .&.   y = Combine (BinOp  x (:&:)   y)
 
 
-instance Constants (Formula atom) where
+instance HasBoolean (Formula atom) where
     fromBool True = T
     fromBool False = F
     asBool T = Just True
     asBool F = Just False
     asBool _ = Nothing
 
-instance (Pretty atom, HasFixity atom, Ord atom) => C.Formula (Formula atom) atom where
+instance (Pretty atom, HasFixity atom, Ord atom) => C.IsFormula (Formula atom) atom where
     atomic = Atom
-    foldAtoms = foldAtomsPropositional
-    mapAtoms = mapAtomsPropositional
+    overatoms = overatomsPropositional
+    onatoms = onatomsPropositional
 
-instance (Pretty atom, HasFixity atom, Ord atom) => Literal (Formula atom) atom where
+instance (Pretty atom, HasFixity atom, Ord atom) => IsLiteral (Formula atom) atom where
     foldLiteral neg tf at formula =
         case formula of
           Combine ((:~:) p) -> neg p
@@ -53,7 +53,7 @@ instance (Pretty atom, HasFixity atom, Ord atom) => Literal (Formula atom) atom 
           T -> tf True
           F -> tf False
 
-instance (C.Formula (Formula atom) atom, Pretty atom, HasFixity atom, Ord atom) => PropositionalFormula (Formula atom) atom where
+instance (C.IsFormula (Formula atom) atom, Pretty atom, HasFixity atom, Ord atom) => IsPropositional (Formula atom) atom where
     foldPropositional co tf at formula =
         case formula of
           Combine x -> co x

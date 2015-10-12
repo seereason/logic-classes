@@ -4,12 +4,12 @@ module Harrison.Skolem
     ( tests
     ) where
 
-import Data.Logic.Classes.Combine (Combinable(..))
+import Data.Logic.Classes.Apply (pApp)
+import Data.Logic.Classes.Combine (IsCombinable(..))
 import Data.Logic.Classes.Constants (false)
-import Data.Logic.Classes.Equals (pApp)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(exists, for_all))
+import Data.Logic.Classes.FirstOrder (IsQuantified(exists, for_all))
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Term (Term(..))
+import Data.Logic.Classes.Term (IsTerm(..))
 import Data.Logic.Harrison.Skolem (simplify, nnf, pnf)
 import Data.Logic.Harrison.Skolem (runSkolem, skolemize)
 import Data.Logic.Types.Harrison.Equal (FOLEQ, PredName(..))

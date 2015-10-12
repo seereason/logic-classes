@@ -4,12 +4,12 @@
 module Chiou0 where
 
 import Control.Monad.Trans (MonadIO, liftIO)
-import Data.Logic.Classes.Combine (Combinable(..))
-import Data.Logic.Classes.Equals (pApp)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
-import Data.Logic.Classes.Negate (Negatable(..), (.~.))
-import Data.Logic.Classes.Skolem (Skolem(..))
-import Data.Logic.Classes.Term (Term(..))
+import Data.Logic.Classes.Apply (pApp)
+import Data.Logic.Classes.Combine (IsCombinable(..))
+import Data.Logic.Classes.FirstOrder (IsQuantified(..))
+import Data.Logic.Classes.Negate (IsNegatable(..), (.~.))
+import Data.Logic.Classes.Skolem (HasSkolem(..))
+import Data.Logic.Classes.Term (IsTerm(..))
 import Data.Logic.Harrison.Skolem (SkolemT)
 import Data.Logic.KnowledgeBase (ProverT, runProver', Proof(..), ProofResult(..), loadKB, theoremKB {-, askKB, showKB-})
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
@@ -40,7 +40,7 @@ proofTest1 :: Test
 proofTest1 = let label = "Chiuo0 - proof test 1" in
              TestLabel label (TestCase (assertEqual label proof1 (runProver' Nothing (loadKB sentences >> theoremKB (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []] :: TFormula)))))
 
-inf' :: (Negatable lit, Ord lit) => [lit] -> [lit] -> ImplicativeForm lit
+inf' :: (IsNegatable lit, Ord lit) => [lit] -> [lit] -> ImplicativeForm lit
 inf' l1 l2 = INF (S.fromList l1) (S.fromList l2)
 
 proof1 :: (Bool, SetOfSupport TFormula V TTerm)

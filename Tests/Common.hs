@@ -145,13 +145,13 @@ skolem' :: ( Monad m
 skolem' = undefined
 -}
 
-skolemSet :: forall formula atom term v p f. (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Data formula) => formula -> Set f
+skolemSet :: forall formula atom term v p f. (IsQuantified formula atom v, HasEquality atom p term, IsTerm term v f, Data formula) => formula -> Set f
 skolemSet =
     List.foldr ins Set.empty . skolemList
     where
       ins :: f -> Set f -> Set f
       ins f s = maybe s (const (Set.insert f s)) (fromSkolem f)
-      skolemList :: (FirstOrderFormula formula atom v, AtomEq atom p term, Term term v f, Data f, Typeable f, Data formula) => formula -> [f]
+      skolemList :: (IsQuantified formula atom v, HasEquality atom p term, IsTerm term v f, Data f, Typeable f, Data formula) => formula -> [f]
       skolemList inf = gFind inf :: (Typeable f => [f])
 
 -- | @gFind a@ will extract any elements of type @b@ from
@@ -176,12 +176,12 @@ data ProofExpected formula v term
     | ChiouKB (Set (WithId (ImplicativeForm formula)))
     deriving (Data, Typeable)
 
-doProof :: forall formula atom term v p f. (FirstOrderFormula formula atom v,
-                                            PropositionalFormula formula atom,
-                                            AtomEq atom p term, atom ~ P.Predicate p (P.PTerm v f),
-                                            Term term v f, term ~ P.PTerm v f,
-                                            Literal formula atom,
-                                            Ord formula, Data formula, Eq term, Show term, Show v, Show formula, Constants p, Eq p, Ord f, Show f) =>
+doProof :: forall formula atom term v p f. (IsQuantified formula atom v,
+                                            IsPropositional formula atom,
+                                            HasEquality atom p term, atom ~ P.Predicate p (P.PTerm v f),
+                                            IsTerm term v f, term ~ P.PTerm v f,
+                                            IsLiteral formula atom,
+                                            Ord formula, Data formula, Eq term, Show term, Show v, Show formula, HasBoolean p, Eq p, Ord f, Show f) =>
            TestProof formula term v -> Test
 doProof p =
     TestLabel (proofName p) $ TestList $

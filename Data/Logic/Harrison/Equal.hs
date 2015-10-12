@@ -11,55 +11,55 @@ module Data.Logic.Harrison.Equal
 -- Copyright (co) 2003-2007, John Harrison. (See "LICENSE.txt" for details.)  
 -- ========================================================================= 
 
+import Data.Logic.Classes.Apply (HasPredicate(applyPredicate))
 import Data.Logic.Classes.Arity (Arity(..))
 import Data.Logic.Classes.Combine ((∧), (⇒))
-import Data.Logic.Classes.Constants (Constants(fromBool))
-import Data.Logic.Classes.Equals (AtomEq(..), applyEq, (.=.), PredicateName(..), funcsAtomEq)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), (∀))
-import Data.Logic.Classes.Formula (Formula(atomic, foldAtoms))
-import Data.Logic.Classes.Term (Term(..))
+import Data.Logic.Classes.Constants (HasBoolean(fromBool))
+import Data.Logic.Classes.Equals (HasEquality(..), (.=.), PredicateName(..), foldAtomEq, funcsAtomEq)
+import Data.Logic.Classes.FirstOrder (IsQuantified(..), (∀))
+import Data.Logic.Classes.Formula (IsFormula(atomic, overatoms))
+import Data.Logic.Classes.Term (IsTerm(..))
 import Data.Logic.Harrison.Formulas.FirstOrder (atom_union)
 import Data.Logic.Harrison.Lib ((∅))
 -- import Data.Logic.Harrison.Skolem (functions)
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 
--- is_eq :: (FirstOrderFormula fof atom v, AtomEq atom p term) => fof -> Bool
+-- is_eq :: (IsQuantified fof atom v, HasEquality atom p term) => fof -> Bool
 -- is_eq = foldFirstOrder (\ _ _ _ -> False) (\ _ -> False) (\ _ -> False) (foldAtomEq (\ _ _ -> False) (\ _ -> False) (\ _ _ -> True))
 -- 
--- mk_eq :: (FirstOrderFormula fof atom v, AtomEq atom p term) => term -> term -> fof
+-- mk_eq :: (IsQuantified fof atom v, HasEquality atom p term) => term -> term -> fof
 -- mk_eq = (.=.)
 -- 
--- dest_eq :: (FirstOrderFormula fof atom v, AtomEq atom p term) => fof -> Failing (term, term)
+-- dest_eq :: (IsQuantified fof atom v, HasEquality atom p term) => fof -> Failing (term, term)
 -- dest_eq fm =
 --     foldFirstOrder (\ _ _ _ -> err) (\ _ -> err) (\ _ -> err) at fm
 --     where
 --       at = foldAtomEq (\ _ _ -> err) (\ _ -> err) (\ s t -> Success (s, t))
 --       err = Failure ["dest_eq: not an equation"]
 -- 
--- lhs :: (FirstOrderFormula fof atom v, AtomEq atom p term) => fof -> Failing term
+-- lhs :: (IsQuantified fof atom v, HasEquality atom p term) => fof -> Failing term
 -- lhs eq = dest_eq eq >>= return . fst
--- rhs :: (FirstOrderFormula fof atom v, AtomEq atom p term) => fof -> Failing term
+-- rhs :: (IsQuantified fof atom v, HasEquality atom p term) => fof -> Failing term
 -- rhs eq = dest_eq eq >>= return . snd
 
 -- ------------------------------------------------------------------------- 
 -- The set of predicates in a formula.                                       
 -- ------------------------------------------------------------------------- 
 
-predicates :: forall formula atom term v p. (FirstOrderFormula formula atom v, AtomEq atom p term, Ord p) => formula -> Set.Set (PredicateName p)
+predicates :: forall formula atom term v p. (IsQuantified formula atom v, HasEquality atom p term, Ord p) => formula -> Set.Set (PredicateName p)
 predicates fm =
     atom_union pair fm
     where -- pair :: atom -> Set.Set (p, Int)
           pair = foldAtomEq (\ p a -> Set.singleton (Named p (maybe (length a)
                                                                     (\ n -> if n /= length a then n else error "arity mismatch")
                                                                     (arity p))))
-                            (\ x -> Set.singleton (Named (fromBool x) 0))
                             (\ _ _ -> Set.singleton Equals)
 
 {-
 -- | Traverse a formula and pass all (predicates, arity) pairs to a function.
 -- To collect
-foldPredicates :: forall formula atom term v p r. (FirstOrderFormula formula atom v, AtomEq atom p term, Ord p) =>
+foldPredicates :: forall formula atom term v p r. (IsQuantified formula atom v, HasEquality atom p term, Ord p) =>
                   (PredicateName p -> Maybe Int -> r -> r) -> formula -> r -> r
 foldPredicates f fm acc =
     foldFirstOrder qu co tf at fm
@@ -78,7 +78,7 @@ foldPredicates f fm acc =
 -- Code to generate equality axioms for functions.                           
 -- ------------------------------------------------------------------------- 
 
-function_congruence :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f) =>
+function_congruence :: forall fof atom term v p f. (IsQuantified fof atom v, HasEquality atom p term, IsTerm term v f) =>
                        (f, Int) -> Set.Set fof
 function_congruence (_,0) = (∅)
 function_congruence (f,n) =
@@ -97,7 +97,7 @@ function_congruence (f,n) =
 -- And for predicates.                                                       
 -- ------------------------------------------------------------------------- 
 
-predicate_congruence :: (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord p) =>
+predicate_congruence :: (IsQuantified fof atom v, HasEquality atom p term, IsTerm term v f, Ord p) =>
                         PredicateName p -> Set.Set fof
 predicate_congruence Equals = Set.empty
 predicate_congruence (Named _ 0) = Set.empty
@@ -109,13 +109,13 @@ predicate_congruence (Named p n) =
       args_x = map vt argnames_x
       args_y = map vt argnames_y
       ant = foldr1 (∧) (map (uncurry (.=.)) (zip args_x args_y))
-      con = atomic (applyEq p args_x) ⇒ atomic (applyEq p args_y)
+      con = atomic (applyPredicate p args_x) ⇒ atomic (applyPredicate p args_y)
 
 -- ------------------------------------------------------------------------- 
 -- Hence implement logic with equality just by adding equality "axioms".     
 -- ------------------------------------------------------------------------- 
 
-equivalence_axioms :: forall fof atom term v p f. (FirstOrderFormula fof atom v, AtomEq atom p term, Term term v f, Ord fof) => Set.Set fof
+equivalence_axioms :: forall fof atom term v p f. (IsQuantified fof atom v, HasEquality atom p term, IsTerm term v f, Ord fof) => Set.Set fof
 equivalence_axioms =
     Set.fromList
     [(∀) "x" (x .=. x),
@@ -128,7 +128,7 @@ equivalence_axioms =
       z :: term
       z = vt (fromString "z")
 
-equalitize :: forall formula atom term v p f. (FirstOrderFormula formula atom v, Formula formula atom, AtomEq atom p term, Ord p, Show p, Term term v f, Ord formula, Ord f) =>
+equalitize :: forall formula atom term v p f. (IsQuantified formula atom v, IsFormula formula atom, HasEquality atom p term, Ord p, Show p, IsTerm term v f, Ord formula, Ord f) =>
               formula -> formula
 equalitize fm =
     if not (Set.member Equals allpreds)
@@ -141,8 +141,9 @@ equalitize fm =
       allpreds = predicates fm
       preds = Set.delete Equals allpreds
 
-functions' :: forall formula atom f. (Formula formula atom, Ord f) => (atom -> Set.Set (f, Int)) -> formula -> Set.Set (f, Int)
-functions' fa fm = foldAtoms (\ s a -> Set.union s (fa a)) Set.empty fm
+functions' :: forall formula atom f. (IsFormula formula atom, Ord f) => (atom -> Set.Set (f, Int)) -> formula -> Set.Set (f, Int)
+-- functions' fa fm = foldAtoms (\ s a -> Set.union s (fa a)) Set.empty fm
+functions' fa fm = overatoms (\ a s -> Set.union s (fa a)) fm Set.empty
 
 -- ------------------------------------------------------------------------- 
 -- Other variants not mentioned in book.                                     

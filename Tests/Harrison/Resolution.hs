@@ -2,12 +2,12 @@
 {-# OPTIONS_GHC -Wall #-}
 module Harrison.Resolution where
 
+import Data.Logic.Classes.Apply (pApp)
 import Control.Applicative.Error (Failing(..))
-import Data.Logic.Classes.Combine (Combinable(..))
-import Data.Logic.Classes.Equals (pApp)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
+import Data.Logic.Classes.Combine (IsCombinable(..))
+import Data.Logic.Classes.FirstOrder (IsQuantified(..))
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Term (Term(vt, fApp))
+import Data.Logic.Classes.Term (IsTerm(vt, fApp))
 import Data.Logic.Harrison.Normal (simpcnf)
 import Data.Logic.Harrison.Resolution (resolution1, resolution2, resolution3, presolution)
 import Data.Logic.Harrison.Skolem (runSkolem, skolemize)
@@ -17,7 +17,7 @@ import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula)
 import qualified Data.Set as Set
 import Data.String (IsString(..))
 import Prelude hiding (negate)
-import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual, Assertion)
+import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual)
 
 tests :: Test
 tests = TestLabel "Data.Logic.Tests.Harrison.Resolution" $

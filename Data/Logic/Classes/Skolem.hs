@@ -1,7 +1,7 @@
 {-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses #-}
 module Data.Logic.Classes.Skolem where
 
-import Data.Logic.Classes.Variable (Variable)
+import Data.Logic.Classes.Variable (IsVariable)
 
 -- | Skolem functions are created to replace an an existentially
 -- quantified variable.  The idea is that if we have a predicate
@@ -11,7 +11,7 @@ import Data.Logic.Classes.Variable (Variable)
 -- P to be satisfied.  The value of sKz will depend on x and y, so we
 -- make these parameters.  Thus we have eliminated existential
 -- quantifiers and obtained the formula P[x,y,sKz[x,y]].
-class Variable v => Skolem f v | f -> v where
+class IsVariable v => HasSkolem f v | f -> v where
     toSkolem :: v -> f     -- ^ Turn a variable into the corresponding skolem function
     fromSkolem  :: f -> Maybe v
     -- ^ If this is a skolem function return the variable it replaced.

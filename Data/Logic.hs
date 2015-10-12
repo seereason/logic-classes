@@ -36,7 +36,7 @@ import Data.Logic.Classes.FirstOrder
 import Data.Logic.Classes.Literal hiding (toPropositional)
 import Data.Logic.Classes.Negate
 import Data.Logic.Classes.Pretty
-import Data.Logic.Classes.Propositional hiding (overatoms, clauseNormalForm)
+import Data.Logic.Classes.Propositional hiding (clauseNormalForm)
 import Data.Logic.Classes.Skolem
 import Data.Logic.Classes.Term
 import Data.Logic.Classes.Variable

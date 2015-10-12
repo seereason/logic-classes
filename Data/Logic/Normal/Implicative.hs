@@ -18,12 +18,12 @@ import Data.Generics (Data, Typeable, listify)
 import Data.List (intersperse)
 import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Constants (true, ifElse)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..))
-import Data.Logic.Classes.Propositional (PropositionalFormula)
-import Data.Logic.Classes.Skolem (Skolem(fromSkolem))
-import Data.Logic.Classes.Literal (Literal(..))
-import Data.Logic.Classes.Negate (Negatable(..))
-import Data.Logic.Classes.Term (Term)
+import Data.Logic.Classes.FirstOrder (IsQuantified(..))
+import Data.Logic.Classes.Propositional (IsPropositional)
+import Data.Logic.Classes.Skolem (HasSkolem(fromSkolem))
+import Data.Logic.Classes.Literal (IsLiteral(..))
+import Data.Logic.Classes.Negate (IsNegatable(..))
+import Data.Logic.Classes.Term (IsTerm)
 import Data.Logic.Harrison.Skolem (SkolemT, runSkolemT)
 import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Maybe (isJust)
@@ -59,14 +59,14 @@ data ImplicativeForm lit =
 
 -- |A version of MakeINF that takes lists instead of sets, used for
 -- implementing a more attractive show method.
-makeINF' :: (Negatable lit, Ord lit) => [lit] -> [lit] -> ImplicativeForm lit
+makeINF' :: (IsNegatable lit, Ord lit) => [lit] -> [lit] -> ImplicativeForm lit
 makeINF' n p = INF (Set.fromList n) (Set.fromList p)
 
-prettyINF :: (Negatable lit, Ord lit) => (lit -> Doc) -> ImplicativeForm lit -> Doc
+prettyINF :: (IsNegatable lit, Ord lit) => (lit -> Doc) -> ImplicativeForm lit -> Doc
 prettyINF lit x = cat $ [text "(", hsep (map lit (Set.toList (neg x))),
                          text ") => (", hsep (map lit (Set.toList (pos x))), text ")"]
 
-prettyProof :: (Negatable lit, Ord lit) => (lit -> Doc) -> Set.Set (ImplicativeForm lit) -> Doc
+prettyProof :: (IsNegatable lit, Ord lit) => (lit -> Doc) -> Set.Set (ImplicativeForm lit) -> Doc
 prettyProof lit p = cat $ [text "["] ++ intersperse (text ", ") (map (prettyINF lit) (Set.toList p)) ++ [text "]"]
 
 -- |Take the clause normal form, and turn it into implicative form,
@@ -91,12 +91,12 @@ prettyProof lit p = cat $ [text "["] ++ intersperse (text ", ") (map (prettyINF 
 -- @
 implicativeNormalForm :: forall m formula atom term v f lit. 
                          (Monad m,
-                          FirstOrderFormula formula atom v,
-                          PropositionalFormula formula atom,
+                          IsQuantified formula atom v,
+                          IsPropositional formula atom,
                           Atom atom term v,
-                          Literal lit atom,
-                          Term term v f,
-                          Data formula, Ord formula, Ord lit, Data lit, Skolem f v) =>
+                          IsLiteral lit atom,
+                          IsTerm term v f,
+                          Data formula, Ord formula, Ord lit, Data lit, HasSkolem f v) =>
                          formula -> SkolemT v term m (Set.Set (ImplicativeForm lit))
 implicativeNormalForm formula =
     do cnf <- clauseNormalForm formula

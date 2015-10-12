@@ -4,7 +4,7 @@ module Harrison.Prop
     ( tests
     ) where
 
-import Data.Logic.Classes.Combine (Combinable(..), (∨), (∧))
+import Data.Logic.Classes.Combine (IsCombinable(..), (∨), (∧))
 import Data.Logic.Classes.Constants (true, false)
 import Data.Logic.Classes.Formula (atomic)
 import Data.Logic.Classes.Negate ((.~.), (¬))

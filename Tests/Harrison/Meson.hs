@@ -5,13 +5,13 @@ module Harrison.Meson where
 import Control.Applicative.Error (Failing(..))
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import Data.Logic.Classes.Equals (pApp)
+import Data.Logic.Classes.Apply (pApp)
 import Data.Logic.Classes.Combine ((.&.), (.=>.), (.|.))
 import Data.Logic.Classes.Constants (true)
 import Data.Logic.Classes.FirstOrder (exists, for_all)
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Skolem (Skolem(..))
-import Data.Logic.Classes.Term (Term(vt, fApp))
+import Data.Logic.Classes.Skolem (HasSkolem(..))
+import Data.Logic.Classes.Term (IsTerm(vt, fApp))
 import Data.Logic.Harrison.FOL (generalize, list_conj)
 import Data.Logic.Harrison.Meson(meson)
 import Data.Logic.Harrison.Normal (simpdnf)

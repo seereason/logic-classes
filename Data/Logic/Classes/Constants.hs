@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 module Data.Logic.Classes.Constants
-    ( Constants(asBool, fromBool)
+    ( HasBoolean(asBool, fromBool)
     , ifElse
     , true
     , (⊨)
@@ -14,23 +14,23 @@ import Text.PrettyPrint (Doc, text)
 
 -- |Some types in the Logic class heirarchy need to have True and
 -- False elements.
-class Constants p where
+class HasBoolean p where
     asBool :: p -> Maybe Bool
     fromBool :: Bool -> p
 
-true :: Constants p => p
+true :: HasBoolean p => p
 true = fromBool True
 
-false :: Constants p => p
+false :: HasBoolean p => p
 false = fromBool False
 
 ifElse :: a -> a -> Bool -> a
 ifElse t _ True = t
 ifElse _ f False = f
 
-(⊨) :: Constants formula => formula
+(⊨) :: HasBoolean formula => formula
 (⊨) = true
-(⊭) :: Constants formula => formula
+(⊭) :: HasBoolean formula => formula
 (⊭) = false
 
 prettyBool :: Bool -> Doc

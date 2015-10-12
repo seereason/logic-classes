@@ -1,11 +1,11 @@
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
 module Data.Logic.Types.Common where
 
-import Data.Logic.Classes.Variable (Variable(..))
+import Data.Logic.Classes.Variable (IsVariable(..))
 import qualified Data.Set as Set
 import Text.PrettyPrint (text)
 
-instance Variable String where
+instance IsVariable String where
     variant x vars = if Set.member x vars then variant (x ++ "'") vars else x
     prefix p x = p ++ x
     prettyVariable = text

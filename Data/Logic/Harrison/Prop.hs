@@ -36,10 +36,10 @@ module Data.Logic.Harrison.Prop
     , cnf'
     ) where
 
-import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
-import Data.Logic.Classes.Constants (Constants(fromBool, asBool), true, false, ifElse)
-import Data.Logic.Classes.Formula (Formula(atomic))
-import Data.Logic.Classes.Literal (Literal(foldLiteral), toPropositional)
+import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..), binop)
+import Data.Logic.Classes.Constants (HasBoolean(fromBool, asBool), true, false, ifElse)
+import Data.Logic.Classes.Formula (IsFormula(atomic))
+import Data.Logic.Classes.Literal (IsLiteral(foldLiteral), toPropositional)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Propositional
 import Data.Logic.Harrison.Formulas.Propositional (atom_union, on_atoms)
@@ -92,7 +92,7 @@ let print_prop_formula = print_qformula print_propvar;;
 -- Interpretation of formulas.                                               
 -- ------------------------------------------------------------------------- 
 
-eval :: (PropositionalFormula formula atomic, Ord atomic) => formula -> Map.Map atomic Bool -> Bool
+eval :: (IsPropositional formula atomic, Ord atomic) => formula -> Map.Map atomic Bool -> Bool
 eval fm v =
     foldPropositional co id at fm
     where
@@ -117,7 +117,7 @@ END_INTERACTIVE;;
 -- Return the set of propositional variables in a formula.                   
 -- ------------------------------------------------------------------------- 
 
-atoms :: Ord atomic => PropositionalFormula formula atomic => formula -> Set.Set atomic
+atoms :: Ord atomic => IsPropositional formula atomic => formula -> Set.Set atomic
 atoms = atom_union Set.singleton
 
 -- ------------------------------------------------------------------------- 
@@ -143,7 +143,7 @@ onAllValuations append subfn v ps =
 type TruthTableRow = ([Bool], Bool)
 type TruthTable a = ([a], [TruthTableRow])
 
-truthTable :: forall formula atom. (PropositionalFormula formula atom, Eq atom, Ord atom) =>
+truthTable :: forall formula atom. (IsPropositional formula atom, Eq atom, Ord atom) =>
               formula -> TruthTable atom
 truthTable fm =
     (atl, onAllValuations (++) mkRow Map.empty ats)
@@ -158,7 +158,7 @@ truthTable fm =
 -- Recognizing tautologies.                                                  
 -- ------------------------------------------------------------------------- 
 
-tautology :: (PropositionalFormula formula atomic, Ord atomic) => formula -> Bool
+tautology :: (IsPropositional formula atomic, Ord atomic) => formula -> Bool
 tautology fm = onAllValuations (&&) (eval fm) Map.empty (atoms fm)
 
 -- ------------------------------------------------------------------------- 
@@ -166,10 +166,10 @@ tautology fm = onAllValuations (&&) (eval fm) Map.empty (atoms fm)
 -- ------------------------------------------------------------------------- 
 
 
-unsatisfiable :: (PropositionalFormula formula atomic, Ord atomic) => formula -> Bool
+unsatisfiable :: (IsPropositional formula atomic, Ord atomic) => formula -> Bool
 unsatisfiable fm = tautology ((.~.) fm)
 
-satisfiable :: (PropositionalFormula formula atomic, Ord atomic) => formula -> Bool
+satisfiable :: (IsPropositional formula atomic, Ord atomic) => formula -> Bool
 satisfiable = not . unsatisfiable
 
 -- ------------------------------------------------------------------------- 
@@ -177,14 +177,14 @@ satisfiable = not . unsatisfiable
 -- ------------------------------------------------------------------------- 
 
 -- pSubst :: Ord a => Map.Map a (Formula a) -> Formula a -> Formula a
-pSubst :: (PropositionalFormula formula atomic, Ord atomic) => Map.Map atomic formula -> formula -> formula
+pSubst :: (IsPropositional formula atomic, Ord atomic) => Map.Map atomic formula -> formula -> formula
 pSubst subfn fm = on_atoms (\ p -> maybe (atomic p) id (fpf subfn p)) fm
 
 -- ------------------------------------------------------------------------- 
 -- Dualization.                                                              
 -- ------------------------------------------------------------------------- 
 
-dual :: forall formula atomic. (PropositionalFormula formula atomic) => formula -> formula
+dual :: forall formula atomic. (IsPropositional formula atomic) => formula -> formula
 dual fm =
     foldPropositional co (fromBool . not) at fm
     where
@@ -198,7 +198,7 @@ dual fm =
 -- Routine simplification.                                                   
 -- ------------------------------------------------------------------------- 
 
-psimplify1 :: (PropositionalFormula r a, Eq r) => r -> r
+psimplify1 :: (IsPropositional r a, Eq r) => r -> r
 psimplify1 fm =
     foldPropositional simplifyCombine (\ _ -> fm) (\ _ -> fm) fm
     where
@@ -226,7 +226,7 @@ psimplify1 fm =
       simplifyNotCombine ((:~:) p) = p
       simplifyNotCombine _ = fm
 
-psimplify :: forall formula atomic. (PropositionalFormula formula atomic, Eq formula) => formula -> formula
+psimplify :: forall formula atomic. (IsPropositional formula atomic, Eq formula) => formula -> formula
 psimplify fm =
     foldPropositional c (\ _ -> fm) (\ _ -> fm) fm
     where
@@ -238,7 +238,7 @@ psimplify fm =
 -- Some operations on literals.                                              
 -- ------------------------------------------------------------------------- 
 
-negative :: forall lit atom. Literal lit atom => lit -> Bool
+negative :: forall lit atom. IsLiteral lit atom => lit -> Bool
 negative lit =
     foldLiteral neg tf a lit
     where
@@ -246,10 +246,10 @@ negative lit =
       tf = not
       a _ = False
 
-positive :: Literal lit atom => lit -> Bool
+positive :: IsLiteral lit atom => lit -> Bool
 positive = not . negative
 
-negate :: PropositionalFormula formula atomic => formula -> formula
+negate :: IsPropositional formula atomic => formula -> formula
 negate lit =
     foldPropositional c (fromBool . not) a lit
     where
@@ -261,7 +261,7 @@ negate lit =
 -- Negation normal form.                                                     
 -- ------------------------------------------------------------------------- 
 
-nnf' :: PropositionalFormula formula atomic => formula -> formula
+nnf' :: IsPropositional formula atomic => formula -> formula
 nnf' fm =
     foldPropositional nnfCombine (\ _ -> fm) (\ _ -> fm) fm
     where
@@ -280,14 +280,14 @@ nnf' fm =
 -- Roll in simplification.                                                   
 -- ------------------------------------------------------------------------- 
 
-nnf :: (PropositionalFormula formula atomic, Eq formula) => formula -> formula
+nnf :: (IsPropositional formula atomic, Eq formula) => formula -> formula
 nnf = nnf' . psimplify
 
 -- ------------------------------------------------------------------------- 
 -- Simple negation-pushing when we don't care to distinguish occurrences.    
 -- ------------------------------------------------------------------------- 
 
-nenf' :: PropositionalFormula formula atomic => formula -> formula
+nenf' :: IsPropositional formula atomic => formula -> formula
 nenf' fm =
     foldPropositional nenfCombine (\ _ -> fm) (\ _ -> fm) fm
     where
@@ -302,7 +302,7 @@ nenf' fm =
       nenfNotCombine (BinOp p (:=>:) q) = nenf' p .&. nenf' ((.~.) q)
       nenfNotCombine (BinOp p (:<=>:) q) = nenf' p .<=>. nenf' ((.~.) q) -- really?  how is this asymmetrical?
 
-nenf :: (PropositionalFormula formula atomic, Eq formula) => formula -> formula
+nenf :: (IsPropositional formula atomic, Eq formula) => formula -> formula
 nenf = nenf' . psimplify
 
 {-
@@ -323,13 +323,13 @@ nenf = nenf' . psimplify
 -- Disjunctive normal form (DNF) via truth tables.                           
 -- ------------------------------------------------------------------------- 
 
-list_conj :: (PropositionalFormula formula atomic, Ord formula) => Set.Set formula -> formula
+list_conj :: (IsPropositional formula atomic, Ord formula) => Set.Set formula -> formula
 list_conj l = maybe true (\ (x, xs) -> Set.fold (.&.) x xs) (Set.minView l)
 
-list_disj :: PropositionalFormula formula atomic => Set.Set formula -> formula
+list_disj :: IsPropositional formula atomic => Set.Set formula -> formula
 list_disj l = maybe false (\ (x, xs) -> Set.fold (.|.) x xs) (Set.minView l)
 
-mkLits :: (PropositionalFormula formula atomic, Ord formula, Ord atomic) =>
+mkLits :: (IsPropositional formula atomic, Ord formula, Ord atomic) =>
           Set.Set formula -> Map.Map atomic Bool -> formula
 mkLits pvs v = list_conj (Set.map (\ p -> if eval p v then p else (.~.) p) pvs)
 
@@ -340,7 +340,7 @@ allSatValuations subfn v pvs =
       Just (p, ps) -> (allSatValuations subfn (Map.insert p False v) ps) ++
                       (allSatValuations subfn (Map.insert p True v) ps)
 
-dnf0 :: forall formula atomic. (PropositionalFormula formula atomic, Ord atomic, Ord formula) => formula -> formula
+dnf0 :: forall formula atomic. (IsPropositional formula atomic, Ord atomic, Ord formula) => formula -> formula
 dnf0 fm =
     list_disj (Set.fromList (map (mkLits (Set.map atomic pvs)) satvals))
     where
@@ -351,7 +351,7 @@ dnf0 fm =
 -- DNF via distribution.                                                     
 -- ------------------------------------------------------------------------- 
 
-distrib :: PropositionalFormula formula atomic => formula -> formula
+distrib :: IsPropositional formula atomic => formula -> formula
 distrib fm =
     foldPropositional c tf a fm
     where
@@ -366,7 +366,7 @@ distrib fm =
       tf _ = fm
       a _ = fm
 
-rawdnf :: PropositionalFormula formula atomic => formula -> formula
+rawdnf :: IsPropositional formula atomic => formula -> formula
 rawdnf fm =
     foldPropositional c tf a fm
     where
@@ -380,7 +380,7 @@ rawdnf fm =
 -- A version using a list representation.                                    
 -- ------------------------------------------------------------------------- 
 
-purednf :: (PropositionalFormula pf atom, Literal lit atom, Ord lit) => pf -> Set.Set (Set.Set lit)
+purednf :: (IsPropositional pf atom, IsLiteral lit atom, Ord lit) => pf -> Set.Set (Set.Set lit)
 purednf fm =
     foldPropositional c tf a fm
     where
@@ -395,7 +395,7 @@ purednf fm =
 -- Filtering out trivial disjuncts (in this guise, contradictory).           
 -- ------------------------------------------------------------------------- 
 
-trivial :: (Literal lit atom, Ord lit) => Set.Set lit -> Bool
+trivial :: (IsLiteral lit atom, Ord lit) => Set.Set lit -> Bool
 trivial lits =
     not . Set.null $ Set.intersection neg (Set.map (.~.) pos)
     where (pos, neg) = Set.partition positive lits
@@ -404,7 +404,7 @@ trivial lits =
 -- With subsumption checking, done very naively (quadratic).                 
 -- ------------------------------------------------------------------------- 
 
-simpdnf :: forall pf lit atom. (PropositionalFormula pf atom, Literal lit atom, Ord lit) => pf -> Set.Set (Set.Set lit)
+simpdnf :: forall pf lit atom. (IsPropositional pf atom, IsLiteral lit atom, Ord lit) => pf -> Set.Set (Set.Set lit)
 simpdnf fm =
     foldPropositional c tf a fm
     where
@@ -419,20 +419,20 @@ simpdnf fm =
 -- Mapping back to a formula.                                                
 -- ------------------------------------------------------------------------- 
 
-dnf :: forall pf lit atom. (PropositionalFormula pf atom, Literal lit atom, Ord lit) => Set.Set (Set.Set lit) -> pf
+dnf :: forall pf lit atom. (IsPropositional pf atom, IsLiteral lit atom, Ord lit) => Set.Set (Set.Set lit) -> pf
 dnf = list_disj . Set.map (list_conj . Set.map (toPropositional id))
 
-dnf' :: forall pf atom. (PropositionalFormula pf atom, Literal pf atom) => pf -> pf
+dnf' :: forall pf atom. (IsPropositional pf atom, IsLiteral pf atom) => pf -> pf
 dnf' = dnf . (simpdnf :: pf -> Set.Set (Set.Set pf))
 
 -- ------------------------------------------------------------------------- 
 -- Conjunctive normal form (CNF) by essentially the same code.               
 -- ------------------------------------------------------------------------- 
 
-purecnf :: forall pf lit atom. (PropositionalFormula pf atom, Literal lit atom, Ord lit) => pf -> Set.Set (Set.Set lit)
+purecnf :: forall pf lit atom. (IsPropositional pf atom, IsLiteral lit atom, Ord lit) => pf -> Set.Set (Set.Set lit)
 purecnf fm = Set.map (Set.map (.~.)) (purednf (nnf ((.~.) fm)))
 
-simpcnf :: (PropositionalFormula pf atom, Literal lit atom, Ord lit) => pf -> Set.Set (Set.Set lit)
+simpcnf :: (IsPropositional pf atom, IsLiteral lit atom, Ord lit) => pf -> Set.Set (Set.Set lit)
 simpcnf fm =
     foldPropositional c tf a fm
     where
@@ -443,8 +443,8 @@ simpcnf fm =
       cjs = Set.filter (not . trivial) (purecnf fm)
       a x = Set.singleton (Set.singleton (atomic x))
 
-cnf :: forall pf lit atom. (PropositionalFormula pf atom, Literal lit atom, Ord lit) => Set.Set (Set.Set lit) -> pf
+cnf :: forall pf lit atom. (IsPropositional pf atom, IsLiteral lit atom, Ord lit) => Set.Set (Set.Set lit) -> pf
 cnf = list_conj . Set.map (list_disj . Set.map (toPropositional id))
 
-cnf' :: forall pf atom. (PropositionalFormula pf atom, Literal pf atom) => pf -> pf
+cnf' :: forall pf atom. (IsPropositional pf atom, IsLiteral pf atom) => pf -> pf
 cnf' = cnf . (simpcnf :: pf -> Set.Set (Set.Set pf))

@@ -10,7 +10,7 @@ module Data.Logic.Harrison.Formulas.FirstOrder
 
 import qualified Data.Set as Set
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..), binop)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(..), quant)
+import Data.Logic.Classes.FirstOrder (IsQuantified(..), quant)
 import Data.Logic.Classes.Negate ((.~.))
 
 -- ------------------------------------------------------------------------- 
@@ -159,17 +159,17 @@ let dest_imp fm =
   match fm with Imp(p,q) -> (p,q) | _ -> failwith "dest_imp";;
 -}
 
-antecedent :: FirstOrderFormula formula atom v => formula -> formula
+antecedent :: IsQuantified formula atom v => formula -> formula
 antecedent formula =
-    foldFirstOrder (\ _ _ _ -> err) c (\ _ -> err) (\ _ -> err) formula
+    foldQuantified (\ _ _ _ -> err) c (\ _ -> err) (\ _ -> err) formula
     where
       c (BinOp p (:=>:) _) = p
       c _ = err
       err = error "antecedent"
 
-consequent :: FirstOrderFormula formula atom v => formula -> formula
+consequent :: IsQuantified formula atom v => formula -> formula
 consequent formula =
-    foldFirstOrder (\ _ _ _ -> err) c (\ _ -> err) (\ _ -> err) formula
+    foldQuantified (\ _ _ _ -> err) c (\ _ -> err) (\ _ -> err) formula
     where
       c (BinOp _ (:=>:) q) = q
       c _ = err
@@ -179,9 +179,9 @@ consequent formula =
 -- Apply a function to the atoms, otherwise keeping structure.               
 -- ------------------------------------------------------------------------- 
 
-on_atoms :: forall formula atom v. FirstOrderFormula formula atom v => (atom -> formula) -> formula -> formula
+on_atoms :: forall formula atom v. IsQuantified formula atom v => (atom -> formula) -> formula -> formula
 on_atoms f fm =
-    foldFirstOrder qu co tf at fm
+    foldQuantified qu co tf at fm
     where 
       qu op v fm' = quant op v (on_atoms f fm')
       co ((:~:) fm') = (.~.) (on_atoms f fm')
@@ -193,9 +193,9 @@ on_atoms f fm =
 -- Formula analog of list iterator "itlist".                                 
 -- ------------------------------------------------------------------------- 
 
-over_atoms :: FirstOrderFormula formula atom v => (atom -> b -> b) -> formula -> b -> b
+over_atoms :: IsQuantified formula atom v => (atom -> b -> b) -> formula -> b -> b
 over_atoms f fm b =
-    foldFirstOrder qu co tf pr fm
+    foldQuantified qu co tf pr fm
     where
       qu _ _ p = over_atoms f p b
       co ((:~:) p) = over_atoms f p b
@@ -207,5 +207,5 @@ over_atoms f fm b =
 -- Special case of a union of the results of a function over the atoms.      
 -- ------------------------------------------------------------------------- 
 
-atom_union :: (FirstOrderFormula formula atom v, Ord b) => (atom -> Set.Set b) -> formula -> Set.Set b
+atom_union :: (IsQuantified formula atom v, Ord b) => (atom -> Set.Set b) -> formula -> Set.Set b
 atom_union f fm = over_atoms (\ h t -> Set.union (f h) t) fm Set.empty

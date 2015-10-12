@@ -26,16 +26,16 @@ module Data.Logic.Harrison.Skolem
 import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.State (StateT(runStateT))
 import Data.Logic.Classes.Atom (Atom)
-import Data.Logic.Classes.Combine (Combinable(..), Combination(..), BinOp(..), binop)
-import Data.Logic.Classes.Constants (Constants(fromBool, asBool), true, false)
-import Data.Logic.Classes.FirstOrder (FirstOrderFormula(exists, for_all, foldFirstOrder), Quant(..), quant, toPropositional)
-import Data.Logic.Classes.Formula (Formula(..))
-import Data.Logic.Classes.Literal (Literal(foldLiteral))
+import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..), binop)
+import Data.Logic.Classes.Constants (HasBoolean(fromBool, asBool), true, false)
+import Data.Logic.Classes.FirstOrder (IsQuantified(exists, for_all, foldQuantified), Quant(..), quant, toPropositional)
+import Data.Logic.Classes.Formula (IsFormula(..))
+import Data.Logic.Classes.Literal (IsLiteral(foldLiteral))
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Propositional (PropositionalFormula(..))
+import Data.Logic.Classes.Propositional (IsPropositional(..))
 import qualified Data.Logic.Classes.Skolem as C
-import Data.Logic.Classes.Term (Term(..))
-import Data.Logic.Classes.Variable (Variable(variant))
+import Data.Logic.Classes.Term (IsTerm(..))
+import Data.Logic.Classes.Variable (IsVariable(variant))
 import Data.Logic.Harrison.FOL (fv, subst)
 import Data.Logic.Harrison.Lib ((|=>))
 import qualified Data.Map as Map
@@ -51,22 +51,22 @@ import qualified Data.Set as Set
 -- Routine simplification. Like "psimplify" but with quantifier clauses.     
 -- ------------------------------------------------------------------------- 
 
-simplify1 :: (FirstOrderFormula fof atom v,
+simplify1 :: (IsQuantified fof atom v,
               -- Formula fof term v,
               Atom atom term v,
-              Term term v f) => fof -> fof
+              IsTerm term v f) => fof -> fof
 simplify1 fm =
-    foldFirstOrder qu co tf at fm
+    foldQuantified qu co tf at fm
     where
       qu _ x p = if Set.member x (fv p) then fm else p
-      co ((:~:) p) = foldFirstOrder (\ _ _ _ -> fm) nco (fromBool . not) (\ _ -> fm) p
+      co ((:~:) p) = foldQuantified (\ _ _ _ -> fm) nco (fromBool . not) (\ _ -> fm) p
       co (BinOp l op r) = simplifyBinop l op r
       nco ((:~:) p) = p
       nco _ = fm
       tf = fromBool
       at _ = fm
 
-simplifyBinop :: forall p. (Constants p, Combinable p) => p -> BinOp -> p -> p
+simplifyBinop :: forall p. (HasBoolean p, IsCombinable p) => p -> BinOp -> p -> p
 simplifyBinop l op r =
     case (asBool l, op, asBool r) of
       (Just True,  (:&:), _         ) -> r
@@ -88,11 +88,11 @@ simplifyBinop l op r =
       (_,          (:<=>:), Just False) -> (.~.) l
       _ -> binop l op r
 
-simplify :: (FirstOrderFormula fof atom v,
+simplify :: (IsQuantified fof atom v,
              Atom atom term v,
-             Term term v f) => fof -> fof
+             IsTerm term v f) => fof -> fof
 simplify fm =
-    foldFirstOrder qu co tf at fm
+    foldQuantified qu co tf at fm
     where
       qu op x fm' = simplify1 (quant op x (simplify fm'))
       co ((:~:) fm') = simplify1 ((.~.) (simplify fm'))
@@ -101,10 +101,10 @@ simplify fm =
       at _ = fm
 
 -- | Just looks for double negatives and negated constants.
-lsimplify :: Literal lit atom => lit -> lit
+lsimplify :: IsLiteral lit atom => lit -> lit
 lsimplify fm = foldLiteral (lsimplify1 . (.~.) . lsimplify) fromBool (const fm) fm
 
-lsimplify1 :: Literal lit atom => lit -> lit
+lsimplify1 :: IsLiteral lit atom => lit -> lit
 lsimplify1 fm = foldLiteral (foldLiteral id (fromBool . not) (const fm)) fromBool (const fm) fm
 
 
@@ -112,18 +112,18 @@ lsimplify1 fm = foldLiteral (foldLiteral id (fromBool . not) (const fm)) fromBoo
 -- Negation normal form.                                                     
 -- ------------------------------------------------------------------------- 
 
-nnf :: FirstOrderFormula formula atom v => formula -> formula
+nnf :: IsQuantified formula atom v => formula -> formula
 nnf fm =
-    foldFirstOrder nnfQuant nnfCombine (\ _ -> fm) (\ _ -> fm) fm
+    foldQuantified nnfQuant nnfCombine (\ _ -> fm) (\ _ -> fm) fm
     where
       nnfQuant op v p = quant op v (nnf p)
-      nnfCombine ((:~:) p) = foldFirstOrder nnfNotQuant nnfNotCombine (fromBool . not) (\ _ -> fm) p
+      nnfCombine ((:~:) p) = foldQuantified nnfNotQuant nnfNotCombine (fromBool . not) (\ _ -> fm) p
       nnfCombine (BinOp p (:=>:) q) = nnf ((.~.) p) .|. (nnf q)
       nnfCombine (BinOp p (:<=>:) q) =  (nnf p .&. nnf q) .|. (nnf ((.~.) p) .&. nnf ((.~.) q))
       nnfCombine (BinOp p (:&:) q) = nnf p .&. nnf q
       nnfCombine (BinOp p (:|:) q) = nnf p .|. nnf q
-      nnfNotQuant Forall v p = exists v (nnf ((.~.) p))
-      nnfNotQuant Exists v p = for_all v (nnf ((.~.) p))
+      nnfNotQuant (:!:) v p = exists v (nnf ((.~.) p))
+      nnfNotQuant (:?:) v p = for_all v (nnf ((.~.) p))
       nnfNotCombine ((:~:) p) = nnf p
       nnfNotCombine (BinOp p (:&:) q) = nnf ((.~.) p) .|. nnf ((.~.) q)
       nnfNotCombine (BinOp p (:|:) q) = nnf ((.~.) p) .&. nnf ((.~.) q)
@@ -134,31 +134,31 @@ nnf fm =
 -- Prenex normal form.                                                       
 -- ------------------------------------------------------------------------- 
 
-pullQuants :: forall formula atom v term f. (FirstOrderFormula formula atom v, {-Formula formula term v,-} Atom atom term v, Term term v f) =>
+pullQuants :: forall formula atom v term f. (IsQuantified formula atom v, {-Formula formula term v,-} Atom atom term v, IsTerm term v f) =>
               formula -> formula
 pullQuants fm =
-    foldFirstOrder (\ _ _ _ -> fm) pullQuantsCombine (\ _ -> fm) (\ _ -> fm) fm
+    foldQuantified (\ _ _ _ -> fm) pullQuantsCombine (\ _ -> fm) (\ _ -> fm) fm
     where
-      getQuant = foldFirstOrder (\ op v f -> Just (op, v, f)) (\ _ -> Nothing) (\ _ -> Nothing) (\ _ -> Nothing)
+      getQuant = foldQuantified (\ op v f -> Just (op, v, f)) (\ _ -> Nothing) (\ _ -> Nothing) (\ _ -> Nothing)
       pullQuantsCombine ((:~:) _) = fm
       pullQuantsCombine (BinOp l op r) = 
           case (getQuant l, op, getQuant r) of
-            (Just (Forall, vl, l'), (:&:), Just (Forall, vr, r')) -> pullq True  True  fm for_all (.&.) vl vr l' r'
-            (Just (Exists, vl, l'), (:|:), Just (Exists, vr, r')) -> pullq True  True  fm exists  (.|.) vl vr l' r'
-            (Just (Forall, vl, l'), (:&:), _)                     -> pullq True  False fm for_all (.&.) vl vl l' r
-            (_,                     (:&:), Just (Forall, vr, r')) -> pullq False True  fm for_all (.&.) vr vr l  r'
-            (Just (Forall, vl, l'), (:|:), _)                     -> pullq True  False fm for_all (.|.) vl vl l' r
-            (_,                     (:|:), Just (Forall, vr, r')) -> pullq False True  fm for_all (.|.) vr vr l  r'
-            (Just (Exists, vl, l'), (:&:), _)                     -> pullq True  False fm exists  (.&.) vl vl l' r
-            (_,                     (:&:), Just (Exists, vr, r')) -> pullq False True  fm exists  (.&.) vr vr l  r'
-            (Just (Exists, vl, l'), (:|:), _)                     -> pullq True  False fm exists  (.|.) vl vl l' r
-            (_,                     (:|:), Just (Exists, vr, r')) -> pullq False True  fm exists  (.|.) vr vr l  r'
+            (Just ((:!:), vl, l'), (:&:), Just ((:!:), vr, r')) -> pullq True  True  fm for_all (.&.) vl vr l' r'
+            (Just ((:?:), vl, l'), (:|:), Just ((:?:), vr, r')) -> pullq True  True  fm exists  (.|.) vl vr l' r'
+            (Just ((:!:), vl, l'), (:&:), _)                     -> pullq True  False fm for_all (.&.) vl vl l' r
+            (_,                     (:&:), Just ((:!:), vr, r')) -> pullq False True  fm for_all (.&.) vr vr l  r'
+            (Just ((:!:), vl, l'), (:|:), _)                     -> pullq True  False fm for_all (.|.) vl vl l' r
+            (_,                     (:|:), Just ((:!:), vr, r')) -> pullq False True  fm for_all (.|.) vr vr l  r'
+            (Just ((:?:), vl, l'), (:&:), _)                     -> pullq True  False fm exists  (.&.) vl vl l' r
+            (_,                     (:&:), Just ((:?:), vr, r')) -> pullq False True  fm exists  (.&.) vr vr l  r'
+            (Just ((:?:), vl, l'), (:|:), _)                     -> pullq True  False fm exists  (.|.) vl vl l' r
+            (_,                     (:|:), Just ((:?:), vr, r')) -> pullq False True  fm exists  (.|.) vr vr l  r'
             _                                                     -> fm
 
 -- |Helper function to rename variables when we want to enclose a
 -- formula containing a free occurrence of that variable a quantifier
 -- that quantifies it.
-pullq :: (FirstOrderFormula formula atom v, Atom atom term v, Term term v f) =>
+pullq :: (IsQuantified formula atom v, Atom atom term v, IsTerm term v f) =>
          Bool -> Bool
       -> formula
       -> (v -> formula -> formula)
@@ -175,10 +175,10 @@ pullq l r fm mkq op x y p q =
 
 -- |Recursivly apply pullQuants anywhere a quantifier might not be
 -- leftmost.
-prenex :: (FirstOrderFormula formula atom v, {-Formula formula term v,-} Atom atom term v, Term term v f) =>
+prenex :: (IsQuantified formula atom v, {-Formula formula term v,-} Atom atom term v, IsTerm term v f) =>
           formula -> formula 
 prenex fm =
-    foldFirstOrder qu co (\ _ -> fm) (\ _ -> fm) fm
+    foldQuantified qu co (\ _ -> fm) (\ _ -> fm) fm
     where
       qu op x p = quant op x (prenex p)
       co (BinOp l (:&:) r) = pullQuants (prenex l .&. prenex r)
@@ -186,7 +186,7 @@ prenex fm =
       co _ = fm
 
 -- |Convert to Prenex normal form, with all quantifiers at the left.
-pnf :: (FirstOrderFormula formula atom v, Atom atom term v, Term term v f) => formula -> formula
+pnf :: (IsQuantified formula atom v, Atom atom term v, IsTerm term v f) => formula -> formula
 pnf = prenex . nnf . simplify
 
 -- ------------------------------------------------------------------------- 
@@ -195,8 +195,9 @@ pnf = prenex . nnf . simplify
 
 -- FIXME: the function parameter should be a method in the Atom class,
 -- but we need to add a type parameter f to it first.
-functions :: forall formula atom f. (Formula formula atom, Ord f) => (atom -> Set.Set (f, Int)) -> formula -> Set.Set (f, Int)
-functions fa fm = foldAtoms (\ s a -> Set.union s (fa a)) Set.empty fm
+functions :: forall formula atom f. (IsFormula formula atom, Ord f) => (atom -> Set.Set (f, Int)) -> formula -> Set.Set (f, Int)
+-- functions fa fm = foldAtoms (\ s a -> Set.union s (fa a)) Set.empty fm
+functions fa fm = overatoms (\ a s -> Set.union s (fa a)) fm Set.empty
 
 -- ------------------------------------------------------------------------- 
 -- State monad for generating Skolem functions and constants.
@@ -255,35 +256,35 @@ runSkolemT action = (runStateT action) newSkolemState >>= return . fst
 -- quantified in the context where the existential quantifier
 -- appeared.
 skolem :: (Monad m,
-           FirstOrderFormula fof atom v,
-           -- PropositionalFormula pf atom,
+           IsQuantified fof atom v,
+           -- IsPropositional pf atom,
            -- Formula formula term v,
            Atom atom term v,
-           Term term v f) =>
+           IsTerm term v f) =>
           fof -> SkolemT v term m fof
 skolem fm =
-    foldFirstOrder qu co (return . fromBool) (return . atomic) fm
+    foldQuantified qu co (return . fromBool) (return . atomic) fm
     where
       -- We encountered an existentially quantified variable y,
       -- allocate a new skolem function fx and do a substitution to
       -- replace occurrences of y with fx.  The value of the Skolem
       -- function is assumed to equal the value of y which satisfies
       -- the formula.
-      qu Exists y p =
+      qu (:?:) y p =
           do let xs = fv fm
              let fx = fApp (C.toSkolem y) (map vt (Set.toAscList xs))
              skolem (subst (Map.singleton y fx) p)
-      qu Forall x p = skolem p >>= return . for_all x
+      qu (:!:) x p = skolem p >>= return . for_all x
       co (BinOp l (:&:) r) = skolem2 (.&.) l r
       co (BinOp l (:|:) r) = skolem2 (.|.) l r
       co _ = return fm
 
 skolem2 :: (Monad m,
-            FirstOrderFormula fof atom v,
-            -- PropositionalFormula pf atom,
+            IsQuantified fof atom v,
+            -- IsPropositional pf atom,
             -- Formula formula term v,
             Atom atom term v,
-            Term term v f) =>
+            IsTerm term v f) =>
            (fof -> fof -> fof) -> fof -> fof -> SkolemT v term m fof
 skolem2 cons p q =
     skolem p >>= \ p' ->
@@ -298,9 +299,9 @@ skolem2 cons p q =
 -- |just Skolemize the result of prenexNormalForm.
 askolemize :: forall m fof atom term v f.
               (Monad m,
-               FirstOrderFormula fof atom v,
+               IsQuantified fof atom v,
                Atom atom term v,
-               Term term v f) =>
+               IsTerm term v f) =>
               fof -> SkolemT v term m fof
 askolemize = skolem . nnf . simplify
 
@@ -308,20 +309,20 @@ askolemize = skolem . nnf . simplify
 -- this will be all the universal quantifiers, and the skolemization
 -- will have already turned all the existential quantifiers into
 -- skolem functions.
-specialize :: forall fof atom v. FirstOrderFormula fof atom v => fof -> fof
+specialize :: forall fof atom v. IsQuantified fof atom v => fof -> fof
 specialize f =
-    foldFirstOrder q (\ _ -> f) (\ _ -> f) (\ _ -> f) f
+    foldQuantified q (\ _ -> f) (\ _ -> f) (\ _ -> f) f
     where
-      q Forall _ f' = specialize f'
+      q (:!:) _ f' = specialize f'
       q _ _ _ = f
 
 -- | Skolemize and then specialize.  Because we know all quantifiers
--- are gone we can convert to any instance of PropositionalFormula.
+-- are gone we can convert to any instance of IsPropositional.
 skolemize :: forall m fof atom term v f pf atom2. (Monad m,
-              FirstOrderFormula fof atom v,
-              PropositionalFormula pf atom2,
+              IsQuantified fof atom v,
+              IsPropositional pf atom2,
               Atom atom term v,
-              Term term v f,
+              IsTerm term v f,
               Eq pf) =>
              (atom -> atom2) -> fof -> SkolemT v term m pf
 skolemize ca fm = askolemize fm >>= return . (toPropositional ca :: fof -> pf) . specialize . pnf
@@ -329,8 +330,8 @@ skolemize ca fm = askolemize fm >>= return . (toPropositional ca :: fof -> pf) .
 {-
 -- | Convert a first order formula into a disjunct of conjuncts of
 -- literals.  Note that this can convert any instance of
--- FirstOrderFormula into any instance of Literal.
-literal :: forall fof atom term v p f lit. (Literal fof atom, Apply atom p term, Term term v f, Literal lit atom, Formula lit atom, Ord lit) =>
+-- IsQuantified into any instance of IsLiteral.
+literal :: forall fof atom term v p f lit. (IsLiteral fof atom, Apply atom p term, Term term v f, IsLiteral lit atom, Formula lit atom, Ord lit) =>
            fof -> Set.Set (Set.Set lit)
 literal fm =
     foldLiteral neg tf at fm
@@ -344,12 +345,12 @@ literal fm =
 
 -- |We get Skolem Normal Form by skolemizing and then converting to
 -- Prenex Normal Form, and finally eliminating the remaining quantifiers.
-skolemNormalForm :: (FirstOrderFormula fof atom v,
-                     PropositionalFormula pf atom2,
+skolemNormalForm :: (IsQuantified fof atom v,
+                     IsPropositional pf atom2,
                      -- Formula fof term v,
                      -- Formula pf term v,
                      Atom atom term v,
-                     Term term v f,
+                     IsTerm term v f,
                      Monad m, Ord fof, Eq pf) =>
                     (atom -> atom2) -> fof -> SkolemT v term m pf
 skolemNormalForm = skolemize
