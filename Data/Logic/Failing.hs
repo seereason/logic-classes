@@ -1,10 +1,13 @@
-{-# LANGUAGE  DeriveDataTypeable, StandaloneDeriving #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, StandaloneDeriving #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Data.Logic.Failing
     ( Failing(Success, Failure)
     , failing
     ) where
 
+#if 1
+import Lib
+#else
 import Control.Applicative.Error
 import Data.Generics
 
@@ -25,3 +28,4 @@ deriving instance Data a => Data (Failing a)
 deriving instance Read a => Read (Failing a)
 deriving instance Eq a => Eq (Failing a)
 deriving instance Ord a => Ord (Failing a)
+#endif

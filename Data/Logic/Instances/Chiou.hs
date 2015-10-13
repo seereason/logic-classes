@@ -54,7 +54,7 @@ data Quantifier
     | ExistsCh
     deriving (Eq, Ord, Show, Data, Typeable)
 
-instance IsNegatable (Sentence v p f) where
+instance (Ord v, Ord p, Ord f) => IsNegatable (Sentence v p f) where
     naiveNegate = Not
     foldNegation normal inverted (Not x) = foldNegation inverted normal x
     foldNegation normal _ x = normal x
@@ -214,7 +214,7 @@ instance (HasBoolean p, Eq (NormalSentence v p f)) => HasBoolean (NormalSentence
         | fromBool False == x = Just False
         | True = Nothing
 
-instance IsNegatable (NormalSentence v p f) where
+instance (Ord v, Ord p, Ord f) => IsNegatable (NormalSentence v p f) where
     naiveNegate = NFNot
     foldNegation normal inverted (NFNot x) = foldNegation inverted normal x
     foldNegation normal _ x = normal x

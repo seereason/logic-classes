@@ -17,7 +17,7 @@ module Data.Logic.Classes.Apply
 import Data.Data (Data)
 import Data.Logic.Classes.Arity
 import Data.Logic.Classes.Constants
-import Data.Logic.Classes.Formula (IsFormula(atomic))
+--import Data.Logic.Classes.Formula (IsFormula(atomic))
 import Data.Logic.Classes.Pretty (Pretty)
 import Data.Logic.Classes.Term (IsTerm, showTerm, prettyTerm, fvt, tsubst)
 import Data.List (intercalate, intersperse)

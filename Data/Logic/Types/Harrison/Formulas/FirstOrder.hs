@@ -28,7 +28,7 @@ data Formula a
     | Exists String (Formula a)
     deriving (Eq, Ord)
 
-instance IsNegatable (Formula atom) where
+instance Ord atom => IsNegatable (Formula atom) where
     naiveNegate T = F
     naiveNegate F = T
     naiveNegate x = Not x
@@ -42,18 +42,19 @@ instance HasBoolean (Formula a) where
     asBool F = Just False
     asBool _ = Nothing
 
-instance IsCombinable (Formula a) where
+instance Ord a => IsCombinable (Formula a) where
     a .<=>. b = Iff a b
     a .=>. b = Imp a b
     a .|. b = Or a b
     a .&. b = And a b
 
-instance (HasBoolean a, Pretty a, HasFixity a) => C.IsFormula (Formula a) a where
+instance (HasFixity (Formula a), HasBoolean a, Pretty a, Ord a, HasFixity a) => C.IsFormula (Formula a) a where
     atomic = Atom
     overatoms = overatomsFirstOrder
     onatoms = onatomsFirstOrder
+    prettyFormula = undefined
 
-instance (C.IsFormula (Formula a) a, HasBoolean a, Pretty a, HasFixity a) => IsQuantified (Formula a) a String where
+instance (C.IsFormula (Formula a) a, HasBoolean a, Pretty a, HasFixity a, Ord a) => IsQuantified (Formula a) a String where
     quant (C.:!:) = Forall 
     quant (C.:?:) = Exists
     foldQuantified qu co tf at fm =

@@ -36,14 +36,16 @@ module Data.Logic.Harrison.Prop
     , cnf'
     ) where
 
+import Data.Bool (bool)
 import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..), binop)
-import Data.Logic.Classes.Constants (HasBoolean(fromBool, asBool), true, false, ifElse)
+import Data.Logic.Classes.Constants (HasBoolean(fromBool, asBool), true, false)
 import Data.Logic.Classes.Formula (IsFormula(atomic))
 import Data.Logic.Classes.Literal (IsLiteral(foldLiteral), toPropositional)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Propositional
 import Data.Logic.Harrison.Formulas.Propositional (atom_union, on_atoms)
-import Data.Logic.Harrison.Lib (fpf, setAny, distrib')
+import Data.Logic.Harrison.Lib (fpf, setAny)
+import qualified Data.Logic.Harrison.Lib as Lib (distrib)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Prelude hiding (negate)
@@ -384,7 +386,7 @@ purednf :: (IsPropositional pf atom, IsLiteral lit atom, Ord lit) => pf -> Set.S
 purednf fm =
     foldPropositional c tf a fm
     where
-      c (BinOp p (:&:) q) = distrib' (purednf p) (purednf q)
+      c (BinOp p (:&:) q) = Lib.distrib (purednf p) (purednf q)
       c (BinOp p (:|:) q) = Set.union (purednf p) (purednf q)
       c ((:~:) p) = Set.map (Set.map (.~.)) (purednf p)
       c _ = error "purednf" -- Set.singleton (Set.singleton fm)
@@ -411,7 +413,7 @@ simpdnf fm =
       c :: Combination pf -> Set.Set (Set.Set lit)
       c _ = Set.filter (\ d -> not (setAny (\ d' -> Set.isProperSubsetOf d' d) djs)) djs
           where djs = Set.filter (not . trivial) (purednf (nnf fm))
-      tf = ifElse (Set.singleton Set.empty) Set.empty
+      tf = bool Set.empty (Set.singleton Set.empty)
       a :: atom -> Set.Set (Set.Set lit)
       a x = Set.singleton (Set.singleton (atomic x))
 
@@ -436,7 +438,7 @@ simpcnf :: (IsPropositional pf atom, IsLiteral lit atom, Ord lit) => pf -> Set.S
 simpcnf fm =
     foldPropositional c tf a fm
     where
-      tf = ifElse Set.empty (Set.singleton Set.empty)
+      tf = bool (Set.singleton Set.empty) Set.empty
       -- Discard any clause that is the proper subset of another clause
       c _ = Set.filter keep cjs
       keep x = not (setAny (`Set.isProperSubsetOf` x) cjs)

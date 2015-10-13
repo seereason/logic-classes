@@ -28,10 +28,10 @@ module Data.Logic.Classes.Propositional
     ) where
 
 import Data.Logic.Classes.Combine
-import Data.Logic.Classes.Constants (HasBoolean(fromBool), asBool, prettyBool)
-import Data.Logic.Classes.Formula (IsFormula(atomic))
-import Data.Logic.Classes.Negate
-import Data.Logic.Classes.Pretty (Pretty, HasFixity(fixity), Fixity(Fixity), FixityDirection(..))
+--import Data.Logic.Classes.Constants (HasBoolean(fromBool), asBool, prettyBool)
+--import Data.Logic.Classes.Formula (IsFormula(atomic))
+--import Data.Logic.Classes.Negate
+import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(fixity), Fixity(Fixity), Associativity(..))
 import Data.SafeCopy (base, deriveSafeCopy)
 import qualified Data.Set.Extra as Set
 import Text.PrettyPrint (Doc, text, (<>))
@@ -90,13 +90,19 @@ prettyPropositional prettyAtom (Fixity pprec _pdir) formula =
     parenIf (pprec > prec) (foldPropositional co tf at formula)
     where
       co ((:~:) f) = text "¬" <> prettyPropositional prettyAtom fix f
-      co (BinOp f1 op f2) = prettyPropositional prettyAtom fix f1 <> text " " <> prettyBinOp op <> text " " <> prettyPropositional prettyAtom fix f2
+      co (BinOp f1 op f2) = prettyPropositional prettyAtom fix f1 <> text " " <> pPrint op <> text " " <> prettyPropositional prettyAtom fix f2
       tf = prettyBool
       at = prettyAtom
       -- parenForm x = cat [text "(", prettyPropositional prettyAtom 0 x, text ")"]
       parenIf True x = text "(" <> x <> text ")"
       parenIf False x = x
       fix@(Fixity prec _dir) = fixity formula
+
+instance Pretty BinOp where
+    pPrint (:<=>:) = text "⇔"
+    pPrint (:=>:) = text "⇒"
+    pPrint (:&:) = text "∧"
+    pPrint (:|:) = text "∨"
 
 fixityPropositional :: (HasFixity atom, IsPropositional formula atom) => formula -> Fixity
 fixityPropositional formula =

@@ -2,12 +2,12 @@
 module Data.Logic.Types.Propositional where
 
 import Data.Generics (Data, Typeable)
-import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (HasBoolean(..), asBool)
-import qualified Data.Logic.Classes.Formula as C
+--import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..))
+--import Data.Logic.Classes.Constants (HasBoolean(..), asBool)
+import Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (IsLiteral(..))
-import Data.Logic.Classes.Negate (IsNegatable(..))
-import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), topFixity)
+--import Data.Logic.Classes.Negate (IsNegatable(..))
+import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), rootFixity)
 import Data.Logic.Classes.Propositional (IsPropositional(..), prettyPropositional, fixityPropositional, overatomsPropositional, onatomsPropositional)
 
 -- | The range of a formula is {True, False} when it has no free variables.
@@ -20,7 +20,7 @@ data Formula atom
     -- a&b is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).
     deriving (Eq,Ord,Data,Typeable)
 
-instance IsNegatable (Formula atom) where
+instance Ord atom => IsNegatable (Formula atom) where
     naiveNegate x = Combine ((:~:) x)
     foldNegation normal inverted (Combine ((:~:) x)) = foldNegation inverted normal x
     foldNegation normal _ x = normal x
@@ -43,6 +43,7 @@ instance (Pretty atom, HasFixity atom, Ord atom) => C.IsFormula (Formula atom) a
     atomic = Atom
     overatoms = overatomsPropositional
     onatoms = onatomsPropositional
+    prettyFormula = error "prettyFormula is not in atp-haskell"
 
 instance (Pretty atom, HasFixity atom, Ord atom) => IsLiteral (Formula atom) atom where
     foldLiteral neg tf at formula =
@@ -62,7 +63,7 @@ instance (C.IsFormula (Formula atom) atom, Pretty atom, HasFixity atom, Ord atom
           F -> tf False
 
 instance (Pretty atom, HasFixity atom, Ord atom) => Pretty (Formula atom) where
-    pPrint = prettyPropositional pPrint topFixity
+    pPrint = prettyPropositional pPrint rootFixity
 
 instance (Pretty atom, HasFixity atom, Ord atom) => HasFixity (Formula atom) where
     fixity = fixityPropositional

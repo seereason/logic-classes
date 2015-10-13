@@ -11,7 +11,7 @@ import Data.Logic.Classes.Propositional (IsPropositional)
 import Data.Logic.Classes.Term (IsTerm, fApp)
 import Data.Logic.Harrison.DP (dpll)
 import Data.Logic.Harrison.FOL (generalize)
-import Data.Logic.Harrison.Lib (distrib', allpairs)
+import Data.Logic.Harrison.Lib (distrib, allpairs)
 import Data.Logic.Harrison.Normal (trivial)
 import Data.Logic.Harrison.Prop (eval, simpcnf, simpdnf)
 import Data.Logic.Harrison.Skolem (runSkolem, skolemize, functions)
@@ -124,7 +124,7 @@ gilmore_loop :: (IsLiteral lit atom, IsTerm term v f, Atom atom term v, Ord lit)
 gilmore_loop =
     herbloop mfn (Success . not . Set.null)
     where
-      mfn djs0 ifn djs = Set.filter (not . trivial) (distrib' (Set.map (Set.map ifn) djs0) djs)
+      mfn djs0 ifn djs = Set.filter (not . trivial) (distrib (Set.map (Set.map ifn) djs0) djs)
 
 gilmore :: forall fof pf atom term v f.
            (IsQuantified fof atom v,

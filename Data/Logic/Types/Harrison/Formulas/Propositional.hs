@@ -4,12 +4,12 @@ module Data.Logic.Types.Harrison.Formulas.Propositional
     ( Formula(..)
     ) where
 
-import Data.Logic.Classes.Constants (HasBoolean(..))
-import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..))
-import qualified Data.Logic.Classes.Formula as C
+--import Data.Logic.Classes.Constants (HasBoolean(..))
+--import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..))
+import Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (IsLiteral(..))
-import Data.Logic.Classes.Negate (IsNegatable(..))
-import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), topFixity)
+--import Data.Logic.Classes.Negate (IsNegatable(..))
+import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), rootFixity)
 import Data.Logic.Classes.Propositional (IsPropositional(..), prettyPropositional, fixityPropositional, overatomsPropositional, onatomsPropositional)
 
 data Formula a
@@ -23,7 +23,7 @@ data Formula a
     | Iff (Formula a) (Formula a)
     deriving (Eq, Ord)
 
-instance IsNegatable (Formula atom) where
+instance Ord atom => IsNegatable (Formula atom) where
     naiveNegate T = F
     naiveNegate F = T
     naiveNegate x = Not x
@@ -37,7 +37,7 @@ instance HasBoolean (Formula a) where
     asBool F = Just False
     asBool _ = Nothing
 
-instance IsCombinable (Formula a) where
+instance Ord a => IsCombinable (Formula a) where
     a .<=>. b = Iff a b
     a .=>. b = Imp a b
     a .|. b = Or a b
@@ -47,6 +47,7 @@ instance (Pretty atom, HasFixity atom, Ord atom) => C.IsFormula (Formula atom) a
     atomic = Atom
     overatoms = overatomsPropositional
     onatoms = onatomsPropositional
+    prettyFormula = error "prettyFormula"
 
 instance (IsCombinable (Formula atom), Pretty atom, HasFixity atom, Ord atom) => IsPropositional (Formula atom) atom where
     -- The atom type for this formula is the same as its first type parameter.
@@ -71,7 +72,7 @@ instance (HasFixity atom, Pretty atom, Ord atom) => IsLiteral (Formula atom) ato
           _ -> error ("Unexpected literal " ++ show (pPrint formula))
 
 instance (Pretty atom, HasFixity atom, Ord atom) => Pretty (Formula atom) where
-    pPrint = prettyPropositional pPrint topFixity
+    pPrint = prettyPropositional pPrint rootFixity
 
 instance (Pretty atom, HasFixity atom, Ord atom) => HasFixity (Formula atom) where
     fixity = fixityPropositional

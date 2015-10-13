@@ -1,8 +1,14 @@
 -- | Class Logic defines the basic boolean logic operations,
 -- AND, OR, NOT, and so on.  Definitions which pertain to both
 -- propositional and first order logic are here.
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE CPP, DeriveDataTypeable #-}
 module Data.Logic.Classes.Combine
+#if 1
+    ( module Formulas
+    ) where
+
+import Formulas
+#else
     ( IsCombinable(..)
     , Combination(..)
     , combine
@@ -131,3 +137,4 @@ prettyBinOp (:|:) = text "∨"
 
 instance Pretty BinOp where
     pPrint = prettyBinOp
+#endif

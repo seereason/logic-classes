@@ -29,6 +29,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Prelude hiding (pred)
 import Test.HUnit
+import ATP (HasFixity(fixity))
 
 tests1 :: Test
 tests1 = TestLabel "Data.Logic.Tests.Harrison.FOL" $
@@ -80,6 +81,9 @@ holds m@(domain, _func, pred) v fm =
 -- -------------------------------------------------------------------------
 -- Example.                                                                 
 -- -------------------------------------------------------------------------
+
+instance HasFixity (Formula FOL) where
+    fixity = error "FIXME"
 
 example1 :: TermType
 example1 = fApp "sqrt" [fApp "-" [fApp "1" [], fApp "cos" [fApp "power" [fApp "+" [vt "x", vt "y"], fApp "2" []]]]]

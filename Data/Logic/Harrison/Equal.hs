@@ -78,7 +78,7 @@ foldPredicates f fm acc =
 -- Code to generate equality axioms for functions.                           
 -- ------------------------------------------------------------------------- 
 
-function_congruence :: forall fof atom term v p f. (IsQuantified fof atom v, HasEquality atom p term, IsTerm term v f) =>
+function_congruence :: forall fof atom term v p f. (IsQuantified fof atom v, HasEquality atom p term, IsTerm term v f, Ord fof) =>
                        (f, Int) -> Set.Set fof
 function_congruence (_,0) = (∅)
 function_congruence (f,n) =

@@ -1,4 +1,11 @@
+{-# LANGUAGE CPP #-}
 module Data.Logic.Classes.Negate
+#if 1
+    ( module Formulas
+    ) where
+
+import Formulas
+#else
      ( IsNegatable(..)
      , negated
      , (.~.)
@@ -40,3 +47,4 @@ negative = negated
 
 positive :: IsNegatable formula => formula -> Bool
 positive = not . negative
+#endif

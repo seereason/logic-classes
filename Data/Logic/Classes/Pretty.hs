@@ -1,5 +1,11 @@
 {-# LANGUAGE CPP, FlexibleInstances, TypeSynonymInstances #-}
 module Data.Logic.Classes.Pretty
+#if 1
+    ( module Pretty
+    ) where
+
+import Pretty
+#else
     ( Logic(Logic, unLogic)
     , Pretty(pPrint)
     , HasFixity(fixity)
@@ -68,3 +74,4 @@ botFixity = TH.Fixity 10 TH.InfixN
 
 instance Pretty a => Pretty (Set a) where
     pPrint s = text "{" <> mconcat (intersperse (text ", ") (List.map pPrint (Set.toAscList s))) <> text "}"
+#endif

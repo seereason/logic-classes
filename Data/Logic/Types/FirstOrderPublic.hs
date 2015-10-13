@@ -49,7 +49,7 @@ instance (Data p, Ord p, Data v, Ord v, Data f, Ord f) => Bijection (Combination
     intern (BinOp x op y) = BinOp (intern x) op (intern y)
     intern ((:~:) x) = (:~:) (intern x)
 
-instance (Data p, Ord p, Data v, Ord v, Data f, Ord f) => IsNegatable (Formula v p f) where
+instance (Data p, Ord p, HasEquals p, Data v, Ord v, Data f, Ord f, Function f v) => IsNegatable (Formula v p f) where
     naiveNegate = Formula . naiveNegate . unFormula
     foldNegation normal inverted = foldNegation (normal . Formula) (inverted . Formula) . unFormula
 
@@ -58,6 +58,7 @@ instance (HasBoolean (N.Formula v p f), IsPredicate p, IsVariable v, Function f 
     asBool = asBool . unFormula
 
 instance (C.IsFormula (N.Formula v p f) (N.Predicate p (N.PTerm v f)),
+          HasEquals p,
           HasBoolean (Formula v p f),
           HasBoolean (N.Formula v p f),
           IsVariable v, IsPredicate p, Function f v) => IsCombinable (Formula v p f) where
@@ -70,6 +71,7 @@ instance (HasPredicate (N.Predicate p (N.PTerm v f)) p (N.PTerm v f), HasEquals 
     atomic = Formula . C.atomic
     overatoms = overatomsFirstOrder
     onatoms = onatomsFirstOrder
+    prettyFormula = error "FIXME"
 
 instance (HasPredicate (N.Predicate p (N.PTerm v f)) p (N.PTerm v f), C.IsFormula (Formula v p f) (N.Predicate p (N.PTerm v f)),
           C.IsFormula (N.Formula v p f) (N.Predicate p (N.PTerm v f)),

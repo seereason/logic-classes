@@ -28,7 +28,7 @@ import Data.Logic.Classes.FirstOrder (IsQuantified(..), Quant(..), prettyFirstOr
 import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (IsLiteral(..))
 import Data.Logic.Classes.Negate (IsNegatable(..))
-import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), botFixity)
+import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), leafFixity)
 import Data.Logic.Classes.Term (IsTerm(..), Function, showTerm)
 import Data.Logic.Classes.Variable (IsVariable(..))
 import Data.Logic.Classes.Propositional (IsPropositional(..))
@@ -49,7 +49,7 @@ data Formula v p f
 
 instance (Show v, Show p, Show f, Function f v) => Show (Formula v p f) where
     show (Predicate p) = show p
-    show (Combine c) = show c
+    show (Combine c) = error "show c"
     show (Quant q v f) = show q ++ " " ++ show v ++ " (" ++ show f ++ ")"
 
 -- |A temporary type used in the fold method to represent the
@@ -229,7 +229,7 @@ instance (C.HasPredicate (Predicate p (PTerm v f)) p (PTerm v f), C.IsFormula (F
     pPrint f = prettyFirstOrder (\ _ -> pPrint) pPrint 0 $ f
 
 instance HasFixity (Predicate p term) where
-    fixity = const botFixity
+    fixity = const leafFixity
 
 $(deriveSafeCopy 1 'base ''PTerm)
 $(deriveSafeCopy 1 'base ''Formula)

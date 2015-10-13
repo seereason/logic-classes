@@ -1,5 +1,11 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE CPP, FlexibleInstances #-}
 module Data.Logic.Classes.Constants
+#if 1
+    ( module Formulas
+    ) where
+
+import Formulas
+#else
     ( HasBoolean(asBool, fromBool)
     , ifElse
     , true
@@ -9,7 +15,7 @@ module Data.Logic.Classes.Constants
     , prettyBool
     ) where
 
-import Data.Logic.Classes.Pretty (Pretty(pPrint), Logic(..))
+import Data.Logic.Classes.Pretty (Pretty(pPrint))
 import Text.PrettyPrint (Doc, text)
 
 -- |Some types in the Logic class heirarchy need to have True and
@@ -36,6 +42,4 @@ ifElse _ f False = f
 prettyBool :: Bool -> Doc
 prettyBool True = text "⊨"
 prettyBool False = text "⊭"
-
-instance Pretty (Logic Bool) where
-    pPrint = prettyBool . unLogic
+#endif

@@ -40,6 +40,8 @@ formCase :: (IsQuantified TFormula TAtom V, HasEquality TAtom Pr TTerm, Term TTe
 formCase s expected input = TestLabel s $ TestCase (assertEqual s expected input)
 -}
 
+-- instance IsAtom (Predicate Pr (PTerm V AtomicFunction))
+
 precTests :: Test
 precTests =
     TestList

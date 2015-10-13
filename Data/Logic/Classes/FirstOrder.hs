@@ -19,23 +19,23 @@ module Data.Logic.Classes.FirstOrder
     , fixityFirstOrder
     , overatomsFirstOrder
     , onatomsFirstOrder
-    , atom_union
     , fromFirstOrder
     , fromLiteral
     ) where
 
+import Data.Bool (bool)
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Constants
-import Data.Logic.Classes.Combine
-import Data.Logic.Classes.Formula (IsFormula(atomic, overatoms))
+--import Data.Logic.Classes.Combine
+--import Data.Logic.Classes.Formula (IsFormula(atomic, overatoms))
 import Data.Logic.Classes.Literal (IsLiteral, foldLiteral)
-import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), Fixity(..), FixityDirection(..))
+--import Data.Logic.Classes.Negate ((.~.))
+import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), Fixity(..), Associativity(..))
 import qualified Data.Logic.Classes.Propositional as P
 import Data.Logic.Classes.Variable (IsVariable)
 import Data.Logic.Failing (Failing(..))
 import Data.SafeCopy (base, deriveSafeCopy)
-import qualified Data.Set as Set
+--import qualified Data.Set as Set
 import Text.PrettyPrint (Doc, (<>), (<+>), text, parens, nest)
 
 -- |The 'IsQuantified' type class.  Minimal implementation:
@@ -192,7 +192,7 @@ prettyFirstOrder pa pv pprec formula =
                        (:&:) -> (prettyFirstOrder pa pv 3 f1 <+> pPrint op <+> prettyFirstOrder pa pv prec f2)
                        (:|:) -> (prettyFirstOrder pa pv 4 f1 <+> pPrint op <+> prettyFirstOrder pa pv prec f2)
                  ((:~:) f) -> text "¬" {-"~"-} <> prettyFirstOrder pa pv prec f)
-          (text . ifElse "true" "false")
+          (text . bool "false" "true")
           (pa prec)
           formula
     where
@@ -259,14 +259,6 @@ overatomsFirstOrder f fof r0 =
           qu _ _ fof' = overatomsFirstOrder f fof' r0
           co ((:~:) fof') = overatomsFirstOrder f fof' r0
           co (BinOp p _ q) = overatomsFirstOrder f p (overatomsFirstOrder f q r0)
-
--- ------------------------------------------------------------------------- 
--- Special case of a union of the results of a function over the atoms.      
--- ------------------------------------------------------------------------- 
-
-atom_union :: forall formula atom v a. (IsQuantified formula atom v, Ord a) =>
-              (atom -> Set.Set a) -> formula -> Set.Set a
-atom_union f fm = overatoms (\ h t -> Set.union (f h) t) fm Set.empty
 
 -- |Just like Logic.FirstOrder.convertFOF except it rejects anything
 -- with a construct unsupported in a normal logic formula,

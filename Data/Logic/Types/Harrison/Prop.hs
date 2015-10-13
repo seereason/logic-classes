@@ -10,7 +10,7 @@ import Data.Logic.Classes.Pretty
 import Data.Logic.Classes.Propositional (showPropositional)
 import Data.Logic.Types.Harrison.Formulas.Propositional (Formula(..))
 import Prelude hiding (negate)
-import Text.PrettyPrint (text)
+--import Text.PrettyPrint (text)
 
 -- =========================================================================
 -- Basic stuff for propositional logic: datatype, parsing and printing.
@@ -24,11 +24,8 @@ instance Show Prop where
 instance Pretty Prop where
     pPrint = text . pname
 
-instance HasFixity String where
-    fixity = const botFixity
-
 instance HasFixity Prop where
-    fixity = const botFixity
+    fixity = const leafFixity
 
 instance Show (Formula Prop) where
     show = showPropositional show

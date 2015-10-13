@@ -96,6 +96,8 @@ testProof label (question, expectedAnswer, expectedProof) =
 loadCmd :: Monad m => ProverT (ImplicativeForm TFormula) (SkolemT V TTerm m) [Proof TFormula]
 loadCmd = loadKB sentences
 
+-- instance IsAtom (Predicate Pr (PTerm V AtomicFunction))
+
 sentences :: [TFormula]
 sentences = [exists "x" ((pApp "Dog" [vt "x"]) .&. (pApp "Owns" [fApp "Jack" [], vt "x"])),
              for_all "x" (((exists "y" (pApp "Dog" [vt "y"])) .&. (pApp "Owns" [vt "x", vt "y"])) .=>. (pApp "AnimalLover" [vt "x"])),

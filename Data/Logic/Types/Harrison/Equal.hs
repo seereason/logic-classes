@@ -19,7 +19,7 @@ import Data.Logic.Classes.Equals (HasEquals(isEquals), HasEquality(..), showFirs
 import Data.Logic.Classes.FirstOrder (fixityFirstOrder)
 import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (IsLiteral(..))
-import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), Fixity(..), FixityDirection(..))
+import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), Fixity(..), Associativity(..))
 import qualified Data.Logic.Classes.Propositional as P
 import Data.Logic.Harrison.Resolution (matchAtomsEq)
 import Data.Logic.Harrison.Tableaux (unifyAtomsEq)

@@ -19,6 +19,7 @@ Extra-Source-Files: changelog
 
 Library
  GHC-options: -Wall -O2
+ Hs-Source-Dirs: ., ../atp-haskell/src
  Exposed-Modules:  Data.Logic
                    Data.Logic.Classes.Apply
                    Data.Logic.Classes.Arity
@@ -75,6 +76,10 @@ Library
                    Data.Logic.Types.Propositional
                    Data.Boolean
                    Data.Boolean.SatSolver
+                   ATP
+                   Lib
+                   Pretty
+                   Formulas
  Build-Depends:    applicative-extras, base >= 4.3 && < 5, containers, HUnit, mtl, pretty >= 1.1.2, PropLogic, safecopy, set-extra, syb, template-haskell
 
 Test-Suite logic-classes-tests

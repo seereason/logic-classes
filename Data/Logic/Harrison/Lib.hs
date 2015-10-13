@@ -1,6 +1,12 @@
-{-# LANGUAGE DeriveDataTypeable, RankNTypes, StandaloneDeriving #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, RankNTypes, StandaloneDeriving #-}
 {-# OPTIONS_GHC -Wall -fno-warn-unused-binds #-}
 module Data.Logic.Harrison.Lib
+#if 1
+    ( module Lib
+    ) where
+
+import Lib
+#else
     ( tests
     , setAny
     , setAll
@@ -844,3 +850,4 @@ let equated (Partition f) = dom f;;
 
 let rec first n p = if p(n) then n else first (n +/ Int 1) p;;
 -}
+#endif

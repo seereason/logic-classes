@@ -13,7 +13,7 @@ import Data.Logic.Classes.FirstOrder (IsQuantified)
 import Data.Logic.Classes.Formula (IsFormula(..))
 import Data.Logic.Classes.Literal (IsLiteral(..))
 import Data.Logic.Classes.Negate (IsNegatable(..))
-import Data.Logic.Classes.Pretty (HasFixity(fixity), Pretty(pPrint), topFixity)
+import Data.Logic.Classes.Pretty (HasFixity(fixity), Pretty(pPrint), rootFixity)
 import Data.Logic.Classes.Propositional (IsPropositional(..), clauseNormalForm', prettyPropositional, fixityPropositional, overatomsPropositional, onatomsPropositional)
 import Data.Logic.Classes.Term (IsTerm)
 import Data.Logic.Harrison.Skolem (SkolemT)
@@ -21,12 +21,12 @@ import Data.Logic.Normal.Clause (clauseNormalForm)
 import qualified Data.Set.Extra as S
 import PropLogic
 
-instance IsNegatable (PropForm a) where
+instance Ord a => IsNegatable (PropForm a) where
     naiveNegate = N
     foldNegation normal inverted (N x) = foldNegation inverted normal x
     foldNegation normal _ x = normal x
 
-instance {- Ord a => -} IsCombinable (PropForm a) where
+instance Ord a => IsCombinable (PropForm a) where
     x .<=>. y = EJ [x, y]
     x .=>.  y = SJ [x, y]
     x .|.   y = DJ [x, y]
@@ -36,6 +36,7 @@ instance (Pretty a, HasFixity a, Ord a) => IsFormula (PropForm a) a where
     atomic = A
     overatoms = overatomsPropositional
     onatoms = onatomsPropositional
+    prettyFormula = error "FIXME"
 
 instance (IsCombinable (PropForm a), Pretty a, HasFixity a, Ord a) => IsPropositional (PropForm a) a where
     foldPropositional co tf at formula =
@@ -69,7 +70,7 @@ instance HasBoolean (PropForm formula) where
     asBool _ = Nothing
 
 instance (IsPropositional (PropForm atom) atom, Pretty atom, HasFixity atom) => Pretty (PropForm atom) where
-    pPrint = prettyPropositional pPrint topFixity
+    pPrint = prettyPropositional pPrint rootFixity
 
 instance (IsPropositional (PropForm atom) atom, HasFixity atom) => HasFixity (PropForm atom) where
     fixity = fixityPropositional

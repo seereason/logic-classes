@@ -21,7 +21,7 @@ import qualified Data.Logic.Types.Propositional as P
 import qualified Data.Map as Map
 import Data.Set.Extra as Set
 import Test.HUnit
-import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), prettyShow, text)
+--import Text.PrettyPrint.HughesPJClass (Pretty(pPrint), prettyShow, text)
 
 data Atom = P String Integer deriving (Eq, Ord, Show)
 
@@ -37,7 +37,7 @@ instance NumAtom Atom where
     ai (P _ n) = n
 
 instance HasFixity Atom where
-    fixity _ = botFixity
+    fixity _ = leafFixity
 
 -- ========================================================================= 
 -- Definitional CNF.                                                         
@@ -197,4 +197,5 @@ andcnf3 trip@(fm,_defs,_n) =
 defcnf3 :: forall pf lit atom. (IsPropositional pf atom, IsLiteral lit atom, NumAtom atom, Ord lit) => lit -> atom -> pf -> pf
 defcnf3 _ _ fm = cnf (mk_defcnf andcnf3 fm :: Set.Set (Set.Set lit))
 
+tests :: Test
 tests = TestList [test01, test02, test03]

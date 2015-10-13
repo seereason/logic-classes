@@ -10,7 +10,7 @@ import Data.Logic.Classes.Negate (IsNegatable, (.~.), negated)
 import Data.Logic.Classes.Pretty (Pretty)
 import Data.Logic.Classes.Propositional (IsPropositional(..))
 import Data.Logic.Harrison.DefCNF (NumAtom(..), defcnfs)
-import Data.Logic.Harrison.Lib (allpairs, maximize', minimize', defined, setmapfilter, (|->))
+import Data.Logic.Harrison.Lib (allpairs, maximize, minimize, defined, setmapfilter, (|->))
 import Data.Logic.Harrison.Prop (negative, positive, trivial, tautology, cnf)
 import Data.Logic.Harrison.PropExamples (Atom(..), N, prime)
 import Data.Logic.Types.Propositional (Formula(..))
@@ -79,7 +79,7 @@ resolution_rule :: forall lit atom. (IsLiteral lit atom, Ord lit) =>
                    Set.Set (Set.Set lit) -> Failing (Set.Set (Set.Set lit))
 resolution_rule clauses =
     let pvs = Set.filter positive (Set.flatten clauses) in
-    case minimize' (resolution_blowup clauses) pvs of
+    case minimize (resolution_blowup clauses) pvs of
       Just p -> Success (resolve_on p clauses)
       Nothing -> Failure ["resolution_rule"]
 
@@ -141,7 +141,7 @@ dpll clauses =
                     Success x -> Success x
                     Failure _ ->
                         let pvs = Set.filter positive (Set.flatten clauses) in
-                        case maximize' (posneg_count clauses) pvs of
+                        case maximize (posneg_count clauses) pvs of
                           Nothing -> Failure ["dpll"]
                           Just p -> 
                               case (dpll (Set.insert (Set.singleton p) clauses), dpll (Set.insert (Set.singleton ((.~.) p)) clauses)) of
@@ -217,7 +217,7 @@ dpli cls trail =
   else
       case unassigned cls (trail' :: Set.Set (pf, TrailMix)) of
         s | Set.null s -> Success True
-        ps -> case maximize' (posneg_count cls') ps of
+        ps -> case maximize (posneg_count cls') ps of
                 Just p -> dpli cls (Set.insert (p :: pf, Guessed) trail')
                 Nothing -> Failure ["dpli"]
 
@@ -257,7 +257,7 @@ dplb cls trail =
   else
     case unassigned cls trail' of
       s | Set.null s -> Success True
-      ps -> case maximize' (posneg_count cls') ps of
+      ps -> case maximize (posneg_count cls') ps of
               Just p -> dplb cls (Set.insert (p,Guessed) trail')
               Nothing -> Failure ["dpib"]
             

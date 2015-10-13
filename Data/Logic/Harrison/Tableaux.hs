@@ -20,7 +20,7 @@ import Data.Logic.Classes.Literal (IsLiteral, zipLiterals)
 import Data.Logic.Classes.Term (IsTerm(..), vt)
 --import Data.Logic.Harrison.FOL (subst, generalize)
 --import Data.Logic.Harrison.Herbrand (davisputnam)
-import Data.Logic.Harrison.Lib (allpairs, settryfind, distrib')
+import Data.Logic.Harrison.Lib (allpairs, settryfind, distrib)
 --import Data.Logic.Harrison.Prop (simpdnf)
 --import Data.Logic.Harrison.Skolem (runSkolem, skolemize)
 import Data.Logic.Harrison.Unif (unify)
@@ -102,7 +102,7 @@ prawitz_loop djs0 fvs djs n =
     let l = length fvs in
     let newvars = map (\ k -> fromString ("_" ++ show (n * l + k))) [1..l] in
     let inst = Map.fromList (zip fvs (map vt newvars)) in
-    let djs1 = distrib' (Set.map (Set.map (onatoms (atomic . substitute' inst))) djs0) djs in
+    let djs1 = distrib (Set.map (Set.map (onatoms (atomic . substitute' inst))) djs0) djs in
     case unify_refute djs1 Map.empty of
       Failure _ -> prawitz_loop djs0 fvs djs1 (n + 1)
       Success env -> (env, n + 1)

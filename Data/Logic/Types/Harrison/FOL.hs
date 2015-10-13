@@ -15,7 +15,7 @@ import Data.Logic.Classes.Apply (HasPredicate(..), IsPredicate)
 import Data.Logic.Classes.Constants (HasBoolean(fromBool), asBool)
 --import Data.Logic.Classes.FirstOrder (foldAtomsFirstOrder, onatomsFirstOrder)
 --import qualified Data.Logic.Classes.Formula as C
-import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), Fixity(..), FixityDirection(..))
+import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), Fixity(..), Associativity(..))
 import Data.Logic.Classes.Skolem (HasSkolem(..))
 import Data.Logic.Classes.Term (IsTerm(vt, foldTerm, fApp))
 import qualified Data.Logic.Classes.Term as C
