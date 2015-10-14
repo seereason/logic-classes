@@ -1,5 +1,12 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, UndecidableInstances #-}
-module Data.Logic.Types.Propositional where
+{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, UndecidableInstances #-}
+module Data.Logic.Types.Propositional
+#if 1
+    ( module Prop
+    ) where
+
+import Prop
+#else
+    where
 
 import Data.Generics (Data, Typeable)
 --import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..))
@@ -8,7 +15,7 @@ import Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (IsLiteral(..))
 --import Data.Logic.Classes.Negate (IsNegatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), rootFixity)
-import Data.Logic.Classes.Propositional (IsPropositional(..), prettyPropositional, fixityPropositional, overatomsPropositional, onatomsPropositional)
+import Data.Logic.Classes.Propositional (IsPropositional(..){-, prettyPropositional, fixityPropositional, overatomsPropositional, onatomsPropositional-})
 
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula atom
@@ -38,13 +45,13 @@ instance HasBoolean (Formula atom) where
     asBool T = Just True
     asBool F = Just False
     asBool _ = Nothing
-
+{-
 instance (Pretty atom, HasFixity atom, Ord atom) => C.IsFormula (Formula atom) atom where
     atomic = Atom
     overatoms = overatomsPropositional
     onatoms = onatomsPropositional
     prettyFormula = error "prettyFormula is not in atp-haskell"
-
+-}
 instance (Pretty atom, HasFixity atom, Ord atom) => IsLiteral (Formula atom) atom where
     foldLiteral neg tf at formula =
         case formula of
@@ -62,8 +69,11 @@ instance (C.IsFormula (Formula atom) atom, Pretty atom, HasFixity atom, Ord atom
           T -> tf True
           F -> tf False
 
+{-
 instance (Pretty atom, HasFixity atom, Ord atom) => Pretty (Formula atom) where
     pPrint = prettyPropositional pPrint rootFixity
 
 instance (Pretty atom, HasFixity atom, Ord atom) => HasFixity (Formula atom) where
     fixity = fixityPropositional
+-}
+#endif

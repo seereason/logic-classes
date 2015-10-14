@@ -26,14 +26,13 @@ import Data.Logic.Classes.Literal (IsLiteral(..))
 import Data.Logic.Classes.Negate (IsNegatable(..))
 import Data.Logic.Classes.Term (IsTerm)
 import Data.Logic.Harrison.Skolem (SkolemT, runSkolemT)
-import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Maybe (isJust)
 import qualified Data.Set.Extra as Set
 import qualified Data.Map as Map
 import Text.PrettyPrint (Doc, cat, text, hsep)
 
 -- |Combination of Normal monad and LiteralMap monad
-type NormalT formula v term m a = SkolemT v term (LiteralMapT formula m) a
+type NormalT formula v term m a = SkolemT (LiteralMapT formula m) a
 
 runNormalT :: Monad m => NormalT formula v term m a -> m a
 runNormalT action = runLiteralMapM (runSkolemT action)
@@ -97,10 +96,10 @@ implicativeNormalForm :: forall m formula atom term v f lit.
                           Atom atom term v,
                           IsLiteral lit atom,
                           IsTerm term v f,
-                          Data formula, Ord formula, Ord lit, Data lit, HasSkolem f v) =>
-                         formula -> SkolemT v term m (Set.Set (ImplicativeForm lit))
+                          Data formula, Ord formula, Ord lit, Data lit, HasSkolem f v, Typeable f) =>
+                         formula -> SkolemT m (Set.Set (ImplicativeForm lit))
 implicativeNormalForm formula =
-    do cnf <- clauseNormalForm formula
+    do cnf <- {-clauseNormalForm-} undefined formula
        let pairs = Set.map (Set.fold collect (Set.empty, Set.empty)) cnf :: Set.Set (Set.Set lit, Set.Set lit)
            pairs' = Set.flatten (Set.map split pairs) :: Set.Set (Set.Set lit, Set.Set lit)
        return (Set.map (\ (n,p) -> INF n p) pairs')

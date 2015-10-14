@@ -16,7 +16,7 @@ import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), leafFixity)
 import Data.Logic.Classes.Propositional (IsPropositional(..))
 import Data.Logic.Harrison.Lib (allsets)
 import Data.Logic.Harrison.Prop (tautology, list_conj, list_disj, psimplify)
-import Data.Logic.Types.Propositional (Formula(..))
+import Data.Logic.Types.Propositional (PFormula(..))
 import qualified Data.Set as Set
 import Prelude hiding (sum)
 import Test.HUnit
@@ -45,7 +45,7 @@ instance HasFixity (Atom N) where
 
 type N = Integer
 
-type F = Formula (Atom N)
+type F = PFormula (Atom N)
 
 -- deriving instance Show F
 
@@ -168,8 +168,8 @@ test01 = TestList [{- TestCase (assertEqual "ramsey 3 3 4"
                                                          (Combine
                                                           ((:~:) (Atom (P "p" 1 (Just 2)))))))))))))))))
                                          (ramsey 3 3 4 :: Formula (Atom N))), -}
-                   TestCase (assertEqual "tautology (ramsey 3 3 5)" False (tautology (ramsey 3 3 5 :: Formula (Atom N)))),
-                   TestCase (assertEqual "tautology (ramsey 3 3 6)" True (tautology (ramsey 3 3 6 :: Formula (Atom N))))]
+                   TestCase (assertEqual "tautology (ramsey 3 3 5)" False (tautology (ramsey 3 3 5 :: PFormula (Atom N)))),
+                   TestCase (assertEqual "tautology (ramsey 3 3 6)" True (tautology (ramsey 3 3 6 :: PFormula (Atom N))))]
 
 -- ------------------------------------------------------------------------- 
 -- Half adder.                                                               

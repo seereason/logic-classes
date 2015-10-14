@@ -41,6 +41,7 @@ import Data.Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Data.SafeCopy (deriveSafeCopy, base)
 import qualified Data.Set.Extra as S
 import Prelude hiding (negate)
+import ATP (HasBoolean, HasSkolem)
 
 type SentenceCount = Int
 
@@ -80,7 +81,7 @@ zeroKB limit =
 
 -- |A monad for running the knowledge base.
 type ProverT inf = StateT (ProverState inf)
-type ProverT' v term inf m a = ProverT inf (SkolemT v term m) a
+type ProverT' v term inf m a = ProverT inf (SkolemT m) a
 
 runProverT' :: Monad m => Maybe Int -> ProverT' v term inf m a -> m a
 runProverT' limit = runSkolemT . runProverT limit
@@ -124,7 +125,7 @@ getKB = get >>= return . knowledgeBase
 -- with a disproof.
 inconsistantKB :: forall m formula atom term v p f lit.
                   (IsQuantified formula atom v, IsPropositional formula atom, IsLiteral lit atom, Atom atom term v, HasEquality atom p term, IsTerm term v f,
-                   Monad m, Ord formula, Data formula, Data lit, Eq lit, Ord lit, Ord term) =>
+                   Monad m, Ord formula, Data formula, Data lit, Eq lit, Ord lit, Ord term, Typeable f, HasBoolean p, HasSkolem f v) =>
                   formula -> ProverT' v term (ImplicativeForm lit) m (Bool, SetOfSupport lit v term)
 inconsistantKB s =
     get >>= \ st ->
@@ -137,7 +138,7 @@ inconsistantKB s =
 -- proof.
 theoremKB :: forall m formula atom term v p f lit.
              (Monad m, IsQuantified formula atom v, IsPropositional formula atom, IsLiteral lit atom, Atom atom term v, HasEquality atom p term, IsTerm term v f,
-              Ord formula, Ord term, Ord lit, Data formula, Data lit) =>
+              Ord formula, Ord term, Ord lit, Data formula, Data lit, Typeable f, HasBoolean p, HasSkolem f v) =>
              formula -> ProverT' v term (ImplicativeForm lit) m (Bool, SetOfSupport lit v term)
 theoremKB s = inconsistantKB ((.~.) s)
 
@@ -145,14 +146,14 @@ theoremKB s = inconsistantKB ((.~.) s)
 -- askKB should be in KnowledgeBase module. However, since resolution
 -- is here functions are here, it is also placed in this module.
 askKB :: (Monad m, IsQuantified formula atom v, IsPropositional formula atom, IsLiteral lit atom, Atom atom term v, HasEquality atom p term, IsTerm term v f,
-          Ord formula, Ord term, Ord lit, Data formula, Data lit) =>
+          Ord formula, Ord term, Ord lit, Data formula, Data lit, Typeable f, HasBoolean p, HasSkolem f v) =>
          formula -> ProverT' v term (ImplicativeForm lit) m Bool
 askKB s = theoremKB s >>= return . fst
 
 -- |See whether the sentence is true, false or invalid.  Return proofs
 -- for truth and falsity.
 validKB :: (IsQuantified formula atom v, IsPropositional formula atom, IsLiteral lit atom, Atom atom term v, HasEquality atom p term, IsTerm term v f,
-            Monad m, Ord formula, Ord term, Ord lit, Data formula, Data lit) =>
+            Monad m, Ord formula, Ord term, Ord lit, Data formula, Data lit, Typeable f, HasBoolean p, HasSkolem f v) =>
            formula -> ProverT' v term (ImplicativeForm lit) m (ProofResult, SetOfSupport lit v term, SetOfSupport lit v term)
 validKB s =
     theoremKB s >>= \ (proved, proof1) ->
@@ -163,7 +164,7 @@ validKB s =
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
 tellKB :: (IsQuantified formula atom v, IsPropositional formula atom, IsLiteral lit atom, Atom atom term v, HasEquality atom p term, IsTerm term v f,
-           Monad m, Ord formula, Data formula, Data lit, Eq lit, Ord lit, Ord term) =>
+           Monad m, Ord formula, Data formula, Data lit, Eq lit, Ord lit, Ord term, Typeable f, HasSkolem f v, HasBoolean p) =>
           formula -> ProverT' v term (ImplicativeForm lit) m (Proof lit)
 tellKB s =
     do st <- get
@@ -177,7 +178,7 @@ tellKB s =
        return $ Proof {proofResult = valid, proof = S.map wiItem inf'}
 
 loadKB :: (IsQuantified formula atom v, IsPropositional formula atom, IsLiteral lit atom, Atom atom term v, HasEquality atom p term, IsTerm term v f,
-           Monad m, Ord formula, Ord term, Ord lit, Data formula, Data lit) =>
+           Monad m, Ord formula, Ord term, Ord lit, Data formula, Data lit, Typeable f, HasSkolem f v, HasBoolean p) =>
           [formula] -> ProverT' v term (ImplicativeForm lit) m [Proof lit]
 loadKB sentences = mapM tellKB sentences
 

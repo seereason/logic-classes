@@ -7,17 +7,18 @@ import Control.Monad.Trans (lift)
 import Data.Boolean.SatSolver (Literal(Pos, Neg), CNF, newSatSolver, assertTrue', solve)
 import Data.Generics (Data, Typeable)
 import qualified Data.Set.Extra as S
-import Data.Logic.Classes.Atom (Atom)
+--import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(..))
 import Data.Logic.Classes.Equals (HasEquality)
-import Data.Logic.Classes.FirstOrder (IsQuantified(..))
+--import Data.Logic.Classes.FirstOrder (IsQuantified(..))
 import qualified Data.Logic.Classes.Literal as N
 import Data.Logic.Classes.Negate (IsNegatable(..), negated, (.~.))
-import Data.Logic.Classes.Propositional (IsPropositional)
-import Data.Logic.Classes.Term (IsTerm)
-import Data.Logic.Normal.Clause (clauseNormalForm)
+--import Data.Logic.Classes.Propositional (IsPropositional)
+--import Data.Logic.Classes.Term (IsTerm)
+--import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Implicative (LiteralMapT, NormalT)
 import qualified Data.Map as M
+import ATP (IsFirstOrder, simpcnf')
 
 instance Ord Literal where
     compare (Neg _) (Pos _) = LT
@@ -40,15 +41,12 @@ instance ClauseNormalFormula CNF Literal where
     satisfiable cnf = return . not . (null :: [a] -> Bool) $ assertTrue' cnf newSatSolver >>= solve
 
 toCNF :: (Monad m,
-          IsQuantified formula atom v,
-          IsPropositional formula atom,
-          Atom atom term v,
+          IsFirstOrder formula atom p term v f,
           HasEquality atom p term,
-          IsTerm term v f,
           N.IsLiteral formula atom,
           Ord formula) =>
          formula -> NormalT formula v term m CNF
-toCNF f = clauseNormalForm f >>= S.ssMapM (lift . toLiteral) >>= return . makeCNF
+toCNF f = S.ssMapM (lift . toLiteral) (simpcnf' f) >>= return . makeCNF
 
 -- |Convert a [[formula]] to CNF, which means building a map from
 -- formula to Literal.

@@ -1,6 +1,12 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TypeFamilies, UndecidableInstances #-}
+{-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TypeFamilies, UndecidableInstances #-}
 -- | Support for equality.
 module Data.Logic.Classes.Equals
+#if 1
+    ( module FOL
+    ) where
+
+import FOL
+#else
     ( HasEquals(isEquals)
     , HasEquality(..)
     -- , applyEq
@@ -29,7 +35,7 @@ import Data.Logic.Classes.FirstOrder (IsQuantified(..), Quant(..))
 import Data.Logic.Classes.Formula (IsFormula(atomic))
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Pretty (Pretty(pPrint))
-import Data.Logic.Classes.Term (IsTerm, convertTerm, showTerm, prettyTerm, fvt, tsubst, funcs)
+import Data.Logic.Classes.Term (IsTerm, convertTerm, fvt, tsubst, funcs)
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
@@ -203,3 +209,4 @@ substAtomEq env = foldAtomEq (\ p args -> applyPredicate p (map (tsubst env) arg
 
 funcsAtomEq :: (HasEquality atom p term, IsTerm term v f, Ord f) => atom -> Set.Set (f, Int)
 funcsAtomEq = foldAtomEq (\ _ ts -> Set.unions (map funcs ts)) (\ t1 t2 -> Set.union (funcs t1) (funcs t2))
+#endif

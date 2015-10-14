@@ -1,14 +1,23 @@
-{-# LANGUAGE FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, FlexibleContexts, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wall #-}
-module Data.Logic.Harrison.Prolog where
+module Data.Logic.Harrison.Prolog
+#if 1
+    ( module Prolog
+    ) where
+
+import Prolog
+#else
+    where
+
 
 import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.FirstOrder (IsQuantified)
 import Data.Logic.Classes.Term (IsTerm(vt))
 import Data.String (IsString (fromString))
-import Data.Logic.Harrison.FOL (fv, subst, list_conj)
+import Data.Logic.Harrison.FOL (fv, subst)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import Prop (list_conj)
 
 -- ========================================================================= 
 -- Backchaining procedure for Horn clauses, and toy Prolog implementation.   
@@ -192,3 +201,4 @@ prolog badrules
  ***)
 END_INTERACTIVE;;                           
 -}
+#endif

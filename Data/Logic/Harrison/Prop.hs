@@ -1,6 +1,12 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, ScopedTypeVariables, TypeFamilies #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, ScopedTypeVariables, TypeFamilies #-}
 {-# OPTIONS_GHC -Wall -Wwarn #-}
 module Data.Logic.Harrison.Prop
+#if 1
+    ( module Prop
+    ) where
+
+import Prop
+#else
     ( eval
     , atoms
     , onAllValuations
@@ -40,7 +46,7 @@ import Data.Bool (bool)
 import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (HasBoolean(fromBool, asBool), true, false)
 import Data.Logic.Classes.Formula (IsFormula(atomic))
-import Data.Logic.Classes.Literal (IsLiteral(foldLiteral), toPropositional)
+import Data.Logic.Classes.Literal (IsLiteral(foldLiteral) {-, toPropositional-})
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Propositional
 import Data.Logic.Harrison.Formulas.Propositional (atom_union, on_atoms)
@@ -450,3 +456,5 @@ cnf = list_conj . Set.map (list_disj . Set.map (toPropositional id))
 
 cnf' :: forall pf atom. (IsPropositional pf atom, IsLiteral pf atom) => pf -> pf
 cnf' = cnf . (simpcnf :: pf -> Set.Set (Set.Set pf))
+#endif
+

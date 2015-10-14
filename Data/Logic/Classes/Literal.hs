@@ -1,6 +1,12 @@
-{-# LANGUAGE FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, UndecidableInstances #-}
+{-# LANGUAGE CPP, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, UndecidableInstances #-}
 {-# OPTIONS -Wwarn #-}
 module Data.Logic.Classes.Literal
+#if 1
+    ( module Lit
+    ) where
+
+import Lit
+#else
     ( IsLiteral(..)
     , zipLiterals
     , toPropositional
@@ -96,3 +102,4 @@ fixityLiteral formula =
 
 foldAtomsLiteral :: IsLiteral lit atom => (r -> atom -> r) -> r -> lit -> r
 foldAtomsLiteral f i lit = foldLiteral (foldAtomsLiteral f i) (const i) (f i) lit
+#endif

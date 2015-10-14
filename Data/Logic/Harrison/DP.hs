@@ -1,5 +1,11 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, ScopedTypeVariables #-}
 module Data.Logic.Harrison.DP
+#if 1
+    ( module DP
+    ) where
+
+import DP
+#else
     ( tests
     , dpll
     ) where
@@ -275,3 +281,4 @@ dplbtaut fm = dplbsat((.~.) fm) >>= return . not
 
 test03 = TestList [TestCase (assertEqual "dplitaut(prime 101)" (Success True) (dplitaut(prime 101 :: Formula (Atom N)))),
                    TestCase (assertEqual "dplbtaut(prime 101)" (Success True) (dplbtaut(prime 101 :: Formula (Atom N))))]
+#endif

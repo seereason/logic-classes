@@ -1,6 +1,12 @@
 {-# LANGUAGE CPP, NoMonomorphismRestriction, OverloadedStrings, RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Harrison.Tableaux
+#if 1
+    ( module Tableaux
+    ) where
+
+import Tableaux
+#else
     ( unify_literals
     , unifyAtomsEq
     , deepen
@@ -626,3 +632,4 @@ let davis_putnam_example = time splittab
 ************ -}
 
 -}
+#endif

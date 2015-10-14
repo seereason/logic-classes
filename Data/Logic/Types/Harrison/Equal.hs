@@ -1,6 +1,13 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TypeSynonymInstances, UndecidableInstances #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS_GHC -Wall #-}
-module Data.Logic.Types.Harrison.Equal where
+module Data.Logic.Types.Harrison.Equal
+#if 1
+    ( module FOL
+    ) where
+
+import FOL
+#else
+    where
 
 -- =========================================================================
 -- First order logic with equality.
@@ -16,7 +23,7 @@ import qualified Data.Logic.Classes.Atom as C
 import Data.Logic.Classes.Combine (Combination(..), BinOp(..))
 import Data.Logic.Classes.Constants (HasBoolean(fromBool), asBool)
 import Data.Logic.Classes.Equals (HasEquals(isEquals), HasEquality(..), showFirstOrderFormulaEq, substAtomEq, varAtomEq)
-import Data.Logic.Classes.FirstOrder (fixityFirstOrder)
+--import Data.Logic.Classes.FirstOrder (fixityFirstOrder)
 import qualified Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (IsLiteral(..))
 import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), Fixity(..), Associativity(..))
@@ -155,3 +162,4 @@ instance C.Atom FOLEQ TermType String where
     foldTerms f r (EQUALS t1 t2) = f t2 (f t1 r)
     isRename = isRenameOfAtomEq
     getSubst = getSubstAtomEq
+#endif

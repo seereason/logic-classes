@@ -18,16 +18,17 @@ import Data.Logic.Classes.Apply (HasPredicate(..), IsPredicate, pApp)
 import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Combine (IsCombinable(..), BinOp(..), Combination(..))
 import Data.Logic.Classes.Constants (HasBoolean(..), asBool)
-import Data.Logic.Classes.Equals (HasEquals, HasEquality(..), (.=.), foldAtomEq)
-import Data.Logic.Classes.FirstOrder (IsQuantified(..), Quant(..), quant', prettyFirstOrder, fixityFirstOrder, overatomsFirstOrder, onatomsFirstOrder)
+import Data.Logic.Classes.Equals (HasEquals, HasEquality(..), (.=.))
+import Data.Logic.Classes.FirstOrder (IsQuantified(..), Quant(..), overatomsFirstOrder, onatomsFirstOrder {-, prettyFirstOrder, fixityFirstOrder-})
 import Data.Logic.Classes.Formula (IsFormula(..))
 import Data.Logic.Classes.Negate (IsNegatable(..), (.~.))
 import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..))
-import Data.Logic.Classes.Term (IsTerm(..), Function)
+import Data.Logic.Classes.Term (IsTerm(..), IsFunction)
 import Data.Logic.Classes.Variable (IsVariable)
 import Data.Logic.Classes.Propositional (IsPropositional(..))
 import Data.Logic.Classes.Skolem (HasSkolem(..))
 import Data.String (IsString(..))
+import ATP (foldEquals, IsLiteral, {-IsVariable, prettyFormula,-} rootFixity, Side(Unary))
 
 data Sentence v p f
     = Connective (Sentence v p f) Connective (Sentence v p f)
@@ -72,7 +73,7 @@ instance ({- HasBoolean (Sentence v p f), -} Ord v, Ord p, Ord f) => IsCombinabl
     x .|.   y = Connective x Or y
     x .&.   y = Connective x And y
 
-instance (IsPredicate p, Function f v) => IsFormula (Sentence v p f) (Sentence v p f) where
+instance (IsLiteral (Sentence  v p f) (Sentence  v p f), IsFunction f, IsVariable v, Ord p, HasBoolean p) => IsFormula (Sentence v p f) (Sentence v p f) where
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Not _) = error "Logic.Instances.Chiou.atomic: unexpected"
@@ -80,8 +81,10 @@ instance (IsPredicate p, Function f v) => IsFormula (Sentence v p f) (Sentence v
     atomic x@(Equal _ _) = x
     overatoms = overatomsFirstOrder
     onatoms = onatomsFirstOrder
+    prettyFormula = error "FIXME"
 
-instance (IsFormula (Sentence v p f) (Sentence v p f), IsVariable v, IsPredicate p, Function f v, IsCombinable (Sentence v p f)) =>
+instance (IsFormula (Sentence v p f) (Sentence v p f), IsLiteral (Sentence v p f) (Sentence v p f),
+          IsVariable v, IsFunction f, IsCombinable (Sentence v p f), HasBoolean p) =>
          IsPropositional (Sentence v p f) (Sentence v p f) where
     foldPropositional co tf at formula =
         case formula of
@@ -110,27 +113,28 @@ instance IsVariable v => HasSkolem (AtomicFunction v) v where
     fromSkolem _ = Nothing
 
 -- The Atom type is not cleanly distinguished from the Sentence type, so we need an Atom instance for Sentence.
-instance (IsVariable v, IsPredicate p, Function f v) => HasPredicate (Sentence v p f) p (CTerm v f) where
+instance (IsVariable v, IsFunction f, IsPredicate p (CTerm v f)) => HasPredicate (Sentence v p f) p (CTerm v f) where
     foldPredicate ap (Predicate p ts) = ap p ts
+    foldPredicate _ _ = error "FIXME"
     applyPredicate = Predicate
 
-instance (HasEquals p, Function f v) => HasEquality (Sentence v p f) p (CTerm v f) where
-    foldEquals ap (Equal t1 t2) = Just (ap t1 t2)
-    foldEquals _ _ = Nothing
+instance (HasEquals p, IsFunction f, IsVariable v, IsPredicate p (CTerm v f)) => HasEquality (Sentence v p f) p (CTerm v f) where
+    foldEquals' ap (Equal t1 t2) = Just (ap t1 t2)
+    foldEquals' _ _ = Nothing
     -- foldAtomEq ap _ (Predicate p ts) = ap p ts
     -- foldAtomEq _ eq (Equal t1 t2) = eq t1 t2
     -- foldAtomEq _ _ _ = error "Data.Logic.Instances.Chiou: Invalid atom"
     applyEquals = Equal
     -- applyEq' = Predicate
 
-instance (IsQuantified (Sentence v p f) (Sentence v p f) v, IsVariable v, IsPredicate p, Function f v) => Pretty (Sentence v p f) where
-    pPrint = prettyFirstOrder (\ _ a -> pPrint a) pPrint 0
+instance (IsQuantified (Sentence v p f) (Sentence v p f) v, IsVariable v, IsFunction f) => Pretty (Sentence v p f) where
+    pPrint = prettyFormula rootFixity Unary
 
-instance (IsFormula (Sentence v p f) (Sentence v p f), IsPredicate p, Function f v, IsVariable v) => HasFixity (Sentence v p f) where
-    fixity = fixityFirstOrder
+instance (IsFormula (Sentence v p f) (Sentence v p f), IsFunction f, IsVariable v) => HasFixity (Sentence v p f) where
+    fixity _ = rootFixity
 
-instance (IsFormula (Sentence v p f) (Sentence v p f),
-          IsVariable v, IsPredicate p, Function f v) =>
+instance (IsFormula (Sentence v p f) (Sentence v p f), IsLiteral (Sentence v p f) (Sentence v p f),
+          IsVariable v, IsFunction f, Ord p, HasBoolean p) =>
           IsQuantified (Sentence v p f) (Sentence v p f) v where
     quant (:!:) v x = Quantifier ForAll [v] x
     quant (:?:) v x = Quantifier ExistsCh [v] x
@@ -152,6 +156,10 @@ instance (IsFormula (Sentence v p f) (Sentence v p f),
           Connective f1 Or f2 -> co (BinOp f1 (:|:) f2)
           Predicate _ _ -> at f
           Equal _ _ -> at f
+
+quant' :: IsQuantified formula atom v => Quant -> [v] -> formula -> formula
+quant' op vs f = foldr (quant op) f vs
+
 {-
     zipFirstOrder qu co tf at f1 f2 =
         case (f1, f2) of
@@ -177,7 +185,7 @@ instance (IsFormula (Sentence v p f) (Sentence v p f),
           _ -> Nothing
 -}
 
-instance (IsVariable v, Function f v) => IsTerm (CTerm v f) v f where
+instance (IsVariable v, IsFunction f, Pretty (CTerm v f)) => IsTerm (CTerm v f) v f where
     foldTerm v fn t =
         case t of
           Variable x -> v x
@@ -234,18 +242,22 @@ instance (Arity p, HasBoolean p, IsCombinable (NormalSentence v p f)) => Pred p 
 -}
 
 instance (IsFormula (NormalSentence v p f) (NormalSentence v p f),
-          IsVariable v, IsPredicate p, Function f v, IsCombinable (NormalSentence v p f)) => Pretty (NormalSentence v p f) where
-    pPrint = prettyFirstOrder (\ _ a -> pPrint a) pPrint 0
+          IsVariable v, IsFunction f, IsCombinable (NormalSentence v p f)) => Pretty (NormalSentence v p f) where
+    pPrint = prettyFormula rootFixity Unary
 
-instance (IsPredicate p, Function f v, IsCombinable (NormalSentence v p f)) => IsFormula (NormalSentence v p f) (NormalSentence v p f) where
+instance (IsPropositional (NormalSentence v p f) (NormalSentence v p f),
+          IsFunction f, IsCombinable (NormalSentence v p f), IsVariable v, Pretty (NormalTerm v f), HasBoolean p) => IsFormula (NormalSentence v p f) (NormalSentence v p f) where
     atomic x@(NFPredicate _ _) = x
     atomic x@(NFEqual _ _) = x
     atomic _ = error "Chiou: atomic"
     overatoms = overatomsFirstOrder
     onatoms = onatomsFirstOrder
+    prettyFormula = error "FIXME"
 
-instance (IsFormula (NormalSentence v p f) (NormalSentence v p f), IsCombinable (NormalSentence v p f), IsTerm (NormalTerm v f) v f,
-          IsVariable v, IsPredicate p, Function f v) => IsQuantified (NormalSentence v p f) (NormalSentence v p f) v where
+instance (IsFormula (NormalSentence v p f) (NormalSentence v p f),
+          IsCombinable (NormalSentence v p f), IsTerm (NormalTerm v f) v f,
+          IsPropositional (NormalSentence v p f) (NormalSentence v p f),
+          IsVariable v, IsFunction f, HasBoolean p) => IsQuantified (NormalSentence v p f) (NormalSentence v p f) v where
     quant _ _ _ = error "IsQuantified NormalSentence"
     foldQuantified _ co tf at f =
         case f of
@@ -262,10 +274,10 @@ instance (IsFormula (NormalSentence v p f) (NormalSentence v p f), IsCombinable 
 -}
 
 instance (IsFormula (NormalSentence v p f) (NormalSentence v p f),
-          IsCombinable (NormalSentence v p f), IsPredicate p, Function f v, IsVariable v) => HasFixity (NormalSentence v p f) where
-    fixity = fixityFirstOrder
+          IsCombinable (NormalSentence v p f), IsFunction f, IsVariable v) => HasFixity (NormalSentence v p f) where
+    fixity _ = rootFixity
 
-instance (IsVariable v, Function f v) => IsTerm (NormalTerm v f) v f where
+instance (IsVariable v, IsFunction f, Pretty (NormalTerm v f)) => IsTerm (NormalTerm v f) v f where
     vt = NormalVariable
     fApp = NormalFunction
     foldTerm v f t =
@@ -278,17 +290,18 @@ instance (IsVariable v, Function f v) => IsTerm (NormalTerm v f) v f where
           (NormalFunction f1 ts1, NormalFunction f2 ts2) -> fn f1 ts1 f2 ts2
           _ -> Nothing
 
-toSentence :: (IsQuantified (Sentence v p f) (Sentence v p f) v, Atom (Sentence v p f) (CTerm v f) v, Function f v, IsVariable v, HasEquals p) =>
+toSentence :: (IsQuantified (Sentence v p f) (Sentence v p f) v, Atom (Sentence v p f) (CTerm v f) v,
+               IsFunction f, IsVariable v, HasEquals p, IsPredicate p (CTerm v f)) =>
               NormalSentence v p f -> Sentence v p f
 toSentence (NFNot s) = (.~.) (toSentence s)
 toSentence (NFEqual t1 t2) = toTerm t1 .=. toTerm t2
 toSentence (NFPredicate p ts) = pApp p (map toTerm ts)
 
-toTerm :: (IsVariable v, Function f v) => NormalTerm v f -> CTerm v f
+toTerm :: (IsVariable v, IsFunction f, Pretty (CTerm v f)) => NormalTerm v f -> CTerm v f
 toTerm (NormalFunction f ts) = fApp f (map toTerm ts)
 toTerm (NormalVariable v) = vt v
 
-fromSentence :: forall v p f. (IsQuantified (Sentence v p f) (Sentence v p f) v, HasEquals p, Function f v) =>
+fromSentence :: forall v p f. (IsQuantified (Sentence v p f) (Sentence v p f) v, IsPredicate p (CTerm v f), HasEquals p, IsFunction f, HasBoolean p) =>
                 Sentence v p f -> NormalSentence v p f
 fromSentence = foldQuantified 
                  (\ _ _ _ -> error "fromSentence 1")
@@ -297,8 +310,7 @@ fromSentence = foldQuantified
                         ((:~:) f) -> NFNot (fromSentence f)
                         _ -> error "fromSentence 2")
                  (\ x -> NFPredicate (fromBool x) [])
-                 (foldAtomEq (\ p ts -> NFPredicate p (map fromTerm ts))
-                             (\ t1 t2 -> NFEqual (fromTerm t1) (fromTerm t2)))
+                 (\ a -> foldEquals (\ p ts -> NFPredicate p (map fromTerm ts)) (\ t1 t2 -> NFEqual (fromTerm t1) (fromTerm t2)) a)
 
 fromTerm :: CTerm v f -> NormalTerm v f
 fromTerm (Function f ts) = NormalFunction f (map fromTerm ts)

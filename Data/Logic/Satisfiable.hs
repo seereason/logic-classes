@@ -12,42 +12,38 @@ module Data.Logic.Satisfiable
     ) where
 
 import qualified Data.Set as Set
-import Data.Logic.Classes.Atom (Atom)
-import Data.Logic.Classes.FirstOrder (IsQuantified(..), toPropositional)
-import Data.Logic.Classes.Literal (IsLiteral)
+--import Data.Logic.Classes.Atom (Atom)
+--import Data.Logic.Classes.FirstOrder (IsQuantified(..){-, toPropositional-})
+--import Data.Logic.Classes.Literal (IsLiteral)
 import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Propositional (IsPropositional)
-import Data.Logic.Classes.Term (IsTerm)
+--import Data.Logic.Classes.Propositional (IsPropositional)
+--import Data.Logic.Classes.Term (IsTerm)
 import Data.Logic.Harrison.Skolem (SkolemT)
 import Data.Logic.Instances.PropLogic ()
-import Data.Logic.Normal.Clause (clauseNormalForm)
+import ATP (convertPropositional, HasFixity, IsFirstOrder, Pretty, simpcnf')
 import qualified PropLogic as PL
 
 -- |Is there any variable assignment that makes the formula true?
 -- satisfiable :: forall formula atom term v f m. (Monad m, IsQuantified formula atom v, Formula atom term v, IsTerm term v f, Ord formula, IsLiteral formula atom v, Ord atom) =>
 --                 formula -> SkolemT v term m Bool
-satisfiable :: forall m formula atom v term f. (IsQuantified formula atom v, IsPropositional formula atom, IsLiteral formula atom, IsTerm term v f, Atom atom term v,
-                                                Ord atom, Monad m, Eq formula, Ord formula) =>
-               formula -> SkolemT v term m Bool
+satisfiable :: forall m formula atom v term p f. (IsFirstOrder formula atom p term v f, Ord atom, Monad m, Eq formula, Ord formula, Pretty atom, HasFixity atom) =>
+               formula -> SkolemT m Bool
 satisfiable f =
-    do (clauses :: Set.Set (Set.Set formula)) <- clauseNormalForm f
-       let f' = PL.CJ . map (PL.DJ . map (toPropositional PL.A)) . map Set.toList . Set.toList $ clauses
+    do let (clauses :: Set.Set (Set.Set formula)) = simpcnf' f
+       let f' = PL.CJ . map (PL.DJ . map (convertPropositional id)) . map Set.toList . Set.toList $ clauses
        return . PL.satisfiable $ f'
 
 -- |Is the formula always false?  (Not satisfiable.)
-inconsistant :: forall m formula atom v term f. (IsQuantified formula atom v, IsPropositional formula atom, IsLiteral formula atom, IsTerm term v f, Atom atom term v,
-                                                 Ord atom, Monad m, Eq formula, Ord formula) =>
-                formula -> SkolemT v term m Bool
+inconsistant :: forall m formula atom v term p f. (IsFirstOrder formula atom p term v f, Ord atom, Monad m, Eq formula, Ord formula, Pretty atom, HasFixity atom) =>
+                formula -> SkolemT m Bool
 inconsistant f =  satisfiable f >>= return . not
 
 -- |Is the negation of the formula inconsistant?
-theorem :: forall m formula atom v term f. (IsQuantified formula atom v, IsPropositional formula atom, IsLiteral formula atom, IsTerm term v f, Atom atom term v,
-                                            Ord atom, Monad m, Eq formula, Ord formula) =>
-           formula -> SkolemT v term m Bool
+theorem :: forall m formula atom v term p f. (IsFirstOrder formula atom p term v f, Ord atom, Monad m, Eq formula, Ord formula, Pretty atom, HasFixity atom) =>
+           formula -> SkolemT m Bool
 theorem f = inconsistant ((.~.) f)
 
 -- |A formula is invalid if it is neither a theorem nor inconsistent.
-invalid :: forall m formula atom v term f. (IsQuantified formula atom v, IsPropositional formula atom, IsLiteral formula atom, IsTerm term v f, Atom atom term v,
-                                            Ord atom, Monad m, Eq formula, Ord formula) =>
-           formula -> SkolemT v term m Bool
+invalid :: forall m formula atom v term p f. (IsFirstOrder formula atom p term v f, Ord atom, Monad m, Eq formula, Ord formula, Pretty atom, HasFixity atom) =>
+           formula -> SkolemT m Bool
 invalid f = inconsistant f >>= \ fi -> theorem f >>= \ ft -> return (not (fi || ft))

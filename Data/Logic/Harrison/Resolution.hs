@@ -1,6 +1,12 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Harrison.Resolution
+#if 1
+    ( module Resolution
+    ) where
+
+import Resolution
+#else
     ( resolution1
     , resolution2
     , resolution3
@@ -1042,3 +1048,4 @@ let los = time resolution
 ************* -}
 END_INTERACTIVE;;
 -}
+#endif

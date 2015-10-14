@@ -1,6 +1,12 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
+{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
              MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TemplateHaskell, UndecidableInstances #-}
 module Data.Logic.Classes.FirstOrder
+#if 1
+    ( module FOL
+    ) where
+
+import FOL
+#else 
     ( IsQuantified(..)
     , Quant(..)
     , zipFirstOrder
@@ -202,6 +208,15 @@ prettyFirstOrder pa pv pprec formula =
       prettyQuant (:!:) = text "∀"
       prettyQuant (:?:) = text "∃"
 
+prettyBinOp :: BinOp -> Doc
+prettyBinOp (:<=>:) = text "⇔"
+prettyBinOp (:=>:) = text "⇒"
+prettyBinOp (:&:) = text "∧"
+prettyBinOp (:|:) = text "∨"
+
+instance Pretty BinOp where
+    pPrint = prettyBinOp
+
 fixityFirstOrder :: (HasFixity atom, IsQuantified formula atom v) => formula -> Fixity
 fixityFirstOrder formula =
     foldQuantified qu co tf at formula
@@ -278,3 +293,4 @@ fromLiteral :: forall lit atom v fof atom2. (IsLiteral lit atom, IsQuantified fo
 fromLiteral ca lit = foldLiteral (\ p -> (.~.) (fromLiteral ca p)) fromBool (atomic . ca) lit
 
 $(deriveSafeCopy 1 'base ''Quant)
+#endif

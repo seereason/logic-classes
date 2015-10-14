@@ -1,7 +1,13 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses,
+{-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses,
              RankNTypes, ScopedTypeVariables, TypeFamilies, UndecidableInstances #-}
 -- | The Apply class represents a type of atom the only supports predicate application.
 module Data.Logic.Classes.Apply
+#if 1
+    ( module FOL
+    ) where
+
+import FOL
+#else
     ( HasPredicate(..)
     , IsPredicate
     , apply
@@ -19,12 +25,13 @@ import Data.Logic.Classes.Arity
 import Data.Logic.Classes.Constants
 --import Data.Logic.Classes.Formula (IsFormula(atomic))
 import Data.Logic.Classes.Pretty (Pretty)
-import Data.Logic.Classes.Term (IsTerm, showTerm, prettyTerm, fvt, tsubst)
+import Data.Logic.Classes.Term (IsTerm {-, showTerm, prettyTerm-}, fvt, tsubst)
 import Data.List (intercalate, intersperse)
 --import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Text.PrettyPrint (Doc, (<>), text, empty, parens, cat)
+import ATP (pPrint)
 
 class (Arity p, HasBoolean p, Eq p, Ord p, Data p, Pretty p) => IsPredicate p
 
@@ -58,16 +65,16 @@ apply6 p a b c d e f = if fromMaybe 6 (arity p) == 6 then applyPredicate p [a,b,
 apply7 p a b c d e f g = if fromMaybe 7 (arity p) == 7 then applyPredicate p [a,b,c,d,e,f,g] else error "arity"
 -}
 
-showApply :: (HasPredicate atom p term, IsTerm term v f, Show v, Show p, Show f) => atom -> String
+showApply :: (HasPredicate atom p term, IsTerm term v f, Show term, Show v, Show p, Show f) => atom -> String
 showApply =
-    foldPredicate (\ p ts -> "(pApp" ++ show (length ts) ++ " (" ++ show p ++ ") (" ++ intercalate ") (" (map showTerm ts) ++ "))")
+    foldPredicate (\ p ts -> "(pApp" ++ show (length ts) ++ " (" ++ show p ++ ") (" ++ intercalate ") (" (map show ts) ++ "))")
 
 prettyApply :: (HasPredicate atom p term, IsTerm term v f) => (v -> Doc) -> (p -> Doc) -> (f -> Doc) -> Int -> atom -> Doc
 prettyApply pv pp pf _prec atom =
     foldPredicate (\ p ts ->
                    pp p <> case ts of
                              [] -> empty
-                             _ -> parens (cat (intersperse (text ",") (map (prettyTerm pv pf) ts))))
+                             _ -> parens (cat (intersperse (text ",") (map pPrint ts))))
               atom
 
 -- | Return the variables that occur in an instance of HasPredicate.
@@ -104,3 +111,4 @@ pApp6 :: (IsFormula formula atom, HasPredicate atom p term) => p -> term -> term
 pApp6 p a b c d e f = pApp p [a, b, c, d, e, f]
 pApp7 :: (IsFormula formula atom, HasPredicate atom p term) => p -> term -> term -> term -> term -> term -> term -> term -> formula
 pApp7 p a b c d e f g = pApp p [a, b, c, d, e, f, g]
+#endif

@@ -1,7 +1,13 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, DeriveDataTypeable, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables,
+{-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, DeriveDataTypeable, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables,
              TypeFamilies, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS_GHC -Wall -Wwarn #-}
 module Data.Logic.Types.Harrison.Formulas.FirstOrder
+#if 1
+    ( module FOL
+    ) where
+
+import FOL
+#else
     ( Formula(..)
     ) where
 
@@ -72,3 +78,4 @@ instance (C.IsFormula (Formula a) a, HasBoolean a, Pretty a, HasFixity a, Ord a)
 
 instance (IsQuantified (Formula a) a String) => Pretty (Formula a) where
     pPrint = prettyFirstOrder (const pPrint) pPrint 0
+#endif

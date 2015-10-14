@@ -1,5 +1,11 @@
-{-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, FunctionalDependencies, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables #-}
 module Data.Logic.Classes.Term
+#if 1
+    ( module FOL
+    ) where
+
+import FOL
+#else
     ( IsTerm(..)
     , Function
     , convertTerm
@@ -80,3 +86,4 @@ funcs tm =
     foldTerm (const Set.empty)
              (\ f args -> foldr (\ arg r -> Set.union (funcs arg) r) (Set.singleton (f, length args)) args)
              tm
+#endif

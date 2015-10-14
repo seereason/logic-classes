@@ -1,6 +1,12 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TypeFamilies, TypeSynonymInstances #-}
+{-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TypeFamilies, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Harrison.FOL
+#if 1
+    ( module FOL
+    ) where
+
+import FOL
+#else
     ( eval
     , list_disj
     , list_conj
@@ -304,3 +310,4 @@ substitute old new atom formula =
       sv v = if v == old then new else vt v
 -}
 
+#endif

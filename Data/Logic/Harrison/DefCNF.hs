@@ -1,5 +1,11 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, ScopedTypeVariables #-}
 module Data.Logic.Harrison.DefCNF
+#if 1
+    ( module DefCNF
+    ) where
+
+import DefCNF
+#else
     {- ( Atom
     , NumAtom(ma, ai)
     , defcnfs
@@ -15,7 +21,7 @@ import Data.Logic.Classes.Literal (IsLiteral)
 import Data.Logic.Classes.Negate ((.~.))
 import Data.Logic.Classes.Pretty
 import Data.Logic.Classes.Propositional (IsPropositional(foldPropositional))
-import Data.Logic.Harrison.Prop (nenf, simpcnf, cnf, cnf')
+import Data.Logic.Harrison.Prop (nenf, simpcnf, cnf_, cnf')
 import qualified Data.Logic.Types.Propositional as P
 -- import Data.Logic.Types.Harrison.Prop (Prop(P))
 import qualified Data.Map as Map
@@ -44,15 +50,15 @@ instance HasFixity Atom where
 --                                                                           
 -- Copyright (c) 2003-2007, John Harrison. (See "LICENSE.txt" for details.)  
 -- ========================================================================= 
-
+{-
 test01 :: Test
 test01 =
-    let ((p, q, r) :: (P.Formula Atom, P.Formula Atom, P.Formula Atom)) =
+    let ((p, q, r) :: (P.PFormula Atom, P.PFormula Atom, P.PFormula Atom)) =
                       (atomic (P "p" 0), atomic (P "q" 0), atomic (P "r" 0)) in
     TestCase $ assertEqual "cnf <<p <=> (q <=> r)>>"
                            "(¬r ∨ p ∨ ¬q) ∧ (¬r ∨ q ∨ ¬p) ∧ (q ∨ r ∨ p) ∧ (¬q ∨ r ∨ ¬p)"
                            (prettyShow (cnf' (p .<=>. (q .<=>. r))))
-
+-}
 -- ------------------------------------------------------------------------- 
 -- Make a stylized variable and update the index.                            
 -- ------------------------------------------------------------------------- 
@@ -103,20 +109,20 @@ mk_defcnf fn fm =
   let n = 1 + overatoms max_varindex fm' 0 in
   let (fm'',defs,_) = fn (fm',Map.empty,n) in
   let (deflist {- :: [pf]-}) = Map.elems defs in
-  Set.unions (simpcnf fm'' : Prelude.map simpcnf deflist)
+  Set.unions (simpcnf id fm'' : Prelude.map (simpcnf id) deflist)
 
 defcnf1 :: forall pf lit atom. (IsPropositional pf atom, IsLiteral lit atom, NumAtom atom, Ord lit) => lit -> atom -> pf -> pf
-defcnf1 _ _ fm = cnf (mk_defcnf maincnf fm :: Set.Set (Set.Set lit))
+defcnf1 _ _ fm = cnf_ (mk_defcnf maincnf fm :: Set.Set (Set.Set lit))
 
-
+{-
 -- ------------------------------------------------------------------------- 
 -- Example.                                                                  
 -- ------------------------------------------------------------------------- 
 test02 :: Test
 test02 =
-    let ((p, q, r, s) :: (P.Formula Atom, P.Formula Atom, P.Formula Atom, P.Formula Atom)) =
+    let ((p, q, r, s) :: (P.PFormula Atom, P.PFormula Atom, P.PFormula Atom, P.PFormula Atom)) =
             (atomic (P "p" 0), atomic (P "q" 0), atomic (P "r" 0), atomic (P "s" 0))
-        fm :: P.Formula Atom
+        fm :: P.PFormula Atom
         fm = (p .|. (q .&. ((.~.)r))) .&. s in
     TestCase $ assertEqual "defcnf1 (p | (q & ~r)) & s"
                            (intercalate " ∧ " ["(¬s ∨ p_3 ∨ ¬p_2)",
@@ -130,6 +136,7 @@ test02 =
                                                "p_3",
                                                "(¬r ∨ ¬p_1)"])
                            (prettyShow ((defcnf1 (undefined :: P.Formula Atom) (undefined :: Atom) fm :: P.Formula Atom)))
+-}
 
 -- ------------------------------------------------------------------------- 
 -- Version tweaked to exploit initial structure.                             
@@ -165,11 +172,12 @@ defcnfs :: (IsPropositional pf atom, IsLiteral lit atom, NumAtom atom, Ord lit) 
 defcnfs fm = mk_defcnf andcnf fm
 
 defcnf :: forall pf lit atom.(IsPropositional pf atom, IsLiteral lit atom, NumAtom atom, Ord lit) => lit -> atom -> pf -> pf
-defcnf _ _ fm = cnf (defcnfs fm :: Set.Set (Set.Set lit))
+defcnf _ _ fm = cnf_ id (defcnfs fm :: Set.Set (Set.Set lit))
 
 -- ------------------------------------------------------------------------- 
 -- Examples.                                                                 
 -- ------------------------------------------------------------------------- 
+{-
 test03 :: Test
 test03 =
     let ((p, q, r, s) :: (P.Formula Atom, P.Formula Atom, P.Formula Atom, P.Formula Atom)) =
@@ -183,6 +191,7 @@ test03 =
                                                "s",
                                                "(¬r ∨ ¬p_1)"])
                            (prettyShow ((defcnf (undefined :: P.Formula Atom) (undefined :: Atom) fm :: P.Formula Atom)))
+-}
 -- ------------------------------------------------------------------------- 
 -- Version that guarantees 3-CNF.                                            
 -- ------------------------------------------------------------------------- 
@@ -195,7 +204,8 @@ andcnf3 trip@(fm,_defs,_n) =
       co _ = maincnf trip
 
 defcnf3 :: forall pf lit atom. (IsPropositional pf atom, IsLiteral lit atom, NumAtom atom, Ord lit) => lit -> atom -> pf -> pf
-defcnf3 _ _ fm = cnf (mk_defcnf andcnf3 fm :: Set.Set (Set.Set lit))
+defcnf3 _ _ fm = cnf_ id (mk_defcnf andcnf3 fm :: Set.Set (Set.Set lit))
 
 tests :: Test
-tests = TestList [test01, test02, test03]
+tests = TestList [{-test01, test02, test03-}]
+#endif

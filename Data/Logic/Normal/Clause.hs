@@ -25,18 +25,18 @@
 --     ~wise(x(Y)) | wise(Y) } 
 -- @
 -- 
-{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS -Wall #-}
 module Data.Logic.Normal.Clause
-    ( clauseNormalForm
-    , cnfTrace
+    ( {- clauseNormalForm
+    , cnfTrace -}
     ) where
-
+#if 0
 import Data.List as List (intersperse, map)
 import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Equals (HasEquality, prettyAtomEq)
 import Data.Logic.Classes.FirstOrder (IsQuantified(..), prettyFirstOrder)
-import Data.Logic.Classes.Literal (IsLiteral(..), prettyLit)
+import Data.Logic.Classes.Literal (IsLiteral(..))
 import Data.Logic.Classes.Propositional (IsPropositional)
 import Data.Logic.Classes.Term (IsTerm)
 import Data.Logic.Harrison.Normal (simpcnf')
@@ -89,4 +89,5 @@ cnfTrace pv pp pf f =
                         text "Clause Normal Form:" $$ vcat (List.map prettyClause (fromSS cnf))]), cnf)
     where
       prettyClause (clause :: [lit]) =
-          nest 2 . brackets . hcat . intersperse (text ", ") . List.map (nest 2 . brackets . prettyLit (prettyAtomEq pv pp pf) pv 0) $ clause
+          nest 2 . brackets . hcat . intersperse (text ", ") . List.map (nest 2 . brackets . pPrint) $ clause
+#endif

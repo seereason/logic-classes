@@ -1,6 +1,12 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, DeriveDataTypeable, MultiParamTypeClasses, TypeFamilies, UndecidableInstances #-}
+{-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, DeriveDataTypeable, MultiParamTypeClasses, TypeFamilies, UndecidableInstances #-}
 {-# OPTIONS_GHC -Wall -Wwarn #-}
 module Data.Logic.Types.Harrison.Formulas.Propositional
+#if 1
+    ( module Prop
+    ) where
+
+import Prop
+#else
     ( Formula(..)
     ) where
 
@@ -10,7 +16,7 @@ import Data.Logic.Classes.Formula as C
 import Data.Logic.Classes.Literal (IsLiteral(..))
 --import Data.Logic.Classes.Negate (IsNegatable(..))
 import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..), rootFixity)
-import Data.Logic.Classes.Propositional (IsPropositional(..), prettyPropositional, fixityPropositional, overatomsPropositional, onatomsPropositional)
+import Data.Logic.Classes.Propositional (IsPropositional(..){-, prettyPropositional, fixityPropositional, overatomsPropositional, onatomsPropositional-})
 
 data Formula a
     = F
@@ -76,3 +82,4 @@ instance (Pretty atom, HasFixity atom, Ord atom) => Pretty (Formula atom) where
 
 instance (Pretty atom, HasFixity atom, Ord atom) => HasFixity (Formula atom) where
     fixity = fixityPropositional
+#endif

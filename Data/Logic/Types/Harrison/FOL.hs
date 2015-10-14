@@ -1,7 +1,13 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables,
+{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables,
              TypeFamilies, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 module Data.Logic.Types.Harrison.FOL
+#if 1
+    ( module FOL
+    ) where
+
+import FOL
+#else
     ( TermType(..)
     , FOL(..)
     , Function(..)
@@ -131,3 +137,4 @@ instance IsTerm TermType String Function where
 
 instance HasFixity FOL where
     fixity = const (Fixity 10 InfixN)
+#endif

@@ -1,7 +1,13 @@
-{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, RankNTypes, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wall #-}
 -- | Versions of the normal form functions in Prop for FirstOrderFormula.
 module Data.Logic.Harrison.Normal
+#if 1
+    ( module Skolem
+    ) where
+
+import Skolem
+#else
     ( trivial
     , simpdnf
     , simpdnf'
@@ -137,3 +143,4 @@ simpcnf' fm =
 -- | CNF: (a | b | c) & (d | e | f)
 purecnf' :: forall lit fof atom v. (IsQuantified fof atom v, IsLiteral lit atom, Ord lit) => fof -> Set.Set (Set.Set lit)
 purecnf' fm = Set.map (Set.map (.~.)) (purednf' (nnf ((.~.) fm)))
+#endif

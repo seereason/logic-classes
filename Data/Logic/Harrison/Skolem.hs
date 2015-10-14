@@ -1,6 +1,12 @@
-{-# LANGUAGE RankNTypes, ScopedTypeVariables, TypeFamilies #-}
+{-# LANGUAGE CPP, RankNTypes, ScopedTypeVariables, TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Harrison.Skolem
+#if 1
+    ( module Skolem
+    ) where
+
+import Skolem
+#else
     ( simplify
     -- , simplify'
     , lsimplify
@@ -28,7 +34,7 @@ import Control.Monad.State (StateT(runStateT))
 import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..), binop)
 import Data.Logic.Classes.Constants (HasBoolean(fromBool, asBool), true, false)
-import Data.Logic.Classes.FirstOrder (IsQuantified(exists, for_all, foldQuantified), Quant(..), quant, toPropositional)
+import Data.Logic.Classes.FirstOrder (IsQuantified(quant, foldQuantified), exists, for_all, Quant(..), quant, toPropositional)
 import Data.Logic.Classes.Formula (IsFormula(..))
 import Data.Logic.Classes.Literal (IsLiteral(foldLiteral))
 import Data.Logic.Classes.Negate ((.~.))
@@ -354,3 +360,4 @@ skolemNormalForm :: (IsQuantified fof atom v,
                      Monad m, Ord fof, Eq pf) =>
                     (atom -> atom2) -> fof -> SkolemT v term m pf
 skolemNormalForm = skolemize
+#endif

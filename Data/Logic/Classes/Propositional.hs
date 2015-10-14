@@ -6,10 +6,16 @@
 -- we will be able to write instances for various different
 -- implementations to allow these systems to interoperate.  The
 -- operator names were adopted from the Logic-TPTP package.
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
+{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies,
              MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TemplateHaskell, UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Data.Logic.Classes.Propositional
+#if 1
+    ( module Prop
+    ) where
+
+import Prop
+#else
     ( IsPropositional(..)
     , showPropositional
     , prettyPropositional
@@ -336,3 +342,4 @@ onatomsPropositional f fm =
 
 $(deriveSafeCopy 1 'base ''BinOp)
 $(deriveSafeCopy 1 'base ''Combination)
+#endif

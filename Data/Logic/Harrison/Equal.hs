@@ -1,6 +1,12 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes, ScopedTypeVariables, TypeSynonymInstances #-}
+{-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings, RankNTypes, ScopedTypeVariables, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wall #-}
 module Data.Logic.Harrison.Equal
+#if 1
+    ( module FOL
+    ) where
+
+import FOL
+#else
 {-  ( function_congruence
     , equalitize
     ) -} where
@@ -330,3 +336,4 @@ time meson fm;;
 ***************** -}
 END_INTERACTIVE;;
 -}
+#endif

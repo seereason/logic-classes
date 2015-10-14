@@ -1,7 +1,13 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
+{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses,
              ScopedTypeVariables, TypeFamilies, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wall -Wwarn #-}
 module Data.Logic.Types.Harrison.Prop
+#if 1
+    ( module Prop
+    ) where
+
+import Prop
+#else
     ( Prop(..)
     ) where
 
@@ -32,3 +38,4 @@ instance Show (Formula Prop) where
 
 instance Show (Formula String) where
     show = showPropositional show
+#endif

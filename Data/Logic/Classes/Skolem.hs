@@ -1,5 +1,12 @@
-{-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses #-}
-module Data.Logic.Classes.Skolem where
+{-# LANGUAGE CPP, FunctionalDependencies, MultiParamTypeClasses #-}
+module Data.Logic.Classes.Skolem
+#if 1
+    ( module Skolem
+    ) where
+
+import Skolem
+#else
+    where
 
 import Data.Logic.Classes.Variable (IsVariable)
 
@@ -17,3 +24,4 @@ class IsVariable v => HasSkolem f v | f -> v where
     -- ^ If this is a skolem function return the variable it replaced.
     -- This used to be a predicate, but a Maybe v helps implement the
     -- Show instance.
+#endif

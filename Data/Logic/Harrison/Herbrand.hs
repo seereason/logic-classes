@@ -1,5 +1,12 @@
-{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
-module Data.Logic.Harrison.Herbrand where
+{-# LANGUAGE CPP, RankNTypes, ScopedTypeVariables #-}
+module Data.Logic.Harrison.Herbrand
+#if 1
+    ( module Herbrand
+    ) where
+
+import Herbrand
+#else
+    where
 
 import Control.Applicative.Error (Failing(..))
 import Data.Logic.Classes.Atom (Atom(substitute, freeVariables))
@@ -307,3 +314,4 @@ let p29 = davisputnam'
     (forall x y. P(x) /\ G(y) ==> H(x) /\ J(y)))>>;;
 END_INTERACTIVE;;
 -}
+#endif

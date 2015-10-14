@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -12,6 +13,12 @@
 -- when you just want to use the classes and you don't have a
 -- particular representation you need to use.
 module Data.Logic.Types.FirstOrder
+#if 1
+    ( module FOL
+    ) where
+
+import FOL
+#else
     ( Formula(..)
     , PTerm(..)
     , Predicate(..)
@@ -37,15 +44,6 @@ import Data.Logic.Harrison.Tableaux (unifyAtomsEq)
 import Data.Logic.Resolution (isRenameOfAtomEq, getSubstAtomEq)
 import Data.SafeCopy (SafeCopy, base, deriveSafeCopy, extension, MigrateFrom(..))
 import Data.Typeable (Typeable)
-
--- | The range of a formula is {True, False} when it has no free variables.
-data Formula v p f
-    = Predicate (Predicate p (PTerm v f))
-    | Combine (Combination (Formula v p f))
-    | Quant Quant v (Formula v p f)
-    -- Note that a derived Eq instance is not going to tell us that
-    -- a&b is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).
-    deriving (Eq, Ord, Data, Typeable)
 
 instance (Show v, Show p, Show f, Function f v) => Show (Formula v p f) where
     show (Predicate p) = show p
@@ -252,3 +250,4 @@ instance (SafeCopy p, SafeCopy term) => Migrate (Predicate p term) where
     migrate (Apply_v1 p ts) = Apply p ts
     migrate (NotEqual_v1 _ _) = error "Failure migrating Predicate NotEqual"
     migrate (Constant_v1 _) = error "Failure migrating Predicate Constant"
+#endif

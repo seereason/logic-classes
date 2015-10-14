@@ -1,6 +1,13 @@
-{-# LANGUAGE FlexibleContexts, RankNTypes, ScopedTypeVariables, TypeFamilies #-}
+{-# LANGUAGE CPP, FlexibleContexts, RankNTypes, ScopedTypeVariables, TypeFamilies #-}
 {-# OPTIONS_GHC -Wall #-}
-module Data.Logic.Harrison.Meson where
+module Data.Logic.Harrison.Meson
+#if 1
+    ( module Meson
+    ) where
+
+import Meson
+#else
+    where
 
 import Control.Applicative.Error (Failing(..))
 import qualified Data.Map as Map
@@ -545,3 +552,4 @@ meson <<~p /\ (p \/ q) /\ (r \/ s) /\ (~q \/ t \/ u) /\
         (~s \/ ~v) /\ (~s \/ ~w) ==> false>>;;
 END_INTERACTIVE;;
 -}
+#endif

@@ -1,4 +1,11 @@
+{-# LANGUAGE CPP #-}
 module Data.Logic.Classes.Variable
+#if 1
+    ( module FOL
+    ) where
+
+import FOL
+#else
     ( IsVariable(..)
     , variants
     , showVariable
@@ -30,3 +37,4 @@ variants v0 =
 
 showVariable :: IsVariable v => v -> String
 showVariable v = "(fromString (" ++ show (show (prettyVariable v)) ++ "))"
+#endif

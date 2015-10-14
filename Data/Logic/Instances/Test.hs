@@ -3,6 +3,9 @@
 module Data.Logic.Instances.Test
     ( V(..)
     , Pr(..)
+    , Predicate(..)
+    , Formula(..)
+    , PTerm(..)
     , AtomicFunction(..)
     , MyFormula, MyAtom, MyTerm
     , TFormula, TAtom, TTerm -- deprecated
@@ -13,21 +16,50 @@ module Data.Logic.Instances.Test
 
 import Data.Char (isDigit)
 import Data.Generics (Data, Typeable)
-import Data.Logic.Classes.Apply (IsPredicate, HasPredicate(..))
+--import Data.Logic.Classes.Apply (IsPredicate, HasPredicate(..))
 import Data.Logic.Classes.Arity (Arity(arity))
 import Data.Logic.Classes.Constants (HasBoolean(..), prettyBool)
 import Data.Logic.Classes.Equals (HasEquals(isEquals), HasEquality(..))
 import Data.Logic.Classes.Pretty (Pretty(pPrint))
 import qualified Data.Logic.Classes.Skolem as C (HasSkolem(..))
-import Data.Logic.Classes.Term (Function)
+--import Data.Logic.Classes.Term (IsFunction)
 import Data.Logic.Classes.Variable (IsVariable(..))
-import qualified Data.Logic.Types.FirstOrder as P (Formula, Predicate(..), PTerm)
+import qualified Data.Logic.Types.FirstOrder as P (Formula, Term)
 import Data.Monoid ((<>))
 import Data.Set as Set (member)
 import Data.String (IsString(fromString))
 import Text.PrettyPrint (Doc, text)
+import ATP (Combination(..), BinOp(..), Quant(..))
 
 newtype V = V String deriving (Eq, Ord, Data, Typeable)
+
+-- |A temporary type used in the fold method to represent the
+-- combination of a predicate and its arguments.  This reduces the
+-- number of arguments to foldFirstOrder and makes it easier to manage the
+-- mapping of the different instances to the class methods.
+data Predicate p term
+    = Equal term term
+    | Apply p [term]
+    deriving (Eq, Ord, Data, Typeable, Show)
+
+-- | The range of a formula is {True, False} when it has no free variables.
+data Formula v p f
+    = Predicate (Predicate p (PTerm v f))
+    | Combine (Combination (Formula v p f))
+    | Quant Quant v (Formula v p f)
+    -- Note that a derived Eq instance is not going to tell us that
+    -- a&b is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).
+    deriving (Eq, Ord, Data, Typeable, Show)
+
+-- | The range of a term is an element of a set.
+data PTerm v f
+    = Var v                         -- ^ A variable, either free or
+                                    -- bound by an enclosing quantifier.
+    | FunApp f [PTerm v f]           -- ^ Function application.
+                                    -- HasBoolean are encoded as
+                                    -- nullary functions.  The result
+                                    -- is another term.
+    deriving (Eq, Ord, Data, Typeable, Show)
 
 instance IsString V where
     fromString = V
@@ -61,7 +93,7 @@ data Pr
     | Equ
     deriving (Eq, Ord, Data, Typeable)
 
-instance IsPredicate Pr
+-- instance IsPredicate Pr
 
 instance HasEquals Pr where
     isEquals Equ = True
@@ -119,7 +151,7 @@ data AtomicFunction
     | Skolem V
     deriving (Eq, Ord, Data, Typeable)
 
-instance Function AtomicFunction V
+-- instance IsFunction AtomicFunction V
 
 instance C.HasSkolem AtomicFunction V where
     toSkolem = Skolem
@@ -140,9 +172,9 @@ prettyF (Skolem v) = text "sK" <> pPrint v
 instance Pretty AtomicFunction where
     pPrint = prettyF
 
-type MyFormula = P.Formula V Pr AtomicFunction
-type MyAtom = P.Predicate Pr TTerm
-type MyTerm = P.PTerm V AtomicFunction
+type MyFormula = Formula V Pr AtomicFunction
+type MyAtom = Predicate Pr TTerm
+type MyTerm = P.Term V AtomicFunction
 
 type TFormula = MyFormula
 type TAtom = MyAtom
