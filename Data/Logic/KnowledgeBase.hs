@@ -7,7 +7,7 @@
 
 module Data.Logic.KnowledgeBase
     ( WithId(WithId, wiItem, wiIdent) -- Probably only used by some unit tests, and not really correctly
-    , ProverT
+    , ProverT, ProverT'
     , runProver'
     , runProverT'
     , getKB
@@ -29,19 +29,19 @@ import "mtl" Control.Monad.State (StateT, evalStateT, MonadState(get, put))
 import "mtl" Control.Monad.Trans (lift)
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Atom (Atom)
-import Data.Logic.Classes.Equals (HasEquality)
-import Data.Logic.Classes.FirstOrder (IsQuantified)
-import Data.Logic.Classes.Literal (IsLiteral)
-import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Propositional (IsPropositional)
-import Data.Logic.Classes.Term (IsTerm)
-import Data.Logic.Harrison.Skolem (SkolemT, runSkolemT)
+import FOL (HasEquality)
+import FOL (IsQuantified)
+import Lit (IsLiteral)
+import Formulas ((.~.))
+import Prop (IsPropositional)
+import FOL (IsTerm)
+import Skolem (SkolemT, runSkolemT)
 import Data.Logic.Normal.Implicative (ImplicativeForm, implicativeNormalForm)
 import Data.Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Data.SafeCopy (deriveSafeCopy, base)
 import qualified Data.Set.Extra as S
 import Prelude hiding (negate)
-import ATP (HasBoolean, HasSkolem)
+import ATP (HasSkolem)
 
 type SentenceCount = Int
 
@@ -125,7 +125,7 @@ getKB = get >>= return . knowledgeBase
 -- with a disproof.
 inconsistantKB :: forall m formula atom term v p f lit.
                   (IsQuantified formula atom v, IsPropositional formula atom, IsLiteral lit atom, Atom atom term v, HasEquality atom p term, IsTerm term v f,
-                   Monad m, Ord formula, Data formula, Data lit, Eq lit, Ord lit, Ord term, Typeable f, HasBoolean p, HasSkolem f v) =>
+                   Monad m, Ord formula, Data formula, Data lit, Eq lit, Ord lit, Ord term, Typeable f, HasSkolem f v) =>
                   formula -> ProverT' v term (ImplicativeForm lit) m (Bool, SetOfSupport lit v term)
 inconsistantKB s =
     get >>= \ st ->
@@ -138,7 +138,7 @@ inconsistantKB s =
 -- proof.
 theoremKB :: forall m formula atom term v p f lit.
              (Monad m, IsQuantified formula atom v, IsPropositional formula atom, IsLiteral lit atom, Atom atom term v, HasEquality atom p term, IsTerm term v f,
-              Ord formula, Ord term, Ord lit, Data formula, Data lit, Typeable f, HasBoolean p, HasSkolem f v) =>
+              Ord formula, Ord term, Ord lit, Data formula, Data lit, Typeable f, HasSkolem f v) =>
              formula -> ProverT' v term (ImplicativeForm lit) m (Bool, SetOfSupport lit v term)
 theoremKB s = inconsistantKB ((.~.) s)
 
@@ -146,14 +146,14 @@ theoremKB s = inconsistantKB ((.~.) s)
 -- askKB should be in KnowledgeBase module. However, since resolution
 -- is here functions are here, it is also placed in this module.
 askKB :: (Monad m, IsQuantified formula atom v, IsPropositional formula atom, IsLiteral lit atom, Atom atom term v, HasEquality atom p term, IsTerm term v f,
-          Ord formula, Ord term, Ord lit, Data formula, Data lit, Typeable f, HasBoolean p, HasSkolem f v) =>
+          Ord formula, Ord term, Ord lit, Data formula, Data lit, Typeable f, HasSkolem f v) =>
          formula -> ProverT' v term (ImplicativeForm lit) m Bool
 askKB s = theoremKB s >>= return . fst
 
 -- |See whether the sentence is true, false or invalid.  Return proofs
 -- for truth and falsity.
 validKB :: (IsQuantified formula atom v, IsPropositional formula atom, IsLiteral lit atom, Atom atom term v, HasEquality atom p term, IsTerm term v f,
-            Monad m, Ord formula, Ord term, Ord lit, Data formula, Data lit, Typeable f, HasBoolean p, HasSkolem f v) =>
+            Monad m, Ord formula, Ord term, Ord lit, Data formula, Data lit, Typeable f, HasSkolem f v) =>
            formula -> ProverT' v term (ImplicativeForm lit) m (ProofResult, SetOfSupport lit v term, SetOfSupport lit v term)
 validKB s =
     theoremKB s >>= \ (proved, proof1) ->
@@ -164,7 +164,7 @@ validKB s =
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
 tellKB :: (IsQuantified formula atom v, IsPropositional formula atom, IsLiteral lit atom, Atom atom term v, HasEquality atom p term, IsTerm term v f,
-           Monad m, Ord formula, Data formula, Data lit, Eq lit, Ord lit, Ord term, Typeable f, HasSkolem f v, HasBoolean p) =>
+           Monad m, Ord formula, Data formula, Data lit, Eq lit, Ord lit, Ord term, Typeable f, HasSkolem f v) =>
           formula -> ProverT' v term (ImplicativeForm lit) m (Proof lit)
 tellKB s =
     do st <- get
@@ -177,9 +177,20 @@ tellKB s =
                      , sentenceCount = sentenceCount st + 1 }
        return $ Proof {proofResult = valid, proof = S.map wiItem inf'}
 
+{-
 loadKB :: (IsQuantified formula atom v, IsPropositional formula atom, IsLiteral lit atom, Atom atom term v, HasEquality atom p term, IsTerm term v f,
-           Monad m, Ord formula, Ord term, Ord lit, Data formula, Data lit, Typeable f, HasSkolem f v, HasBoolean p) =>
+           Monad m, Ord formula, Ord term, Ord lit, Data formula, Data lit, Typeable f, HasSkolem f v) =>
           [formula] -> ProverT' v term (ImplicativeForm lit) m [Proof lit]
+-}
+loadKB :: forall formula v term lit m atom p f.
+          (Monad m, Data formula, Data lit, Typeable f,
+           Atom atom term v,
+           IsLiteral lit atom,
+           IsTerm term v f,
+           IsQuantified formula atom v,
+           HasEquality atom p term,
+           HasSkolem f v) =>
+          [formula] -> StateT (ProverState (ImplicativeForm lit)) (SkolemT m) [Proof lit]
 loadKB sentences = mapM tellKB sentences
 
 -- |Delete an entry from the KB.

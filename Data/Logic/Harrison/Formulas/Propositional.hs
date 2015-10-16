@@ -9,10 +9,8 @@ module Data.Logic.Harrison.Formulas.Propositional
     ) where
 
 import qualified Data.Set as Set
---import Data.Logic.Classes.Constants (Constants(..))
-import Data.Logic.Classes.Combine (Combination(..), BinOp(..), binop)
-import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Propositional (IsPropositional(..))
+import Formulas (Combination(..), BinOp(..), binop, (.~.))
+import Prop (IsPropositional(..))
 
 -- ------------------------------------------------------------------------- 
 -- General parsing of iterated infixes.                                      

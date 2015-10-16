@@ -3,35 +3,34 @@
 -- Module      : Data.Boolean
 -- Copyright   : Sebastian Fischer
 -- License     : BSD3
--- 
+--
 -- Maintainer  : Sebastian Fischer (sebf@informatik.uni-kiel.de)
 -- Stability   : experimental
 -- Portability : portable
--- 
+--
 -- This library provides a representation of boolean formulas that is
 -- used by the solver in "Data.Boolean.SatSolver".
--- 
+--
 -- We also define a function to simplify formulas, a type for
 -- conjunctive normalforms, and a function that creates them from
 -- boolean formulas.
--- 
-module Data.Boolean ( 
+--
+module Data.Boolean (
 
-  Boolean(..), 
+  Boolean(..),
 
-  Literal(..), literalVar, invLiteral, isPositiveLiteral, 
+  Literal(..), literalVar, invLiteral, isPositiveLiteral,
 
   CNF, Clause, booleanToCNF
 
   ) where
 
-import Data.Maybe ( mapMaybe )
-import qualified Data.IntMap as IM
-
 import Control.Monad ( guard, liftM )
+import qualified Data.IntMap as IM
+import Data.Maybe ( mapMaybe )
 
 -- | Boolean formulas are represented as values of type @Boolean@.
--- 
+--
 data Boolean
   -- | Variables are labeled with an @Int@,
   = Var Int
@@ -48,37 +47,37 @@ data Boolean
  deriving Show
 
 -- | Literals are variables that occur either positively or negatively.
--- 
+--
 data Literal = Pos Int | Neg Int deriving (Eq, Show)
 
 -- | This function returns the name of the variable in a literal.
--- 
+--
 literalVar :: Literal -> Int
 literalVar (Pos n) = n
 literalVar (Neg n) = n
 
 -- | This function negates a literal.
--- 
+--
 invLiteral :: Literal -> Literal
 invLiteral (Pos n) = Neg n
 invLiteral (Neg n) = Pos n
 
 -- | This predicate checks whether the given literal is positive.
--- 
+--
 isPositiveLiteral :: Literal -> Bool
 isPositiveLiteral (Pos _) = True
 isPositiveLiteral _       = False
 
 -- | Conjunctive normalforms are lists of lists of literals.
--- 
+--
 type CNF     = [Clause]
 type Clause  = [Literal]
 
--- | 
+-- |
 -- We convert boolean formulas to conjunctive normal form by pushing
 -- negations down to variables and repeatedly applying the
 -- distributive laws.
--- 
+--
 booleanToCNF :: Boolean -> CNF
 booleanToCNF
   = mapMaybe (simpleClause . map literal . disjunction)
@@ -92,7 +91,7 @@ booleanToCNF
   elim (No  :&&: _)   = Just No
   elim (Yes :&&: x)   = Just x
   elim (_   :&&: No)  = Just No
-  elim (x   :&&: Yes) = Just x 
+  elim (x   :&&: Yes) = Just x
   elim (Yes :||: _)   = Just Yes
   elim (No  :||: x)   = Just x
   elim (_   :||: Yes) = Just Yes

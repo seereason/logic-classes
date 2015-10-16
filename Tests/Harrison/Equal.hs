@@ -9,28 +9,26 @@ module Harrison.Equal where
 -- =========================================================================
 
 import Control.Applicative.Error (Failing(..))
-import Data.Logic.Classes.Apply (pApp)
-import Data.Logic.Classes.Combine (IsCombinable(..), (∧), (⇒))
---import Data.Logic.Classes.Constants (true)
-import Data.Logic.Classes.Equals ((.=.))
-import Data.Logic.Classes.FirstOrder ((∃), (∀))
---import Data.Logic.Classes.Pretty (Pretty(pretty))
-import Data.Logic.Classes.Skolem (HasSkolem(..))
-import Data.Logic.Classes.Term (IsTerm(..))
-import Data.Logic.Harrison.Equal (equalitize, function_congruence)
-import Data.Logic.Harrison.Meson (meson)
-import Data.Logic.Harrison.Skolem (runSkolem)
+import FOL (pApp)
+import Formulas (IsCombinable(..), (∧), (⇒))
+import FOL ((.=.))
+import FOL ((∃), (∀))
+import Skolem (HasSkolem(..))
+import FOL (IsTerm(..))
+import Equal (equalitize, function_congruence)
+import Meson (meson)
+import Skolem (runSkolem)
 import Common (render)
-import Data.Logic.Types.Harrison.FOL (TermType(..))
-import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
-import Data.Logic.Types.Harrison.Equal (FOLEQ(..), PredName)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.String (IsString(fromString))
 import Test.HUnit
+import FOL (Predicate, V)
+import Skolem (MyTerm, MyFormula)
+import Tableaux (Depth(Depth))
 
--- type TF = TestFormula (Formula FOL) FOL TermType String String Function
--- type TFE = TestFormulaEq (Formula FOLEQ) FOLEQ TermType String String Function
+-- type TF = TestFormula (Formula FOL) FOL MyTerm String String Function
+-- type TFE = TestFormulaEq (MyFormula) FOLEQ MyTerm String String Function
 
 tests :: Test
 tests = TestLabel "Data.Logic.Tests.Harrison.Equal" $ TestList [test01, test02, test03, test04]
@@ -42,7 +40,7 @@ tests = TestLabel "Data.Logic.Tests.Harrison.Equal" $ TestList [test01, test02, 
 test01 :: Test
 test01 = TestCase $ assertEqual "function_congruence" expected input
     where input = map function_congruence [(fromString "f", 3 :: Int), (fromString "+",2)]
-          expected :: [Set.Set (Formula FOLEQ)]
+          expected :: [Set.Set (MyFormula)]
           expected = [Set.fromList
                       [(∀) x1
                        ((∀) x2
@@ -73,9 +71,9 @@ test label expected input = TestLabel label $ TestCase $ assertEqual label expec
 
 test02 :: Test
 test02 = TestCase $ assertEqual "equalitize 1 (p. 241)" (expected, expectedProof) input
-    where input = (render ewd, runSkolem (meson (Just 10) ewd))
-          ewd = equalitize fm :: Formula FOLEQ
-          fm :: Formula FOLEQ
+    where input = (render ewd, runSkolem (meson (Just (Depth 10)) ewd))
+          ewd = equalitize fm :: MyFormula
+          fm :: MyFormula
           fm = ((∀) "x" (fx ⇒ gx)) ∧
                ((∃) "x" fx) ∧
                ((∀) "x" ((∀) "y" (gx ∧ gy ⇒ x .=. y))) ⇒
@@ -108,8 +106,8 @@ test02 = TestCase $ assertEqual "equalitize 1 (p. 241)" (expected, expectedProof
           -- I don't yet know if this is right.  Almost certainly not.
           expectedProof = Set.fromList [Success ((Map.fromList [("_0",vt "_1")],0,2),1),
                                         Success ((Map.fromList [("_0",vt "_2"),("_1",vt "_2")],0,3),1),
-                                        Success ((Map.fromList [("_0",fApp (Skolem 1) [] :: TermType)],0,1),1),
-                                        Success ((Map.fromList [("_0",fApp (Skolem 2) [] :: TermType)],0,1),1)]
+                                        Success ((Map.fromList [("_0",fApp (Skolem 1) [] :: MyTerm)],0,1),1),
+                                        Success ((Map.fromList [("_0",fApp (Skolem 2) [] :: MyTerm)],0,1),1)]
 
           expected = ("<<(forall x. x = x) /\ " ++
                       "    (forall x y z. x = y /\ x = z ==> y = z) /\ " ++
@@ -124,7 +122,7 @@ test02 = TestCase $ assertEqual "equalitize 1 (p. 241)" (expected, expectedProof
                                                     (fromString "_1",fApp (toSkolem "y") []),
                                                     (fromString "_2",vt "_4"),
                                                     (fromString "_3",fApp (toSkolem "y") []),
-                                                    (fromString "_4",fApp (toSkolem "x") [])],0,5),6)]
+                                                    (fromString "_4",fApp (toSkolem "x") [])],0,5),Depth 6)]
 {-
           expectedProof =
               Set.singleton (Success ((Map.fromList [(fromString "_0",vt' "_2"),
@@ -138,16 +136,16 @@ test02 = TestCase $ assertEqual "equalitize 1 (p. 241)" (expected, expectedProof
           for_all' s = for_all (fromString s)
           exists' s = exists (fromString s)
 -}
-          pApp' :: String -> [TermType] -> Formula FOLEQ
-          pApp' s ts = pApp (fromString s :: PredName) ts
-          --vt' :: String -> TermType
+          pApp' :: String -> [MyTerm] -> MyFormula
+          pApp' s ts = pApp (fromString s :: Predicate) ts
+          --vt' :: String -> MyTerm
           --vt' s = vt (fromString s)
 
 -- ------------------------------------------------------------------------- 
 -- Wishnu Prasetya's example (even nicer with an "exists unique" primitive). 
 -- ------------------------------------------------------------------------- 
 
-wishnu :: Formula FOLEQ
+wishnu :: MyFormula
 wishnu = ((∃) ("x") ((x .=. f[g[x]]) ∧ (∀) ("x'") ((x' .=. f[g[x']]) ⇒ (x .=. x')))) .<=>.
          ((∃) ("y") ((y .=. g[f[y]]) ∧ (∀) ("y'") ((y' .=. g[f[y']]) ⇒ (y .=. y'))))
     where
@@ -161,8 +159,8 @@ wishnu = ((∃) ("x") ((x .=. f[g[x]]) ∧ (∀) ("x'") ((x' .=. f[g[x']]) ⇒ (
 test03 :: Test
 test03 = TestLabel "equalitize 2" $ TestCase $ assertEqual "equalitize 2 (p. 241)" (render expected, expectedProof) input
     where -- This depth is not sufficient to finish. It shoudl work with 16, but that takes a long time.
-          input = (render (equalitize wishnu), runSkolem (meson (Just 50) wishnu))
-          x = vt "x" :: TermType
+          input = (render (equalitize wishnu), runSkolem (meson (Just (Depth 50)) wishnu))
+          x = vt "x" :: MyTerm
           x1 = vt "x1"
           y = vt "y"
           y1 = vt "y1"
@@ -171,7 +169,7 @@ test03 = TestLabel "equalitize 2" $ TestCase $ assertEqual "equalitize 2 (p. 241
           y' = vt "y"
           f terms = fApp (fromString "f") terms
           g terms = fApp (fromString "g") terms
-          expected :: Formula FOLEQ
+          expected :: MyFormula
           expected =
                      ((∀) "x" (x .=. x)) .&.
                      ((∀) "x" . (∀) "y" . (∀) "z" $ (x .=. y .&. x .=. z .=>. y .=. z)) .&.
@@ -182,7 +180,7 @@ test03 = TestLabel "equalitize 2" $ TestCase $ assertEqual "equalitize 2 (p. 241
           expectedProof =
               Set.fromList [Failure ["Exceeded maximum depth limit"]]
 {-
-              Set.fromList [Success ((Map.fromList [("_0",vt "_1")],0,2 :: Map.Map String TermType),1),
+              Set.fromList [Success ((Map.fromList [("_0",vt "_1")],0,2 :: Map.Map String MyTerm),1),
                             Success ((Map.fromList [("_0",vt "_1"),("_1",fApp "f" [fApp "g" [vt "_0"]])],0,2),1),
                             Success ((Map.fromList [("_0",vt "_1"),("_1",fApp "g" [fApp "f" [vt "_0"]])],0,2),1),
                             Success ((Map.fromList [("_0",vt "_1"),("_2",fApp (fromSkolem 2) [vt "_0"])],0,3),1),
@@ -195,19 +193,19 @@ test03 = TestLabel "equalitize 2" $ TestCase $ assertEqual "equalitize 2 (p. 241
 test04 :: Test
 test04 = TestCase $ assertEqual "equalitize 3 (p. 248)" (render expected, expectedProof) input
     where
-      input = (render (equalitize fm), runSkolem (meson (Just 20) . equalitize $ fm))
-      fm :: Formula FOLEQ
+      input = (render (equalitize fm), runSkolem (meson (Just (Depth 20)) . equalitize $ fm))
+      fm :: MyFormula
       fm = ((∀) "x" . (∀) "y" . (∀) "z") ((*) [x', (*) [y', z']] .=. (*) [((*) [x', y']), z']) ∧
            (∀) "x" ((*) [one, x'] .=. x') ∧
            (∀) "x" ((*) [i [x'], x'] .=. one) ⇒
            (∀) "x" ((*) [x', i [x']] .=. one)
-      x' = vt "x" :: TermType
-      y' = vt "y" :: TermType
-      z' = vt "z" :: TermType
+      x' = vt "x" :: MyTerm
+      y' = vt "y" :: MyTerm
+      z' = vt "z" :: MyTerm
       (*) = fApp (fromString "*")
       i = fApp (fromString "i")
       one = fApp (fromString "1") []
-      expected :: Formula FOLEQ
+      expected :: MyFormula
       expected =
           ((∀) "x" ((vt "x") .=. (vt "x")) .&.
            ((∀) "x" ((∀) "y" ((∀) "z" ((((vt "x") .=. (vt "y")) .&. ((vt "x") .=. (vt "z"))) .=>. ((vt "y") .=. (vt "z"))))) .&.
@@ -218,7 +216,7 @@ test04 = TestCase $ assertEqual "equalitize 3 (p. 248)" (render expected, expect
              (∀) "x" ((fApp "*" [fApp "1" [],vt "x"]) .=. (vt "x"))) .&.
             (∀) "x" ((fApp "*" [fApp "i" [vt "x"],vt "x"]) .=. (fApp "1" []))) .=>.
            (∀) "x" ((fApp "*" [vt "x",fApp "i" [vt "x"]]) .=. (fApp "1" [])))
-      expectedProof :: Set.Set (Failing ((Map.Map String TermType, Int, Int), Int))
+      expectedProof :: Set.Set (Failing ((Map.Map V MyTerm, Int, Int), Depth))
       expectedProof =
           Set.fromList
                  [Success ((Map.fromList
@@ -253,5 +251,5 @@ test04 = TestCase $ assertEqual "equalitize 3 (p. 248)" (render expected, expect
                                     ("_28", vt' "_30"),
                                     ("_29", (*) [vt' "_22", vt' "_23"]),
                                     ("_30", (*) [(*) [vt' "_21", vt' "_22"], vt' "_23"])],
-                            0,31),13)]
+                            0,31),Depth 13)]
       vt' = vt . fromString

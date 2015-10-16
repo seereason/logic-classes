@@ -13,13 +13,13 @@ module Data.Logic.Resolution
     , getSubstAtomEq
     ) where
 
-import Data.Logic.Classes.Apply (HasPredicate(applyPredicate))
+import FOL (HasPredicate(applyPredicate))
 import Data.Logic.Classes.Atom (Atom(isRename, getSubst))
-import Data.Logic.Classes.Constants (fromBool, HasBoolean)
-import Data.Logic.Classes.Equals (HasEquality(applyEquals), foldEquals, zipEquals)
-import Data.Logic.Classes.Formula (IsFormula(atomic))
-import Data.Logic.Classes.Literal (IsLiteral(..), zipLiterals)
-import Data.Logic.Classes.Term (IsTerm(..))
+import Formulas (fromBool, HasBoolean)
+import FOL (HasEquality(applyEquals), foldEquals, zipEquals)
+import Formulas (IsFormula(atomic))
+import Lit (IsLiteral(..), zipLiterals)
+import FOL (IsTerm(..))
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF, neg, pos))
 import qualified Data.Set.Extra as S
 import Data.Map (Map, empty)
@@ -30,7 +30,7 @@ type SetOfSupport lit v term = S.Set (Unification lit v term)
 
 type Unification lit v term = (ImplicativeForm lit, Map.Map v term)
 
-prove :: (IsLiteral lit atom, Atom atom term v, IsTerm term v f, Ord lit, Ord term, Ord v, HasBoolean p, HasEquality atom p term) =>
+prove :: (IsLiteral lit atom, Atom atom term v, IsTerm term v f, Ord lit, Ord term, Ord v, HasEquality atom p term) =>
          Maybe Int -- ^ Recursion limit.  We continue recursing until this
                    -- becomes zero.  If it is negative it may recurse until
                    -- it overflows the stack.
@@ -57,7 +57,7 @@ prove limit ss1 ss2' kb  =
 --         prove (ss1 ++ [s]) ss' (fst s:kb)
 
 prove' :: forall lit atom p f v term.
-          (IsLiteral lit atom, Atom atom term v, IsTerm term v f, Ord lit, Ord term, Ord v, HasEquality atom p term, HasBoolean p, Eq p) =>
+          (IsLiteral lit atom, Atom atom term v, IsTerm term v f, Ord lit, Ord term, Ord v, HasEquality atom p term, Eq p) =>
           Unification lit v term -> S.Set (ImplicativeForm lit) -> SetOfSupport lit v term -> SetOfSupport lit v term -> (SetOfSupport lit v term, Bool)
 prove' p kb ss1 ss2 =
     let
@@ -225,7 +225,7 @@ resolution (inf1, theta1) (inf2, theta2) =
             Just (theta1', theta2') -> Just (S.union rhss' rhss, theta1', theta2')
 
 -- |Try to unify the second argument using the equality in the first.
-demodulate :: (IsLiteral lit atom, Atom atom term v, IsTerm term v f, Eq lit, Ord lit, Eq term, Ord v, HasBoolean p, HasEquality atom p term) =>
+demodulate :: (IsLiteral lit atom, Atom atom term v, IsTerm term v f, Eq lit, Ord lit, Eq term, Ord v, HasEquality atom p term) =>
               (Unification lit v term) -> (Unification lit v term) -> Maybe (Unification lit v term)
 demodulate (inf1, theta1) (inf2, theta2) =
     case (S.null (neg inf1), S.toList (pos inf1)) of
@@ -322,11 +322,11 @@ getTerms formula =
       p (Apply _ ts) = concatMap getTerms' ts
 -}
 
-replaceTerm :: forall lit atom term v p f. (IsLiteral lit atom, Atom atom term v, IsTerm term v f, Eq term, HasBoolean p, HasEquality atom p term) => lit -> (term, term) -> Maybe lit
+replaceTerm :: forall lit atom term v p f. (IsLiteral lit atom, Atom atom term v, IsTerm term v f, Eq term, HasEquality atom p term) => lit -> (term, term) -> Maybe lit
 replaceTerm formula (tl', tr') =
     foldLiteral
           (\ _ -> error "error in replaceTerm")
-          (\ x -> Just (atomic (applyPredicate (fromBool x) [])))
+          (\ x -> Just (fromBool x))
           (foldEquals (\ p ts -> Just (atomic (applyPredicate p (map (\ t -> replaceTerm' t) ts))))
                       (\ t1 t2 ->
                            let t1' = replaceTerm' t1

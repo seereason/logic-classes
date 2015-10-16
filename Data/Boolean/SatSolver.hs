@@ -2,50 +2,48 @@
 -- Module      : Data.Boolean.SatSolver
 -- Copyright   : Sebastian Fischer
 -- License     : BSD3
--- 
+--
 -- Maintainer  : Sebastian Fischer (sebf@informatik.uni-kiel.de)
 -- Stability   : experimental
 -- Portability : portable
--- 
+--
 -- This Haskell library provides an implementation of the
 -- Davis-Putnam-Logemann-Loveland algorithm
 -- (cf. <http://en.wikipedia.org/wiki/DPLL_algorithm>) for the boolean
 -- satisfiability problem. It not only allows to solve boolean
 -- formulas in one go but also to add constraints and query bindings
 -- of variables incrementally.
--- 
+--
 -- The implementation is not sophisticated at all but uses the basic
 -- DPLL algorithm with unit propagation.
--- 
+--
 module Data.Boolean.SatSolver (
 
   Boolean(..), SatSolver, Literal(..), literalVar, invLiteral, isPositiveLiteral, CNF, Clause, booleanToCNF,
 
-  newSatSolver, isSolved, 
+  newSatSolver, isSolved,
 
   lookupVar, assertTrue, assertTrue', branchOnVar, selectBranchVar, solve, isSolvable
 
   ) where
 
-import Data.List
-import Data.Boolean
-
 import Control.Monad.Writer
-
+import Data.Boolean
 import qualified Data.IntMap as IM
+import Data.List
 
 -- | A @SatSolver@ can be used to solve boolean formulas.
--- 
+--
 data SatSolver = SatSolver { clauses :: CNF, bindings :: IM.IntMap Bool }
  deriving Show
 
 -- | A new SAT solver without stored constraints.
--- 
+--
 newSatSolver :: SatSolver
 newSatSolver = SatSolver [] IM.empty
 
 -- | This predicate tells whether all constraints are solved.
--- 
+--
 isSolved :: SatSolver -> Bool
 isSolved = null . clauses
 
@@ -53,14 +51,14 @@ isSolved = null . clauses
 -- We can lookup the binding of a variable according to the currently
 -- stored constraints. If the variable is unbound, the result is
 -- @Nothing@.
--- 
+--
 lookupVar :: Int -> SatSolver -> Maybe Bool
 lookupVar name = IM.lookup name . bindings
 
--- | 
+-- |
 -- We can assert boolean formulas to update a @SatSolver@. The
 -- assertion may fail if the resulting constraints are unsatisfiable.
--- 
+--
 assertTrue :: MonadPlus m => Boolean -> SatSolver -> m SatSolver
 assertTrue formula solver = do
   newClauses <- foldl (addClause (bindings solver))
@@ -79,7 +77,7 @@ assertTrue' formula solver = do
 -- This function guesses a value for the given variable, if it is
 -- currently unbound. As this is a non-deterministic operation, the
 -- resulting solvers are returned in an instance of @MonadPlus@.
--- 
+--
 branchOnVar :: MonadPlus m => Int -> SatSolver -> m SatSolver
 branchOnVar name solver =
   maybe (branchOnUnbound name solver)
@@ -93,11 +91,11 @@ branchOnVar name solver =
 selectBranchVar :: SatSolver -> Int
 selectBranchVar = literalVar . head . head . sortBy shorter . clauses
 
--- | 
+-- |
 -- This function guesses values for variables such that the stored
 -- constraints are satisfied. The result may be non-deterministic and
 -- is, hence, returned in an instance of @MonadPlus@.
--- 
+--
 solve :: MonadPlus m => SatSolver -> m SatSolver
 solve solver
   | isSolved solver = return solver
@@ -108,7 +106,7 @@ solve solver
 -- solvable. Use with care! This might be an inefficient operation. It
 -- tries to find a solution using backtracking and returns @True@ if
 -- and only if that fails.
--- 
+--
 isSolvable :: SatSolver -> Bool
 isSolvable = not . (null :: [a] -> Bool) . solve
 

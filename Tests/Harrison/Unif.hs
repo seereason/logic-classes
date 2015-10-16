@@ -4,11 +4,12 @@ module Harrison.Unif
     ( tests
     ) where
 
-import Data.Logic.Classes.Term (IsTerm(fApp, vt), tsubst)
-import Data.Logic.Failing (Failing(..), failing)
-import Data.Logic.Harrison.Unif (fullUnify)
-import Data.Logic.Types.Harrison.FOL (TermType)
+import FOL (IsTerm(fApp, vt), tsubst)
+import Lib (Failing(..), failing)
+import Unif (fullunify)
+import FOL (Term)
 import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual)
+import FOL (FName)
 
 tests :: Test
 tests = TestLabel "Data.Logic.Tests.Harrison.Unif" $ TestList [test01]
@@ -35,8 +36,8 @@ test01 = TestCase $ assertEqual "Unify tests" expected input
           unify_and_apply eqs =
               mapM app eqs
               where
-                app (t1, t2) = failing Failure (\ i -> Success (tsubst i t1, tsubst i t2)) (fullUnify eqs)
-          eqss :: [[(TermType, TermType)]]
+                app (t1, t2) = failing Failure (\ i -> Success (tsubst i t1, tsubst i t2)) (fullunify eqs)
+          eqss :: [[(Term FName String, Term FName String)]]
           eqss =  [ [(fApp "f" [vt "x", fApp "g" [vt "y"]], fApp "f" [fApp "f" [vt "z"], vt "w"])]
                   , [(fApp "f" [vt "x", vt "y"], fApp "f" [vt "y", vt "x"])]
                   -- , [(fApp "f" [vt "x", fApp "g" [vt "y"]], fApp "f" [vt "y", vt "x"])] -- cyclic

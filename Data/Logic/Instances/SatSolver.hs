@@ -9,11 +9,11 @@ import Data.Generics (Data, Typeable)
 import qualified Data.Set.Extra as S
 --import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(..))
-import Data.Logic.Classes.Equals (HasEquality)
+import FOL (HasEquality)
 --import Data.Logic.Classes.FirstOrder (IsQuantified(..))
-import qualified Data.Logic.Classes.Literal as N
-import Data.Logic.Classes.Negate (IsNegatable(..), negated, (.~.))
---import Data.Logic.Classes.Propositional (IsPropositional)
+import qualified Lit as N
+import Formulas (IsNegatable(..), negated, (.~.))
+--import Prop (IsPropositional)
 --import Data.Logic.Classes.Term (IsTerm)
 --import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Logic.Normal.Implicative (LiteralMapT, NormalT)

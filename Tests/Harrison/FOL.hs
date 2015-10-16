@@ -12,24 +12,25 @@ module Harrison.FOL
 
 import Control.Applicative.Error (Failing(..))
 import Control.Monad (filterM)
-import Data.Logic.Classes.Apply (pApp)
-import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (false)
-import Data.Logic.Classes.Equals (HasEquality(..), (.=.), foldAtomEq)
-import Data.Logic.Classes.FirstOrder (IsQuantified(..))
-import qualified Data.Logic.Classes.FirstOrder as C
-import Data.Logic.Classes.Negate ((.~.))
-import Data.Logic.Classes.Term (IsTerm(vt, fApp, foldTerm))
-import Data.Logic.Classes.Variable (IsVariable(..))
-import Data.Logic.Harrison.Lib ((|->))
-import Data.Logic.Types.Harrison.Equal (FOLEQ, PredName(..))
-import Data.Logic.Types.Harrison.FOL (TermType(..), FOL(..), Function(..))
-import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
+import FOL (pApp)
+import Formulas (IsCombinable(..), Combination(..), BinOp(..))
+import Formulas (false)
+import FOL (HasEquality(..), (.=.))
+import FOL (IsQuantified(..))
+import qualified FOL as C
+import Formulas ((.~.))
+import FOL (IsTerm(vt, fApp, foldTerm))
+import FOL (IsVariable(..))
+import Lib ((|->))
+import FOL (FOL(..))
+import FOL (Formula(..))
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Prelude hiding (pred)
 import Test.HUnit
 import ATP (HasFixity(fixity))
+import FOL (foldEquals, for_all, exists, Predicate(NamedPredicate, Equals), MyFormula1)
+import Skolem (MyFormula, MyTerm, Function)
 
 tests1 :: Test
 tests1 = TestLabel "Data.Logic.Tests.Harrison.FOL" $
@@ -72,20 +73,22 @@ holds m@(domain, _func, pred) v fm =
       co (BinOp p (:<=>:) q) = (==) <$> (holds m v p) <*> (holds m v q)
       tf x = Success x
       at :: atom -> Failing Bool
-      at = foldAtomEq (\ r args -> mapM (termval m v) args >>= return . pred r) (\ t1 t2 -> return $ termval m v t1 == termval m v t2)
+      at = foldEquals (\ r args -> mapM (termval m v) args >>= return . pred r) (\ t1 t2 -> return $ termval m v t1 == termval m v t2)
 
 -- | This becomes a method in FirstOrderFormulaEq, so it is not exported here.
--- (.=.) :: TermType -> TermType -> Formula FOL
+-- (.=.) :: MyTerm -> MyTerm -> Formula FOL
 -- a .=. b = Atom (R "=" [a, b])
 
 -- -------------------------------------------------------------------------
 -- Example.                                                                 
 -- -------------------------------------------------------------------------
 
+{-
 instance HasFixity (Formula FOL) where
     fixity = error "FIXME"
+-}
 
-example1 :: TermType
+example1 :: MyTerm
 example1 = fApp "sqrt" [fApp "-" [fApp "1" [], fApp "cos" [fApp "power" [fApp "+" [vt "x", vt "y"], fApp "2" []]]]]
 -- example1 = Fn "sqrt" [Fn "-" [Fn "1" [], Fn "cos" [Fn "power" [Fn "+" [vt "x", vt "y"], Fn "2" []]]]]
 
@@ -93,7 +96,7 @@ example1 = fApp "sqrt" [fApp "-" [fApp "1" [], fApp "cos" [fApp "power" [fApp "+
 -- Trivial example of "x + y < z".                                           
 -- ------------------------------------------------------------------------- 
 
-example2 :: Formula FOL
+example2 :: MyFormula1
 example2 = pApp "<" [fApp "+" [vt "x", vt "y"], vt "z"]
 -- example2 = Atom (R "<" [Fn "+" [Var "x", Var "y"], Var "z"])
 
@@ -101,17 +104,17 @@ example2 = pApp "<" [fApp "+" [vt "x", vt "y"], vt "z"]
 -- Example.                                                                  
 -- ------------------------------------------------------------------------- 
 
-example3 :: Formula FOL
+example3 :: MyFormula1
 example3 = (for_all "x" (pApp "<" [vt "x", fApp "2" []] .=>.
                          pApp "<=" [fApp "*" [fApp "2" [], vt "x"], fApp "3" []])) .|. false
-example4 :: TermType
+example4 :: MyTerm
 example4 = fApp "*" [fApp "2" [], vt "x"]
 
 -- ------------------------------------------------------------------------- 
 -- Examples of particular interpretations.                                   
 -- ------------------------------------------------------------------------- 
 
-boolInterp :: ([Bool], Function -> [Bool] -> Bool, PredName -> [Bool] -> Bool)
+boolInterp :: ([Bool], Function -> [Bool] -> Bool, Predicate -> [Bool] -> Bool)
 boolInterp =
     ([False, True],func,pred)
     where
@@ -124,13 +127,13 @@ boolInterp =
             _ -> error "uninterpreted function"
       pred p args =
           case (p,args) of
-            ((:=:), [x, y]) -> x == y
+            (Equals, [x, y]) -> x == y
             _ -> error "uninterpreted predicate"
 
 modInterp :: Integer
           -> ([Integer],
               Function -> [Integer] -> Integer,
-              PredName -> [Integer] -> Bool)
+              Predicate -> [Integer] -> Bool)
 modInterp n =
     ([0..(n-1)],func,pred)
     where
@@ -142,38 +145,38 @@ modInterp n =
             ("+",[x, y]) -> (x + y) `mod` n
             ("*",[x, y]) -> (x * y) `mod` n
             _ -> error "uninterpreted function"
-      pred :: PredName -> [Integer] -> Bool
+      pred :: Predicate -> [Integer] -> Bool
       pred p args =
           case (p,args) of
-            ((:=:),[x, y]) -> x == y
+            (Equals,[x, y]) -> x == y
             _ -> error "uninterpreted predicate"
 
 test01 :: Test
 test01 = TestCase $ assertEqual "holds bool test (p. 126)" expected input
-    where input = holds boolInterp Map.empty (for_all "x" (vt "x" .=. fApp "0" [] .|. vt "x" .=. fApp "1" []) :: Formula FOLEQ)
+    where input = holds boolInterp Map.empty (for_all "x" (vt "x" .=. fApp "0" [] .|. vt "x" .=. fApp "1" []) :: MyFormula)
           expected = Success True
 test02 :: Test
 test02 = TestCase $ assertEqual "holds mod test 1 (p. 126)" expected input
-    where input =  holds (modInterp 2) Map.empty (for_all "x" (vt "x" .=. (fApp "0" [] :: TermType) .|. vt "x" .=. (fApp "1" [] :: TermType)) :: Formula FOLEQ)
+    where input =  holds (modInterp 2) Map.empty (for_all "x" (vt "x" .=. (fApp "0" [] :: MyTerm) .|. vt "x" .=. (fApp "1" [] :: MyTerm)) :: MyFormula)
           expected = Success True
 test03 :: Test
 test03 = TestCase $ assertEqual "holds mod test 2 (p. 126)" expected input
-    where input =  holds (modInterp 3) Map.empty (for_all "x" (vt "x" .=. fApp "0" [] .|. vt "x" .=. fApp "1" []) :: Formula FOLEQ)
+    where input =  holds (modInterp 3) Map.empty (for_all "x" (vt "x" .=. fApp "0" [] .|. vt "x" .=. fApp "1" []) :: MyFormula)
           expected = Success False
 
 test04 :: Test
 test04 = TestCase $ assertEqual "holds mod test 3 (p. 126)" expected input
     where input = filterM (\ n -> holds (modInterp n) Map.empty fm) [1..45]
-                  where fm = for_all "x" ((.~.) (vt "x" .=. fApp "0" []) .=>. exists "y" (fApp "*" [vt "x", vt "y"] .=. fApp "1" [])) :: Formula FOLEQ
+                  where fm = for_all "x" ((.~.) (vt "x" .=. fApp "0" []) .=>. exists "y" (fApp "*" [vt "x", vt "y"] .=. fApp "1" [])) :: MyFormula
           expected = Success [1,2,3,5,7,11,13,17,19,23,29,31,37,41,43]
 
 test05 :: Test
 test05 = TestCase $ assertEqual "holds mod test 4 (p. 129)" expected input
-    where input = holds (modInterp 3) Map.empty ((for_all "x" (vt "x" .=. fApp "0" [])) .=>. fApp "1" [] .=. fApp "0" [] :: Formula FOLEQ)
+    where input = holds (modInterp 3) Map.empty ((for_all "x" (vt "x" .=. fApp "0" [])) .=>. fApp "1" [] .=. fApp "0" [] :: MyFormula)
           expected = Success True
 test06 :: Test
 test06 = TestCase $ assertEqual "holds mod test 5 (p. 129)" expected input
-    where input = holds (modInterp 3) Map.empty (for_all "x" (vt "x" .=. fApp "0" [] .=>. fApp "1" [] .=. fApp "0" []) :: Formula FOLEQ)
+    where input = holds (modInterp 3) Map.empty (for_all "x" (vt "x" .=. fApp "0" [] .=>. fApp "1" [] .=. fApp "0" []) :: MyFormula)
           expected = Success False
 
 -- ------------------------------------------------------------------------- 

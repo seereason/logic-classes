@@ -4,11 +4,10 @@ module Data.Logic.Harrison.Tests where
 import Control.Applicative.Error (Failing(..))
 import Data.Char (isDigit)
 import Data.Generics (Data, Typeable)
-import Data.String (IsString(..))
 import Data.Logic.Classes (Term(..), Pretty(..), Skolem(..), Variable)
 import Data.Logic.Harrison.Unif
---import Data.Logic.Instances.Native(PTerm(..))
---import Test.Types
+import Data.String (IsString(..))
+import FOL (Term(Var, FApply))
 import Test.HUnit
 import Text.PrettyPrint (text)
 
@@ -54,6 +53,7 @@ instance Pretty AtomicFunction where
     pretty (Skolem n) = text ("sK" ++ show n)
 
 -- | The range of a term is an element of a set.
+{-
 data PTerm v f
     = Var v                         -- ^ A variable, either free or
                                     -- bound by an enclosing quantifier.
@@ -62,33 +62,32 @@ data PTerm v f
                                     -- nullary functions.  The result
                                     -- is another term.
     deriving (Eq,Ord,Read,Show,Data,Typeable)
+-}
 
-instance (Ord v, Variable v, Data v, Eq f, Skolem f, Data f) => Term (PTerm v f) v f where
-    foldT vf fn t =
-        case t of
-          Var v -> vf v
-          FunApp f ts -> fn f ts
-    zipT v f t1 t2 =
+instance (Ord v, Variable v, Data v, Eq f, Skolem f, Data f) => IsTerm (Term v f) v f where
+    vt = Var
+    fApp = FunApp
+    foldTerm vf fn (Var v) = vf v
+    foldTerm vf fn (FApply f ts) = fn f ts
+    zipTerms v f t1 t2 =
         case (t1, t2) of
           (Var v1, Var v2) -> v v1 v2
-          (FunApp f1 ts1, FunApp f2 ts2) -> f f1 ts1 f2 ts2
+          (FApply f1 ts1, FApply f2 ts2) -> f f1 ts1 f2 ts2
           _ -> Nothing
-    var = Var
-    fApp x args = FunApp x args
 
 tests =
     TestList
     [ TestCase (assertEqual "unify 1"
                 (Success [(fApp "f" [fApp "f" [var "z"],fApp "g" [var "y"]],
                            fApp "f" [fApp "f" [var "z"],fApp "g" [var "y"]])])
-                (unifyAndApply [( fApp "f" [var "x", fApp "g" [var "y"]] :: PTerm V AtomicFunction
+                (unifyAndApply [( fApp "f" [var "x", fApp "g" [var "y"]] :: Term V AtomicFunction
                                  , fApp "f" [fApp "f" [var "z"], var "w"])]))
     , TestCase (assertEqual "unify 2"
                 (Success [(fApp "f" [var "y",var "y"],fApp "f" [var "y",var "y"])])
-                (unifyAndApply [( fApp "f" [var "x", var "y"] :: PTerm V AtomicFunction
+                (unifyAndApply [( fApp "f" [var "x", var "y"] :: Term V AtomicFunction
                                   , fApp "f" [var "y", var "x"] )]))
     , TestCase (assertEqual "unify 3"
                 (Failure ["cyclic"])
-                (unifyAndApply [( fApp "f" [var "x", fApp "g" [var "y"]]  :: PTerm V AtomicFunction
+                (unifyAndApply [( fApp "f" [var "x", fApp "g" [var "y"]]  :: Term V AtomicFunction
                                   , fApp "f" [var "x", var "y"] )]))
     ]

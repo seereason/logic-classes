@@ -9,9 +9,8 @@ module Data.Logic.Harrison.Formulas.FirstOrder
     ) where
 
 import qualified Data.Set as Set
-import Data.Logic.Classes.Combine (Combination(..), BinOp(..), binop)
-import Data.Logic.Classes.FirstOrder (IsQuantified(..), quant)
-import Data.Logic.Classes.Negate ((.~.))
+import FOL (IsQuantified(..), quant)
+import Formulas (Combination(..), BinOp(..), binop, (.~.))
 
 -- ------------------------------------------------------------------------- 
 -- General parsing of iterated infixes.                                      

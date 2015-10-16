@@ -14,21 +14,18 @@ module Data.Logic.Instances.Chiou
     ) where
 
 import Data.Generics (Data, Typeable)
-import Data.Logic.Classes.Apply (HasPredicate(..), IsPredicate, pApp)
+import Data.List (intersperse)
 import Data.Logic.Classes.Atom (Atom)
-import Data.Logic.Classes.Combine (IsCombinable(..), BinOp(..), Combination(..))
-import Data.Logic.Classes.Constants (HasBoolean(..), asBool)
-import Data.Logic.Classes.Equals (HasEquals, HasEquality(..), (.=.))
-import Data.Logic.Classes.FirstOrder (IsQuantified(..), Quant(..), overatomsFirstOrder, onatomsFirstOrder {-, prettyFirstOrder, fixityFirstOrder-})
-import Data.Logic.Classes.Formula (IsFormula(..))
-import Data.Logic.Classes.Negate (IsNegatable(..), (.~.))
-import Data.Logic.Classes.Pretty (Pretty(pPrint), HasFixity(..))
-import Data.Logic.Classes.Term (IsTerm(..), IsFunction)
-import Data.Logic.Classes.Variable (IsVariable)
-import Data.Logic.Classes.Propositional (IsPropositional(..))
-import Data.Logic.Classes.Skolem (HasSkolem(..))
+import Data.Monoid ((<>))
 import Data.String (IsString(..))
-import ATP (foldEquals, IsLiteral, {-IsVariable, prettyFormula,-} rootFixity, Side(Unary))
+import FOL ((.=.), foldEquals, HasEquality(..), HasEquals, HasPredicate(..), IsFunction, IsPredicate, IsQuantified(..),
+            IsTerm(..), IsVariable, onatomsFirstOrder, overatomsFirstOrder, pApp, Predicate, Quant(..), V)
+import Formulas (HasBoolean(..), asBool, IsCombinable(..), BinOp(..), Combination(..), IsFormula(..), IsNegatable(..), (.~.))
+import Lit (IsLiteral(foldLiteral))
+import Pretty (Pretty(pPrint), HasFixity(..), text, rootFixity, Side(Unary))
+import Prop (IsPropositional(..))
+import Skolem (Function)
+import Skolem (HasSkolem(..))
 
 data Sentence v p f
     = Connective (Sentence v p f) Connective (Sentence v p f)
@@ -42,6 +39,11 @@ data CTerm v f
     = Function f [CTerm v f]
     | Variable v
     deriving (Eq, Ord, Data, Typeable)
+
+instance (Pretty v, Pretty f) => Pretty (CTerm v f) where
+    pPrint (Variable v) = pPrint v
+    pPrint (Function fn []) = pPrint fn
+    pPrint (Function fn args) = pPrint fn <> text " [" <> mconcat (intersperse (text ", ") (map pPrint args)) <> text "]"
 
 data Connective
     = Imply
@@ -73,7 +75,8 @@ instance ({- HasBoolean (Sentence v p f), -} Ord v, Ord p, Ord f) => IsCombinabl
     x .|.   y = Connective x Or y
     x .&.   y = Connective x And y
 
-instance (IsLiteral (Sentence  v p f) (Sentence  v p f), IsFunction f, IsVariable v, Ord p, HasBoolean p) => IsFormula (Sentence v p f) (Sentence v p f) where
+instance (IsLiteral (Sentence  v p f) (Sentence  v p f), IsFunction f, IsVariable v, Ord p, HasBoolean p
+         ) => IsFormula (Sentence v p f) (Sentence v p f) where
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Not _) = error "Logic.Instances.Chiou.atomic: unexpected"
@@ -97,6 +100,12 @@ instance (IsFormula (Sentence v p f) (Sentence v p f), IsLiteral (Sentence v p f
           Predicate p ts -> maybe (at (Predicate p ts)) tf (asBool p)
           Equal t1 t2 -> at (Equal t1 t2)
 
+instance (Ord p, HasBoolean p, IsVariable v, IsFunction f) => IsLiteral (Sentence v p f) (Sentence v p f) where
+    foldLiteral ne tf at (Not x) = ne x
+    foldLiteral ne tf at (Predicate p ts) = maybe (at (Predicate p ts)) tf (asBool p)
+    foldLiteral ne tf at (Equal t1 t2) = at (Equal t1 t2)
+    foldLiteral _ _ _ _ = error "foldLiteral in IsLiteral (Sentence v p f) (Sentence v p f)"
+
 data AtomicFunction v
     = AtomicFunction String
     -- This is redundant with the SkolemFunction and SkolemConstant
@@ -111,6 +120,8 @@ instance IsVariable v => HasSkolem (AtomicFunction v) v where
     toSkolem = AtomicSkolemFunction
     fromSkolem (AtomicSkolemFunction v) = Just v
     fromSkolem _ = Nothing
+
+instance IsPredicate Predicate (CTerm V Function)
 
 -- The Atom type is not cleanly distinguished from the Sentence type, so we need an Atom instance for Sentence.
 instance (IsVariable v, IsFunction f, IsPredicate p (CTerm v f)) => HasPredicate (Sentence v p f) p (CTerm v f) where

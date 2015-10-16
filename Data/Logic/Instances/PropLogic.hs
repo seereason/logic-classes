@@ -6,21 +6,14 @@ module Data.Logic.Instances.PropLogic
     , plSat
     ) where
 
---import Data.Logic.Classes.Atom (Atom)
-import Data.Logic.Classes.Combine (IsCombinable(..), Combination(..), BinOp(..))
-import Data.Logic.Classes.Constants (HasBoolean(fromBool, asBool))
---import Data.Logic.Classes.FirstOrder (IsQuantified)
-import Data.Logic.Classes.Formula (IsFormula(..))
-import Data.Logic.Classes.Literal (IsLiteral(..))
-import Data.Logic.Classes.Negate (IsNegatable(..))
-import Data.Logic.Classes.Pretty (HasFixity(fixity), Pretty(pPrint), rootFixity)
-import Data.Logic.Classes.Propositional (IsPropositional(..) {-, prettyPropositional, fixityPropositional, overatomsPropositional, onatomsPropositional-})
---import Data.Logic.Classes.Term (IsTerm)
-import Data.Logic.Harrison.Skolem (SkolemT)
---import Data.Logic.Normal.Clause (clauseNormalForm)
 import Data.Set.Extra as S (Set, toList)
-import ATP (Side(Unary), prettyShow, simpcnf', IsFirstOrder)
+import FOL (IsFirstOrder)
+import Formulas (IsCombinable(..), Combination(..), BinOp(..), HasBoolean(fromBool, asBool), IsFormula(..), IsNegatable(..))
+import Lit (IsLiteral(..))
+import Pretty (HasFixity(fixity), Pretty(pPrint), rootFixity, Side(Unary), prettyShow)
+import Prop (IsPropositional(..))
 import PropLogic hiding (at)
+import Skolem (SkolemT, simpcnf')
 
 instance Ord a => IsNegatable (PropForm a) where
     naiveNegate = N

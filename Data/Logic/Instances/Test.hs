@@ -1,82 +1,41 @@
 -- | Formula instance used in the unit tests.
-{-# LANGUAGE DeriveDataTypeable, FlexibleInstances, MultiParamTypeClasses, TypeFamilies #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, TemplateHaskell, TypeFamilies #-}
 module Data.Logic.Instances.Test
     ( V(..)
-    , Pr(..)
     , Predicate(..)
     , Formula(..)
-    , PTerm(..)
-    , AtomicFunction(..)
+    , Term(..)
+    , Function(..)
     , MyFormula, MyAtom, MyTerm
     , TFormula, TAtom, TTerm -- deprecated
-    , prettyV
-    , prettyP
-    , prettyF
     ) where
 
 import Data.Char (isDigit)
 import Data.Generics (Data, Typeable)
---import Data.Logic.Classes.Apply (IsPredicate, HasPredicate(..))
-import Data.Logic.Classes.Arity (Arity(arity))
-import Data.Logic.Classes.Constants (HasBoolean(..), prettyBool)
-import Data.Logic.Classes.Equals (HasEquals(isEquals), HasEquality(..))
-import Data.Logic.Classes.Pretty (Pretty(pPrint))
-import qualified Data.Logic.Classes.Skolem as C (HasSkolem(..))
---import Data.Logic.Classes.Term (IsFunction)
-import Data.Logic.Classes.Variable (IsVariable(..))
-import qualified Data.Logic.Types.FirstOrder as P (Formula, Term)
+import Data.List (intersperse)
+import Formulas (HasBoolean(..), prettyBool)
+import FOL (HasEquals(isEquals), HasEquality(..))
+import Pretty (Pretty(pPrint))
+import qualified Skolem as C (HasSkolem(..))
+import FOL (IsVariable(..))
+import qualified FOL as P (Formula, Term)
 import Data.Monoid ((<>))
+import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set as Set (member)
 import Data.String (IsString(fromString))
 import Text.PrettyPrint (Doc, text)
 import ATP (Combination(..), BinOp(..), Quant(..))
-
-newtype V = V String deriving (Eq, Ord, Data, Typeable)
-
--- |A temporary type used in the fold method to represent the
--- combination of a predicate and its arguments.  This reduces the
--- number of arguments to foldFirstOrder and makes it easier to manage the
--- mapping of the different instances to the class methods.
-data Predicate p term
-    = Equal term term
-    | Apply p [term]
-    deriving (Eq, Ord, Data, Typeable, Show)
+import FOL (IsFunction, IsPredicate(..), V(V), Predicate(..), FOL(..), Term(..))
+import Skolem (Function(..), MyFormula, MyTerm, MyAtom)
 
 -- | The range of a formula is {True, False} when it has no free variables.
 data Formula v p f
-    = Predicate (Predicate p (PTerm v f))
+    = Predicate (FOL p (Term v f))
     | Combine (Combination (Formula v p f))
     | Quant Quant v (Formula v p f)
     -- Note that a derived Eq instance is not going to tell us that
     -- a&b is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).
     deriving (Eq, Ord, Data, Typeable, Show)
-
--- | The range of a term is an element of a set.
-data PTerm v f
-    = Var v                         -- ^ A variable, either free or
-                                    -- bound by an enclosing quantifier.
-    | FunApp f [PTerm v f]           -- ^ Function application.
-                                    -- HasBoolean are encoded as
-                                    -- nullary functions.  The result
-                                    -- is another term.
-    deriving (Eq, Ord, Data, Typeable, Show)
-
-instance IsString V where
-    fromString = V
-
-instance Show V where
-    show (V s) = "fromString " ++ show s
-
-prettyV :: V -> Doc
-prettyV (V s) = text s
-
-instance Pretty V where
-    pPrint = prettyV
-
-instance IsVariable V where
-    prefix p (V s) = V (p ++ s)
-    variant x@(V s) xs = if member x xs then variant (V (next s)) xs else x
-    prettyVariable (V s) = text s
 
 next :: String -> String
 next s =
@@ -85,96 +44,63 @@ next s =
       ("", nondigits) -> nondigits ++ "2"
       (digits, nondigits) -> nondigits ++ show (1 + read (reverse digits) :: Int)
 
--- |A newtype for the Primitive Predicate parameter.
-data Pr
-    = Pr String
-    | T
-    | F
-    | Equ
-    deriving (Eq, Ord, Data, Typeable)
-
--- instance IsPredicate Pr
-
-instance HasEquals Pr where
-    isEquals Equ = True
-    isEquals _ = False
-
 {-
-instance HasPredicate (P.Predicate Pr (P.PTerm V AtomicFunction)) Pr (P.PTerm V AtomicFunction) where
+instance HasPredicate (P.Predicate Predicate (P.Term V AtomicFunction)) Predicate (P.Term V AtomicFunction) where
     foldPredicate ap (P.Apply p ts) = ap p ts
     foldPredicate ap (P.Equal lhs rhs) = ap Equ [lhs, rhs]
     applyPredicate Equ [lhs, rhs] = P.Equal lhs rhs -- Should this happen?  Or should this be done by applyEquals?
     applyPredicate T [] = P.Apply (fromBool True) []
     applyPredicate F [] = P.Apply (fromBool False) []
-    applyPredicate p@(Pr _) ts = P.Apply p ts
+    applyPredicate p@(Predicate _) ts = P.Apply p ts
     applyPredicate p _ = error ("applyPredicate " ++ show p ++ ": arity error")
 
-instance HasEquality (P.Predicate Pr (P.PTerm V AtomicFunction)) Pr (P.PTerm V AtomicFunction) where
+instance HasEquality (P.Predicate Predicate (P.Term V AtomicFunction)) Predicate (P.Term V AtomicFunction) where
     foldEquals f (P.Equal lhs rhs) = Just (f lhs rhs)
     foldEquals _ _ = Nothing
     applyEquals = P.Equal
--}
 
-instance IsString Pr where
-    fromString = Pr
+instance IsString Predicate where
+    fromString = Predicate
 
-instance HasBoolean Pr where
+instance HasBoolean Predicate where
     fromBool True = T
     fromBool False = F
     asBool T = Just True
     asBool F = Just False
     asBool _ = Nothing
 
-instance Arity Pr where
-    arity (Pr _) = Nothing
-    arity T = Just 0
-    arity F = Just 0
-    arity Equ = Just 2
+instance Arity Predicate where
+    arity (Predicate _) = Nothing
+    -- arity T = Just 0
+    -- arity F = Just 0
+    arity Equals = Just 2
 
-instance Show Pr where
-    show T = "fromBool True"
-    show F = "fromBool False"
-    show Equ = ".=."
-    show (Pr s) = show s            -- Because Pr is an instance of IsString
+instance Show Predicate where
+    -- show T = "fromBool True"
+    -- show F = "fromBool False"
+    show Equals = ".=."
+    show (Predicate s) = show s            -- Because Predicate is an instance of IsString
 
-prettyP :: Pr -> Doc
-prettyP T = prettyBool True
-prettyP F = prettyBool False
-prettyP Equ = text ".=."
-prettyP (Pr s) = text s
+prettyP :: Predicate -> Doc
+-- prettyP T = prettyBool True
+-- prettyP F = prettyBool False
+prettyP Equals = text ".=."
+prettyP (Predicate s) = text s
 
-instance Pretty Pr where
+instance Pretty Predicate where
     pPrint = prettyP
 
-data AtomicFunction
+data Function
     = Fn String
     | Skolem V
     deriving (Eq, Ord, Data, Typeable)
+-}
 
 -- instance IsFunction AtomicFunction V
 
-instance C.HasSkolem AtomicFunction V where
-    toSkolem = Skolem
-    fromSkolem (Skolem v) = Just v
-    fromSkolem _ = Nothing
-
-instance IsString AtomicFunction where
-    fromString = Fn
-
-instance Show AtomicFunction where
-    show (Fn s) = show s
-    show (Skolem v) = "(toSkolem (" ++ show v ++ "))"
-
-prettyF :: AtomicFunction -> Doc
-prettyF (Fn s) = text s
-prettyF (Skolem v) = text "sK" <> pPrint v
-
-instance Pretty AtomicFunction where
-    pPrint = prettyF
-
-type MyFormula = Formula V Pr AtomicFunction
-type MyAtom = Predicate Pr TTerm
-type MyTerm = P.Term V AtomicFunction
+-- type MyFormula = Formula V Predicate Function
+-- type MyAtom = FOL Predicate TTerm
+-- type MyTerm = P.Term V Function
 
 type TFormula = MyFormula
 type TAtom = MyAtom
@@ -184,3 +110,11 @@ type TTerm = MyTerm
 instance Pretty TFormula where
     pPrint = prettyFirstOrder (const pPrint) pPrint 0
 -}
+
+$(deriveSafeCopy 1 'base ''BinOp)
+$(deriveSafeCopy 1 'base ''Quant)
+$(deriveSafeCopy 1 'base ''Combination)
+$(deriveSafeCopy 1 'base ''Predicate)
+$(deriveSafeCopy 1 'base ''Term)
+$(deriveSafeCopy 1 'base ''FOL)
+$(deriveSafeCopy 1 'base ''Formula)

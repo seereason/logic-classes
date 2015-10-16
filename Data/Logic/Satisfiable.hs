@@ -12,13 +12,8 @@ module Data.Logic.Satisfiable
     ) where
 
 import qualified Data.Set as Set
---import Data.Logic.Classes.Atom (Atom)
---import Data.Logic.Classes.FirstOrder (IsQuantified(..){-, toPropositional-})
---import Data.Logic.Classes.Literal (IsLiteral)
-import Data.Logic.Classes.Negate ((.~.))
---import Data.Logic.Classes.Propositional (IsPropositional)
---import Data.Logic.Classes.Term (IsTerm)
-import Data.Logic.Harrison.Skolem (SkolemT)
+import Formulas ((.~.))
+import Skolem (SkolemT)
 import Data.Logic.Instances.PropLogic ()
 import ATP (convertPropositional, HasFixity, IsFirstOrder, Pretty, simpcnf')
 import qualified PropLogic as PL

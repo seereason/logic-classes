@@ -1,8 +1,8 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, RankNTypes, TypeSynonymInstances #-}
 module Harrison.Main (tests) where
 
-import Data.Logic.Classes.Pretty (pPrint)
-import qualified Data.Logic.Harrison.Lib as Lib
+import Pretty (pPrint)
+import qualified Lib as Lib
 import qualified Harrison.Equal as Equal
 import qualified Harrison.FOL as FOL
 import qualified Harrison.Meson as Meson
@@ -10,12 +10,10 @@ import qualified Harrison.Prop as Prop
 import qualified Harrison.Resolution as Resolution
 import qualified Harrison.Skolem as Skolem
 import qualified Harrison.Unif as Unif
---import Data.Logic.Types.Harrison.Equal (FOLEQ, PredName)
-import Data.Logic.Types.Harrison.FOL (FOL)
-import Data.Logic.Types.Harrison.Formulas.FirstOrder (Formula(..))
 import Test.HUnit
+import FOL (MyFormula1)
 
-instance Show (Formula FOL) where
+instance Show MyFormula1 where
     show = show . pPrint
 
 main = runTestTT tests

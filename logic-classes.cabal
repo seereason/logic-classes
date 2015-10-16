@@ -21,70 +21,44 @@ Library
  GHC-options: -Wall -O2
  Hs-Source-Dirs: ., ../atp-haskell/src
  Exposed-Modules:  Data.Logic
-                   Data.Logic.Classes.Apply
-                   Data.Logic.Classes.Arity
                    Data.Logic.Classes.Atom
                    Data.Logic.Classes.ClauseNormalForm
-                   Data.Logic.Classes.Combine
-                   Data.Logic.Classes.Constants
-                   Data.Logic.Classes.Equals
-                   Data.Logic.Classes.FirstOrder
-                   Data.Logic.Classes.Formula
-                   Data.Logic.Classes.Literal
-                   Data.Logic.Classes.Negate
-                   Data.Logic.Classes.Pretty
-                   Data.Logic.Classes.Propositional
-                   Data.Logic.Classes.Skolem
-                   Data.Logic.Classes.Term
-                   Data.Logic.Classes.Variable
-                   Data.Logic.Failing
-                   Data.Logic.Harrison.DefCNF
-                   Data.Logic.Harrison.DP
-                   Data.Logic.Harrison.Equal
-                   Data.Logic.Harrison.FOL
                    Data.Logic.Harrison.Formulas.FirstOrder
                    Data.Logic.Harrison.Formulas.Propositional
-                   Data.Logic.Harrison.Herbrand
-                   Data.Logic.Harrison.Lib
-                   Data.Logic.Harrison.Meson
-                   Data.Logic.Harrison.Normal
-                   Data.Logic.Harrison.Prolog
-                   Data.Logic.Harrison.Prop
-                   Data.Logic.Harrison.PropExamples
-                   Data.Logic.Harrison.Resolution
-                   Data.Logic.Harrison.Skolem
-                   Data.Logic.Harrison.Tableaux
-                   Data.Logic.Harrison.Unif
                    Data.Logic.Instances.Chiou
                    Data.Logic.Instances.PropLogic
                    Data.Logic.Instances.SatSolver
                    Data.Logic.Instances.Test
-                   -- Data.Logic.Instances.TPTP
                    Data.Logic.KnowledgeBase
-                   Data.Logic.Normal.Clause
                    Data.Logic.Normal.Implicative
                    Data.Logic.Resolution
                    Data.Logic.Satisfiable
-                   Data.Logic.Types.Common
-                   Data.Logic.Types.FirstOrder
                    Data.Logic.Types.FirstOrderPublic
-                   Data.Logic.Types.Harrison.Equal
-                   Data.Logic.Types.Harrison.FOL
-                   Data.Logic.Types.Harrison.Formulas.FirstOrder
-                   Data.Logic.Types.Harrison.Formulas.Propositional
-                   Data.Logic.Types.Harrison.Prop
-                   Data.Logic.Types.Propositional
                    Data.Boolean
                    Data.Boolean.SatSolver
                    ATP
                    Lib
                    Pretty
                    Formulas
- Build-Depends:    applicative-extras, base >= 4.3 && < 5, containers, HUnit, mtl, pretty >= 1.1.2, PropLogic, safecopy, set-extra, syb, template-haskell
+                   Lit
+                   Prop
+                   PropExamples
+                   DefCNF
+                   DP
+                   FOL
+                   Skolem
+                   Herbrand
+                   Unif
+                   Tableaux
+                   Resolution
+                   Prolog
+                   Meson
+                   Equal
+ Build-Depends:    applicative-extras, base >= 4.3 && < 5, containers, HUnit, mtl, pretty >= 1.1.2, PropLogic, safe, safecopy, set-extra, syb, template-haskell
 
 Test-Suite logic-classes-tests
  Type: exitcode-stdio-1.0
  GHC-Options: -Wall -O2
  Hs-Source-Dirs: Tests
  Main-Is: Main.hs
- Build-Depends: applicative-extras, base, containers, HUnit, logic-classes, mtl, pretty >= 1.1.2, PropLogic, set-extra, syb
+ Build-Depends: applicative-extras, base, containers, HUnit, logic-classes, mtl, pretty >= 1.1.2, PropLogic, safe, set-extra, syb

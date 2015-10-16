@@ -4,18 +4,12 @@ module Harrison.Prop
     ( tests
     ) where
 
-import Data.Logic.Classes.Combine (IsCombinable(..), (∨), (∧))
-import Data.Logic.Classes.Constants (true, false)
-import Data.Logic.Classes.Formula (atomic)
-import Data.Logic.Classes.Negate ((.~.), (¬))
-import Data.Logic.Harrison.Lib ((|=>))
-import Data.Logic.Harrison.Prop (eval, atoms, truthTable, tautology, pSubst, psimplify,
-                                 nnf, dnf', rawdnf, dual, purednf, trivial, cnf')
-import Data.Logic.Types.Harrison.Formulas.Propositional (Formula(..))
-import Data.Logic.Types.Harrison.Prop (Prop(..))
-import qualified Data.Map as Map
 import qualified Data.Set as Set
+import Formulas (IsCombinable(..), (∨), (∧), true, false, atomic, (.~.), (¬))
+import Lib ((|=>))
 import Prelude hiding (negate)
+import Prop (atoms, cnf', dnf, dual, eval, nnf, PFormula(Atom, Not, Imp, Iff, Or, And), Prop(..),
+             psimplify, psubst, purednf, rawdnf, tautology, trivial, truthTable, TruthTable(TruthTable))
 import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual)
 
 -- main = runTestTT tests
@@ -41,7 +35,7 @@ test36 = TestCase $ assertEqual "show propositional formula 1" expected input
           expected = ["((P \"p\") .&. (P \"q\")) .|. (P \"r\")",
                       "(P \"p\") .&. ((P \"q\") .|. (P \"r\"))",
                       "((P \"p\") .&. (P \"q\")) .|. (P \"r\")"]
-          fms :: [Formula Prop]
+          fms :: [PFormula Prop]
           fms = [p .&. q .|. r, p .&. (q .|. r), (p .&. q) .|. r]
           (p, q, r) = (Atom (P "p"), Atom (P "q"), Atom (P "r"))
 
@@ -78,8 +72,8 @@ test03 = TestCase $ assertEqual "Build Formula 3"
 
 test04 :: Test
 test04 = TestCase $ assertEqual "fixity tests" expected input
-    where (input, expected) = unzip (map (\ (fm, flag) -> (eval fm Map.empty, flag)) pairs)
-          pairs :: [(Formula String, Bool)]
+    where (input, expected) = unzip (map (\ (fm, flag) -> (eval fm (const False), flag)) pairs)
+          pairs :: [(PFormula String, Bool)]
           pairs =
               [ ( true .&. false .=>. false .&. true,  True)
               , ( true .&. true  .=>. true  .&. false, False)
@@ -106,7 +100,8 @@ test07 :: Test
 test07 = TestCase $ assertEqual "truth table 1 (p. 36)" expected input
     where input = (truthTable $ p .&. q .=>. q .&. r)
           expected =
-              ([P "p", P "q", P "r"],
+              (TruthTable
+               [P "p", P "q", P "r"]
                [([False,False,False],True),
                ([False,False,True],True),
                ([False,True,False],True),
@@ -125,7 +120,8 @@ test08 :: Test
 test08 = TestCase $
     assertEqual "truth table 2 (p. 39)"
                 (truthTable $  ((p .=>. q) .=>. p) .=>. p)
-                ([P "p", P "q"],
+                (TruthTable
+                 [P "p", P "q"]
                  [([False,False],True),
                   ([False,True],True),
                   ([True,False],True),
@@ -136,7 +132,8 @@ test09 :: Test
 test09 = TestCase $
     assertEqual "truth table 3 (p. 40)" expected input
         where input = (truthTable $ p .&. ((.~.) p))
-              expected = ([P "p"],
+              expected = (TruthTable
+                          [P "p"]
                           [([False],False),
                           ([True],False)])
               p = Atom (P "p")
@@ -162,7 +159,7 @@ test14 :: Test
 test14 =
     TestCase $ assertEqual "pSubst (p. 41)" expected input
         where expected = (p .&. q) .&. q .&. (p .&. q) .&. q
-              input = pSubst ((P "p") |=> (p .&. q)) (p .&. q .&. p .&. q)
+              input = psubst ((P "p") |=> (p .&. q)) (p .&. q .&. p .&. q)
               (p, q) = (Atom (P "p"), Atom (P "q"))
 
 -- ------------------------------------------------------------------------- 
@@ -298,9 +295,10 @@ test28 = TestCase $ assertEqual "nnf 1 (p. 53)" expected input
 
 test29 :: Test
 test29 = TestCase $ assertEqual "dnf 1 (p. 56)" expected input
-    where input = (dnf' fm, truthTable fm)
+    where input = (dnf fm, truthTable fm)
           expected = (Or (And (Not r) p) (And r (And (Not p) q)),
-                      ([P {pname = "p"}, P {pname = "q"}, P {pname = "r"}],
+                      (TruthTable
+                       [P {pname = "p"}, P {pname = "q"}, P {pname = "r"}]
                        [([False,False,False],False),
                         ([False,False,True],False),
                         ([False,True,False],False),
@@ -316,7 +314,7 @@ test29 = TestCase $ assertEqual "dnf 1 (p. 56)" expected input
 
 test30 :: Test
 test30 = TestCase $ assertEqual "dnf 2 (p. 56)" expected input
-    where input = dnf' (p .&. q .&. r .&. s .&. t .&. u .|. u .&. v :: Formula Prop)
+    where input = dnf (p .&. q .&. r .&. s .&. t .&. u .|. u .&. v :: PFormula Prop)
           expected = (v .&. u) .|. (q .&. (r .&. (s .&. (t .&. ((u .&. p))))))
           p = Atom (P "p")
           q = Atom (P "q")
@@ -345,7 +343,7 @@ test31 = TestCase $ assertEqual "rawdnf (p. 58)" expected input
 
 test32 :: Test
 test32 = TestCase $ assertEqual "purednf (p. 58)" expected input
-    where input = purednf $ (p .|. q .&. r) .&. (((.~.)p) .|. ((.~.)r))
+    where input = purednf id $ (p .|. q .&. r) .&. (((.~.)p) .|. ((.~.)r))
           expected = Set.fromList [Set.fromList [p,Not p],
                                    Set.fromList [p,Not r],
                                    Set.fromList [q,r,Not p],
@@ -360,7 +358,7 @@ test32 = TestCase $ assertEqual "purednf (p. 58)" expected input
 
 test33 :: Test
 test33 = TestCase $ assertEqual "trivial" expected input
-    where input = Set.filter (not . trivial) (purednf fm)
+    where input = Set.filter (not . trivial) (purednf id fm)
           expected = Set.fromList [Set.fromList [p,Not r],
                                    Set.fromList [q,r,Not p]]
           fm = (p .|. q .&. r) .&. (((.~.)p) .|. ((.~.)r))
@@ -374,7 +372,7 @@ test33 = TestCase $ assertEqual "trivial" expected input
 
 test34 :: Test
 test34 = TestCase $ assertEqual "dnf" expected input
-    where input = (dnf' fm, tautology (Iff fm (dnf' fm)))
+    where input = (dnf fm, tautology (Iff fm (dnf fm)))
           expected = (Or (And (Not r) p) (And r (And (Not p) q)), True)
           fm = (p .|. q .&. r) .&. (((.~.)p) .|. ((.~.)r))
           p = Atom (P "p")

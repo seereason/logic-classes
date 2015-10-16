@@ -2,9 +2,9 @@ import Common (TestProof)
 import Data.Logic.Instances.Test (V, TFormula, TTerm)
 import System.Exit
 import Test.HUnit
-import qualified Data.Logic.Harrison.DefCNF as DefCNF
-import qualified Data.Logic.Harrison.DP as DP
-import qualified Data.Logic.Harrison.PropExamples as PropExamples
+import qualified DefCNF as DefCNF
+import qualified DP as DP
+import qualified PropExamples
 import qualified Harrison.Main as Harrison
 import qualified Logic
 import qualified Chiou0 as Chiou0
