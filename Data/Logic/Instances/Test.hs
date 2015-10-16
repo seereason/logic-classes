@@ -12,20 +12,9 @@ module Data.Logic.Instances.Test
 
 import Data.Char (isDigit)
 import Data.Generics (Data, Typeable)
-import Data.List (intersperse)
-import Formulas (HasBoolean(..), prettyBool)
-import FOL (HasEquals(isEquals), HasEquality(..))
-import Pretty (Pretty(pPrint))
-import qualified Skolem as C (HasSkolem(..))
-import FOL (IsVariable(..))
-import qualified FOL as P (Formula, Term)
-import Data.Monoid ((<>))
 import Data.SafeCopy (base, deriveSafeCopy)
-import Data.Set as Set (member)
-import Data.String (IsString(fromString))
-import Text.PrettyPrint (Doc, text)
-import ATP (Combination(..), BinOp(..), Quant(..))
-import FOL (IsFunction, IsPredicate(..), V(V), Predicate(..), FOL(..), Term(..))
+import FOL (V(V), Predicate(..), FOL(..), Term(..), Quant(..))
+import Formulas (Combination(..), BinOp(..))
 import Skolem (Function(..), MyFormula, MyTerm, MyAtom)
 
 -- | The range of a formula is {True, False} when it has no free variables.

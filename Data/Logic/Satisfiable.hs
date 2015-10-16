@@ -11,12 +11,14 @@ module Data.Logic.Satisfiable
     , invalid
     ) where
 
-import qualified Data.Set as Set
-import Formulas ((.~.))
-import Skolem (SkolemT)
 import Data.Logic.Instances.PropLogic ()
-import ATP (convertPropositional, HasFixity, IsFirstOrder, Pretty, simpcnf')
+import qualified Data.Set as Set
+import FOL (IsFirstOrder)
+import Formulas ((.~.))
+import Prop (convertPropositional)
 import qualified PropLogic as PL
+import Pretty (HasFixity, Pretty, )
+import Skolem (simpcnf', SkolemT)
 
 -- |Is there any variable assignment that makes the formula true?
 -- satisfiable :: forall formula atom term v f m. (Monad m, IsQuantified formula atom v, Formula atom term v, IsTerm term v f, Ord formula, IsLiteral formula atom v, Ord atom) =>

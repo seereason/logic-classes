@@ -12,25 +12,15 @@ module Harrison.FOL
 
 import Control.Applicative.Error (Failing(..))
 import Control.Monad (filterM)
-import FOL (pApp)
-import Formulas (IsCombinable(..), Combination(..), BinOp(..))
-import Formulas (false)
-import FOL (HasEquality(..), (.=.))
-import FOL (IsQuantified(..))
-import qualified FOL as C
-import Formulas ((.~.))
-import FOL (IsTerm(vt, fApp, foldTerm))
-import FOL (IsVariable(..))
-import Lib ((|->))
-import FOL (FOL(..))
-import FOL (Formula(..))
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import FOL (FOL(..), foldEquals, for_all, exists, Predicate(Equals), MyFormula1, Formula(..),
+            HasEquality(..), (.=.), IsQuantified(..), IsTerm(vt, fApp, foldTerm), IsVariable(..), pApp, Quant(..))
+import Formulas ((.~.), false, IsCombinable(..), Combination(..), BinOp(..))
+import Lib ((|->))
 import Prelude hiding (pred)
-import Test.HUnit
-import ATP (HasFixity(fixity))
-import FOL (foldEquals, for_all, exists, Predicate(NamedPredicate, Equals), MyFormula1)
 import Skolem (MyFormula, MyTerm, Function)
+import Test.HUnit
 
 tests1 :: Test
 tests1 = TestLabel "Data.Logic.Tests.Harrison.FOL" $
@@ -64,8 +54,8 @@ holds m@(domain, _func, pred) v fm =
     foldQuantified qu co tf at fm
     where
       qu op x p = mapM (\ a -> holds m ((|->) x a v) p) domain >>= return . (asPred op) (== True)
-      asPred (C.:?:) = any
-      asPred (C.:!:) = all
+      asPred (:?:) = any
+      asPred (:!:) = all
       co ((:~:) p) = holds m v p >>= return . not
       co (BinOp p (:|:) q) = (||) <$> (holds m v p) <*> (holds m v q)
       co (BinOp p (:&:) q) = (&&) <$> (holds m v p) <*> (holds m v q)

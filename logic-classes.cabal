@@ -1,5 +1,5 @@
 Name:             logic-classes
-Version:          1.5.3
+Version:          1.6
 Synopsis:         Framework for propositional and first order logic, theorem proving
 Description:      Package to support Propositional and First Order Logic.  It includes classes
                   representing the different types of formulas and terms, some instances of
@@ -17,48 +17,71 @@ Cabal-version:    >= 1.9
 Build-Type:       Simple
 Extra-Source-Files: changelog
 
+flag local-atp-haskell
+  Manual: True
+  Default: False
+
 Library
- GHC-options: -Wall -O2
- Hs-Source-Dirs: ., ../atp-haskell/src
- Exposed-Modules:  Data.Logic
-                   Data.Logic.Classes.Atom
-                   Data.Logic.Classes.ClauseNormalForm
-                   Data.Logic.Harrison.Formulas.FirstOrder
-                   Data.Logic.Harrison.Formulas.Propositional
-                   Data.Logic.Instances.Chiou
-                   Data.Logic.Instances.PropLogic
-                   Data.Logic.Instances.SatSolver
-                   Data.Logic.Instances.Test
-                   Data.Logic.KnowledgeBase
-                   Data.Logic.Normal.Implicative
-                   Data.Logic.Resolution
-                   Data.Logic.Satisfiable
-                   Data.Logic.Types.FirstOrderPublic
-                   Data.Boolean
-                   Data.Boolean.SatSolver
-                   ATP
-                   Lib
-                   Pretty
-                   Formulas
-                   Lit
-                   Prop
-                   PropExamples
-                   DefCNF
-                   DP
-                   FOL
-                   Skolem
-                   Herbrand
-                   Unif
-                   Tableaux
-                   Resolution
-                   Prolog
-                   Meson
-                   Equal
- Build-Depends:    applicative-extras, base >= 4.3 && < 5, containers, HUnit, mtl, pretty >= 1.1.2, PropLogic, safe, safecopy, set-extra, syb, template-haskell
+  GHC-options: -Wall -O2
+  Exposed-Modules:
+    Data.Logic
+    Data.Logic.Classes.Atom
+    Data.Logic.Classes.ClauseNormalForm
+    Data.Logic.Harrison.Formulas.FirstOrder
+    Data.Logic.Harrison.Formulas.Propositional
+    Data.Logic.Instances.Chiou
+    Data.Logic.Instances.PropLogic
+    Data.Logic.Instances.SatSolver
+    Data.Logic.Instances.Test
+    Data.Logic.KnowledgeBase
+    Data.Logic.Normal.Implicative
+    Data.Logic.Resolution
+    Data.Logic.Satisfiable
+    Data.Logic.Types.FirstOrderPublic
+    Data.Boolean
+    Data.Boolean.SatSolver
+  Build-Depends:
+    applicative-extras,
+    base >= 4.3 && < 5,
+    containers,
+    HUnit,
+    mtl,
+    pretty >= 1.1.2,
+    PropLogic,
+    safe,
+    safecopy,
+    set-extra,
+    syb,
+    template-haskell
+  if flag(local-atp-haskell)
+    Hs-Source-Dirs: ., ../atp-haskell/src
+    Exposed-Modules:
+      ATP
+      Lib
+      Pretty
+      Formulas
+      Lit
+      Prop
+      PropExamples
+      DefCNF
+      DP
+      FOL
+      Skolem
+      Herbrand
+      Unif
+      Tableaux
+      Resolution
+      Prolog
+      Meson
+      Equal
+  else
+    Build-Depends: atp-haskell
 
 Test-Suite logic-classes-tests
- Type: exitcode-stdio-1.0
- GHC-Options: -Wall -O2
- Hs-Source-Dirs: Tests
- Main-Is: Main.hs
- Build-Depends: applicative-extras, base, containers, HUnit, logic-classes, mtl, pretty >= 1.1.2, PropLogic, safe, set-extra, syb
+  Type: exitcode-stdio-1.0
+  GHC-Options: -Wall -O2
+  Hs-Source-Dirs: Tests
+  Main-Is: Main.hs
+  Build-Depends: applicative-extras, base, containers, HUnit, logic-classes, mtl, pretty >= 1.1.2, PropLogic, safe, set-extra, syb
+  if !flag(local-atp-haskell)
+    Build-Depends: atp-haskell

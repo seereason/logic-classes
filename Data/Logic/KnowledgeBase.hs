@@ -41,7 +41,7 @@ import Data.Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Data.SafeCopy (deriveSafeCopy, base)
 import qualified Data.Set.Extra as S
 import Prelude hiding (negate)
-import ATP (HasSkolem)
+import Skolem (HasSkolem)
 
 type SentenceCount = Int
 
