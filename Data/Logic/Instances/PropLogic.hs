@@ -6,8 +6,8 @@ module Data.Logic.Instances.PropLogic
     , plSat
     ) where
 
-import Data.Set.Extra as S (Set, toList)
-import FOL (IsFirstOrder)
+import Data.Set.Extra as Set (Set, empty, toList, union)
+import FOL (IsFunction, HasFunctions(funcs), IsFirstOrder)
 import Formulas (IsCombinable(..), Combination(..), BinOp(..), HasBoolean(fromBool, asBool), IsFormula(..), IsNegatable(..))
 import Lit (IsLiteral(..))
 import Pretty (HasFixity(fixity), Pretty(pPrint), rootFixity, Side(Unary), prettyShow)
@@ -17,10 +17,11 @@ import Skolem (SkolemT, simpcnf')
 
 instance Ord a => IsNegatable (PropForm a) where
     naiveNegate = N
-    foldNegation normal inverted (N x) = foldNegation inverted normal x
-    foldNegation normal _ x = normal x
+    foldNegation' inverted normal (N x) = foldNegation' normal inverted x
+    foldNegation' _ normal x = normal x
 
 instance Ord a => IsCombinable (PropForm a) where
+    foldCombination = error "FIXME: PropForm foldCombination"
     x .<=>. y = EJ [x, y]
     x .=>.  y = SJ [x, y]
     x .|.   y = DJ [x, y]
@@ -78,6 +79,12 @@ instance (IsPropositional (PropForm atom) atom, Pretty atom, HasFixity atom) => 
 instance (IsPropositional (PropForm atom) atom, HasFixity atom) => HasFixity (PropForm atom) where
     fixity _ = rootFixity
 
+instance (IsFunction function, HasFunctions atom function, Ord atom, Pretty atom, HasFixity atom) => HasFunctions (PropForm atom) function where
+    funcs = foldPropositional co (const Set.empty) funcs
+        where
+          co ((:~:) fm) = funcs fm
+          co (BinOp lhs _ rhs) = Set.union (funcs lhs) (funcs rhs)
+
 pairs :: [a] -> [(a, a)]
 pairs (x:y:zs) = (x,y) : pairs (y:zs)
 pairs _ = []
@@ -102,7 +109,7 @@ plSat0 :: (PropAlg a (PropForm atom), IsFirstOrder (PropForm atom) atom p term v
 plSat0 f = satisfiable . (\ (x :: PropForm atom) -> x) . clauses0 $ f
 
 clauses0 :: forall atom p term v f. (IsFirstOrder (PropForm atom) atom p term v f, IsPropositional (PropForm atom) atom, Ord atom, Pretty atom) => PropForm atom -> PropForm atom
-clauses0 f = CJ . map DJ . map S.toList . S.toList $ (simpcnf' f :: Set (Set (PropForm atom)))
+clauses0 f = CJ . map DJ . map Set.toList . Set.toList $ (simpcnf' f :: Set (Set (PropForm atom)))
 
 plSat :: forall m atom term v p f. (Monad m, IsFirstOrder (PropForm atom) atom p term v f, Eq atom, Ord atom) =>
                 PropForm atom -> SkolemT m Bool
@@ -112,5 +119,5 @@ clauses :: forall m atom term v p f.
            (IsFirstOrder (PropForm atom) atom p term v f, Monad m, Eq atom, Ord atom) =>
            PropForm atom -> SkolemT m (PropForm atom)
 clauses f =
-    do let (cnf :: S.Set (S.Set (PropForm atom))) = simpcnf' f
-       return . CJ . map DJ . map S.toList . S.toList $ cnf
+    do let (cnf :: Set (Set (PropForm atom))) = simpcnf' f
+       return . CJ . map DJ . map Set.toList . Set.toList $ cnf

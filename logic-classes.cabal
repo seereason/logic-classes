@@ -33,7 +33,9 @@ Library
     Data.Logic.Instances.PropLogic
     Data.Logic.Instances.SatSolver
     Data.Logic.Instances.Test
+    -- Data.Logic.Instances.TPTP
     Data.Logic.KnowledgeBase
+    Data.Logic.Normal.Clause
     Data.Logic.Normal.Implicative
     Data.Logic.Resolution
     Data.Logic.Satisfiable
@@ -45,6 +47,7 @@ Library
     base >= 4.3 && < 5,
     containers,
     HUnit,
+    -- logic-TPTP,
     mtl,
     pretty >= 1.1.2,
     PropLogic,

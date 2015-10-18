@@ -12,6 +12,7 @@ module Data.Logic.Types.FirstOrderPublic
     ) where
 
 import Data.Data (Data)
+import Data.Function (on)
 import qualified Data.Logic.Instances.Test as N
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set)
@@ -54,9 +55,9 @@ instance (IsFirstOrder (N.Formula v p f) (FOL p (N.Term v f)) p (N.Term v f) v f
           IsLiteral (Formula v p f) (FOL p (N.Term v f)),
           HasEquals p {-, IsFunction f, IsVariable v, Data p, Ord p, Data v, Ord v, Data f, Ord f-}) => IsNegatable (Formula v p f) where
     naiveNegate = Formula . naiveNegate . unFormula
-    foldNegation normal inverted = foldNegation (normal . Formula) (inverted . Formula) . unFormula
+    foldNegation' inverted normal = foldNegation' (inverted . Formula) (normal . Formula) . unFormula
 
-instance (HasBoolean (N.Formula v p f), IsPredicate p (N.Term v f), IsVariable v, IsFunction f) => HasBoolean (Formula v p f) where
+instance (HasBoolean (N.Formula v p f), IsPredicate p, IsVariable v, IsFunction f) => HasBoolean (Formula v p f) where
     fromBool = Formula . fromBool
     asBool = asBool . unFormula
 
@@ -71,6 +72,8 @@ instance (IsFirstOrder (N.Formula v p f) (FOL p (N.Term v f)) p (N.Term v f) v f
           ,
           IsLiteral (Formula v p f) (FOL p (N.Term v f)),
           IsVariable v, IsPredicate p (N.Term v f), IsFunction f-}) => IsCombinable (Formula v p f) where
+    foldCombination dj cj imp iff other (Formula fm) =
+        foldCombination (dj `on` Formula) (cj `on` Formula) (imp `on` Formula) (iff `on` Formula) (other . Formula) fm
     x .<=>. y = Formula $ (unFormula x) .<=>. (unFormula y)
     x .=>.  y = Formula $ (unFormula x) .=>. (unFormula y)
     x .|.   y = Formula $ (unFormula x) .|. (unFormula y)
@@ -95,7 +98,7 @@ instance (IsFirstOrder (N.Formula v p f) (FOL p (N.Term v f)) p (N.Term v f) v f
           IsVariable v, HasEquals p, IsFunction f -}) => IsQuantified (Formula v p f) (FOL p (N.Term v f)) v where
     quant q v x = public $ quant q v (intern x :: N.Formula v p f)
     foldQuantified qu co tf at f = foldQuantified qu' co' tf at (intern f :: N.Formula v p f)
-        where qu' quant v form = qu quant v (public form)
+        where qu' op v form = qu op v (public form)
               co' x = co (public x)
 
 instance (IsFirstOrder (N.Formula v p f) (FOL p (N.Term v f)) p (N.Term v f) v f,

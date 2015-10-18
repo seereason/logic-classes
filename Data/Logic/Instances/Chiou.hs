@@ -59,8 +59,9 @@ data Quantifier
 
 instance (Ord v, Ord p, Ord f) => IsNegatable (Sentence v p f) where
     naiveNegate = Not
-    foldNegation normal inverted (Not x) = foldNegation inverted normal x
-    foldNegation normal _ x = normal x
+    foldNegation' ne _ (Not x) = ne x
+    -- foldNegation' ne other (Not x) = foldNegation' other ne x
+    foldNegation' _ other x = other x
 
 instance (HasBoolean p, Eq (Sentence v p f)) => HasBoolean (Sentence v p f) where
     fromBool x = Predicate (fromBool x) []
@@ -70,6 +71,13 @@ instance (HasBoolean p, Eq (Sentence v p f)) => HasBoolean (Sentence v p f) wher
         | True = Nothing
 
 instance ({- HasBoolean (Sentence v p f), -} Ord v, Ord p, Ord f) => IsCombinable (Sentence v p f) where
+    foldCombination dj cj imp iff other fm =
+        case fm of
+          (Connective l Equiv r) -> l `iff` r
+          (Connective l Imply r) -> l `imp` r
+          (Connective l Or r) -> l `dj` r
+          (Connective l And r) -> l `cj` r
+          _ -> other fm
     x .<=>. y = Connective x Equiv y
     x .=>.  y = Connective x Imply y
     x .|.   y = Connective x Or y
@@ -101,9 +109,9 @@ instance (IsFormula (Sentence v p f) (Sentence v p f), IsLiteral (Sentence v p f
           Equal t1 t2 -> at (Equal t1 t2)
 
 instance (Ord p, HasBoolean p, IsVariable v, IsFunction f) => IsLiteral (Sentence v p f) (Sentence v p f) where
-    foldLiteral ne tf at (Not x) = ne x
-    foldLiteral ne tf at (Predicate p ts) = maybe (at (Predicate p ts)) tf (asBool p)
-    foldLiteral ne tf at (Equal t1 t2) = at (Equal t1 t2)
+    foldLiteral ne _ _ (Not x) = ne x
+    foldLiteral _ tf at (Predicate p ts) = maybe (at (Predicate p ts)) tf (asBool p)
+    foldLiteral _ _ at (Equal t1 t2) = at (Equal t1 t2)
     foldLiteral _ _ _ _ = error "foldLiteral in IsLiteral (Sentence v p f) (Sentence v p f)"
 
 data AtomicFunction v
@@ -121,15 +129,13 @@ instance IsVariable v => HasSkolem (AtomicFunction v) v where
     fromSkolem (AtomicSkolemFunction v) = Just v
     fromSkolem _ = Nothing
 
-instance IsPredicate Predicate (CTerm V Function)
-
 -- The Atom type is not cleanly distinguished from the Sentence type, so we need an Atom instance for Sentence.
-instance (IsVariable v, IsFunction f, IsPredicate p (CTerm v f)) => HasPredicate (Sentence v p f) p (CTerm v f) where
+instance (IsVariable v, IsFunction f, IsPredicate p) => HasPredicate (Sentence v p f) p (CTerm v f) where
     foldPredicate ap (Predicate p ts) = ap p ts
     foldPredicate _ _ = error "FIXME"
     applyPredicate = Predicate
 
-instance (HasEquals p, IsFunction f, IsVariable v, IsPredicate p (CTerm v f)) => HasEquality (Sentence v p f) p (CTerm v f) where
+instance (HasEquals p, IsFunction f, IsVariable v, IsPredicate p) => HasEquality (Sentence v p f) p (CTerm v f) where
     foldEquals' ap (Equal t1 t2) = Just (ap t1 t2)
     foldEquals' _ _ = Nothing
     -- foldAtomEq ap _ (Predicate p ts) = ap p ts
@@ -235,8 +241,9 @@ instance (HasBoolean p, Eq (NormalSentence v p f)) => HasBoolean (NormalSentence
 
 instance (Ord v, Ord p, Ord f) => IsNegatable (NormalSentence v p f) where
     naiveNegate = NFNot
-    foldNegation normal inverted (NFNot x) = foldNegation inverted normal x
-    foldNegation normal _ x = normal x
+    foldNegation' ne _ (NFNot x) = ne x
+    -- foldNegation' ne other (NFNot x) = foldNegation' other ne x
+    foldNegation' _ other x = other x
 
 {-
 instance (Arity p, HasBoolean p, IsCombinable (NormalSentence v p f)) => Pred p (NormalTerm v f) (NormalSentence v p f) where
@@ -302,7 +309,7 @@ instance (IsVariable v, IsFunction f, Pretty (NormalTerm v f)) => IsTerm (Normal
           _ -> Nothing
 
 toSentence :: (IsQuantified (Sentence v p f) (Sentence v p f) v, Atom (Sentence v p f) (CTerm v f) v,
-               IsFunction f, IsVariable v, HasEquals p, IsPredicate p (CTerm v f)) =>
+               IsFunction f, IsVariable v, HasEquals p, IsPredicate p) =>
               NormalSentence v p f -> Sentence v p f
 toSentence (NFNot s) = (.~.) (toSentence s)
 toSentence (NFEqual t1 t2) = toTerm t1 .=. toTerm t2
@@ -312,7 +319,7 @@ toTerm :: (IsVariable v, IsFunction f, Pretty (CTerm v f)) => NormalTerm v f -> 
 toTerm (NormalFunction f ts) = fApp f (map toTerm ts)
 toTerm (NormalVariable v) = vt v
 
-fromSentence :: forall v p f. (IsQuantified (Sentence v p f) (Sentence v p f) v, IsPredicate p (CTerm v f), HasEquals p, IsFunction f, HasBoolean p) =>
+fromSentence :: forall v p f. (IsQuantified (Sentence v p f) (Sentence v p f) v, IsPredicate p, HasEquals p, IsFunction f, HasBoolean p) =>
                 Sentence v p f -> NormalSentence v p f
 fromSentence = foldQuantified 
                  (\ _ _ _ -> error "fromSentence 1")

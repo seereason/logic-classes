@@ -9,7 +9,7 @@ module Data.Logic.Harrison.Formulas.Propositional
     ) where
 
 import qualified Data.Set as Set
-import Formulas (Combination(..), BinOp(..), binop, (.~.))
+import Formulas (Combination(..), (.~.), BinOp((:=>:)), binop)
 import Prop (IsPropositional(..))
 
 -- ------------------------------------------------------------------------- 

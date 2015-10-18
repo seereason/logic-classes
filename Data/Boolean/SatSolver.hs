@@ -17,25 +17,38 @@
 -- The implementation is not sophisticated at all but uses the basic
 -- DPLL algorithm with unit propagation.
 --
-module Data.Boolean.SatSolver (
 
-  Boolean(..), SatSolver, Literal(..), literalVar, invLiteral, isPositiveLiteral, CNF, Clause, booleanToCNF,
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, TypeSynonymInstances #-}
 
-  newSatSolver, isSolved,
-
-  lookupVar, assertTrue, assertTrue', branchOnVar, selectBranchVar, solve, isSolvable
-
-  ) where
+module Data.Boolean.SatSolver
+    ( SatSolver
+    , newSatSolver
+    , isSolved
+    , lookupVar
+    , assertTrue
+    , assertTrue'
+    , branchOnVar
+    , selectBranchVar
+    , solve
+    , isSolvable
+    ) where
 
 import Control.Monad.Writer
-import Data.Boolean
+import Data.Boolean (Boolean, booleanToCNF, Clause, CNF, invLiteral, isPositiveLiteral, Literal(Pos, Neg), literalVar)
 import qualified Data.IntMap as IM
 import Data.List
+--import Formulas (HasBoolean(..), IsCombinable(..), IsFormula(..), IsNegatable(..))
+--import Lit (IsLiteral(..))
+--import Pretty (HasFixity)
+--import Prop (IsPropositional(..))
 
 -- | A @SatSolver@ can be used to solve boolean formulas.
 --
-data SatSolver = SatSolver { clauses :: CNF, bindings :: IM.IntMap Bool }
- deriving Show
+data SatSolver
+    = SatSolver
+      { clauses :: CNF
+      , bindings :: IM.IntMap Bool
+      } deriving Show
 
 -- | A new SAT solver without stored constraints.
 --

@@ -4,7 +4,8 @@ module Data.Logic.Instances.SatSolver where
 
 import Control.Monad.State (get, put)
 import Control.Monad.Trans (lift)
-import Data.Boolean.SatSolver (Literal(Pos, Neg), CNF, newSatSolver, assertTrue', solve)
+import Data.Boolean (Literal(Pos, Neg), CNF)
+import Data.Boolean.SatSolver (newSatSolver, assertTrue', solve)
 import Data.Generics (Data, Typeable)
 import qualified Data.Map as M
 import qualified Data.Set.Extra as S
@@ -24,8 +25,8 @@ instance Ord Literal where
 instance IsNegatable Literal where
     naiveNegate (Neg x) = Pos x
     naiveNegate (Pos x) = Neg x
-    foldNegation _ inverted (Neg x) = inverted (Pos x)
-    foldNegation normal _ (Pos x) = normal (Pos x)
+    foldNegation' inverted _ (Neg x) = inverted (Pos x)
+    foldNegation' _ normal (Pos x) = normal (Pos x)
 
 deriving instance Data Literal
 deriving instance Typeable Literal

@@ -7,7 +7,6 @@ import Common ({-instance Atom MyAtom MyTerm V-})
 import Data.List as List (map)
 import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Instances.Test (MyFormula, MyAtom, MyTerm)
-import Data.Logic.Normal.Implicative (runNormal)
 import Data.Logic.Satisfiable (theorem, inconsistant)
 import Data.Map as Map (singleton)
 import Data.Set.Extra as Set (Set, singleton, toList, empty, fromList, map {-, minView, fold-})
@@ -117,16 +116,16 @@ normalTests =
     let s = pApp "S"
         h = pApp "H"
         m = pApp "M"
-        x2 = vt "x2" :: MyTerm
+        x' = vt "x'" :: MyTerm
         for_all' x fm = for_all (fromString x) fm
         exists' x fm = exists (fromString x) fm
     in
     TestList
     [TestCase (assertEqual
                "nnf"
-               (show (pPrint (for_all' "x" (exists' "x2" ((s[x2] .&. ((.~.)(h[x2])) .|. h[x2] .&. ((.~.)(m[x2]))) .|. ((.~.)(s[x])) .|. m[x])) :: MyFormula)))
+               (show (pPrint (for_all' "x" (exists' "x'" ((s[x'] .&. ((.~.)(h[x'])) .|. h[x'] .&. ((.~.)(m[x']))) .|. ((.~.)(s[x])) .|. m[x])) :: MyFormula)))
                -- <<forall x. exists x'. (S(x') /\ ~H(x') \/ H(x') /\ ~M(x')) \/ ~S(x) \/ M(x)>>
-               -- ∀x. ∃x2. ((S(x2) ∧ ¬H(x2) ∨ H(x2) ∧ ¬M(x2)) ∨ ¬S(x) ∨ M(x))
+               -- ∀x. ∃x'. ((S(x') ∧ ¬H(x') ∨ H(x') ∧ ¬M(x')) ∨ ¬S(x) ∨ M(x))
                (show
                 (pPrint
                  (pnf (((for_all' "x" (s[x] .=>. h[x])) .&. (for_all "x" (h[x] .=>. m[x]))) .=>.
@@ -210,6 +209,23 @@ inf1 =
       formula = convertFOF id id id (implicativeNormalForm (convertFOF id id id (for_all ["x"] (p [x] .=>. (q [x] .|. r [x]))) :: C.Sentence V String AtomicFunction) :: C.Sentence V String AtomicFunction)
 -}
 
+equality1 :: MyFormula
+equality1 = for_all "x" ( x .=. x) .=>. for_all "x" (exists "y" ((x .=. y))) :: MyFormula
+equality1expected :: (Bool, [Char])
+equality1expected = (False,
+                     concat ["({{x = sKy[x], ¬sKx[] = sKx[]}},\n",
+                             " ([x = sKy[x], sKx[] = sKx[]],\n",
+                             "  [([False, False], True), ([False, True], False),\n",
+                             "   ([True, False], True), ([True, True], True)]))"])
+equality2 :: MyFormula
+equality2 = for_all "x" ( x .=. x .=>. for_all "x" ((.~.) (for_all "y" ((.~.) (x .=. y))))) -- convert existential
+equality2expected :: (Bool, [Char])
+equality2expected = (False,
+                     concat ["({{x2 = sKy[x2], ¬x = x}},\n",
+                             " ([x = x, x2 = sKy[x2]],\n",
+                             "  [([False, False], True), ([False, True], True),\n",
+                             "   ([True, False], False), ([True, True], True)]))"])
+
 theoremTests :: Test
 theoremTests =
     let s = pApp "S"
@@ -221,30 +237,20 @@ theoremTests =
         socrates5 =  for_all "x"   (s [x] .=>. h [x]) .&. for_all "x" (h [x] .=>. m [x])   .=>.  for_all "x" (s [x] .=>. m [x])  :: MyFormula -- like 1, but less parens - check precedence
         socrates6 =  for_all "x"   (s [x] .=>. h [x]) .&. for_all "y" (h [y] .=>. m [y])   .=>.  for_all "z" (s [z] .=>. m [z])  :: MyFormula -- Like 5, but with variables renamed
         socrates7 =  for_all "x"  ((s [x] .=>. h [x]) .&.             (h [x] .=>. m [x])   .&.               (m [x] .=>. ((.~.) (s [x])))) .&. (s [fApp "socrates" []])
-        equality1 = for_all "x" ( x .=. x) .=>. for_all "x" (exists "y" ((x .=. y))) :: MyFormula
-        equality2 = for_all "x" ( x .=. x .=>. for_all "x" ((.~.) (for_all "y" ((.~.) (x .=. y))))) :: MyFormula -- convert existential
     in
     TestList
     [ let label = "Logic - equality1" in
       TestLabel label (TestCase (assertEqual label
-                                 (False,
-                                  concat ["({{x = sKy[x], \172sKx[] = sKx[]}},\n",
-                                          " ([x = sKy[x], sKx[] = sKx[]],\n",
-                                          "  [([False, False], True), ([False, True], False),\n",
-                                          "   ([True, False], True), ([True, True], True)]))"])
-                                 (runNormal (theorem equality1), prettyShow (table' equality1))))
+                                 equality1expected
+                                 (theorem equality1, prettyShow (table' equality1))))
     , let label = "Logic - equality2" in
       TestLabel label (TestCase (assertEqual label
-                                 (False,
-                                  concat ["({{x2 = sKy[x2], \172x = x}},\n",
-                                          " ([x = x, x2 = sKy[x2]],\n",
-                                          "  [([False, False], True), ([False, True], True),\n",
-                                          "   ([True, False], False), ([True, True], True)]))"])
-                                 (runNormal (theorem equality2), prettyShow (table' equality2))))
+                                 equality2expected
+                                 (theorem equality2, prettyShow (table' equality2))))
     , let label = "Logic - theorem test 1" in
       TestLabel label (TestCase (assertEqual label
                 (True,(Set.empty, (TruthTable []{-Just (CJ [])-} [([],True)])))
-                (runNormal (theorem socrates2), table' socrates2)))
+                (theorem socrates2, table' socrates2)))
     , let label = "Logic - theorem test 1a" in
       TestLabel label (TestCase (assertEqual label
                 (False,
@@ -300,8 +306,7 @@ theoremTests =
                    ([True,      True,   True,   True,   False], True),
                    ([True,      True,   True,   True,   True],  True)])))
 
-                (runNormal (theorem socrates3),
-                 runNormal (inconsistant socrates3),
+                (theorem socrates3, inconsistant socrates3,
                  table' socrates3)))
     , let label = "socrates1 truth table" in
       TestLabel label (TestCase (assertEqual label
@@ -427,7 +432,7 @@ theoremTests =
                 -- M(x) is false, the remaining lines would all be zero,
                 -- the argument would be inconsistant (an anti-theorem.)
                 -- How can we modify the formula to make these lines 0?
-                (runNormal (theorem socrates7), runNormal (inconsistant socrates7), table' socrates7, simpcnf' socrates7 :: Set.Set (Set.Set MyFormula))))
+                (theorem socrates7, inconsistant socrates7, table' socrates7, simpcnf' socrates7 :: Set.Set (Set.Set MyFormula))))
     , let (formula :: MyFormula) =
               (for_all "x" (pApp "L" [vt "x"] .=>. pApp "F" [vt "x"]) .&. -- All logicians are funny
                exists "x" (pApp "L" [vt "x"])) .=>.                            -- Someone is a logician
@@ -498,6 +503,7 @@ theoremTests =
          TestLabel label (TestCase (assertEqual label expected input))
     ]
 
+p :: String -> Predicate
 p = NamedPredicate
 
 toSS :: Ord a => [[a]] -> Set.Set (Set.Set a)

@@ -10,12 +10,15 @@ import Data.Char (isDigit, ord)
 import Data.Generics (Data, Typeable)
 import Data.Set (member)
 import Data.String (IsString(..))
-import Data.Logic (Arity(..), FirstOrderFormula(..), Term(..), Pretty(..), Predicate(..), PropositionalFormula(..), Skolem(..), Variable(variant), pApp)
-import Data.Logic (Negatable(..), Logic(..))
+import FOL (IsFirstOrder(..), IsPredicate(..), IsTerm(..), IsVariable(variant), pApp)
+import Pretty (Pretty(..))
+import Prop (IsPropositional(..))
+import Skolem (HasSkolem(..))
+import Formulas (IsNegatable(..))
 import Text.PrettyPrint (text)
 
 -- |Generate a series of variable names.
-instance Variable V where
+instance IsVariable V where
     -- one = V "VS1"
     variant x@(V s) xs = if member x xs then variant (V (next s)) xs else x
         where
@@ -24,10 +27,7 @@ instance Variable V where
                      (digits, "SV") -> "VS" ++ show (1 + read (reverse digits) :: Int)
                      _ -> "VS1"
 
-instance Data.Logic.Arity AtomicWord where
-    arity _ = Nothing
-
-instance Data.Logic.Pretty V where
+instance Pretty V where
     pPrint (V s) = text s
 
 mn = 'x'
@@ -47,7 +47,7 @@ data AtomicFunction
 instance IsString AtomicFunction where
     fromString = Atom . AtomicWord
 
-instance Data.Logic.Skolem AtomicFunction where
+instance HasSkolem AtomicFunction where
     toSkolem = Skolem . V . ("sK" ++) . show
     -- fromSkolem (Skolem (V s)) = Just (read (drop 2 s) :: Int)
     -- fromSkolem _ = Nothing
@@ -58,17 +58,18 @@ instance Data.Logic.Boolean AtomicWord where
     fromBool = AtomicWord . show
 -}
 
-instance Data.Logic.Pretty AtomicFunction where
+instance Pretty AtomicFunction where
     pPrint (Atom w) = pPrint w
     pPrint (StringLit s) = text s
     pPrint (NumberLit n) = text (show n)
     pPrint (Skolem (V s)) = text ("sK" ++ s)
 
-instance Data.Logic.Pretty AtomicWord where
+instance Pretty AtomicWord where
     pPrint (AtomicWord s) = text s
 
-instance Data.Logic.Negatable Formula where
-    negated (F (Identity ((:~:) x))) = not (negated x)
+instance IsNegatable Formula where
+    naiveNegate = F
+    foldNegation' ne ther 
     negated _ = False
     (.~.) (F (Identity ((:~:) x))) = x
     (.~.) x   = (.~.) x

@@ -14,7 +14,7 @@ import Control.Applicative.Error (Failing(..))
 import Control.Monad (filterM)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import FOL (FOL(..), foldEquals, for_all, exists, Predicate(Equals), MyFormula1, Formula(..),
+import FOL (foldEquals, for_all, exists, Predicate(Equals), MyFormula1,
             HasEquality(..), (.=.), IsQuantified(..), IsTerm(vt, fApp, foldTerm), IsVariable(..), pApp, Quant(..))
 import Formulas ((.~.), false, IsCombinable(..), Combination(..), BinOp(..))
 import Lib ((|->))

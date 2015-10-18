@@ -15,15 +15,15 @@ module Data
     ) where
 
 import Common (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof, TTestProof)
-import Data.Boolean.SatSolver (Literal(..))
+import Data.Boolean (Literal(..))
 import qualified Data.Logic.Instances.Chiou as C
 import Data.Logic.KnowledgeBase (WithId(WithId, wiItem, wiIdent), Proof(..), ProofResult(..))
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
-import Data.Map (fromList)
-import qualified Data.Set as S
+import Data.Map as Map (fromList)
+import Data.Set as Set (Set, fromList, toList)
 import Data.String (IsString)
 import FOL (HasEquality, (.=.), HasPredicate, pApp, IsQuantified(..), IsTerm(..), V, Predicate, for_all, exists)
-import Formulas ((.~.), HasBoolean(..), IsCombinable(..), IsFormula)
+import Formulas ((.~.), HasBoolean(..), IsCombinable(..), IsFormula, IsNegatable)
 import Skolem (HasSkolem(toSkolem), MyFormula, MyAtom, MyTerm, Function)
 import Test.HUnit
 import Text.PrettyPrint.HughesPJClass (prettyShow)
@@ -339,8 +339,8 @@ formulas =
       , formula = exists "x" (p .<=>. f')
       , expected = [ PrenexNormalForm (exists "x" ((p .&. f') .|. ((((.~.) p) .&. (((.~.) f'))))))
                    , SkolemNormalForm ((p .&. f) .|. (((.~.) p) .&. (((.~.) f))))
-                   , TrivialClauses [(False,S.fromList [((.~.) (pApp ("p") [])),(pApp ("f") [fApp (toSkolem "x") []])]),
-                                     (False,S.fromList [((.~.) (pApp ("f") [fApp (toSkolem "x") []])),(pApp ("p") [])])]
+                   , TrivialClauses [(False,Set.fromList [((.~.) (pApp ("p") [])),(pApp ("f") [fApp (toSkolem "x") []])]),
+                                     (False,Set.fromList [((.~.) (pApp ("f") [fApp (toSkolem "x") []])),(pApp ("p") [])])]
                    , ClauseNormalForm (toSS [[(f), ((.~.) p)], [p, ((.~.) f)]])]
       }
     , doTest $
@@ -610,7 +610,7 @@ animalConjectures =
            , ChiouKB1
              (Proof
               Invalid
-              (S.fromList 
+              (Set.fromList 
                [makeINF' ([]) ([(pApp ("Cat") [fApp ("Tuna") []])]),
                 makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem "x") []])]),
                 makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]),
@@ -662,7 +662,7 @@ animalConjectures =
        }
      ]
 
---socratesKB :: (Ord formula, IsString t, IsString p, IsQuantified formula atom1 v, HasPredicate atom p term, IsTerm term v f) => (t, [TestFormula formula atom v])
+-- socratesKB :: (Ord formula, IsString t, IsString p, IsQuantified formula atom1 v, HasPredicate atom p term, IsTerm term v f) => (t, [TestFormula formula atom v])
 socratesKB =
     let x = vt "x"
         socrates x = pApp "Socrates" [x]
@@ -832,7 +832,7 @@ chang43Conjecture =
                        (((pApp ("P") [fApp (toSkolem "x") [],fApp (toSkolem "x") [],fApp ("e") []]) .&.
                          (((pApp ("P") [fApp (toSkolem "u") [],fApp (toSkolem "v") [],fApp (toSkolem "w") []]) .&.
                            (((.~.) (pApp ("P") [fApp (toSkolem "v") [],fApp (toSkolem "u") [],fApp (toSkolem "w") []]))))))))
-                    , SkolemNumbers (S.fromList [toSkolem "u",toSkolem "v",toSkolem "w",toSkolem "x",toSkolem "z"])
+                    , SkolemNumbers (Set.fromList [toSkolem "u",toSkolem "v",toSkolem "w",toSkolem "x",toSkolem "z"])
                     -- From our algorithm
 
                     , ClauseNormalForm
@@ -990,27 +990,27 @@ proofs =
       , proofKnowledge = kbKnowledge animalKB
       , conjecture = kills [jack, tuna]
       , proofExpected = 
-          [ ChiouKB (S.fromList
-                     [WithId {wiItem = INF (S.fromList []) (S.fromList [(pApp "Dog" [fApp (toSkolem "x") []])]), wiIdent = 1},
-                      WithId {wiItem = INF (S.fromList []) (S.fromList [(pApp "Owns" [fApp "Jack" [],fApp (toSkolem "x") []])]), wiIdent = 1},
-                      WithId {wiItem = INF (S.fromList [(pApp "Dog" [vt "y"]),(pApp "Owns" [vt "x",vt "y"])]) (S.fromList [(pApp "AnimalLover" [vt "x"])]), wiIdent = 2},
-                      WithId {wiItem = INF (S.fromList [(pApp "Animal" [vt "y"]),(pApp "AnimalLover" [vt "x"]),(pApp "Kills" [vt "x",vt "y"])]) (S.fromList []), wiIdent = 3},
-                      WithId {wiItem = INF (S.fromList []) (S.fromList [(pApp "Kills" [fApp "Curiosity" [],fApp "Tuna" []]),(pApp "Kills" [fApp "Jack" [],fApp "Tuna" []])]), wiIdent = 4},
-                      WithId {wiItem = INF (S.fromList []) (S.fromList [(pApp "Cat" [fApp "Tuna" []])]), wiIdent = 5},
-                      WithId {wiItem = INF (S.fromList [(pApp "Cat" [vt "x"])]) (S.fromList [(pApp "Animal" [vt "x"])]), wiIdent = 6}])
+          [ ChiouKB (Set.fromList
+                     [WithId {wiItem = INF (Set.fromList []) (Set.fromList [(pApp "Dog" [fApp (toSkolem "x") []])]), wiIdent = 1},
+                      WithId {wiItem = INF (Set.fromList []) (Set.fromList [(pApp "Owns" [fApp "Jack" [],fApp (toSkolem "x") []])]), wiIdent = 1},
+                      WithId {wiItem = INF (Set.fromList [(pApp "Dog" [vt "y"]),(pApp "Owns" [vt "x",vt "y"])]) (Set.fromList [(pApp "AnimalLover" [vt "x"])]), wiIdent = 2},
+                      WithId {wiItem = INF (Set.fromList [(pApp "Animal" [vt "y"]),(pApp "AnimalLover" [vt "x"]),(pApp "Kills" [vt "x",vt "y"])]) (Set.fromList []), wiIdent = 3},
+                      WithId {wiItem = INF (Set.fromList []) (Set.fromList [(pApp "Kills" [fApp "Curiosity" [],fApp "Tuna" []]),(pApp "Kills" [fApp "Jack" [],fApp "Tuna" []])]), wiIdent = 4},
+                      WithId {wiItem = INF (Set.fromList []) (Set.fromList [(pApp "Cat" [fApp "Tuna" []])]), wiIdent = 5},
+                      WithId {wiItem = INF (Set.fromList [(pApp "Cat" [vt "x"])]) (Set.fromList [(pApp "Animal" [vt "x"])]), wiIdent = 6}])
           , ChiouResult (False,
-                         (S.fromList
-                          [(inf' [(pApp "Kills" [fApp "Jack" [],fApp "Tuna" []])] [],fromList []),
-                           (inf' [] [(pApp "Kills" [fApp "Curiosity" [],fApp "Tuna" []])],fromList []),
-                           (inf' [(pApp "Animal" [fApp "Tuna" []]),(pApp "AnimalLover" [fApp "Curiosity" []])] [],fromList []),
-                           (inf' [(pApp "Animal" [fApp "Tuna" []]),(pApp "Dog" [vt "y"]),(pApp "Owns" [fApp "Curiosity" [],vt "y"])] [],fromList []),
-                           (inf' [(pApp "AnimalLover" [fApp "Curiosity" []]),(pApp "Cat" [fApp "Tuna" []])] [],fromList []),
-                           (inf' [(pApp "Animal" [fApp "Tuna" []]),(pApp "Owns" [fApp "Curiosity" [],fApp (toSkolem "x") []])] [],fromList []),
-                           (inf' [(pApp "Cat" [fApp "Tuna" []]),(pApp "Dog" [vt "y"]),(pApp "Owns" [fApp "Curiosity" [],vt "y"])] [],fromList []),
-                           (inf' [(pApp "AnimalLover" [fApp "Curiosity" []])] [],fromList []),
-                           (inf' [(pApp "Cat" [fApp "Tuna" []]),(pApp "Owns" [fApp "Curiosity" [],fApp (toSkolem "x") []])] [],fromList []),
-                           (inf' [(pApp "Dog" [vt "y"]),(pApp "Owns" [fApp "Curiosity" [],vt "y"])] [],fromList []),
-                           (inf' [(pApp "Owns" [fApp "Curiosity" [],fApp (toSkolem "x") []])] [],fromList [])]))
+                         (Set.fromList
+                          [(inf' [(pApp "Kills" [fApp "Jack" [],fApp "Tuna" []])] [],Map.fromList []),
+                           (inf' [] [(pApp "Kills" [fApp "Curiosity" [],fApp "Tuna" []])],Map.fromList []),
+                           (inf' [(pApp "Animal" [fApp "Tuna" []]),(pApp "AnimalLover" [fApp "Curiosity" []])] [],Map.fromList []),
+                           (inf' [(pApp "Animal" [fApp "Tuna" []]),(pApp "Dog" [vt "y"]),(pApp "Owns" [fApp "Curiosity" [],vt "y"])] [],Map.fromList []),
+                           (inf' [(pApp "AnimalLover" [fApp "Curiosity" []]),(pApp "Cat" [fApp "Tuna" []])] [],Map.fromList []),
+                           (inf' [(pApp "Animal" [fApp "Tuna" []]),(pApp "Owns" [fApp "Curiosity" [],fApp (toSkolem "x") []])] [],Map.fromList []),
+                           (inf' [(pApp "Cat" [fApp "Tuna" []]),(pApp "Dog" [vt "y"]),(pApp "Owns" [fApp "Curiosity" [],vt "y"])] [],Map.fromList []),
+                           (inf' [(pApp "AnimalLover" [fApp "Curiosity" []])] [],Map.fromList []),
+                           (inf' [(pApp "Cat" [fApp "Tuna" []]),(pApp "Owns" [fApp "Curiosity" [],fApp (toSkolem "x") []])] [],Map.fromList []),
+                           (inf' [(pApp "Dog" [vt "y"]),(pApp "Owns" [fApp "Curiosity" [],vt "y"])] [],Map.fromList []),
+                           (inf' [(pApp "Owns" [fApp "Curiosity" [],fApp (toSkolem "x") []])] [],Map.fromList [])]))
           ]
       }
     , TestProof
@@ -1018,7 +1018,7 @@ proofs =
       , proofKnowledge = kbKnowledge animalKB
       , conjecture = kills [curiosity, tuna]
       , proofExpected =
-          [ ChiouKB (S.fromList
+          [ ChiouKB (Set.fromList
                      [WithId {wiItem = inf' []                                 [(pApp "Dog" [fApp (toSkolem "x") []])],                 wiIdent = 1},
                       WithId {wiItem = inf' []                                 [(pApp "Owns" [fApp "Jack" [],fApp (toSkolem "x") []])], wiIdent = 1},
                       WithId {wiItem = inf' [(pApp "Dog" [vt "y"]),
@@ -1031,22 +1031,22 @@ proofs =
                       WithId {wiItem = inf' []                                 [(pApp "Cat" [fApp "Tuna" []])],                       wiIdent = 5},
                       WithId {wiItem = inf' [(pApp "Cat" [vt "x"])]           [(pApp "Animal" [vt "x"])],                           wiIdent = 6}])
           , ChiouResult (True,
-                         S.fromList 
-                         [(makeINF' ([]) ([]),fromList []),
-                          (makeINF' ([]) ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]),fromList []),
-                          (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []])]) ([]),fromList []),
-                          (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("AnimalLover") [fApp ("Jack") []])]) ([]),fromList []),
-                          (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Dog") [vt ("y")]),(pApp ("Owns") [fApp ("Jack") [],vt ("y")])]) ([]),fromList []),
-                          (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Dog") [fApp (toSkolem "x") []])]) ([]),fromList []),
-                          (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem "x") []])]) ([]),fromList []),
-                          (makeINF' ([(pApp ("AnimalLover") [fApp ("Jack") []])]) ([]),fromList []),
-                          (makeINF' ([(pApp ("AnimalLover") [fApp ("Jack") []]),(pApp ("Cat") [fApp ("Tuna") []])]) ([]),fromList []),
-                          (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []])]) ([]),fromList []),
-                          (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Dog") [vt ("y")]),(pApp ("Owns") [fApp ("Jack") [],vt ("y")])]) ([]),fromList []),
-                          (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Dog") [fApp (toSkolem "x") []])]) ([]),fromList []),
-                          (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem "x") []])]) ([]),fromList []),
-                          (makeINF' ([(pApp ("Dog") [vt ("y")]),(pApp ("Owns") [fApp ("Jack") [],vt ("y")])]) ([]),fromList []),
-                          (makeINF' ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []])]) ([]),fromList [])])
+                         Set.fromList 
+                         [(makeINF' ([]) ([]),Map.fromList []),
+                          (makeINF' ([]) ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]),Map.fromList []),
+                          (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []])]) ([]),Map.fromList []),
+                          (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("AnimalLover") [fApp ("Jack") []])]) ([]),Map.fromList []),
+                          (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Dog") [vt ("y")]),(pApp ("Owns") [fApp ("Jack") [],vt ("y")])]) ([]),Map.fromList []),
+                          (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Dog") [fApp (toSkolem "x") []])]) ([]),Map.fromList []),
+                          (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem "x") []])]) ([]),Map.fromList []),
+                          (makeINF' ([(pApp ("AnimalLover") [fApp ("Jack") []])]) ([]),Map.fromList []),
+                          (makeINF' ([(pApp ("AnimalLover") [fApp ("Jack") []]),(pApp ("Cat") [fApp ("Tuna") []])]) ([]),Map.fromList []),
+                          (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []])]) ([]),Map.fromList []),
+                          (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Dog") [vt ("y")]),(pApp ("Owns") [fApp ("Jack") [],vt ("y")])]) ([]),Map.fromList []),
+                          (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Dog") [fApp (toSkolem "x") []])]) ([]),Map.fromList []),
+                          (makeINF' ([(pApp ("Cat") [fApp ("Tuna") []]),(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem "x") []])]) ([]),Map.fromList []),
+                          (makeINF' ([(pApp ("Dog") [vt ("y")]),(pApp ("Owns") [fApp ("Jack") [],vt ("y")])]) ([]),Map.fromList []),
+                          (makeINF' ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []])]) ([]),Map.fromList [])])
           ]
       }
 {-
@@ -1066,16 +1066,16 @@ proofs =
       , proofKnowledge = kbKnowledge (socratesKB)
       , conjecture = for_all "x" (socrates [x] .=>. mortal [x])
       , proofExpected = 
-         [ ChiouKB (S.fromList
+         [ ChiouKB (Set.fromList
                     [WithId {wiItem = inf' [(pApp "Human" [vt "x"])] [(pApp "Mortal" [vt "x"])], wiIdent = 1},
                      WithId {wiItem = inf' [(pApp "Socrates" [vt "x"])] [(pApp "Human" [vt "x"])], wiIdent = 2}])
          , ChiouResult (True,
-                        S.fromList 
-                        [(makeINF' ([]) ([]),fromList []),
-                         (makeINF' ([]) ([(pApp ("Human") [fApp (toSkolem "x") []])]),fromList []),
-                         (makeINF' ([]) ([(pApp ("Mortal") [fApp (toSkolem "x") []])]),fromList []),
-                         (makeINF' ([]) ([(pApp ("Socrates") [fApp (toSkolem "x") []])]),fromList []),
-                         (makeINF' ([(pApp ("Mortal") [fApp (toSkolem "x") []])]) ([]),fromList [])])]
+                        Set.fromList 
+                        [(makeINF' ([]) ([]),Map.fromList []),
+                         (makeINF' ([]) ([(pApp ("Human") [fApp (toSkolem "x") []])]),Map.fromList []),
+                         (makeINF' ([]) ([(pApp ("Mortal") [fApp (toSkolem "x") []])]),Map.fromList []),
+                         (makeINF' ([]) ([(pApp ("Socrates") [fApp (toSkolem "x") []])]),Map.fromList []),
+                         (makeINF' ([(pApp ("Mortal") [fApp (toSkolem "x") []])]) ([]),Map.fromList [])])]
       }
     , let x = vt "x" in
       TestProof
@@ -1083,11 +1083,11 @@ proofs =
       , proofKnowledge = kbKnowledge (socratesKB)
       , conjecture = (.~.) (for_all "x" (socrates [x] .=>. mortal [x]))
       , proofExpected = 
-         [ ChiouKB (S.fromList
+         [ ChiouKB (Set.fromList
                     [WithId {wiItem = inf' [(pApp "Human" [vt "x"])] [(pApp "Mortal" [vt "x"])], wiIdent = 1},
                      WithId {wiItem = inf' [(pApp "Socrates" [vt "x"])] [(pApp "Human" [vt "x"])], wiIdent = 2}])
          , ChiouResult (False
-                       ,(S.fromList [(inf' [(pApp "Socrates" [vt "x"])] [(pApp "Mortal" [vt "x"])],fromList [("x",vt "x")])]))]
+                       ,(Set.fromList [(inf' [(pApp "Socrates" [vt "x"])] [(pApp "Mortal" [vt "x"])],Map.fromList [("x",vt "x")])]))]
       }
     , let x = vt "x" in
       TestProof
@@ -1095,19 +1095,22 @@ proofs =
       , proofKnowledge = kbKnowledge (socratesKB)
       , conjecture = (.~.) (exists "x" (socrates [x]) .&. for_all "x" (socrates [x] .=>. mortal [x]))
       , proofExpected = 
-         [ ChiouKB (S.fromList
+         [ ChiouKB (Set.fromList
                     [WithId {wiItem = inf' [(pApp "Human" [vt "x"])] [(pApp "Mortal" [vt "x"])], wiIdent = 1},
                      WithId {wiItem = inf' [(pApp "Socrates" [vt "x"])] [(pApp "Human" [vt "x"])], wiIdent = 2}])
          , ChiouResult (False,
-                        S.fromList [(makeINF' ([]) ([(pApp ("Human") [fApp (toSkolem "x") []])]),fromList []),
-                                    (makeINF' ([]) ([(pApp ("Mortal") [fApp (toSkolem "x") []])]),fromList []),
-                                    (makeINF' ([]) ([(pApp ("Socrates") [fApp (toSkolem "x") []])]),fromList []),
-                                    (makeINF' ([(pApp ("Socrates") [vt ("x")])]) ([(pApp ("Mortal") [vt ("x")])]),fromList [("x",vt ("x"))])])
+                        Set.fromList [(makeINF' ([]) ([(pApp ("Human") [fApp (toSkolem "x") []])]),Map.fromList []),
+                                    (makeINF' ([]) ([(pApp ("Mortal") [fApp (toSkolem "x") []])]),Map.fromList []),
+                                    (makeINF' ([]) ([(pApp ("Socrates") [fApp (toSkolem "x") []])]),Map.fromList []),
+                                    (makeINF' ([(pApp ("Socrates") [vt ("x")])]) ([(pApp ("Mortal") [vt ("x")])]),Map.fromList [("x",vt ("x"))])])
          ]
       }
     ]
 
+inf' :: IsNegatable lit => [lit] -> [lit] -> ImplicativeForm lit
 inf' = makeINF'
 
-toLL = map S.toList . S.toList
-toSS = S.fromList . map S.fromList
+toLL :: Set (Set a) -> [[a]]
+toLL = map Set.toList . Set.toList
+toSS :: Ord a => [[a]] -> Set (Set a)
+toSS = Set.fromList . map Set.fromList

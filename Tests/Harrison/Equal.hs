@@ -8,24 +8,20 @@ module Harrison.Equal where
 -- Copyright (co) 2003-2007, John Harrison. (See "LICENSE.txt" for details.)
 -- =========================================================================
 
-import Control.Applicative.Error (Failing(..))
-import FOL (pApp)
-import Formulas (IsCombinable(..), (∧), (⇒))
-import FOL ((.=.))
-import FOL ((∃), (∀))
-import Skolem (HasSkolem(..))
-import FOL (IsTerm(..))
-import Equal (equalitize, function_congruence)
-import Meson (meson)
-import Skolem (runSkolem)
 import Common (render)
-import qualified Data.Map as Map
-import qualified Data.Set as Set
+import Control.Applicative.Error (Failing(..))
+import Data.List as List
+import Data.Map as Map
+import Data.Set as Set
 import Data.String (IsString(fromString))
-import Test.HUnit
-import FOL (Predicate, V)
-import Skolem (MyTerm, MyFormula)
+import Equal (equalitize, function_congruence)
+import FOL ((.=.), (∃), (∀), IsTerm(..), pApp, Predicate, V)
+import Formulas (IsCombinable(..), (∧), (⇒))
+import Meson (meson)
+import Prelude hiding ((*))
+import Skolem (HasSkolem(..), MyTerm, MyFormula, runSkolem)
 import Tableaux (Depth(Depth))
+import Test.HUnit
 
 -- type TF = TestFormula (Formula FOL) FOL MyTerm String String Function
 -- type TFE = TestFormulaEq (MyFormula) FOLEQ MyTerm String String Function
@@ -39,7 +35,7 @@ tests = TestLabel "Data.Logic.Tests.Harrison.Equal" $ TestList [test01, test02, 
 
 test01 :: Test
 test01 = TestCase $ assertEqual "function_congruence" expected input
-    where input = map function_congruence [(fromString "f", 3 :: Int), (fromString "+",2)]
+    where input = List.map function_congruence [(fromString "f", 3 :: Int), (fromString "+",2)]
           expected :: [Set.Set (MyFormula)]
           expected = [Set.fromList
                       [(∀) x1
@@ -159,7 +155,7 @@ wishnu = ((∃) ("x") ((x .=. f[g[x]]) ∧ (∀) ("x'") ((x' .=. f[g[x']]) ⇒ (
 test03 :: Test
 test03 = TestLabel "equalitize 2" $ TestCase $ assertEqual "equalitize 2 (p. 241)" (render expected, expectedProof) input
     where -- This depth is not sufficient to finish. It shoudl work with 16, but that takes a long time.
-          input = (render (equalitize wishnu), runSkolem (meson (Just (Depth 50)) wishnu))
+          input = (render (equalitize wishnu), runSkolem (meson (Just (Depth 16)) wishnu))
           x = vt "x" :: MyTerm
           x1 = vt "x1"
           y = vt "y"
@@ -178,7 +174,7 @@ test03 = TestLabel "equalitize 2" $ TestCase $ assertEqual "equalitize 2 (p. 241
                      (((∃) "x" $ x .=. f[g[x]] .&. ((∀) "x'" $ (x' .=. f[g[x']] .=>. x .=. x'))) .<=>.
                       ((∃) "y" $ y .=. g[f[y]] .&. ((∀) "y'" $ (y' .=. g[f[y']] .=>. y .=. y'))))
           expectedProof =
-              Set.fromList [Failure ["Exceeded maximum depth limit"]]
+              Set.fromList [Failure ["Not sure what we git here if this finishes"]]
 {-
               Set.fromList [Success ((Map.fromList [("_0",vt "_1")],0,2 :: Map.Map String MyTerm),1),
                             Success ((Map.fromList [("_0",vt "_1"),("_1",fApp "f" [fApp "g" [vt "_0"]])],0,2),1),
@@ -186,9 +182,9 @@ test03 = TestLabel "equalitize 2" $ TestCase $ assertEqual "equalitize 2 (p. 241
                             Success ((Map.fromList [("_0",vt "_1"),("_2",fApp (fromSkolem 2) [vt "_0"])],0,3),1),
                             Success ((Map.fromList [("_0",vt "_2"),("_1",vt "_2")],0,3),1)] -}
 
--- ------------------------------------------------------------------------- 
--- More challenging equational problems. (Size 18, 61814 seconds.)           
--- ------------------------------------------------------------------------- 
+-- -------------------------------------------------------------------------
+-- More challenging equational problems. (Size 18, 61814 seconds.)
+-- -------------------------------------------------------------------------
 
 test04 :: Test
 test04 = TestCase $ assertEqual "equalitize 3 (p. 248)" (render expected, expectedProof) input

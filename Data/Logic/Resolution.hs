@@ -15,7 +15,7 @@ module Data.Logic.Resolution
 
 import FOL (HasPredicate(applyPredicate))
 import Data.Logic.Classes.Atom (Atom(isRename, getSubst))
-import Formulas (fromBool, HasBoolean)
+import Formulas (fromBool)
 import FOL (HasEquality(applyEquals), foldEquals, zipEquals)
 import Formulas (IsFormula(atomic))
 import Lit (IsLiteral(..), zipLiterals)
@@ -290,7 +290,6 @@ unifyTerms ((t1, t2) : tps) theta1 theta2 =
     case (unifyTerm t1 t2 theta1 theta2) of
       Nothing                -> Nothing
       Just (theta1',theta2') -> unifyTerms tps theta1' theta2'
-unifyTerms _ _ _ = Nothing
 
 findUnify :: forall lit atom term v p f. (IsLiteral lit atom, Atom atom term v, IsTerm term v f, HasEquality atom p term) =>
              term -> term -> S.Set lit -> Maybe ((term, term), Map.Map v term, Map.Map v term)

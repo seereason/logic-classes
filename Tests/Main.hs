@@ -2,9 +2,6 @@ import Common (TestProof)
 import Data.Logic.Instances.Test (V, TFormula, TTerm)
 import System.Exit
 import Test.HUnit
-import qualified DefCNF as DefCNF
-import qualified DP as DP
-import qualified PropExamples
 import qualified Harrison.Main as Harrison
 import qualified Logic
 import qualified Chiou0 as Chiou0
@@ -17,10 +14,7 @@ main =
                          Chiou0.tests,
                          -- TPTP.tests,  -- This has a problem in the rendering code - it loops
                          Data.tests formulas proofs,
-                         Harrison.tests,
-                         PropExamples.tests,
-                         DefCNF.tests,
-                         DP.tests]) >>=
+                         Harrison.tests]) >>=
     doCounts
     where
       doCounts counts' = exitWith (if errors counts' /= 0 || failures counts' /= 0 then ExitFailure 1 else ExitSuccess)

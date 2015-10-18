@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, PackageImports, RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE DeriveDataTypeable, PackageImports, RankNTypes, ScopedTypeVariables, TypeFamilies #-}
 {-# OPTIONS -Wall #-}
 module Data.Logic.Normal.Implicative
     ( LiteralMapT
@@ -18,17 +18,14 @@ import Data.Bool (bool)
 import Data.Generics (Data, Typeable, listify)
 import Data.List (intersperse)
 import Data.Logic.Classes.Atom (Atom)
-import Formulas (true)
-import FOL (IsQuantified(..))
-import Prop (IsPropositional)
-import Skolem (HasSkolem(fromSkolem))
-import Lit (IsLiteral(..))
-import Formulas (IsNegatable(..))
-import FOL (IsTerm)
-import Skolem (SkolemT, runSkolemT)
+import qualified Data.Map as Map
 import Data.Maybe (isJust)
 import qualified Data.Set.Extra as Set
-import qualified Data.Map as Map
+import FOL (IsFirstOrder, IsQuantified(..), IsTerm)
+import Formulas (IsNegatable(..), true)
+import Lit (IsLiteral(..))
+import Prop (IsPropositional)
+import Skolem (HasSkolem(fromSkolem), runSkolem, runSkolemT, simpcnf', skolemize, SkolemT)
 import Text.PrettyPrint (Doc, cat, text, hsep)
 
 -- |Combination of Normal monad and LiteralMap monad
@@ -89,17 +86,19 @@ prettyProof lit p = cat $ [text "["] ++ intersperse (text ", ") (map (prettyINF 
 --    a | b | c => e
 --    a | b | c => f
 -- @
-implicativeNormalForm :: forall m formula atom term v f lit. 
+implicativeNormalForm :: forall m formula atom p term v f lit. 
                          (Monad m,
+                          IsFirstOrder formula atom p term v f,
                           IsQuantified formula atom v,
                           IsPropositional formula atom,
                           Atom atom term v,
                           IsLiteral lit atom,
                           IsTerm term v f,
+                          formula ~ lit,
                           Data formula, Ord formula, Ord lit, Data lit, HasSkolem f v, Typeable f) =>
                          formula -> SkolemT m (Set.Set (ImplicativeForm lit))
 implicativeNormalForm formula =
-    do cnf <- {-clauseNormalForm-} undefined formula
+    do let cnf = simpcnf' (runSkolem (skolemize id formula))
        let pairs = Set.map (Set.fold collect (Set.empty, Set.empty)) cnf :: Set.Set (Set.Set lit, Set.Set lit)
            pairs' = Set.flatten (Set.map split pairs) :: Set.Set (Set.Set lit, Set.Set lit)
        return (Set.map (\ (n,p) -> INF n p) pairs')
