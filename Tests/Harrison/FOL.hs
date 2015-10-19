@@ -14,8 +14,8 @@ import Control.Applicative.Error (Failing(..))
 import Control.Monad (filterM)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import FOL (foldEquals, for_all, exists, Predicate(Equals), MyFormula1,
-            HasEquality(..), (.=.), IsQuantified(..), IsTerm(vt, fApp, foldTerm), IsVariable(..), pApp, Quant(..))
+import FOL (foldEquate, for_all, exists, Predicate(Equals), MyFormula1,
+            HasEquate(..), (.=.), IsQuantified(..), IsTerm(vt, fApp, foldTerm), IsVariable(..), pApp, Quant(..))
 import Formulas ((.~.), false, IsCombinable(..), Combination(..), BinOp(..))
 import Lib ((|->))
 import Prelude hiding (pred)
@@ -45,7 +45,7 @@ termval m@(_domain, func, _pred) v tm =
              tm
 
 holds :: forall formula atom term v p f a.
-         (IsQuantified formula atom v, HasEquality atom p term, IsTerm term v f, Show v, Eq a) =>
+         (IsQuantified formula atom v, HasEquate atom p term, IsTerm term v f, Show v, Eq a) =>
          ([a], f -> [a] -> a, p -> [a] -> Bool)
       -> Map.Map v a
       -> formula
@@ -63,7 +63,7 @@ holds m@(domain, _func, pred) v fm =
       co (BinOp p (:<=>:) q) = (==) <$> (holds m v p) <*> (holds m v q)
       tf x = Success x
       at :: atom -> Failing Bool
-      at = foldEquals (\ r args -> mapM (termval m v) args >>= return . pred r) (\ t1 t2 -> return $ termval m v t1 == termval m v t2)
+      at = foldEquate (\ r args -> mapM (termval m v) args >>= return . pred r) (\ t1 t2 -> return $ termval m v t1 == termval m v t2)
 
 -- | This becomes a method in FirstOrderFormulaEq, so it is not exported here.
 -- (.=.) :: MyTerm -> MyTerm -> Formula FOL

@@ -11,7 +11,7 @@ import qualified Data.Map as M
 import qualified Data.Set.Extra as S
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(..))
 import Data.Logic.Normal.Implicative (LiteralMapT, NormalT)
-import FOL (HasEquality, IsFirstOrder)
+import FOL (HasEquate, IsFirstOrder)
 import Formulas (IsNegatable(..), negated, (.~.))
 import qualified Lit as N
 import Skolem (simpcnf')
@@ -38,7 +38,7 @@ instance ClauseNormalFormula CNF Literal where
 
 toCNF :: (Monad m,
           IsFirstOrder formula atom p term v f,
-          HasEquality atom p term,
+          HasEquate atom p term,
           N.IsLiteral formula atom,
           Ord formula) =>
          formula -> NormalT formula v term m CNF

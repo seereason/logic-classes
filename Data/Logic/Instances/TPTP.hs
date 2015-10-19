@@ -148,7 +148,7 @@ instance Data.Logic.FirstOrderFormula Formula (T Identity) V AtomicWord AtomicFu
               i' t1 (:!=:) t2 = p (NotEqual t1 t2) -- TPTP.foldF n' q' b' i' p' ((.~.) (t1 .=. t2))
               p' pr ts = p (Apply pr ts)
               unwrapF' (F x) = F x -- copoint x
-    zipF = error "Unimplemented: Logic.Instances.TPTP.zipF"
+    zipF = error "FIXME: Logic.Instances.TPTP.zipF"
     x .=. y   = x .=. y
     x .!=. y  = x .!=. y
     pApp0 p = TPTP.pApp p []
@@ -171,7 +171,7 @@ instance (Eq AtomicFunction, Logic.Skolem AtomicFunction) => Data.Logic.Term (T 
               string s = fa (StringLit s) []
               double n = fa (NumberLit n) []
               unwrapT' (T x) = T x -- copoint x
-    zipT = error "Unimplemented: Logic.Instances.TPTP.zipT"
+    zipT = error "FIXME: Logic.Instances.TPTP.zipT"
     var = var
     fApp x args = 
         case x of

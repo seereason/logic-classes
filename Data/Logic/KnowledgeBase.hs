@@ -33,7 +33,7 @@ import Data.Logic.Normal.Implicative (ImplicativeForm, implicativeNormalForm)
 import Data.Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Data.SafeCopy (deriveSafeCopy, base)
 import qualified Data.Set.Extra as S
-import FOL (HasEquality, IsFirstOrder, IsQuantified, IsTerm)
+import FOL (HasEquate, IsFirstOrder, IsQuantified, IsTerm)
 import Formulas ((.~.))
 import Lit (IsLiteral)
 import Prelude hiding (negate)
@@ -126,7 +126,7 @@ inconsistantKB :: forall m formula atom term v p f lit.
                    IsPropositional formula atom,
                    IsLiteral lit atom,
                    Atom atom term v,
-                   HasEquality atom p term,
+                   HasEquate atom p term,
                    IsTerm term v f,
                    HasSkolem f v,
                    formula ~ lit,
@@ -148,7 +148,7 @@ theoremKB :: forall m formula atom term v p f lit.
               IsPropositional formula atom,
               IsLiteral lit atom,
               Atom atom term v,
-              HasEquality atom p term,
+              HasEquate atom p term,
               IsTerm term v f,
               HasSkolem f v,
               formula ~ lit,
@@ -165,7 +165,7 @@ askKB :: (Monad m,
           IsPropositional formula atom,
           IsLiteral lit atom,
           Atom atom term v,
-          HasEquality atom p term,
+          HasEquate atom p term,
           IsTerm term v f,
           HasSkolem f v,
           formula ~ lit,
@@ -180,7 +180,7 @@ validKB :: (IsFirstOrder formula atom p term v f,
             IsPropositional formula atom,
             IsLiteral lit atom,
             Atom atom term v,
-            HasEquality atom p term,
+            HasEquate atom p term,
             IsTerm term v f,
             HasSkolem f v,
             formula ~ lit,
@@ -199,7 +199,7 @@ tellKB :: (IsFirstOrder formula atom p term v f,
            IsPropositional formula atom,
            IsLiteral lit atom,
            Atom atom term v,
-           HasEquality atom p term,
+           HasEquate atom p term,
            IsTerm term v f,
            HasSkolem f v,
            formula ~ lit,
@@ -217,7 +217,7 @@ tellKB s =
        return $ Proof {proofResult = valid, proof = S.map wiItem inf'}
 
 {-
-loadKB :: (IsQuantified formula atom v, IsPropositional formula atom, IsLiteral lit atom, Atom atom term v, HasEquality atom p term, IsTerm term v f,
+loadKB :: (IsQuantified formula atom v, IsPropositional formula atom, IsLiteral lit atom, Atom atom term v, HasEquate atom p term, IsTerm term v f,
            Monad m, Ord formula, Ord term, Ord lit, Data formula, Data lit, Typeable f, HasSkolem f v) =>
           [formula] -> ProverT' v term (ImplicativeForm lit) m [Proof lit]
 -}
@@ -227,7 +227,7 @@ loadKB :: forall formula v term lit m atom p f.
            IsLiteral lit atom,
            IsTerm term v f,
            IsQuantified formula atom v,
-           HasEquality atom p term,
+           HasEquate atom p term,
            HasSkolem f v,
            formula ~ lit,
            Monad m, Data formula, Data lit, Typeable f) =>

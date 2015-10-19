@@ -39,6 +39,7 @@ Library
     Data.Logic.Normal.Implicative
     Data.Logic.Resolution
     Data.Logic.Satisfiable
+    Data.Logic.Types.FirstOrder
     Data.Logic.Types.FirstOrderPublic
     Data.Boolean
     Data.Boolean.SatSolver

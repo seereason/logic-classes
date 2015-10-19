@@ -29,7 +29,7 @@ import Data.Logic.KnowledgeBase (WithId, runProver', Proof, loadKB, theoremKB, g
 import Data.Logic.Normal.Implicative (ImplicativeForm, runNormal, runNormalT)
 import Data.Logic.Resolution (getSubstAtomEq, isRenameOfAtomEq, SetOfSupport)
 import Data.Set as Set
-import FOL (asubst, convertFirstOrder, fApp, foldEquals, foldTerm, fva, HasEquality,
+import FOL (asubst, convertFirstOrder, fApp, foldEquate, foldTerm, fva, HasEquate,
             IsFirstOrder, IsQuantified(..), IsTerm, Predicate(NamedPredicate), V, vt)
 import Formulas (IsCombinable(..), HasBoolean(fromBool, asBool), IsNegatable(..), IsFormula(..))
 import Lit (IsLiteral(..))
@@ -47,34 +47,38 @@ instance Atom MyAtom MyTerm V where
     allVariables = fva -- Variables are always free in an atom - this method is unnecessary
     unify = unify
     match = unify
-    foldTerms f r pr = foldEquals (\_ ts -> Prelude.foldr f r ts) (\t1 t2 -> f t2 (f t1 r)) pr
+    foldTerms f r pr = foldEquate (\_ ts -> Prelude.foldr f r ts) (\t1 t2 -> f t2 (f t1 r)) pr
     isRename = isRenameOfAtomEq
     getSubst = getSubstAtomEq
 
 instance IsFirstOrder (PropForm MyAtom) MyAtom Predicate MyTerm V Function
+
+-- | We shouldn't need this instance, but right now we need ot to use
+-- convertFirstOrder.  The conversion functions need work.
 instance IsQuantified (PropForm MyAtom) MyAtom V where
-    quant = undefined
-    foldQuantified = undefined
+    quant _ _ _ = error "FIXME: IsQuantified (PropForm MyAtom) MyAtom V"
+    foldQuantified = error "FIXME: IsQuantified (PropForm MyAtom) MyAtom V"
+
 instance IsPropositional CNF MyAtom where
-    foldPropositional = undefined
+    foldPropositional = error "FIXME: IsPropositional CNF MyAtom"
 instance IsCombinable CNF where
-    foldCombination = undefined
-    _ .|. _ = undefined
+    foldCombination = error "FIXME: IsCombinable CNF"
+    _ .|. _ = error "FIXME: IsCombinable CNF"
 instance HasBoolean CNF where
-    asBool = undefined
-    fromBool = undefined
+    asBool = error "FIXME: HasBoolean CNF"
+    fromBool = error "FIXME: HasBoolean CNF"
 instance IsNegatable CNF where
-    naiveNegate = undefined
-    foldNegation' = undefined
+    naiveNegate = error "FIXME: IsNegatable CNF"
+    foldNegation' = error "FIXME: IsNegatable CNF"
 instance HasFixity CNF where
-    fixity = undefined
+    fixity = error "FIXME: HasFixity CNF"
 instance IsLiteral CNF MyAtom where
-    foldLiteral = undefined
+    foldLiteral = error "FIXME: IsLiteral CNF MyAtom"
 instance IsFormula CNF MyAtom where
-    atomic = undefined
-    overatoms = undefined
-    onatoms = undefined
-    prettyFormula = undefined
+    atomic = error "FIXME: IsFormula CNF MyAtom"
+    overatoms = error "FIXME: IsFormula CNF MyAtom"
+    onatoms = error "FIXME: IsFormula CNF MyAtom"
+    prettyFormula = error "FIXME: IsFormula CNF MyAtom"
 
 -- | Render a Pretty instance in single line mode
 render :: Pretty a => a -> String
@@ -137,7 +141,7 @@ doTest (TestFormula fm nm expect) =
                 -- We need to convert formula to Chiou and see if it matches result.
                 let ca :: MyAtom -> Ch.Sentence V Predicate Function
                     -- ca = undefined
-                    ca = foldEquals (\p ts -> Ch.Predicate p (List.map ct ts)) (\t1 t2 -> Ch.Equal (ct t1) (ct t2))
+                    ca = foldEquate (\p ts -> Ch.Predicate p (List.map ct ts)) (\t1 t2 -> Ch.Equal (ct t1) (ct t2))
                     ct :: MyTerm -> Ch.CTerm V Function
                     ct = foldTerm cv fn
                     cv :: V -> Ch.CTerm V Function
@@ -171,13 +175,13 @@ skolem' :: ( Monad m
 skolem' = undefined
 -}
 
-skolemSet :: forall formula atom term v p f. (IsQuantified formula atom v, HasEquality atom p term, IsTerm term v f, Data formula, Data f, HasSkolem f v) => formula -> Set f
+skolemSet :: forall formula atom term v p f. (IsQuantified formula atom v, HasEquate atom p term, IsTerm term v f, Data formula, Data f, HasSkolem f v) => formula -> Set f
 skolemSet =
     Prelude.foldr ins Set.empty . skolemList
     where
       ins :: f -> Set f -> Set f
       ins f s = maybe s (const (Set.insert f s)) (fromSkolem f)
-      skolemList :: (IsQuantified formula atom v, HasEquality atom p term, IsTerm term v f, Data f, Typeable f, Data formula) => formula -> [f]
+      skolemList :: (IsQuantified formula atom v, HasEquate atom p term, IsTerm term v f, Data f, Typeable f, Data formula) => formula -> [f]
       skolemList inf = gFind inf :: (Typeable f => [f])
 
 -- | @gFind a@ will extract any elements of type @b@ from
@@ -205,7 +209,7 @@ data ProofExpected formula v term
 {-
 doProof :: forall formula atom term v p f. (IsQuantified formula atom v,
                                             IsPropositional formula atom,
-                                            HasEquality atom p term, atom ~ FOL p (Term v f),
+                                            HasEquate atom p term, atom ~ FOL p (Term v f),
                                             IsTerm term v f, term ~ Term v f,
                                             IsLiteral formula atom,
                                             Ord formula, Data formula, Typeable v, Eq term, Show term, Show v, Show formula, Eq p, Ord f, Show f) =>
@@ -213,7 +217,7 @@ doProof :: forall formula atom term v p f. (IsQuantified formula atom v,
 -}
 doProof :: forall formula atom p term v f.
            (IsFirstOrder formula atom p term v f,
-            HasEquality atom p term,
+            HasEquate atom p term,
             Atom atom term v,
             HasSkolem f v,
             Eq formula, Eq term, Eq v, Ord term, Show formula, Show term, Data formula, Typeable f, Show v) => TestProof formula term v -> Test
@@ -236,7 +240,7 @@ loadKB' :: forall m formula lit atom p term v f.
             Monad m, Data formula,
             IsFirstOrder formula atom p term v f,
             IsQuantified formula atom v,
-            HasEquality atom p term,
+            HasEquate atom p term,
             HasSkolem f v,
             IsLiteral lit atom,
             Atom atom term v,
@@ -248,7 +252,7 @@ theoremKB' :: forall m formula lit atom p term v f.
                Monad m, Data formula,
                IsFirstOrder formula atom p term v f,
                IsQuantified formula atom v,
-               HasEquality atom p term,
+               HasEquate atom p term,
                HasSkolem f v,
                IsLiteral lit atom,
                Atom atom term v,

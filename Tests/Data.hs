@@ -22,7 +22,7 @@ import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
 import Data.Map as Map (fromList)
 import Data.Set as Set (Set, fromList, toList)
 import Data.String (IsString)
-import FOL (HasEquality, (.=.), HasPredicate, pApp, IsQuantified(..), IsTerm(..), V, Predicate, for_all, exists)
+import FOL (HasEquate, (.=.), HasPredicate, pApp, IsQuantified(..), IsTerm(..), V, Predicate, for_all, exists)
 import Formulas ((.~.), HasBoolean(..), IsCombinable(..), IsFormula, IsNegatable)
 import Skolem (HasSkolem(toSkolem), MyFormula, MyAtom, MyTerm, Function)
 import Test.HUnit
@@ -130,7 +130,7 @@ formulas =
                                 (((.~.) (f [z2,y]))))) .|.
                               (((((.~.) (f [z2,x]))) .&.
                                 ((f [z2,y])))))))))))))
-                   , ClauseNormalForm 
+                   , ClauseNormalForm
                      (toSS [[(pApp2 ("f") (vt ("z")) (vt ("x"))),
                              (pApp2 ("f") (fApp (toSkolem "z") [vt ("x"),vt ("y")]) (vt ("x"))),
                              (pApp2 ("f") (fApp (toSkolem "z") [vt ("x"),vt ("y")]) (vt ("y"))),
@@ -205,7 +205,7 @@ formulas =
                        ((pApp ("Q") [vt ("x"),vt ("z")]))) .|.
                       ((pApp ("R") [vt ("x"),vt ("y"),vt ("z")])))
                    , ClauseNormalForm
-                     (toSS 
+                     (toSS
                       [[((.~.) (pApp ("P") [vt ("x"),vt ("y")])),
                        (pApp ("R") [vt ("x"),vt ("y"),vt ("z")])],
                       [(pApp ("Q") [vt ("x"),vt ("z")]),
@@ -296,7 +296,7 @@ formulas =
       TestFormula
       { name = "cnf test 2"
       , formula = ((.~.) (exists "x" (pApp "s" [x] .&. pApp "q" [x])))
-      , expected = [ ClauseNormalForm (toSS 
+      , expected = [ ClauseNormalForm (toSS
                                        [[((.~.) (pApp ("q") [vt ("x")])),
                                          ((.~.) (pApp ("s") [vt ("x")]))]])
                    , PrenexNormalForm (for_all "x"
@@ -347,12 +347,12 @@ formulas =
       TestFormula
       { name = "cnf test 8"
       , formula = (for_all "z" (exists "y" (for_all "x" (pApp "f" [x, y] .<=>. (pApp "f" [x, z] .&. ((.~.) (pApp "f" [x, x])))))))
-      , expected = [ClauseNormalForm 
+      , expected = [ClauseNormalForm
                     (toSS [[((.~.) (pApp "f" [vt "x",fApp (toSkolem "y") [vt "z"]])),(pApp "f" [vt "x",vt "z"])],
                            [((.~.) (pApp "f" [vt "x",fApp (toSkolem "y") [vt "z"]])),((.~.) (pApp "f" [vt "x",vt "x"]))],
                            [((.~.) (pApp "f" [vt "x",vt "z"])),(pApp "f" [vt "x",vt "x"]),(pApp "f" [vt "x",fApp (toSkolem "y") [vt "z"]])]])]
       }
-    , let f = pApp "f" 
+    , let f = pApp "f"
           q = pApp "q"
           (x, y, z) = (vt "x" :: MyTerm, vt "y" :: MyTerm, vt "z" :: MyTerm) in
       doTest $
@@ -395,7 +395,7 @@ formulas =
       { name = "cnf test 10"
       , formula = (for_all "x" (exists "y" ((p [x, y] .<=. for_all "x" (exists "z" (q [y, x, z]) .=>. r [y])))))
       , expected = [ClauseNormalForm
-                    (toSS 
+                    (toSS
                      [[(pApp ("p") [vt ("x"),fApp (toSkolem "y") [vt ("x")]]),
                        (pApp ("q") [fApp (toSkolem "y") [vt "x"],fApp (toSkolem "x2") [vt "x"],fApp (toSkolem "z") [vt "x"]])],
                       [(pApp ("p") [vt ("x"),fApp (toSkolem "y") [vt ("x")]]),
@@ -407,7 +407,7 @@ formulas =
       { name = "cnf test 11"
       , formula = (for_all "x" (for_all "z" (p [x, z] .=>. exists "y" ((.~.) (q [x, y] .|. ((.~.) (r [y, z])))))))
       , expected = [ClauseNormalForm
-                    (toSS 
+                    (toSS
                     [[((.~.) (pApp "p" [vt "x",vt "z"])),((.~.) (pApp "q" [vt "x",fApp (toSkolem "y") [vt "x",vt "z"]]))],
                      [((.~.) (pApp "p" [vt "x",vt "z"])),(pApp "r" [fApp (toSkolem "y") [vt "x",vt "z"],vt "z"])]])]
       }
@@ -460,7 +460,7 @@ formulas =
       TestFormula
       { name = "nnf 141.1"
       , formula = ((for_all "x" (pApp "p" [vt "x"])) .=>. ((exists "y" (pApp "q" [vt "y"])) .<=>. (exists "z" (pApp "p" [vt "z"] .&. pApp "q" [vt "z"]))))
-      , expected = [ NegationNormalForm 
+      , expected = [ NegationNormalForm
                      ((exists "x" ((.~.) (pApp "p" [vt "x"]))) .|.
                       ((((exists "y" (pApp "q" [vt "y"])) .&. ((exists "z" ((pApp "p" [vt "z"]) .&. ((pApp "q" [vt "z"])))))) .|.
                         (((for_all "y" ((.~.) (pApp "q" [vt "y"]))) .&.
@@ -470,8 +470,8 @@ formulas =
       { name = "pnf 144.1"
       , formula = (for_all "x" (pApp "p" [vt "x"] .|. pApp "r" [vt "y"]) .=>.
                    (exists "y" (exists "z" (pApp "q" [vt "y"] .|. ((.~.) (exists "z" (pApp "p" [vt "z"] .&. pApp "q" [vt "z"])))))))
-      , expected = [ PrenexNormalForm 
-                     (exists "x" 
+      , expected = [ PrenexNormalForm
+                     (exists "x"
                       (for_all "z"
                        ((((.~.) (pApp "p" [vt "x"])) .&. (((.~.) (pApp "r" [vt "y"])))) .|.
                         (((pApp "q" [vt "x"]) .|. ((((.~.) (pApp "p" [vt "z"])) .|. (((.~.) (pApp "q" [vt "z"])))))))))) ] }
@@ -610,7 +610,7 @@ animalConjectures =
            , ChiouKB1
              (Proof
               Invalid
-              (Set.fromList 
+              (Set.fromList
                [makeINF' ([]) ([(pApp ("Cat") [fApp ("Tuna") []])]),
                 makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem "x") []])]),
                 makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]),
@@ -714,7 +714,7 @@ socratesConjectures =
 -}
 
 chang43KB :: (String, [TestFormula MyFormula MyAtom V])
-chang43KB = 
+chang43KB =
     let e = fApp "e" []
         (x, y, z, u, v, w) = (vt "x" :: MyTerm, vt "y" :: MyTerm, vt "z" :: MyTerm, vt "u" :: MyTerm, vt "v" :: MyTerm, vt "w" :: MyTerm) in
     ("chang example 4.3"
@@ -739,9 +739,9 @@ chang43Conjecture =
         (x, u, v, w) = (vt "x" :: MyTerm, vt "u" :: MyTerm, vt "v" :: MyTerm, vt "w" :: MyTerm) in
     doTest . withKB chang43KB $
     TestFormula { name = "G is commutative"
-                , formula = for_all "x" (pApp "P" [x, x, e] .=>. (for_all' ["u", "v", "w"] (pApp "P" [u, v, w] .=>. pApp "P" [v, u, w]))) 
+                , formula = for_all "x" (pApp "P" [x, x, e] .=>. (for_all' ["u", "v", "w"] (pApp "P" [u, v, w] .=>. pApp "P" [v, u, w])))
                 , expected =
-                    [ FirstOrderFormula 
+                    [ FirstOrderFormula
                       ((.~.) (((for_all' ["x","y"] (exists "z" (pApp "P" [vt ("x"),vt ("y"),vt ("z")]))) .&. ((((for_all' ["x","y","z","u","v","w"] ((((pApp "P" [vt ("x"),vt ("y"),vt ("u")]) .&. ((pApp "P" [vt ("y"),vt ("z"),vt ("v")]))) .&. ((pApp "P" [vt ("u"),vt ("z"),vt ("w")]))) .=>. ((pApp "P" [vt ("x"),vt ("v"),vt ("w")])))) .&. ((for_all' ["x","y","z","u","v","w"] ((((pApp "P" [vt ("x"),vt ("y"),vt ("u")]) .&. ((pApp "P" [vt ("y"),vt ("z"),vt ("v")]))) .&. ((pApp "P" [vt ("x"),vt ("v"),vt ("w")]))) .=>. ((pApp "P" [vt ("u"),vt ("z"),vt ("w")])))))) .&. ((((for_all "x" (pApp "P" [vt ("x"),fApp ("e") [],vt ("x")])) .&. ((for_all "x" (pApp "P" [fApp ("e") [],vt ("x"),vt ("x")])))) .&. (((for_all "x" (pApp "P" [vt ("x"),fApp ("i") [vt ("x")],fApp ("e") []])) .&. ((for_all "x" (pApp "P" [fApp ("i") [vt ("x")],vt ("x"),fApp ("e") []])))))))))) .=>. ((for_all "x" ((pApp "P" [vt ("x"),vt ("x"),fApp ("e") []]) .=>. ((for_all' ["u","v","w"] ((pApp "P" [vt ("u"),vt ("v"),vt ("w")]) .=>. ((pApp "P" [vt ("v"),vt ("u"),vt ("w")]))))))))))
                       -- (∀x ∀y ∃z P(x,y,z)) &
                       -- (∀x∀y∀z∀u∀v∀w ~P(x,y,u) | ~P(y,z,v) | ~P(u,z,w) | P(x,v,w)) &
@@ -836,7 +836,7 @@ chang43Conjecture =
                     -- From our algorithm
 
                     , ClauseNormalForm
-                      (toSS 
+                      (toSS
                       [[(pApp ("P") [vt ("x"),vt ("y"),fApp (toSkolem "z") [vt ("x"),vt ("y")]])],
                        [((.~.) (pApp ("P") [vt ("x"),vt ("y"),vt ("u")])),
                         ((.~.) (pApp ("P") [vt ("y"),vt ("z"),vt ("v")])),
@@ -856,7 +856,7 @@ chang43Conjecture =
 
                     -- From the book
 {-
-                    , let (a, b, c) = 
+                    , let (a, b, c) =
                               (fApp (toSkolem "x") [vt ("x"),vt ("y"),vt ("x2"),vt ("y2"),vt ("z2"),vt ("u"),vt ("v"),vt ("w"),vt ("x2"),vt ("y2"),vt ("z2"),vt ("u2"),vt ("v2"),vt ("w2"),vt ("x3"),vt ("x3"),vt ("x3"),vt ("x3")],
                                fApp (toSkolem "x") [vt ("x"),vt ("y"),vt ("x2"),vt ("y2"),vt ("z2"),vt ("u"),vt ("v"),vt ("w"),vt ("x2"),vt ("y2"),vt ("z2"),vt ("u2"),vt ("v2"),vt ("w2"),vt ("x3"),vt ("x3"),vt ("x3"),vt ("x3")],
                                fApp (toSkolem "x") [vt ("x"),vt ("y"),vt ("x2"),vt ("y2"),vt ("z2"),vt ("u"),vt ("v"),vt ("w"),vt ("x2"),vt ("y2"),vt ("z2"),vt ("u2"),vt ("v2"),vt ("w2"),vt ("x3"),vt ("x3"),vt ("x3"),vt ("x3")]) in
@@ -946,11 +946,11 @@ chang43ConjectureRenamed =
                        [(pApp ("P") [fApp ("i") [vt ("x")],vt ("x"),fApp ("e") []])],
                        [(pApp ("P") [fApp (toSkolem "x8") [],fApp (toSkolem "x8") [],fApp ("e") []])],
                        [(pApp ("P") [a,b,c])],
-                       [((.~.) (pApp ("P") [b,a,c]))]])                      
+                       [((.~.) (pApp ("P") [b,a,c]))]])
                     ]
                 }
 
-withKB :: forall formula atom term v p f. (formula ~ MyFormula, atom ~ MyAtom, v ~ V, IsQuantified formula atom v, HasEquality atom p term, IsTerm term v f) =>
+withKB :: forall formula atom term v p f. (formula ~ MyFormula, atom ~ MyAtom, v ~ V, IsQuantified formula atom v, HasEquate atom p term, IsTerm term v f) =>
           (String, [TestFormula formula atom v]) -> TestFormula formula atom v -> TestFormula formula atom v
 withKB (kbName, knowledge) conjecture =
     conjecture { name = name conjecture ++ " with " ++ kbName ++ " knowledge base"
@@ -965,7 +965,7 @@ withKB (kbName, knowledge) conjecture =
       conj (x:xs) = x .&. conj xs
 
 kbKnowledge :: forall formula atom term v p f. (formula ~ MyFormula, atom ~ MyAtom, v ~ V,
-                                                IsQuantified formula atom v, HasEquality atom p term, IsTerm term v f) =>
+                                                IsQuantified formula atom v, HasEquate atom p term, IsTerm term v f) =>
                (String, [TestFormula formula atom v]) -> (String, [formula])
 kbKnowledge kb = (fst (kb :: (String, [TestFormula formula atom v])), map formula (snd kb))
 
@@ -989,7 +989,7 @@ proofs =
       { proofName = "prove jack kills tuna"
       , proofKnowledge = kbKnowledge animalKB
       , conjecture = kills [jack, tuna]
-      , proofExpected = 
+      , proofExpected =
           [ ChiouKB (Set.fromList
                      [WithId {wiItem = INF (Set.fromList []) (Set.fromList [(pApp "Dog" [fApp (toSkolem "x") []])]), wiIdent = 1},
                       WithId {wiItem = INF (Set.fromList []) (Set.fromList [(pApp "Owns" [fApp "Jack" [],fApp (toSkolem "x") []])]), wiIdent = 1},
@@ -1031,7 +1031,7 @@ proofs =
                       WithId {wiItem = inf' []                                 [(pApp "Cat" [fApp "Tuna" []])],                       wiIdent = 5},
                       WithId {wiItem = inf' [(pApp "Cat" [vt "x"])]           [(pApp "Animal" [vt "x"])],                           wiIdent = 6}])
           , ChiouResult (True,
-                         Set.fromList 
+                         Set.fromList
                          [(makeINF' ([]) ([]),Map.fromList []),
                           (makeINF' ([]) ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]),Map.fromList []),
                           (makeINF' ([(pApp ("Animal") [fApp ("Tuna") []])]) ([]),Map.fromList []),
@@ -1065,12 +1065,12 @@ proofs =
       { proofName = "socrates is mortal"
       , proofKnowledge = kbKnowledge (socratesKB)
       , conjecture = for_all "x" (socrates [x] .=>. mortal [x])
-      , proofExpected = 
+      , proofExpected =
          [ ChiouKB (Set.fromList
                     [WithId {wiItem = inf' [(pApp "Human" [vt "x"])] [(pApp "Mortal" [vt "x"])], wiIdent = 1},
                      WithId {wiItem = inf' [(pApp "Socrates" [vt "x"])] [(pApp "Human" [vt "x"])], wiIdent = 2}])
          , ChiouResult (True,
-                        Set.fromList 
+                        Set.fromList
                         [(makeINF' ([]) ([]),Map.fromList []),
                          (makeINF' ([]) ([(pApp ("Human") [fApp (toSkolem "x") []])]),Map.fromList []),
                          (makeINF' ([]) ([(pApp ("Mortal") [fApp (toSkolem "x") []])]),Map.fromList []),
@@ -1082,7 +1082,7 @@ proofs =
       { proofName = "socrates is not mortal"
       , proofKnowledge = kbKnowledge (socratesKB)
       , conjecture = (.~.) (for_all "x" (socrates [x] .=>. mortal [x]))
-      , proofExpected = 
+      , proofExpected =
          [ ChiouKB (Set.fromList
                     [WithId {wiItem = inf' [(pApp "Human" [vt "x"])] [(pApp "Mortal" [vt "x"])], wiIdent = 1},
                      WithId {wiItem = inf' [(pApp "Socrates" [vt "x"])] [(pApp "Human" [vt "x"])], wiIdent = 2}])
@@ -1094,7 +1094,7 @@ proofs =
       { proofName = "socrates exists and is not mortal"
       , proofKnowledge = kbKnowledge (socratesKB)
       , conjecture = (.~.) (exists "x" (socrates [x]) .&. for_all "x" (socrates [x] .=>. mortal [x]))
-      , proofExpected = 
+      , proofExpected =
          [ ChiouKB (Set.fromList
                     [WithId {wiItem = inf' [(pApp "Human" [vt "x"])] [(pApp "Mortal" [vt "x"])], wiIdent = 1},
                      WithId {wiItem = inf' [(pApp "Socrates" [vt "x"])] [(pApp "Human" [vt "x"])], wiIdent = 2}])

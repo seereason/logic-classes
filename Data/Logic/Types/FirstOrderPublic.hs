@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, FunctionalDependencies, GeneralizedNewtypeDeriving,
-             MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TemplateHaskell, UndecidableInstances #-}
+             MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, TemplateHaskell, TypeFamilies, UndecidableInstances #-}
 {-# OPTIONS -Wwarn -fno-warn-orphans #-}
 -- |An instance of FirstOrderFormula which implements Eq and Ord by comparing
 -- after conversion to normal form.  This helps us notice that formula which
@@ -7,24 +7,24 @@
 -- commutative operator.
 
 module Data.Logic.Types.FirstOrderPublic
-    ( Formula(..)
+    ( PFormula(..)
     , Bijection(..)
     ) where
 
 import Data.Data (Data)
 import Data.Function (on)
-import qualified Data.Logic.Instances.Test as N
+import qualified Data.Logic.Types.FirstOrder as N
 import Data.SafeCopy (base, deriveSafeCopy)
-import Data.Set (Set)
+import Data.Set (Set, union)
 import Data.Typeable (Typeable)
-import FOL (FOL, HasPredicate, HasEquals, IsFirstOrder, IsFunction, IsPredicate, IsVariable, IsQuantified(..),
+import FOL (HasEquals, HasFunctions(funcs), HasPredicate, IsFirstOrder, IsFunction, IsPredicate, IsVariable, IsQuantified(..),
             overatomsFirstOrder, onatomsFirstOrder, fixityFirstOrder)
 import Formulas (HasBoolean(..))
 import Formulas (IsCombinable(..), Combination(..))
 import Formulas (IsNegatable(..))
 import Formulas (prettyFormula)
-import qualified Formulas as C
-import Lit (IsLiteral)
+import Formulas as C
+import Lit (IsLiteral(..))
 import Pretty (Pretty(pPrint), HasFixity(fixity))
 import Pretty (rootFixity, Side(Unary))
 import Prop (IsPropositional(..))
@@ -38,40 +38,48 @@ class Bijection p i where
 -- |The new Formula type is just a wrapper around the Native instance
 -- (which eventually should be renamed the Internal instance.)  No
 -- derived Eq or Ord instances.
-data Formula v p f = Formula {unFormula :: N.Formula v p f} deriving (Data, Typeable, Show)
+data PFormula v p f = Formula {unFormula :: N.NFormula v p f} deriving (Data, Typeable, Show)
 
-instance (Data p, Ord p, Data v, Ord v, Data f, Ord f) => Bijection (Formula v p f) (N.Formula v p f) where
+instance (Data p, Ord p, Data v, Ord v, Data f, Ord f) => Bijection (PFormula v p f) (N.NFormula v p f) where
     public = Formula
     intern = unFormula
 
-instance (Data p, Ord p, Data v, Ord v, Data f, Ord f) => Bijection (Combination (Formula v p f)) (Combination (N.Formula v p f)) where
+instance (Data p, Ord p, Data v, Ord v, Data f, Ord f) => Bijection (Combination (PFormula v p f)) (Combination (N.NFormula v p f)) where
     public (BinOp x op y) = BinOp (public x) op (public y)
     public ((:~:) x) = (:~:) (public x)
     intern (BinOp x op y) = BinOp (intern x) op (intern y)
     intern ((:~:) x) = (:~:) (intern x)
 
-instance (IsFirstOrder (N.Formula v p f) (FOL p (N.Term v f)) p (N.Term v f) v f,
-          HasBoolean (FOL p (N.Term v f)),
-          IsLiteral (Formula v p f) (FOL p (N.Term v f)),
-          HasEquals p {-, IsFunction f, IsVariable v, Data p, Ord p, Data v, Ord v, Data f, Ord f-}) => IsNegatable (Formula v p f) where
+instance (IsVariable v, IsPredicate p, IsFunction f,
+          IsLiteral (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
+          C.IsFormula (PFormula v p f)  (N.NPredicate p (N.NTerm v f)),
+          HasBoolean p, Data v, Data p, Data f
+         ) => IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)) where
+    foldLiteral ne tf at fm = foldLiteral (ne . Formula) tf at (unFormula fm)
+
+-- instance (IsVariable v, IsPredicate p, IsFunction f, HasBoolean p) => IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f) v f
+
+instance (IsVariable v, IsPredicate p, IsFunction f, HasBoolean (N.NPredicate p (N.NTerm v f)),
+          IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f))
+          ) => IsNegatable (PFormula v p f) where
     naiveNegate = Formula . naiveNegate . unFormula
     foldNegation' inverted normal = foldNegation' (inverted . Formula) (normal . Formula) . unFormula
 
-instance (HasBoolean (N.Formula v p f), IsPredicate p, IsVariable v, IsFunction f) => HasBoolean (Formula v p f) where
+instance (HasBoolean (N.NFormula v p f), IsPredicate p, IsVariable v, IsFunction f) => HasBoolean (PFormula v p f) where
     fromBool = Formula . fromBool
     asBool = asBool . unFormula
 
-instance (IsFirstOrder (N.Formula v p f) (FOL p (N.Term v f)) p (N.Term v f) v f,
-          HasBoolean (FOL p (N.Term v f)),
-          IsLiteral (Formula v p f) (FOL p (N.Term v f))
+instance (IsVariable v, IsPredicate p, IsFunction f,
+          HasBoolean (N.NPredicate p (N.NTerm v f)),
+          IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f))
 {-
-          C.IsFormula (N.Formula v p f) (FOL p (N.Term v f)),
-          HasEquals p,
+          C.IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
+          HasEquate p,
           HasBoolean (Formula v p f),
-          HasBoolean (N.Formula v p f),
+          HasBoolean (N.NFormula v p f),
           ,
-          IsLiteral (Formula v p f) (FOL p (N.Term v f)),
-          IsVariable v, IsPredicate p (N.Term v f), IsFunction f-}) => IsCombinable (Formula v p f) where
+          IsLiteral (Formula v p f) (N.NPredicate p (N.NTerm v f)),
+          IsVariable v, IsPredicate p (N.NTerm v f), IsFunction f-}) => IsCombinable (PFormula v p f) where
     foldCombination dj cj imp iff other (Formula fm) =
         foldCombination (dj `on` Formula) (cj `on` Formula) (imp `on` Formula) (iff `on` Formula) (other . Formula) fm
     x .<=>. y = Formula $ (unFormula x) .<=>. (unFormula y)
@@ -79,81 +87,93 @@ instance (IsFirstOrder (N.Formula v p f) (FOL p (N.Term v f)) p (N.Term v f) v f
     x .|.   y = Formula $ (unFormula x) .|. (unFormula y)
     x .&.   y = Formula $ (unFormula x) .&. (unFormula y)
 
-instance (IsFirstOrder (N.Formula v p f) (FOL p (N.Term v f)) p (N.Term v f) v f,
-          HasBoolean (FOL p (N.Term v f)),
-          IsLiteral (Formula v p f) (FOL p (N.Term v f)),
-          HasEquals p, Data v, Data p, Data f
-         {-, HasPredicate (FOL p (N.Term v f)) p (N.Term v f), IsFunction f, IsVariable v-}) => C.IsFormula (Formula v p f) (FOL p (N.Term v f)) where
+instance (IsVariable v, IsPredicate p, IsFunction f,
+          IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f) v f,
+          HasBoolean (N.NPredicate p (N.NTerm v f)),
+          IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
+          Data v, Data p, Data f
+         {-, HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), IsFunction f, IsVariable v-}
+         ) => C.IsFormula (PFormula v p f) (N.NPredicate p (N.NTerm v f)) where
     atomic = Formula . C.atomic
     overatoms = overatomsFirstOrder
     onatoms = onatomsFirstOrder
     prettyFormula = error "FIXME"
 
-instance (IsFirstOrder (N.Formula v p f) (FOL p (N.Term v f)) p (N.Term v f) v f,
-          HasBoolean (FOL p (N.Term v f)),
-          IsLiteral (Formula v p f) (FOL p (N.Term v f)),
-          HasEquals p, Data v, Data p, Data f
-          {- HasPredicate (FOL p (N.Term v f)) p (N.Term v f), C.IsFormula (Formula v p f) (FOL p (N.Term v f)),
-          C.IsFormula (N.Formula v p f) (FOL p (N.Term v f)),
-          IsVariable v, HasEquals p, IsFunction f -}) => IsQuantified (Formula v p f) (FOL p (N.Term v f)) v where
-    quant q v x = public $ quant q v (intern x :: N.Formula v p f)
-    foldQuantified qu co tf at f = foldQuantified qu' co' tf at (intern f :: N.Formula v p f)
+instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f) v f,
+          HasBoolean (N.NPredicate p (N.NTerm v f)),
+          IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
+          Data v, Data p, Data f
+          {- HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), C.IsFormula (Formula v p f) (N.NPredicate p (N.NTerm v f)),
+          C.IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
+          IsVariable v, HasEquate p, IsFunction f -}
+         ) => IsQuantified (PFormula v p f) (N.NPredicate p (N.NTerm v f)) v where
+    quant q v x = public $ quant q v (intern x :: N.NFormula v p f)
+    foldQuantified qu co tf at f = foldQuantified qu' co' tf at (intern f :: N.NFormula v p f)
         where qu' op v form = qu op v (public form)
               co' x = co (public x)
 
-instance (IsFirstOrder (N.Formula v p f) (FOL p (N.Term v f)) p (N.Term v f) v f,
-          HasBoolean (FOL p (N.Term v f)),
-          IsLiteral (Formula v p f) (FOL p (N.Term v f)),
+instance (IsVariable v, Data v, IsPredicate p, Data p, IsFunction f, Data f, HasBoolean p, HasEquals p, HasFunctions (N.NPredicate p (N.NTerm v f)) f
+         ) => HasFunctions (PFormula v p f) f where
+    funcs = foldQuantified (\_ _ fm -> funcs fm) co (\_ -> mempty) funcs
+        where
+          co ((:~:) fm) = funcs fm
+          co (BinOp lhs _ rhs) = union (funcs lhs) (funcs rhs)
+
+instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f) v f,
+          HasBoolean (N.NPredicate p (N.NTerm v f)),
+          IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
           Data v, Data p, Data f
-          {-HasPredicate (FOL p (N.Term v f)) p (N.Term v f), C.IsFormula (Formula v p f) (FOL p (N.Term v f)),
-          C.IsFormula (N.Formula v p f) (FOL p (N.Term v f)),
-          HasFixity (Formula v p f), IsVariable v, HasEquals p,
+          {-HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), C.IsFormula (Formula v p f) (N.NPredicate p (N.NTerm v f)),
+          C.IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
+          HasFixity (Formula v p f), IsVariable v, HasEquate p,
           -- Show v, Show p, Show f, 
-          IsFunction f-}) => IsPropositional (Formula v p f) (FOL p (N.Term v f)) where
-    foldPropositional co tf at f = foldPropositional co' tf at (intern f :: N.Formula v p f)
+          IsFunction f-}) => IsPropositional (PFormula v p f) (N.NPredicate p (N.NTerm v f)) where
+    foldPropositional co tf at f = foldPropositional co' tf at (intern f :: N.NFormula v p f)
         where co' x = co (public x)
 
 -- |Here are the magic Ord and Eq instances
-instance (IsFirstOrder (N.Formula v p f) (FOL p (N.Term v f)) p (N.Term v f) v f,
-          HasBoolean (FOL p (N.Term v f)),
-          IsLiteral (Formula v p f) (FOL p (N.Term v f)),
+instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f) v f,
+          HasBoolean p, HasBoolean (N.NPredicate p (N.NTerm v f)),
+          IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
           Data v, Data p, Data f
-          {-HasPredicate (FOL p (N.Term v f)) p (N.Term v f), C.IsFormula (Formula v p f) (FOL p (N.Term v f)),
-          C.IsFormula (N.Formula v p f) (FOL p (N.Term v f)),
-          HasEquals p, IsFunction f, IsVariable v -}) => Ord (Formula v p f) where
+          {-HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), C.IsFormula (Formula v p f) (N.NPredicate p (N.NTerm v f)),
+          C.IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
+          HasEquate p, IsFunction f, IsVariable v -}
+         ) => Ord (PFormula v p f) where
     compare a b =
-        let (a' :: Set (Set (N.Formula v p f))) = simpcnf' (unFormula a)
-            (b' :: Set (Set (N.Formula v p f))) = simpcnf' (unFormula b) in
+        let (a' :: Set (Set (N.NFormula v p f))) = simpcnf' (unFormula a)
+            (b' :: Set (Set (N.NFormula v p f))) = simpcnf' (unFormula b) in
         case compare a' b' of
           EQ -> EQ
           x -> {- if isRenameOf a' b' then EQ else -} x
 
-instance (HasPredicate (FOL p (N.Term v f)) p (N.Term v f), C.IsFormula (Formula v p f) (FOL p (N.Term v f)),
-          C.IsFormula (N.Formula v p f) (FOL p (N.Term v f)),
-          HasEquals p, IsFunction f, IsVariable v, HasBoolean (FOL p (N.Term v f)),
-          IsQuantified (Formula v p f) (FOL p (N.Term v f)) v) => Eq (Formula v p f) where
+instance (HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), C.IsFormula (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
+          C.IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
+          IsFunction f, IsVariable v, HasBoolean (N.NPredicate p (N.NTerm v f)),
+          IsQuantified (PFormula v p f) (N.NPredicate p (N.NTerm v f)) v
+         ) => Eq (PFormula v p f) where
     a == b = compare a b == EQ
 
-instance (IsFirstOrder (N.Formula v p f) (FOL p (N.Term v f)) p (N.Term v f) v f,
-          IsLiteral (Formula v p f) (FOL p (N.Term v f)),
-          HasFixity (FOL p (N.Term v f)),
-          HasBoolean (FOL p (N.Term v f)),
-          HasEquals p,
+instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f) v f,
+          IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
+          HasFixity (N.NPredicate p (N.NTerm v f)),
+          HasBoolean (N.NPredicate p (N.NTerm v f)),
           Data v, Data p, Data f
-          {-HasPredicate (FOL p (N.Term v f)) p (N.Term v f), HasEquals p, IsFunction f, IsVariable v-}) => HasFixity (Formula v p f) where
+          {-HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), HasEquate p, IsFunction f, IsVariable v-}
+         ) => HasFixity (PFormula v p f) where
     fixity = fixityFirstOrder
 
-instance (IsFirstOrder (N.Formula v p f) (FOL p (N.Term v f)) p (N.Term v f) v f,
-          IsLiteral (Formula v p f) (FOL p (N.Term v f)),
-          HasFixity (FOL p (N.Term v f)),
-          HasBoolean (FOL p (N.Term v f)),
+instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f) v f,
+          IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
+          HasFixity (N.NPredicate p (N.NTerm v f)),
+          HasBoolean (N.NPredicate p (N.NTerm v f)),
           Data v, Data p, Data f
-          {-HasPredicate (FOL p (N.Term v f)) p (N.Term v f), C.IsFormula (Formula v p f) (FOL p (N.Term v f)),
-          C.IsFormula (N.Formula v p f) (FOL p (N.Term v f)),
-          IsVariable v, HasEquals p,
+          {-HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), C.IsFormula (Formula v p f) (N.NPredicate p (N.NTerm v f)),
+          C.IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
+          IsVariable v, HasEquate p,
           Pretty v, Pretty p, Pretty f,
           -- Show v, Show p, Show f,
-          IsFunction f-}) => Pretty (Formula v p f) where
-    pPrint = prettyFormula rootFixity Unary
+          IsFunction f-}) => Pretty (PFormula v p f) where
+    pPrint = prettyFormula
 
-$(deriveSafeCopy 1 'base ''Formula)
+$(deriveSafeCopy 1 'base ''PFormula)
