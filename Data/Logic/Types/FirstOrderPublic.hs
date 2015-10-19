@@ -17,16 +17,10 @@ import qualified Data.Logic.Types.FirstOrder as N
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set, union)
 import Data.Typeable (Typeable)
-import FOL (HasEquals, HasFunctions(funcs), HasPredicate, IsFirstOrder, IsFunction, IsPredicate, IsVariable, IsQuantified(..),
-            overatomsFirstOrder, onatomsFirstOrder, fixityFirstOrder)
-import Formulas (HasBoolean(..))
-import Formulas (IsCombinable(..), Combination(..))
-import Formulas (IsNegatable(..))
-import Formulas (prettyFormula)
-import Formulas as C
+import FOL (HasEquals, HasFunctions(funcs), HasPredicate, IsFirstOrder, IsFunction, IsPredicate, IsVariable, IsQuantified(..), overatomsFirstOrder, onatomsFirstOrder, fixityFirstOrder)
+import Formulas (HasBoolean(..), IsCombinable(..), Combination(..), IsFormula(..), IsNegatable(..), prettyFormula)
 import Lit (IsLiteral(..))
 import Pretty (Pretty(pPrint), HasFixity(fixity))
-import Pretty (rootFixity, Side(Unary))
 import Prop (IsPropositional(..))
 import Skolem (simpcnf')
 
@@ -52,7 +46,7 @@ instance (Data p, Ord p, Data v, Ord v, Data f, Ord f) => Bijection (Combination
 
 instance (IsVariable v, IsPredicate p, IsFunction f,
           IsLiteral (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
-          C.IsFormula (PFormula v p f)  (N.NPredicate p (N.NTerm v f)),
+          IsFormula (PFormula v p f)  (N.NPredicate p (N.NTerm v f)),
           HasBoolean p, Data v, Data p, Data f
          ) => IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)) where
     foldLiteral ne tf at fm = foldLiteral (ne . Formula) tf at (unFormula fm)
@@ -73,7 +67,7 @@ instance (IsVariable v, IsPredicate p, IsFunction f,
           HasBoolean (N.NPredicate p (N.NTerm v f)),
           IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f))
 {-
-          C.IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
+          IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
           HasEquate p,
           HasBoolean (Formula v p f),
           HasBoolean (N.NFormula v p f),
@@ -93,8 +87,8 @@ instance (IsVariable v, IsPredicate p, IsFunction f,
           IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
           Data v, Data p, Data f
          {-, HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), IsFunction f, IsVariable v-}
-         ) => C.IsFormula (PFormula v p f) (N.NPredicate p (N.NTerm v f)) where
-    atomic = Formula . C.atomic
+         ) => IsFormula (PFormula v p f) (N.NPredicate p (N.NTerm v f)) where
+    atomic = Formula . atomic
     overatoms = overatomsFirstOrder
     onatoms = onatomsFirstOrder
     prettyFormula = error "FIXME"
@@ -103,8 +97,8 @@ instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NT
           HasBoolean (N.NPredicate p (N.NTerm v f)),
           IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
           Data v, Data p, Data f
-          {- HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), C.IsFormula (Formula v p f) (N.NPredicate p (N.NTerm v f)),
-          C.IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
+          {- HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), IsFormula (Formula v p f) (N.NPredicate p (N.NTerm v f)),
+          IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
           IsVariable v, HasEquate p, IsFunction f -}
          ) => IsQuantified (PFormula v p f) (N.NPredicate p (N.NTerm v f)) v where
     quant q v x = public $ quant q v (intern x :: N.NFormula v p f)
@@ -123,8 +117,8 @@ instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NT
           HasBoolean (N.NPredicate p (N.NTerm v f)),
           IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
           Data v, Data p, Data f
-          {-HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), C.IsFormula (Formula v p f) (N.NPredicate p (N.NTerm v f)),
-          C.IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
+          {-HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), IsFormula (Formula v p f) (N.NPredicate p (N.NTerm v f)),
+          IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
           HasFixity (Formula v p f), IsVariable v, HasEquate p,
           -- Show v, Show p, Show f, 
           IsFunction f-}) => IsPropositional (PFormula v p f) (N.NPredicate p (N.NTerm v f)) where
@@ -132,13 +126,7 @@ instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NT
         where co' x = co (public x)
 
 -- |Here are the magic Ord and Eq instances
-instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f) v f,
-          HasBoolean p, HasBoolean (N.NPredicate p (N.NTerm v f)),
-          IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
-          Data v, Data p, Data f
-          {-HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), C.IsFormula (Formula v p f) (N.NPredicate p (N.NTerm v f)),
-          C.IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
-          HasEquate p, IsFunction f, IsVariable v -}
+instance (IsVariable v, Data v, IsPredicate p, Data p, IsFunction f, Data f, HasBoolean p, HasEquals p
          ) => Ord (PFormula v p f) where
     compare a b =
         let (a' :: Set (Set (N.NFormula v p f))) = simpcnf' (unFormula a)
@@ -147,8 +135,8 @@ instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NT
           EQ -> EQ
           x -> {- if isRenameOf a' b' then EQ else -} x
 
-instance (HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), C.IsFormula (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
-          C.IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
+instance (HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), IsFormula (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
+          IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
           IsFunction f, IsVariable v, HasBoolean (N.NPredicate p (N.NTerm v f)),
           IsQuantified (PFormula v p f) (N.NPredicate p (N.NTerm v f)) v
          ) => Eq (PFormula v p f) where
@@ -168,8 +156,8 @@ instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NT
           HasFixity (N.NPredicate p (N.NTerm v f)),
           HasBoolean (N.NPredicate p (N.NTerm v f)),
           Data v, Data p, Data f
-          {-HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), C.IsFormula (Formula v p f) (N.NPredicate p (N.NTerm v f)),
-          C.IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
+          {-HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), IsFormula (Formula v p f) (N.NPredicate p (N.NTerm v f)),
+          IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
           IsVariable v, HasEquate p,
           Pretty v, Pretty p, Pretty f,
           -- Show v, Show p, Show f,

@@ -1,7 +1,8 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, TemplateHaskell, TypeFamilies, UndecidableInstances #-}
 
 module Data.Logic.Types.FirstOrder
-    ( NFormula(..)
+    ( withUnivQuants
+    , NFormula(..)
     , NTerm(..)
     , NPredicate(..)
     ) where
@@ -12,12 +13,29 @@ import Data.Monoid ((<>))
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable (Typeable)
 import Formulas (Combination((:~:), BinOp), BinOp(..), IsNegatable(..), IsCombinable(..), HasBoolean(..), IsFormula(..))
-import FOL (equalsFuncs, HasEquals, HasEquate(equate, foldEquate'), HasFunctions(..), HasPredicate(..), IsFirstOrder,
+import FOL (exists, HasEquals, HasEquate(equate, foldEquate'), HasFunctions(..), HasPredicate(..), IsFirstOrder,
             IsFunction, IsPredicate, IsQuantified(..), IsTerm(..), IsVariable(..),
-            prettyPredicateApplicationEq, prettyQuantified, Quant, V)
+            prettyPredicateApplicationEq, prettyQuantified, Quant(..), V)
 import Lit (IsLiteral(..))
 import Pretty (HasFixity(..), Pretty(pPrint), prettyShow, rootFixity, Side(Unary), text)
 import Prop (IsPropositional(..))
+
+-- | Examine the formula to find the list of outermost universally
+-- quantified variables, and call a function with that list and the
+-- formula after the quantifiers are removed.
+withUnivQuants :: IsQuantified formula atom v => ([v] -> formula -> r) -> formula -> r
+withUnivQuants fn formula =
+    doFormula [] formula
+    where
+      doFormula vs f =
+          foldQuantified
+                (doQuant vs)
+                (\ _ -> fn (reverse vs) f)
+                (\ _ -> fn (reverse vs) f)
+                (\ _ -> fn (reverse vs) f)
+                f
+      doQuant vs (:!:) v f = doFormula (v : vs) f
+      doQuant vs (:?:) v f = fn (reverse vs) (exists v f)
 
 -- | The range of a formula is {True, False} when it has no free variables.
 data NFormula v p f
@@ -39,7 +57,7 @@ data NPredicate p term
 
 -- | The range of a term is an element of a set.
 data NTerm v f
-    = Var v                         -- ^ A variable, either free or
+    = NVar v                        -- ^ A variable, either free or
                                     -- bound by an enclosing quantifier.
     | FunApp f [NTerm v f]           -- ^ Function application.
                                     -- Constants are encoded as
@@ -48,7 +66,7 @@ data NTerm v f
     deriving (Eq, Ord, Data, Typeable, Show)
 
 instance (Pretty v, Pretty f) => Pretty (NTerm v f) where
-    pPrint (Var v) = pPrint v
+    pPrint (NVar v) = pPrint v
     pPrint (FunApp fn []) = pPrint fn
     pPrint (FunApp fn args) = pPrint fn <> text " [" <> mconcat (intersperse (text ", ") (map pPrint args)) <> text "]"
 instance (IsVariable v, IsPredicate p, IsFunction f
@@ -92,7 +110,8 @@ instance HasBoolean p => HasBoolean (NPredicate p (NTerm v f)) where
     asBool (Apply p []) = asBool p
     asBool _ = Nothing
 instance HasBoolean p => HasBoolean (NFormula v p f) where
-    asBool = error "FIXME: HasBoolean (NFormula v p f)"
+    asBool (Predicate (Apply p [])) = asBool p
+    asBool _ = Nothing
     fromBool = Predicate . fromBool
 instance (IsVariable v, IsPredicate p, IsFunction f, Pretty (NPredicate p (NTerm v f)), HasBoolean p
          ) => IsFormula (NFormula v p f) (NPredicate p (NTerm v f)) where
@@ -119,14 +138,14 @@ instance (IsVariable v, IsPredicate p, IsFunction f, HasBoolean p, atom ~ NPredi
           Predicate x -> at x
           _ -> error ("foldLiteral NFormula - unexpected: " ++ prettyShow fm)
 instance (IsVariable v, IsPredicate p, IsFunction f, HasBoolean p,
-          HasPredicate atom p term,
-          HasFunctions term f,
-          HasFunctions formula f,
-          Pretty atom, {-FOL p (NTerm v f)-}
-          term ~ (NTerm v f),
-          atom ~ NPredicate p term,
-          formula ~ (NFormula v p f)
-         ) => IsFirstOrder formula atom p term v f
+          HasPredicate (NPredicate p (NTerm v f)) p (NTerm v f),
+          HasFunctions (NTerm v f) f,
+          HasFunctions (NFormula v p f) f,
+          Pretty (NPredicate p (NTerm v f)) {-FOL p (NTerm v f)-}
+          -- term ~ (NTerm v f),
+          -- atom ~ NPredicate p term,
+          -- formula ~ (NFormula v p f)
+         ) => IsFirstOrder (NFormula v p f) (NPredicate p (NTerm v f)) p (NTerm v f) v f
 
 instance (IsFirstOrder (NFormula v p f) (NPredicate p (NTerm v f)) p (NTerm v f) v f,
           HasPredicate (NPredicate p (NTerm v f)) p (NTerm v f),
@@ -139,9 +158,9 @@ instance IsFunction f => HasFunctions (NTerm v f) f where
     funcs = error "FIXME: HasFunctions (NTerm v f)"
 
 instance (IsVariable v, IsFunction f) => IsTerm (NTerm v f) v f where
-    vt = Var
+    vt = NVar
     fApp = FunApp
-    foldTerm vf _ (Var v) = vf v
+    foldTerm vf _ (NVar v) = vf v
     foldTerm _ ff (FunApp f ts) = ff f ts
     zipTerms vf ff t1 t2 =
         foldTerm vf' ff' t1
@@ -155,3 +174,4 @@ $(deriveSafeCopy 1 'base ''Quant)
 $(deriveSafeCopy 1 'base ''NFormula)
 $(deriveSafeCopy 1 'base ''NPredicate)
 $(deriveSafeCopy 1 'base ''NTerm)
+$(deriveSafeCopy 1 'base ''V)

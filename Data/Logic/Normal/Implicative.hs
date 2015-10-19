@@ -24,6 +24,7 @@ import qualified Data.Set.Extra as Set
 import FOL (IsFirstOrder, IsQuantified(..), IsTerm)
 import Formulas (IsNegatable(..), true)
 import Lit (IsLiteral(..))
+import Pretty (Pretty(pPrint))
 import Prop (IsPropositional)
 import Skolem (HasSkolem(fromSkolem), runSkolem, runSkolemT, simpcnf', skolemize, SkolemT)
 import Text.PrettyPrint (Doc, cat, text, hsep)
@@ -59,12 +60,12 @@ data ImplicativeForm lit =
 makeINF' :: (IsNegatable lit, Ord lit) => [lit] -> [lit] -> ImplicativeForm lit
 makeINF' n p = INF (Set.fromList n) (Set.fromList p)
 
-prettyINF :: (IsNegatable lit, Ord lit) => (lit -> Doc) -> ImplicativeForm lit -> Doc
-prettyINF lit x = cat $ [text "(", hsep (map lit (Set.toList (neg x))),
-                         text ") => (", hsep (map lit (Set.toList (pos x))), text ")"]
+prettyINF :: (IsNegatable lit, Ord lit, Pretty lit) => ImplicativeForm lit -> Doc
+prettyINF x = cat $ [text "(", hsep (map pPrint (Set.toList (neg x))),
+                         text ") => (", hsep (map pPrint (Set.toList (pos x))), text ")"]
 
-prettyProof :: (IsNegatable lit, Ord lit) => (lit -> Doc) -> Set.Set (ImplicativeForm lit) -> Doc
-prettyProof lit p = cat $ [text "["] ++ intersperse (text ", ") (map (prettyINF lit) (Set.toList p)) ++ [text "]"]
+prettyProof :: (IsNegatable lit, Ord lit, Pretty lit) => Set.Set (ImplicativeForm lit) -> Doc
+prettyProof p = cat $ [text "["] ++ intersperse (text ", ") (map prettyINF (Set.toList p)) ++ [text "]"]
 
 -- |Take the clause normal form, and turn it into implicative form,
 -- where each clauses becomes an (LHS, RHS) pair with the negated
