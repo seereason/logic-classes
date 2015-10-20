@@ -19,7 +19,7 @@ import Formulas ((.~.))
 import Prop (convertPropositional)
 import qualified PropLogic as PL
 import Pretty (HasFixity, Pretty, )
-import Skolem (simpcnf', SkolemT)
+import Skolem (simpcnf')
 
 -- |Is there any variable assignment that makes the formula true?
 -- satisfiable :: forall formula atom term v f m. (Monad m, IsQuantified formula atom v, Formula atom term v, IsTerm term v f, Ord formula, IsLiteral formula atom v, Ord atom) =>

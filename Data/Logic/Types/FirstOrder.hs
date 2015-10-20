@@ -8,16 +8,14 @@ module Data.Logic.Types.FirstOrder
     ) where
 
 import Data.Data (Data)
-import Data.List (intersperse)
-import Data.Monoid ((<>))
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable (Typeable)
 import Formulas (Combination((:~:), BinOp), BinOp(..), IsNegatable(..), IsCombinable(..), HasBoolean(..), IsFormula(..))
 import FOL (exists, HasEquals, HasEquate(equate, foldEquate'), HasFunctions(..), HasPredicate(..), IsFirstOrder,
             IsFunction, IsPredicate, IsQuantified(..), IsTerm(..), IsVariable(..),
-            prettyPredicateApplicationEq, prettyQuantified, Quant(..), V)
+            prettyPredicateApplicationEq, prettyQuantified, prettyTerm, Quant(..), V)
 import Lit (IsLiteral(..))
-import Pretty (HasFixity(..), Pretty(pPrint), prettyShow, rootFixity, Side(Unary), text)
+import Pretty (HasFixity(..), Pretty(pPrint), prettyShow, rootFixity, Side(Unary))
 import Prop (IsPropositional(..))
 
 -- | Examine the formula to find the list of outermost universally
@@ -65,10 +63,8 @@ data NTerm v f
                                     -- is another term.
     deriving (Eq, Ord, Data, Typeable, Show)
 
-instance (Pretty v, Pretty f) => Pretty (NTerm v f) where
-    pPrint (NVar v) = pPrint v
-    pPrint (FunApp fn []) = pPrint fn
-    pPrint (FunApp fn args) = pPrint fn <> text " [" <> mconcat (intersperse (text ", ") (map pPrint args)) <> text "]"
+instance (IsVariable v, Pretty v, IsFunction f, Pretty f) => Pretty (NTerm v f) where
+    pPrint = prettyTerm
 instance (IsVariable v, IsPredicate p, IsFunction f
          ) => IsNegatable (NFormula v p f) where
     naiveNegate = Combine . (:~:)
@@ -132,7 +128,7 @@ instance (IsVariable v, IsPredicate p, IsFunction f, HasBoolean p, atom ~ NPredi
     quant = Quant
 instance (IsVariable v, IsPredicate p, IsFunction f, HasBoolean p, atom ~ NPredicate p (NTerm v f) {-FOL p (NTerm v f)-}, Pretty atom
          ) => IsLiteral (NFormula v p f) atom where
-    foldLiteral ne tf at fm =
+    foldLiteral ne _tf at fm =
         case fm of
           Combine ((:~:) fm') -> ne fm'
           Predicate x -> at x

@@ -14,15 +14,13 @@ module Data.Logic.Instances.Chiou
     ) where
 
 import Data.Generics (Data, Typeable)
-import Data.List (intersperse)
 import Data.Logic.Classes.Atom (Atom)
-import Data.Monoid ((<>))
 import Data.String (IsString(..))
 import FOL ((.=.), foldEquate, HasEquate(..), HasPredicate(..), IsFunction, IsPredicate, IsQuantified(..),
-            IsTerm(..), IsVariable, onatomsFirstOrder, overatomsFirstOrder, pApp, Quant(..))
+            IsTerm(..), IsVariable, onatomsFirstOrder, overatomsFirstOrder, pApp, prettyTerm, Quant(..))
 import Formulas (HasBoolean(..), asBool, IsCombinable(..), BinOp(..), Combination(..), IsFormula(..), IsNegatable(..), (.~.))
 import Lit (IsLiteral(foldLiteral))
-import Pretty (Pretty(pPrint), HasFixity(..), text, rootFixity, Side(Unary))
+import Pretty (Pretty(pPrint), HasFixity(..), rootFixity)
 import Prop (IsPropositional(..))
 import Skolem (HasSkolem(..))
 
@@ -39,10 +37,8 @@ data CTerm v f
     | Variable v
     deriving (Eq, Ord, Data, Typeable)
 
-instance (Pretty v, Pretty f) => Pretty (CTerm v f) where
-    pPrint (Variable v) = pPrint v
-    pPrint (Function fn []) = pPrint fn
-    pPrint (Function fn args) = pPrint fn <> text " [" <> mconcat (intersperse (text ", ") (map pPrint args)) <> text "]"
+instance (IsVariable v, Pretty v, IsFunction f, Pretty f) => Pretty (CTerm v f) where
+    pPrint = prettyTerm
 
 data Connective
     = Imply
