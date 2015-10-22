@@ -11,9 +11,11 @@ import FOL (IsFunction, HasFunctions(funcs), IsFirstOrder)
 import Formulas (IsCombinable(..), Combination(..), BinOp(..), HasBoolean(fromBool, asBool), IsFormula(..), IsNegatable(..))
 import Lit (IsLiteral(..))
 import Pretty (HasFixity(fixity), Pretty(pPrint), rootFixity, prettyShow)
-import Prop (IsPropositional(..))
+import Prop (foldPropositional, IsPropositional(foldPropositional'), JustPropositional)
 import PropLogic hiding (at)
 import Skolem (SkolemT, simpcnf')
+
+instance JustPropositional (PropForm a)
 
 instance Ord a => IsNegatable (PropForm a) where
     naiveNegate = N
@@ -43,25 +45,24 @@ instance (Pretty a, HasFixity a, Ord a) => IsFormula (PropForm a) a where
     prettyFormula = error "FIXME prettyFormula PropForm"
 
 instance (IsCombinable (PropForm a), Pretty a, HasFixity a, Ord a) => IsPropositional (PropForm a) a where
-    foldPropositional co tf at formula =
+    foldPropositional' ho co tf at formula =
         case formula of
           -- EJ [x,y,z,...] -> CJ [EJ [x,y], EJ[y,z], ...]
           EJ [] -> error "Empty equijunct"
-          EJ [x] -> foldPropositional co tf at x
+          EJ [x] -> foldPropositional' ho co tf at x
           EJ [x0, x1] -> co (BinOp x0 (:<=>:) x1)
-          EJ xs -> foldPropositional co tf at (CJ (map (\ (x0, x1) -> EJ [x0, x1]) (pairs xs)))
+          EJ xs -> foldPropositional' ho co tf at (CJ (map (\ (x0, x1) -> EJ [x0, x1]) (pairs xs)))
           SJ [] -> error "Empty subjunct"
-          SJ [x] -> foldPropositional co tf at x
+          SJ [x] -> foldPropositional' ho co tf at x
           SJ [x0, x1] -> co (BinOp x0 (:=>:) x1)
-          SJ xs -> foldPropositional co tf at (CJ (map (\ (x0, x1) -> SJ [x0, x1]) (pairs xs)))
+          SJ xs -> foldPropositional' ho co tf at (CJ (map (\ (x0, x1) -> SJ [x0, x1]) (pairs xs)))
           DJ [] -> tf False
-          DJ [x] -> foldPropositional co tf at x
+          DJ [x] -> foldPropositional' ho co tf at x
           DJ (x0:xs) -> co (BinOp x0 (:|:) (DJ xs))
           CJ [] -> tf True
-          CJ [x] -> foldPropositional co tf at x
+          CJ [x] -> foldPropositional' ho co tf at x
           CJ (x0:xs) -> co (BinOp x0 (:&:) (CJ xs))
           N x -> co ((:~:) x)
-          -- Not sure what to do about these - so far not an issue.
           T -> tf True
           F -> tf False
           A x -> at x

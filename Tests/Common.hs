@@ -29,12 +29,12 @@ import Data.Logic.KnowledgeBase (WithId, runProver', Proof, loadKB, theoremKB, g
 import Data.Logic.Normal.Implicative (ImplicativeForm, runNormal, runNormalT)
 import Data.Logic.Resolution (getSubstAtomEq, isRenameOfAtomEq, SetOfSupport)
 import Data.Set as Set
-import FOL (asubst, convertFirstOrder, fApp, foldEquate, foldTerm, fva, HasEquate,
+import FOL (asubst, convertFirstOrder, fApp, foldEquate, foldTerm, funcs, fva, HasEquate,
             IsFirstOrder, IsQuantified(..), IsTerm, Predicate(NamedPredicate), V, vt)
 import Formulas (IsCombinable(..), HasBoolean(fromBool, asBool), IsNegatable(..), IsFormula(..))
 import Lit (IsLiteral(..))
 import Pretty (Pretty(pPrint), HasFixity(..))
-import Prop (IsPropositional(..), satisfiable, trivial)
+import Prop (IsPropositional(..), PFormula, satisfiable, trivial)
 import PropLogic (PropForm)
 import Safe (readMay)
 import Skolem (Function, MyAtom, MyTerm, SkolemT, MyFormula, MyAtom, MyTerm, simpcnf', HasSkolem(fromSkolem))
@@ -60,7 +60,7 @@ instance IsQuantified (PropForm MyAtom) MyAtom V where
     foldQuantified = error "FIXME: IsQuantified (PropForm MyAtom) MyAtom V"
 
 instance IsPropositional CNF MyAtom where
-    foldPropositional = error "FIXME: IsPropositional CNF MyAtom"
+    foldPropositional' = error "FIXME: IsPropositional CNF MyAtom"
 instance IsCombinable CNF where
     foldCombination = error "FIXME: IsCombinable CNF"
     _ .|. _ = error "FIXME: IsCombinable CNF"
@@ -97,7 +97,7 @@ data Expected formula atom v
     | SimplifiedForm formula
     | NegationNormalForm formula
     | PrenexNormalForm formula
-    | SkolemNormalForm formula
+    | SkolemNormalForm (PFormula MyAtom)
     | SkolemNumbers (Set Function)
     | ClauseNormalForm (Set (Set formula))
     | TrivialClauses [(Bool, (Set formula))]
@@ -129,8 +129,8 @@ doTest (TestFormula fm nm expect) =
       doExpected (SimplifiedForm f') = let label = (nm ++ " simplified") in TestLabel label (TestCase (assertEqual label f' (simplify fm)))
       doExpected (PrenexNormalForm f') = let label = (nm ++ " prenex normal form") in TestLabel label (TestCase (assertEqual label f' (pnf fm)))
       doExpected (NegationNormalForm f') = let label = (nm ++ " negation normal form") in TestLabel label (TestCase (assertEqual label f' (nnf . simplify $ fm)))
-      doExpected (SkolemNormalForm f') = let label = (nm ++ " skolem normal form") in TestLabel label (TestCase (assertEqual label f' (runSkolem (skolemize id fm :: SkolemT Identity MyFormula))))
-      doExpected (SkolemNumbers f') = let label = (nm ++ " skolem numbers") in TestLabel label (TestCase (assertEqual label f' (skolemSet (runSkolem (skolemize id fm :: SkolemT Identity MyFormula)))))
+      doExpected (SkolemNormalForm f') = let label = (nm ++ " skolem normal form") in TestLabel label (TestCase (assertEqual label f' (runSkolem (skolemize id fm :: SkolemT Identity (PFormula MyAtom)))))
+      doExpected (SkolemNumbers f') = let label = (nm ++ " skolem numbers") in TestLabel label (TestCase (assertEqual label f' (skolemSet (runSkolem (skolemize id fm :: SkolemT Identity (PFormula MyAtom))))))
       doExpected (ClauseNormalForm fss) =
           let label = (nm ++ " clause normal form") in
           TestLabel label (TestCase (assertEqual label
@@ -159,30 +159,8 @@ doTest (TestFormula fm nm expect) =
 norm :: [[Literal]] -> [[Literal]]
 norm = List.map Set.toList . Set.toList . Set.fromList . List.map Set.fromList
 
-{-
-skolemNormalForm' f = (skolem' . nnf . simplify $ f) >>= return . prenex' . nnf' . simplify'
-
--- skolem' :: formula -> SkolemT v term m pf
-skolem' :: ( Monad m
-           , Variable v
-           , Term term v f
-           , FirstOrderFormula formula atom v
-           -- , Atom atom term v
-           -- , PropositionalFormula pf atom
-           -- , Formula formula term v
-           ) =>
-           formula -> SkolemT v term m pf
-skolem' = undefined
--}
-
-skolemSet :: forall formula atom term v p f. (IsQuantified formula atom v, HasEquate atom p term, IsTerm term v f, Data formula, Data f, HasSkolem f v) => formula -> Set f
-skolemSet =
-    Prelude.foldr ins Set.empty . skolemList
-    where
-      ins :: f -> Set f -> Set f
-      ins f s = maybe s (const (Set.insert f s)) (fromSkolem f)
-      skolemList :: (IsQuantified formula atom v, HasEquate atom p term, IsTerm term v f, Data f, Typeable f, Data formula) => formula -> [f]
-      skolemList inf = gFind inf :: (Typeable f => [f])
+skolemSet :: PFormula MyAtom -> Set Function
+skolemSet = Set.map fst . funcs
 
 -- | @gFind a@ will extract any elements of type @b@ from
 -- @a@'s structure in accordance with the MonadPlus

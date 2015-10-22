@@ -97,9 +97,6 @@ instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NT
           HasBoolean (N.NPredicate p (N.NTerm v f)),
           IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
           Data v, Data p, Data f
-          {- HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), IsFormula (Formula v p f) (N.NPredicate p (N.NTerm v f)),
-          IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
-          IsVariable v, HasEquate p, IsFunction f -}
          ) => IsQuantified (PFormula v p f) (N.NPredicate p (N.NTerm v f)) v where
     quant q v x = public $ quant q v (intern x :: N.NFormula v p f)
     foldQuantified qu co tf at f = foldQuantified qu' co' tf at (intern f :: N.NFormula v p f)
@@ -117,12 +114,8 @@ instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NT
           HasBoolean (N.NPredicate p (N.NTerm v f)),
           IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
           Data v, Data p, Data f
-          {-HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), IsFormula (Formula v p f) (N.NPredicate p (N.NTerm v f)),
-          IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
-          HasFixity (Formula v p f), IsVariable v, HasEquate p,
-          -- Show v, Show p, Show f, 
-          IsFunction f-}) => IsPropositional (PFormula v p f) (N.NPredicate p (N.NTerm v f)) where
-    foldPropositional co tf at f = foldPropositional co' tf at (intern f :: N.NFormula v p f)
+         ) => IsPropositional (PFormula v p f) (N.NPredicate p (N.NTerm v f)) where
+    foldPropositional' ho co tf at f = foldPropositional' (ho . public) co' tf at (intern f :: N.NFormula v p f)
         where co' x = co (public x)
 
 -- |Here are the magic Ord and Eq instances
@@ -156,12 +149,7 @@ instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NT
           HasFixity (N.NPredicate p (N.NTerm v f)),
           HasBoolean (N.NPredicate p (N.NTerm v f)),
           Data v, Data p, Data f
-          {-HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), IsFormula (Formula v p f) (N.NPredicate p (N.NTerm v f)),
-          IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
-          IsVariable v, HasEquate p,
-          Pretty v, Pretty p, Pretty f,
-          -- Show v, Show p, Show f,
-          IsFunction f-}) => Pretty (PFormula v p f) where
+         ) => Pretty (PFormula v p f) where
     pPrint = prettyFormula
 
 $(deriveSafeCopy 1 'base ''PFormula)

@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS -fno-warn-incomplete-patterns #-}
 -- |
 -- Module      : Data.Boolean
@@ -28,6 +30,7 @@ module Data.Boolean (
 import Control.Monad ( guard, liftM )
 import qualified Data.IntMap as IM
 import Data.Maybe ( mapMaybe )
+import Prop (JustPropositional)
 
 -- | Boolean formulas are represented as values of type @Boolean@.
 --
@@ -72,6 +75,8 @@ isPositiveLiteral _       = False
 --
 type CNF     = [Clause]
 type Clause  = [Literal]
+
+instance JustPropositional CNF
 
 -- |
 -- We convert boolean formulas to conjunctive normal form by pushing

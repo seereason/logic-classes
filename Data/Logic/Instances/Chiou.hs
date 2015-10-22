@@ -21,7 +21,7 @@ import FOL ((.=.), foldEquate, HasEquate(..), HasPredicate(..), IsFunction, IsPr
 import Formulas (HasBoolean(..), asBool, IsCombinable(..), BinOp(..), Combination(..), IsFormula(..), IsNegatable(..), (.~.))
 import Lit (IsLiteral(foldLiteral))
 import Pretty (Pretty(pPrint), HasFixity(..), rootFixity)
-import Prop (IsPropositional(..))
+import Prop (IsPropositional(foldPropositional'))
 import Skolem (HasSkolem(..))
 
 data Sentence v p f
@@ -92,16 +92,16 @@ instance (IsLiteral (Sentence  v p f) (Sentence  v p f), IsFunction f, IsVariabl
 instance (IsFormula (Sentence v p f) (Sentence v p f), IsLiteral (Sentence v p f) (Sentence v p f),
           IsVariable v, IsFunction f, IsCombinable (Sentence v p f), HasBoolean p) =>
          IsPropositional (Sentence v p f) (Sentence v p f) where
-    foldPropositional co tf at formula =
+    foldPropositional' ho co tf at formula =
         case formula of
           Not x -> co ((:~:) x)
-          Quantifier _ _ _ -> error "Logic.Instance.Chiou.foldF0: unexpected"
           Connective f1 Imply f2 -> co (BinOp f1 (:=>:) f2)
           Connective f1 Equiv f2 -> co (BinOp f1 (:<=>:) f2)
           Connective f1 And f2 -> co (BinOp f1 (:&:) f2)
           Connective f1 Or f2 -> co (BinOp f1 (:|:) f2)
           Predicate p ts -> maybe (at (Predicate p ts)) tf (asBool p)
           Equal t1 t2 -> at (Equal t1 t2)
+          _ -> ho formula
 
 instance (Ord p, HasBoolean p, IsVariable v, IsFunction f) => IsLiteral (Sentence v p f) (Sentence v p f) where
     foldLiteral ne _ _ (Not x) = ne x

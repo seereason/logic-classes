@@ -32,7 +32,7 @@ import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Normal.Implicative (ImplicativeForm, implicativeNormalForm)
 import Data.Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Data.SafeCopy (deriveSafeCopy, base)
-import qualified Data.Set.Extra as S
+import Data.Set.Extra as Set (Set, empty, map, minView, null, partition, union)
 import FOL (HasEquate, IsFirstOrder, IsQuantified, IsTerm)
 import Formulas ((.~.))
 import Lit (IsLiteral)
@@ -61,7 +61,7 @@ wiLookupItem :: Int -> [WithId a] -> Maybe a
 wiLookupItem i xs = lookup i (withIdPairs' xs)
 -}
 
-type KnowledgeBase inf = S.Set (WithId inf)
+type KnowledgeBase inf = Set (WithId inf)
 
 data ProverState inf
     = ProverState
@@ -73,7 +73,7 @@ zeroKB :: Maybe Int -> ProverState inf
 zeroKB limit =
     ProverState
          { recursionLimit = limit
-         , knowledgeBase = S.empty
+         , knowledgeBase = Set.empty
          , sentenceCount = 1 }
 
 -- |A monad for running the knowledge base.
@@ -102,7 +102,7 @@ data ProofResult
 
 $(deriveSafeCopy 1 'base ''ProofResult)
 
-data Proof lit = Proof {proofResult :: ProofResult, proof :: S.Set (ImplicativeForm lit)} deriving (Data, Typeable, Eq, Ord)
+data Proof lit = Proof {proofResult :: ProofResult, proof :: Set (ImplicativeForm lit)} deriving (Data, Typeable, Eq, Ord)
 
 instance (Ord lit, Show lit, IsLiteral lit atom, IsQuantified lit atom v) => Show (Proof lit) where
     show p = "Proof {proofResult = " ++ show (proofResult p) ++ ", proof = " ++ show (proof p) ++ "}"
@@ -111,11 +111,11 @@ instance (Ord lit, Show lit, IsLiteral lit atom, IsQuantified lit atom v) => Sho
 unloadKB :: (Monad m, Ord inf) => SentenceCount -> ProverT inf m (Maybe (KnowledgeBase inf))
 unloadKB n =
     do st <- get
-       let (discard, keep) = S.partition ((== n) . wiIdent) (knowledgeBase st)
+       let (discard, keep) = Set.partition ((== n) . wiIdent) (knowledgeBase st)
        put (st {knowledgeBase = keep}) >> return (Just discard)
 
 -- |Return the contents of the knowledgebase.
-getKB :: Monad m => ProverT inf m (S.Set (WithId inf))
+getKB :: Monad m => ProverT inf m (Set (WithId inf))
 getKB = get >>= return . knowledgeBase
 
 -- |Return a flag indicating whether sentence was disproved, along
@@ -137,7 +137,7 @@ inconsistantKB s =
     lift (implicativeNormalForm s) >>=
     return . getSetOfSupport >>= \ sos ->
     getKB >>=
-    return . prove (recursionLimit st) S.empty sos . S.map wiItem
+    return . prove (recursionLimit st) Set.empty sos . Set.map wiItem
 
 -- |Return a flag indicating whether sentence was proved, along with a
 -- proof.
@@ -208,13 +208,13 @@ tellKB :: (IsFirstOrder formula atom p term v f,
 tellKB s =
     do st <- get
        inf <- lift (implicativeNormalForm s)
-       let inf' = S.map (withId (sentenceCount st)) inf
+       let inf' = Set.map (withId (sentenceCount st)) inf
        (valid, _, _) <- validKB s
        case valid of
          Disproved -> return ()
-         _ -> put st { knowledgeBase = S.union (knowledgeBase st) inf'
+         _ -> put st { knowledgeBase = Set.union (knowledgeBase st) inf'
                      , sentenceCount = sentenceCount st + 1 }
-       return $ Proof {proofResult = valid, proof = S.map wiItem inf'}
+       return $ Proof {proofResult = valid, proof = Set.map wiItem inf'}
 
 {-
 loadKB :: (IsQuantified formula atom v, IsPropositional formula atom, IsLiteral lit atom, Atom atom term v, HasEquate atom p term, IsTerm term v f,
@@ -262,10 +262,10 @@ showKB = get >>= return . reportKB
 
 reportKB :: (Show inf) => ProverState inf -> String
 reportKB st@(ProverState {knowledgeBase = kb}) =
-    case S.minView kb of
+    case Set.minView kb of
       Nothing -> "Nothing in Knowledge Base\n"
       Just (WithId {wiItem = x, wiIdent = n}, kb')
-          | S.null kb' ->
+          | Set.null kb' ->
               show n ++ ") " ++ "\t" ++ show x ++ "\n"
           | True ->
               show n ++ ") " ++ "\t" ++ show x ++ "\n" ++ reportKB (st {knowledgeBase = kb'})

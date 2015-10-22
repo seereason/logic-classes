@@ -3,14 +3,11 @@
 module Data.Logic.Harrison.Formulas.Propositional
     ( antecedent
     , consequent
-    , on_atoms
-    , over_atoms
-    , atom_union
     ) where
 
 import qualified Data.Set as Set
 import Formulas (Combination(..), (.~.), BinOp((:=>:)), binop)
-import Prop (IsPropositional(..))
+import Prop (IsPropositional(..), JustPropositional, foldPropositional)
 
 -- ------------------------------------------------------------------------- 
 -- General parsing of iterated infixes.                                      
@@ -158,49 +155,16 @@ let dest_imp fm =
   match fm with Imp(p,q) -> (p,q) | _ -> failwith "dest_imp";;
 -}
 
-antecedent :: IsPropositional formula atomic => formula -> formula
+antecedent :: (IsPropositional formula atomic, JustPropositional formula) => formula -> formula
 antecedent formula =
     foldPropositional c (error "antecedent") (error "antecedent") formula
     where
       c (BinOp p (:=>:) _) = p
       c _ = error "antecedent"
 
-consequent :: IsPropositional formula atomic => formula -> formula
+consequent :: (IsPropositional formula atomic, JustPropositional formula) => formula -> formula
 consequent formula =
     foldPropositional c (error "consequent") (error "consequent") formula
     where
       c (BinOp _ (:=>:) q) = q
       c _ = error "consequent"
-
--- ------------------------------------------------------------------------- 
--- Apply a function to the atoms, otherwise keeping structure.               
--- ------------------------------------------------------------------------- 
-
-on_atoms :: IsPropositional formula atomic => (atomic -> formula) -> formula -> formula
-on_atoms f fm =
-    foldPropositional co tf at fm
-    where 
-      co ((:~:) fm') = (.~.) (on_atoms f fm')
-      co (BinOp f1 op f2) = binop (on_atoms f f1) op (on_atoms f f2)
-      tf _ = fm
-      at x = f x
-
--- ------------------------------------------------------------------------- 
--- Formula analog of list iterator "itlist".                                 
--- ------------------------------------------------------------------------- 
-
-over_atoms :: (IsPropositional formula atomic) => (atomic -> b -> b) -> formula -> b -> b
-over_atoms f fm b =
-    foldPropositional co tf at fm
-    where
-      co ((:~:) p) = over_atoms f p b
-      co (BinOp p _ q) = over_atoms f p (over_atoms f q b)
-      tf _ = b
-      at x = f x b
-
--- ------------------------------------------------------------------------- 
--- Special case of a union of the results of a function over the atoms.      
--- ------------------------------------------------------------------------- 
-
-atom_union :: (IsPropositional formula atomic, Ord b) => (atomic -> Set.Set b) -> formula -> Set.Set b
-atom_union f fm = over_atoms (\ h t -> Set.union (f h) t) fm Set.empty

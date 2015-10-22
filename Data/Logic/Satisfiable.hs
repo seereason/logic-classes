@@ -12,35 +12,51 @@ module Data.Logic.Satisfiable
     , invalid
     ) where
 
+import Data.List as List (map)
 import Data.Logic.Instances.PropLogic ()
-import qualified Data.Set as Set
+import Data.Set as Set (toList)
 import FOL (IsFirstOrder)
 import Formulas ((.~.))
-import Prop (convertPropositional)
-import qualified PropLogic as PL
+import Prop (convertPropositional, Marked, Propositional, simpcnf)
+import qualified PropLogic as PL -- ()
 import Pretty (HasFixity, Pretty, )
-import Skolem (simpcnf')
+import Skolem (HasSkolem, runSkolem, skolemize)
 
 -- |Is there any variable assignment that makes the formula true?
 -- satisfiable :: forall formula atom term v f m. (Monad m, IsQuantified formula atom v, Formula atom term v, IsTerm term v f, Ord formula, IsLiteral formula atom v, Ord atom) =>
 --                 formula -> SkolemT v term m Bool
 satisfiable :: forall formula atom v term p f.
-               (IsFirstOrder formula atom p term v f, Ord atom, Eq formula, Ord formula, Pretty atom, HasFixity atom) =>
+               (IsFirstOrder formula atom p term v f,
+                HasSkolem f v,
+                Ord atom, Eq formula, Ord formula, Pretty atom, HasFixity atom) =>
                formula -> Bool
 satisfiable f =
-    (PL.satisfiable . PL.CJ . map (PL.DJ . map (convertPropositional id)) . map Set.toList . Set.toList . simpcnf') f
+    (PL.satisfiable . PL.CJ . List.map (PL.DJ . List.map convert) . List.map Set.toList . Set.toList . simpcnf id . skolemize') f
+    where
+      skolemize' = ((runSkolem . skolemize id) :: formula -> Marked Propositional formula)
+      convert :: Marked Propositional formula -> PL.PropForm atom
+      convert = convertPropositional id
 
 -- |Is the formula always false?  (Not satisfiable.)
-inconsistant :: forall formula atom v term p f. (IsFirstOrder formula atom p term v f, Ord atom, Eq formula, Ord formula, Pretty atom, HasFixity atom) =>
+inconsistant :: forall formula atom v term p f.
+                (IsFirstOrder formula atom p term v f,
+                HasSkolem f v,
+                 Ord atom, Eq formula, Ord formula, Pretty atom, HasFixity atom) =>
                 formula -> Bool
 inconsistant f =  not (satisfiable f)
 
 -- |Is the negation of the formula inconsistant?
-theorem :: forall formula atom v term p f. (IsFirstOrder formula atom p term v f, Ord atom, Eq formula, Ord formula, Pretty atom, HasFixity atom) =>
+theorem :: forall formula atom v term p f.
+           (IsFirstOrder formula atom p term v f,
+            HasSkolem f v,
+            Ord atom, Eq formula, Ord formula, Pretty atom, HasFixity atom) =>
            formula -> Bool
 theorem f = inconsistant ((.~.) f)
 
 -- |A formula is invalid if it is neither a theorem nor inconsistent.
-invalid :: forall formula atom v term p f. (IsFirstOrder formula atom p term v f, Ord atom, Eq formula, Ord formula, Pretty atom, HasFixity atom) =>
+invalid :: forall formula atom v term p f.
+           (IsFirstOrder formula atom p term v f,
+            HasSkolem f v,
+            Ord atom, Eq formula, Ord formula, Pretty atom, HasFixity atom) =>
            formula -> Bool
 invalid f = not (inconsistant f || theorem f)

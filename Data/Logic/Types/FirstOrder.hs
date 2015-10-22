@@ -16,7 +16,7 @@ import FOL (exists, HasEquals, HasEquate(equate, foldEquate'), HasFunctions(..),
             prettyPredicateApplicationEq, prettyQuantified, prettyTerm, Quant(..), V)
 import Lit (IsLiteral(..))
 import Pretty (HasFixity(..), Pretty(pPrint), prettyShow, rootFixity, Side(Unary))
-import Prop (IsPropositional(..))
+import Prop (IsPropositional(foldPropositional'))
 
 -- | Examine the formula to find the list of outermost universally
 -- quantified variables, and call a function with that list and the
@@ -73,12 +73,15 @@ instance (IsVariable v, IsPredicate p, IsFunction f
 instance (IsVariable v, IsPredicate p, IsFunction f
          ) => IsCombinable (NFormula v p f) where
     a .|. b = Combine (BinOp a (:|:) b)
+    a .&. b = Combine (BinOp a (:&:) b)
+    a .=>. b = Combine (BinOp a (:=>:) b)
+    a .<=>. b = Combine (BinOp a (:<=>:) b)
     foldCombination = error "FIXME foldCombination"
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, atom ~ NPredicate p (NTerm v f), Pretty atom
          ) => IsPropositional (NFormula v p f) atom where
-    foldPropositional co _ _ (Combine x) = co x
-    foldPropositional _ tf at (Predicate x) = maybe (at x) tf (asBool x)
-    foldPropositional _ _ _ (Quant _ _ _) = error "FIXME foldPropositional"
+    foldPropositional' ho _ _ _ fm@(Quant _ _ _) = ho fm
+    foldPropositional' _ co _ _ (Combine x) = co x
+    foldPropositional' _ _ tf at (Predicate x) = maybe (at x) tf (asBool x)
 instance HasFixity (NFormula v p f) where
     fixity _ = rootFixity
 instance (IsVariable v, IsPredicate p, IsFunction f, Pretty (NPredicate p (NTerm v f)), HasBoolean p) => Pretty (NFormula v p f) where
@@ -124,7 +127,7 @@ instance (IsVariable v, IsPredicate p, IsFunction f, Pretty (NPredicate p (NTerm
 instance (IsVariable v, IsPredicate p, IsFunction f, HasBoolean p, atom ~ NPredicate p (NTerm v f), Pretty atom {-FOL p (NTerm v f)-}
          ) => IsQuantified (NFormula v p f) atom v where
     foldQuantified qu _ _ _ (Quant op v fm) = qu op v fm
-    foldQuantified _ co tf at fm = foldPropositional co tf at fm -- FIXME - need other function in case of embedded quantifiers
+    foldQuantified _ co tf at fm = foldPropositional' (error "FIXME - need other function in case of embedded quantifiers") co tf at fm
     quant = Quant
 instance (IsVariable v, IsPredicate p, IsFunction f, HasBoolean p, atom ~ NPredicate p (NTerm v f) {-FOL p (NTerm v f)-}, Pretty atom
          ) => IsLiteral (NFormula v p f) atom where

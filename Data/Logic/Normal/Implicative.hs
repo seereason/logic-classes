@@ -16,17 +16,16 @@ import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.State (StateT(runStateT), MonadPlus, msum)
 import Data.Bool (bool)
 import Data.Generics (Data, Typeable, listify)
-import Data.List (intersperse)
-import Data.Logic.Classes.Atom (Atom)
-import qualified Data.Map as Map
+import Data.List as List (intersperse, map)
+import Data.Map as Map (empty, Map)
 import Data.Maybe (isJust)
-import qualified Data.Set.Extra as Set
-import FOL (IsFirstOrder, IsQuantified(..), IsTerm)
+import Data.Set.Extra as Set (empty, flatten, fold, fromList, insert, map, Set, singleton, toList)
+import FOL (IsFirstOrder)
 import Formulas (IsNegatable(..), true)
 import Lit (IsLiteral(..))
 import Pretty (Pretty(pPrint))
-import Prop (IsPropositional)
-import Skolem (HasSkolem(fromSkolem), runSkolem, runSkolemT, simpcnf', skolemize, SkolemT)
+import Prop (Literal, Marked, markLiteral, Propositional, simpcnf, unmarkLiteral, unmarkPropositional)
+import Skolem (HasSkolem(fromSkolem), runSkolem, runSkolemT, skolemize, SkolemT)
 import Text.PrettyPrint (Doc, cat, text, hsep)
 
 -- |Combination of Normal monad and LiteralMap monad
@@ -37,9 +36,9 @@ runNormalT action = runLiteralMapM (runSkolemT action)
 
 runNormal :: NormalT formula v term Identity a -> a
 runNormal = runIdentity . runNormalT
- 
+
 --type LiteralMap f = LiteralMapT f Identity
-type LiteralMapT f = StateT (Int, Map.Map f Int)
+type LiteralMapT f = StateT (Int, Map f Int)
 
 --runLiteralMap :: LiteralMap p a -> a
 --runLiteralMap action = runIdentity (runLiteralMapM action)
@@ -52,7 +51,7 @@ runLiteralMapM action = (runStateT action) (1, Map.empty) >>= return . fst
 -- literals.  One more restriction that is not implied by the type is
 -- that no literal can appear in both the pos set and the neg set.
 data ImplicativeForm lit =
-    INF {neg :: Set.Set lit, pos :: Set.Set lit}
+    INF {neg :: Set lit, pos :: Set lit}
     deriving (Eq, Ord, Data, Typeable, Show)
 
 -- |A version of MakeINF that takes lists instead of sets, used for
@@ -61,11 +60,11 @@ makeINF' :: (IsNegatable lit, Ord lit) => [lit] -> [lit] -> ImplicativeForm lit
 makeINF' n p = INF (Set.fromList n) (Set.fromList p)
 
 prettyINF :: (IsNegatable lit, Ord lit, Pretty lit) => ImplicativeForm lit -> Doc
-prettyINF x = cat $ [text "(", hsep (map pPrint (Set.toList (neg x))),
-                         text ") => (", hsep (map pPrint (Set.toList (pos x))), text ")"]
+prettyINF x = cat $ [text "(", hsep (List.map pPrint (Set.toList (neg x))),
+                         text ") => (", hsep (List.map pPrint (Set.toList (pos x))), text ")"]
 
-prettyProof :: (IsNegatable lit, Ord lit, Pretty lit) => Set.Set (ImplicativeForm lit) -> Doc
-prettyProof p = cat $ [text "["] ++ intersperse (text ", ") (map prettyINF (Set.toList p)) ++ [text "]"]
+prettyProof :: (IsNegatable lit, Ord lit, Pretty lit) => Set (ImplicativeForm lit) -> Doc
+prettyProof p = cat $ [text "["] ++ intersperse (text ", ") (List.map prettyINF (Set.toList p)) ++ [text "]"]
 
 -- |Take the clause normal form, and turn it into implicative form,
 -- where each clauses becomes an (LHS, RHS) pair with the negated
@@ -87,30 +86,20 @@ prettyProof p = cat $ [text "["] ++ intersperse (text ", ") (map prettyINF (Set.
 --    a | b | c => e
 --    a | b | c => f
 -- @
-implicativeNormalForm :: forall m formula atom p term v f lit. 
-                         (Monad m,
-                          IsFirstOrder formula atom p term v f,
-                          IsQuantified formula atom v,
-                          IsPropositional formula atom,
-                          Atom atom term v,
-                          IsLiteral lit atom,
-                          IsTerm term v f,
-                          formula ~ lit,
-                          Data formula, Ord formula, Ord lit, Data lit, HasSkolem f v, Typeable f) =>
-                         formula -> SkolemT m (Set.Set (ImplicativeForm lit))
+implicativeNormalForm :: forall m fof atom p term v f.
+                         (IsFirstOrder fof atom p term v f, HasSkolem f v, Monad m, Data fof, Typeable f) =>
+                         fof -> SkolemT m (Set (ImplicativeForm ({-Marked Literal-} fof)))
 implicativeNormalForm formula =
-    do let cnf = simpcnf' (runSkolem (skolemize id formula))
-       let pairs = Set.map (Set.fold collect (Set.empty, Set.empty)) cnf :: Set.Set (Set.Set lit, Set.Set lit)
-           pairs' = Set.flatten (Set.map split pairs) :: Set.Set (Set.Set lit, Set.Set lit)
-       return (Set.map (\ (n,p) -> INF n p) pairs')
+    do let (cnf :: Set (Set (Marked Literal fof))) = (Set.map (Set.map (markLiteral . unmarkPropositional . unmarkLiteral)) . simpcnf id) (runSkolem (skolemize id formula) :: Marked Propositional fof)
+           pairs = Set.map (Set.fold collect (Set.empty, Set.empty)) cnf
+           pairs' = Set.flatten (Set.map split pairs)
+       return (Set.map (\ (n,p) -> INF (Set.map unmarkLiteral n) (Set.map unmarkLiteral p)) pairs')
     where
-      collect :: lit -> (Set.Set lit, Set.Set lit) -> (Set.Set lit, Set.Set lit)
       collect f (n, p) =
           foldLiteral (\ f' -> (Set.insert f' n, p))
                       (bool (Set.insert true n, p) (n, Set.insert true p))
                       (\ _ -> (n, Set.insert f p))
                       f
-      split :: (Set.Set lit, Set.Set lit) -> Set.Set (Set.Set lit, Set.Set lit)
       split (lhs, rhs) =
           if any (isJust . fromSkolem) (gFind rhs :: [f])
           then Set.map (\ x -> (lhs, Set.singleton x)) rhs
@@ -121,4 +110,4 @@ implicativeNormalForm formula =
 -- instance, e.g. Maybe Foo will return the first Foo
 -- found while [Foo] will return the list of Foos found.
 gFind :: (MonadPlus m, Data a, Typeable b) => a -> m b
-gFind = msum . map return . listify (const True)
+gFind = msum . List.map return . listify (const True)

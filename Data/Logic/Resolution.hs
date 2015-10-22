@@ -13,18 +13,16 @@ module Data.Logic.Resolution
     , getSubstAtomEq
     ) where
 
-import FOL (HasPredicate(applyPredicate))
 import Data.Logic.Classes.Atom (Atom(isRename, getSubst))
-import Formulas (fromBool)
-import FOL (HasEquate(equate), foldEquate, zipEquals)
-import Formulas (IsFormula(atomic))
-import Lit (IsLiteral(..), zipLiterals)
-import FOL (IsTerm(..))
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF, neg, pos))
-import qualified Data.Set.Extra as S
 import Data.Map (Map, empty)
-import qualified Data.Map as Map
 import Data.Maybe (isJust)
+import FOL (HasEquate(equate), foldEquate, zipEquals, HasPredicate(applyPredicate), IsTerm(..))
+import Formulas (fromBool, IsFormula(atomic))
+import Lit (IsLiteral(..), zipLiterals)
+import Prop (Marked, Literal)
+import qualified Data.Map as Map
+import qualified Data.Set.Extra as S
 
 type SetOfSupport lit v term = S.Set (Unification lit v term)
 

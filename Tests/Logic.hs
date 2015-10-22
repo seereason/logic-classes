@@ -15,8 +15,9 @@ import FOL (vt, (∀), pApp, fv, (.=.), exists, for_all, applyPredicate, fApp, V
 import Formulas ((.~.), atomic, IsCombinable(..), (⇒))
 import Lit (IsLiteral)
 import Pretty (pPrint)
-import Prop (IsPropositional, list_conj, list_disj, TruthTable(..), TruthTable, truthTable)
-import Skolem (HasSkolem(..), runSkolem, skolemize, pnf, simpcnf')
+import Prop (IsPropositional, list_conj, list_disj, Literal, Marked, PFormula, Propositional,
+             simpcnf, TruthTable(..), TruthTable, truthTable, unmarkLiteral)
+import Skolem (HasSkolem(..), MyAtom, runSkolem, skolemize, pnf, simpcnf')
 import Test.HUnit
 import Text.PrettyPrint.HughesPJClass (prettyShow)
 import qualified TextDisplay as TD
@@ -228,9 +229,9 @@ equality2expected = (False,
 
 theoremTests :: Test
 theoremTests =
-    let s = pApp "S"
-        h = pApp "H"
-        m = pApp "M"
+    let s = pApp "S" :: [MyTerm] -> MyFormula
+        h = pApp "H" :: [MyTerm] -> MyFormula
+        m = pApp "M" :: [MyTerm] -> MyFormula
         socrates1 = (for_all "x"   (s [x] .=>. h [x]) .&. for_all "x" (h [x] .=>. m [x]))  .=>.  for_all "x" (s [x] .=>. m [x])  :: MyFormula -- First two clauses grouped - compare to 5
         socrates2 =  for_all "x" (((s [x] .=>. h [x]) .&.             (h [x] .=>. m [x]))  .=>.              (s [x] .=>. m [x])) :: MyFormula -- shared binding for x
         socrates3 = (for_all "x"  ((s [x] .=>. h [x]) .&.             (h [x] .=>. m [x]))) .=>. (for_all "y" (s [y] .=>. m [y])) :: MyFormula -- First two clauses share x, third is renamed y
@@ -373,15 +374,15 @@ theoremTests =
           {- sky = fApp (toSkolem "y") -} in
       let label = "Socrates formula skolemized" in
       TestLabel label (TestCase (assertEqual label
-                 ((s[skx []] .&. (.~.)(h[skx []]) .|. h[skx[]] .&. (.~.)(m[skx []])) .|. (.~.)(s[x]) .|. m[x])
-                 (runSkolem (skolemize id socrates5) :: MyFormula)))
+                 (((pApp "s" [skx []] .&. (.~.)(pApp "h" [skx []]) .|. pApp "h" [skx[]] .&. (.~.)(pApp "m" [skx []])) .|. (.~.)(pApp "s" [x]) .|. pApp "m" [x]) :: Marked Propositional MyFormula)
+                 (runSkolem (skolemize id socrates5) :: Marked Propositional MyFormula)))
 
     , let skx = fApp (toSkolem "x")
           sky = fApp (toSkolem "y") in
       let label = "Socrates formula skolemized" in
       TestLabel label (TestCase (assertEqual label
-                 ((s[skx []] .&. (.~.)(h[skx []]) .|. h[sky[]] .&. (.~.)(m[sky []])) .|. (.~.)(s[z]) .|. m[z])
-                 (runSkolem (skolemize id socrates6) :: MyFormula)))
+                 ((pApp "s" [skx []] .&. (.~.)(pApp " h" [skx []]) .|. pApp "h" [sky[]] .&. (.~.)(pApp "m" [sky []])) .|. (.~.)(pApp "s" [z]) .|. pApp "m" [z])
+                 (runSkolem (skolemize id socrates6) :: Marked Propositional MyFormula)))
 
     , let label = "Logic - socrates is not mortal" in
       TestLabel label (TestCase (assertEqual label
@@ -432,7 +433,7 @@ theoremTests =
                 -- M(x) is false, the remaining lines would all be zero,
                 -- the argument would be inconsistant (an anti-theorem.)
                 -- How can we modify the formula to make these lines 0?
-                (theorem socrates7, inconsistant socrates7, table' socrates7, simpcnf' socrates7 :: Set.Set (Set.Set MyFormula))))
+                (theorem socrates7, inconsistant socrates7, table' socrates7, simpcnf' socrates7 :: Set (Set MyFormula))))
     , let (formula :: MyFormula) =
               (for_all "x" (pApp "L" [vt "x"] .=>. pApp "F" [vt "x"]) .&. -- All logicians are funny
                exists "x" (pApp "L" [vt "x"])) .=>.                            -- Someone is a logician
@@ -506,7 +507,7 @@ theoremTests =
 p :: String -> Predicate
 p = NamedPredicate
 
-toSS :: Ord a => [[a]] -> Set.Set (Set.Set a)
+toSS :: Ord a => [[a]] -> Set (Set a)
 toSS = Set.fromList . List.map Set.fromList
 
 {-
@@ -572,28 +573,29 @@ table :: forall formula atom p term v f.
          (IsFirstOrder formula atom p term v f,
           IsPropositional formula atom,
           IsLiteral formula atom,
+          HasSkolem f v,
           Atom atom term v,
           IsTerm term v f,
           Ord formula, Ord atom) =>
-         formula -> (Set.Set (Set.Set formula), TruthTable atom)
+         formula -> (Set (Set (Marked Literal (Marked Propositional formula))), TruthTable atom)
 table f =
     -- truthTable :: Ord a => PropForm a -> TruthTable a
     (cnf, truthTable cnf')
     where
-      cnf' :: formula
-      cnf' = list_conj (Set.map list_disj cnf :: Set.Set formula) -- CJ (map (DJ . map n) cnf)
-      cnf :: Set.Set (Set.Set formula)
-      cnf = simpcnf' f
+      cnf' :: Marked Propositional formula
+      cnf' = unmarkLiteral $ list_conj (Set.map list_disj cnf :: Set (Marked Literal (Marked Propositional formula)))
+      cnf :: Set (Set (Marked Literal (Marked Propositional formula)))
+      cnf = simpcnf id (runSkolem (skolemize id f) :: Marked Propositional formula)
       -- fromSS = List.map Set.toList . Set.toList
       -- n f = (if negated f then (.~.) . atomic . (.~.) else atomic) $ f
       -- list_disj = setFoldr1 (.|.)
       -- list_conj = setFoldr1 (.&.)
 
-table' :: MyFormula -> (Set.Set (Set.Set MyFormula), TruthTable MyAtom)
+table' :: MyFormula -> (Set (Set (Marked Literal (Marked Propositional MyFormula))), TruthTable MyAtom)
 table' = table
 
 {-
-setFoldr1 :: (a -> a -> a) -> Set.Set a -> a
+setFoldr1 :: (a -> a -> a) -> Set a -> a
 setFoldr1 f s =
     case Set.minView s of
       Nothing -> error "setFoldr1"
