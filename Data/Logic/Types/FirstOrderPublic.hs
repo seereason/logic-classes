@@ -152,4 +152,8 @@ instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NT
          ) => Pretty (PFormula v p f) where
     pPrint = prettyFormula
 
+instance (IsVariable v, IsPredicate p, IsFunction f,
+          Data v, Data p, Data f, HasBoolean p, HasEquals p,
+          HasFunctions (N.NPredicate p (N.NTerm v f)) f) => IsFirstOrder (PFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f) v f
+
 $(deriveSafeCopy 1 'base ''PFormula)
