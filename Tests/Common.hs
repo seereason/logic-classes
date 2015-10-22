@@ -37,7 +37,7 @@ import Pretty (Pretty(pPrint), HasFixity(..))
 import Prop (IsPropositional(..), PFormula, satisfiable, trivial)
 import PropLogic (PropForm)
 import Safe (readMay)
-import Skolem (Function, MyAtom, MyTerm, SkolemT, MyFormula, MyAtom, MyTerm, simpcnf', HasSkolem(fromSkolem))
+import Skolem (Function, MyAtom, MyTerm, SkolemT, MyFormula, MyAtom, MyTerm, simpcnf', HasSkolem)
 import Test.HUnit
 import Text.PrettyPrint (Style(mode), renderStyle, style, Mode(OneLineMode))
 
@@ -64,6 +64,9 @@ instance IsPropositional CNF MyAtom where
 instance IsCombinable CNF where
     foldCombination = error "FIXME: IsCombinable CNF"
     _ .|. _ = error "FIXME: IsCombinable CNF"
+    _ .&. _ = error "FIXME: IsCombinable CNF"
+    _ .=>. _ = error "FIXME: IsCombinable CNF"
+    _ .<=>. _ = error "FIXME: IsCombinable CNF"
 instance HasBoolean CNF where
     asBool = error "FIXME: HasBoolean CNF"
     fromBool = error "FIXME: HasBoolean CNF"
@@ -78,7 +81,6 @@ instance IsFormula CNF MyAtom where
     atomic = error "FIXME: IsFormula CNF MyAtom"
     overatoms = error "FIXME: IsFormula CNF MyAtom"
     onatoms = error "FIXME: IsFormula CNF MyAtom"
-    prettyFormula = error "FIXME: IsFormula CNF MyAtom"
 
 -- | Render a Pretty instance in single line mode
 render :: Pretty a => a -> String

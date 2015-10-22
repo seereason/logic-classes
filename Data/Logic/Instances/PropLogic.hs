@@ -11,7 +11,7 @@ import FOL (IsFunction, HasFunctions(funcs), IsFirstOrder)
 import Formulas (IsCombinable(..), Combination(..), BinOp(..), HasBoolean(fromBool, asBool), IsFormula(..), IsNegatable(..))
 import Lit (IsLiteral(..))
 import Pretty (HasFixity(fixity), Pretty(pPrint), rootFixity, prettyShow)
-import Prop (foldPropositional, IsPropositional(foldPropositional'), JustPropositional)
+import Prop (foldPropositional, IsPropositional(foldPropositional'), JustPropositional, prettyPropositional)
 import PropLogic hiding (at)
 import Skolem (SkolemT, simpcnf')
 
@@ -42,7 +42,6 @@ instance (Pretty a, HasFixity a, Ord a) => IsFormula (PropForm a) a where
     atomic = A
     overatoms = error "FIXME: overatoms PropForm"
     onatoms = error "FIXME: onatoms PropForm"
-    prettyFormula = error "FIXME prettyFormula PropForm"
 
 instance (IsCombinable (PropForm a), Pretty a, HasFixity a, Ord a) => IsPropositional (PropForm a) a where
     foldPropositional' ho co tf at formula =
@@ -75,7 +74,7 @@ instance HasBoolean (PropForm formula) where
     asBool _ = Nothing
 
 instance (IsPropositional (PropForm atom) atom, Pretty atom, HasFixity atom) => Pretty (PropForm atom) where
-    pPrint = prettyFormula
+    pPrint = prettyPropositional
 
 instance (IsPropositional (PropForm atom) atom, HasFixity atom) => HasFixity (PropForm atom) where
     fixity _ = rootFixity

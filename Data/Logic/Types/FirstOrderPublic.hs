@@ -17,8 +17,10 @@ import qualified Data.Logic.Types.FirstOrder as N
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set, union)
 import Data.Typeable (Typeable)
-import FOL (HasEquals, HasFunctions(funcs), HasPredicate, IsFirstOrder, IsFunction, IsPredicate, IsVariable, IsQuantified(..), overatomsFirstOrder, onatomsFirstOrder, fixityFirstOrder)
-import Formulas (HasBoolean(..), IsCombinable(..), Combination(..), IsFormula(..), IsNegatable(..), prettyFormula)
+import FOL (fixityFirstOrder, HasEquals, HasFunctions(funcs), HasPredicate,
+            IsFirstOrder, IsFunction, IsPredicate, IsVariable, IsQuantified(..),
+            overatomsFirstOrder, onatomsFirstOrder, prettyQuantified)
+import Formulas (HasBoolean(..), IsCombinable(..), Combination(..), IsFormula(..), IsNegatable(..))
 import Lit (IsLiteral(..))
 import Pretty (Pretty(pPrint), HasFixity(fixity))
 import Prop (IsPropositional(..))
@@ -91,7 +93,6 @@ instance (IsVariable v, IsPredicate p, IsFunction f,
     atomic = Formula . atomic
     overatoms = overatomsFirstOrder
     onatoms = onatomsFirstOrder
-    prettyFormula = error "FIXME"
 
 instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f) v f,
           HasBoolean (N.NPredicate p (N.NTerm v f)),
@@ -150,7 +151,7 @@ instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NT
           HasBoolean (N.NPredicate p (N.NTerm v f)),
           Data v, Data p, Data f
          ) => Pretty (PFormula v p f) where
-    pPrint = prettyFormula
+    pPrint = prettyQuantified
 
 instance (IsVariable v, IsPredicate p, IsFunction f,
           Data v, Data p, Data f, HasBoolean p, HasEquals p,

@@ -15,7 +15,7 @@ import FOL (exists, HasEquals, HasEquate(equate, foldEquate'), HasFunctions(..),
             IsFunction, IsPredicate, IsQuantified(..), IsTerm(..), IsVariable(..),
             prettyPredicateApplicationEq, prettyQuantified, prettyTerm, Quant(..), V)
 import Lit (IsLiteral(..))
-import Pretty (HasFixity(..), Pretty(pPrint), prettyShow, rootFixity, Side(Unary))
+import Pretty (HasFixity(..), Pretty(pPrint), prettyShow, rootFixity)
 import Prop (IsPropositional(foldPropositional'))
 
 -- | Examine the formula to find the list of outermost universally
@@ -85,7 +85,7 @@ instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, atom ~ NPredi
 instance HasFixity (NFormula v p f) where
     fixity _ = rootFixity
 instance (IsVariable v, IsPredicate p, IsFunction f, Pretty (NPredicate p (NTerm v f)), HasBoolean p) => Pretty (NFormula v p f) where
-    pPrint = prettyFormula
+    pPrint = prettyQuantified
 instance (IsPredicate p, Pretty p, Pretty term, HasEquals p, HasBoolean p) => Pretty (NPredicate p term) where
     pPrint = foldPredicate prettyPredicateApplicationEq
 instance (IsPredicate p, HasBoolean p) => HasPredicate (NPredicate p term) p term where
@@ -123,7 +123,6 @@ instance (IsVariable v, IsPredicate p, IsFunction f, Pretty (NPredicate p (NTerm
     overatoms f (Combine (BinOp lhs _ rhs)) b = overatoms f lhs (overatoms f rhs b)
     overatoms f (Quant _ _ fm) b = overatoms f fm b
     overatoms f (Predicate p) b = f p b
-    prettyFormula = prettyQuantified rootFixity Unary
 instance (IsVariable v, IsPredicate p, IsFunction f, HasBoolean p, atom ~ NPredicate p (NTerm v f), Pretty atom {-FOL p (NTerm v f)-}
          ) => IsQuantified (NFormula v p f) atom v where
     foldQuantified qu _ _ _ (Quant op v fm) = qu op v fm

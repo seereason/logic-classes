@@ -5,8 +5,7 @@ module Data.Logic.Harrison.Formulas.Propositional
     , consequent
     ) where
 
-import qualified Data.Set as Set
-import Formulas (Combination(..), (.~.), BinOp((:=>:)), binop)
+import Formulas (Combination(..), BinOp((:=>:)))
 import Prop (IsPropositional(..), JustPropositional, foldPropositional)
 
 -- ------------------------------------------------------------------------- 

@@ -20,7 +20,6 @@ import Data.Maybe (isJust)
 import FOL (HasEquate(equate), foldEquate, zipEquals, HasPredicate(applyPredicate), IsTerm(..))
 import Formulas (fromBool, IsFormula(atomic))
 import Lit (IsLiteral(..), zipLiterals)
-import Prop (Marked, Literal)
 import qualified Data.Map as Map
 import qualified Data.Set.Extra as S
 

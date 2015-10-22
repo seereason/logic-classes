@@ -15,9 +15,9 @@ import FOL (vt, (∀), pApp, fv, (.=.), exists, for_all, applyPredicate, fApp, V
 import Formulas ((.~.), atomic, IsCombinable(..), (⇒))
 import Lit (IsLiteral)
 import Pretty (pPrint)
-import Prop (IsPropositional, list_conj, list_disj, Literal, Marked, PFormula, Propositional,
+import Prop (IsPropositional, list_conj, list_disj, Literal, Marked, Propositional,
              simpcnf, TruthTable(..), TruthTable, truthTable, unmarkLiteral)
-import Skolem (HasSkolem(..), MyAtom, runSkolem, skolemize, pnf, simpcnf')
+import Skolem (HasSkolem(..), runSkolem, skolemize, pnf, simpcnf')
 import Test.HUnit
 import Text.PrettyPrint.HughesPJClass (prettyShow)
 import qualified TextDisplay as TD

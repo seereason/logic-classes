@@ -17,9 +17,9 @@ import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Atom (Atom)
 import Data.String (IsString(..))
 import FOL ((.=.), foldEquate, HasEquate(..), HasPredicate(..), IsFunction, IsPredicate, IsQuantified(..),
-            IsTerm(..), IsVariable, onatomsFirstOrder, overatomsFirstOrder, pApp, prettyTerm, Quant(..))
+            IsTerm(..), IsVariable, onatomsFirstOrder, overatomsFirstOrder, pApp, prettyQuantified, prettyTerm, Quant(..))
 import Formulas (HasBoolean(..), asBool, IsCombinable(..), BinOp(..), Combination(..), IsFormula(..), IsNegatable(..), (.~.))
-import Lit (IsLiteral(foldLiteral))
+import Lit (IsLiteral(foldLiteral), JustLiteral, prettyLiteral)
 import Pretty (Pretty(pPrint), HasFixity(..), rootFixity)
 import Prop (IsPropositional(foldPropositional'))
 import Skolem (HasSkolem(..))
@@ -87,7 +87,6 @@ instance (IsLiteral (Sentence  v p f) (Sentence  v p f), IsFunction f, IsVariabl
     atomic x@(Equal _ _) = x
     overatoms = overatomsFirstOrder
     onatoms = onatomsFirstOrder
-    prettyFormula = error "FIXME: prettyFormula Sentence"
 
 instance (IsFormula (Sentence v p f) (Sentence v p f), IsLiteral (Sentence v p f) (Sentence v p f),
           IsVariable v, IsFunction f, IsCombinable (Sentence v p f), HasBoolean p) =>
@@ -140,7 +139,7 @@ instance (IsFunction f, IsVariable v, IsPredicate p) => HasEquate (Sentence v p 
     -- applyEq' = Predicate
 
 instance (IsQuantified (Sentence v p f) (Sentence v p f) v, IsVariable v, IsFunction f) => Pretty (Sentence v p f) where
-    pPrint = prettyFormula
+    pPrint = prettyQuantified
 
 instance (IsFormula (Sentence v p f) (Sentence v p f), IsFunction f, IsVariable v) => HasFixity (Sentence v p f) where
     fixity _ = rootFixity
@@ -254,9 +253,13 @@ instance (Arity p, HasBoolean p, IsCombinable (NormalSentence v p f)) => Pred p 
     x .!=. y = NFNot (NFEqual x y)
 -}
 
-instance (IsFormula (NormalSentence v p f) (NormalSentence v p f),
-          IsVariable v, IsFunction f, IsCombinable (NormalSentence v p f)) => Pretty (NormalSentence v p f) where
-    pPrint = prettyFormula
+instance JustLiteral (NormalSentence v p f)
+
+instance (IsLiteral (NormalSentence v p f) (NormalSentence v p f),
+          IsCombinable (NormalSentence v p f),
+          IsVariable v, HasBoolean p, IsFunction f
+         ) => Pretty (NormalSentence v p f) where
+    pPrint = prettyLiteral
 
 instance (IsPropositional (NormalSentence v p f) (NormalSentence v p f),
           IsFunction f, IsCombinable (NormalSentence v p f), IsVariable v, Pretty (NormalTerm v f), HasBoolean p) => IsFormula (NormalSentence v p f) (NormalSentence v p f) where
@@ -265,7 +268,6 @@ instance (IsPropositional (NormalSentence v p f) (NormalSentence v p f),
     atomic _ = error "Chiou: atomic"
     overatoms = overatomsFirstOrder
     onatoms = onatomsFirstOrder
-    prettyFormula = error "FIXME"
 
 instance (IsFormula (NormalSentence v p f) (NormalSentence v p f),
           IsCombinable (NormalSentence v p f), IsTerm (NormalTerm v f) v f,
@@ -302,6 +304,9 @@ instance (IsVariable v, IsFunction f, Pretty (NormalTerm v f)) => IsTerm (Normal
           (NormalVariable x1, NormalVariable x2) -> Just (v x1 x2)
           (NormalFunction f1 ts1, NormalFunction f2 ts2) -> Just (fn f1 ts1 f2 ts2)
           _ -> Nothing
+
+instance (IsVariable v, IsFunction f) => Pretty (NormalTerm v f) where
+    pPrint = prettyTerm
 
 toSentence :: (IsQuantified (Sentence v p f) (Sentence v p f) v, Atom (Sentence v p f) (CTerm v f) v,
                IsFunction f, IsVariable v, IsPredicate p) =>
