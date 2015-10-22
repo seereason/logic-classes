@@ -4,11 +4,11 @@ module Harrison.Prop
     ( tests
     ) where
 
-import qualified Data.Set as Set
+import Data.Set as Set (filter, fromList, Set)
 import Formulas (IsCombinable(..), (∨), (∧), true, false, atomic, (.~.), (¬))
 import Lib ((|=>))
 import Prelude hiding (negate)
-import Prop (atoms, cnf', dnf, dual, eval, nnf, PFormula(Atom, Not, Imp, Iff, Or, And), Prop(..),
+import Prop (atoms, cnf', dnf, dual, eval, Literal, Marked, nnf, PFormula(Atom, Not, Imp, Iff, Or, And), Prop(..),
              psimplify, psubst, purednf, rawdnf, tautology, trivial, truthTable, TruthTable(TruthTable))
 import Test.HUnit (Test(TestCase, TestList, TestLabel), assertEqual)
 
@@ -344,13 +344,14 @@ test31 = TestCase $ assertEqual "rawdnf (p. 58)" expected input
 test32 :: Test
 test32 = TestCase $ assertEqual "purednf (p. 58)" expected input
     where input = purednf id $ (p .|. q .&. r) .&. (((.~.)p) .|. ((.~.)r))
-          expected = Set.fromList [Set.fromList [p,Not p],
-                                   Set.fromList [p,Not r],
-                                   Set.fromList [q,r,Not p],
-                                   Set.fromList [q,r,Not r]]
-          p = Atom (P "p")
-          q = Atom (P "q")
-          r = Atom (P "r")
+          expected :: Set (Set (Marked Literal (PFormula Prop)))
+          expected = Set.fromList [Set.fromList [p, (.~.) p],
+                                   Set.fromList [p, (.~.) r],
+                                   Set.fromList [q, r, (.~.) p],
+                                   Set.fromList [q, r, (.~.) r]]
+          p = atomic (P "p")
+          q = atomic (P "q")
+          r = atomic (P "r")
 
 -- ------------------------------------------------------------------------- 
 -- Example.                                                                  
@@ -359,12 +360,13 @@ test32 = TestCase $ assertEqual "purednf (p. 58)" expected input
 test33 :: Test
 test33 = TestCase $ assertEqual "trivial" expected input
     where input = Set.filter (not . trivial) (purednf id fm)
-          expected = Set.fromList [Set.fromList [p,Not r],
-                                   Set.fromList [q,r,Not p]]
+          expected :: Set (Set (Marked Literal (PFormula Prop)))
+          expected = Set.fromList [Set.fromList [p, (.~.) r],
+                                   Set.fromList [q, r, (.~.) p]]
           fm = (p .|. q .&. r) .&. (((.~.)p) .|. ((.~.)r))
-          p = Atom (P "p")
-          q = Atom (P "q")
-          r = Atom (P "r")
+          p = atomic (P "p")
+          q = atomic (P "q")
+          r = atomic (P "r")
 
 -- ------------------------------------------------------------------------- 
 -- Example.                                                                  

@@ -17,7 +17,7 @@ import Data.Logic.Instances.PropLogic ()
 import Data.Set as Set (toList)
 import FOL (IsFirstOrder)
 import Formulas ((.~.))
-import Prop (convertPropositional, Marked, Propositional, simpcnf)
+import Prop (convertPropositional, Literal, Marked, Propositional, simpcnf)
 import qualified PropLogic as PL -- ()
 import Pretty (HasFixity, Pretty, )
 import Skolem (HasSkolem, runSkolem, skolemize)
@@ -34,7 +34,7 @@ satisfiable f =
     (PL.satisfiable . PL.CJ . List.map (PL.DJ . List.map convert) . List.map Set.toList . Set.toList . simpcnf id . skolemize') f
     where
       skolemize' = ((runSkolem . skolemize id) :: formula -> Marked Propositional formula)
-      convert :: Marked Propositional formula -> PL.PropForm atom
+      convert :: Marked Literal (Marked Propositional formula) -> PL.PropForm atom
       convert = convertPropositional id
 
 -- |Is the formula always false?  (Not satisfiable.)
