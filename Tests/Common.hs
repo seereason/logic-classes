@@ -29,7 +29,7 @@ import Data.Logic.KnowledgeBase (WithId, runProver', Proof, loadKB, theoremKB, g
 import Data.Logic.Normal.Implicative (ImplicativeForm, runNormal, runNormalT)
 import Data.Logic.Resolution (getSubstAtomEq, isRenameOfAtomEq, SetOfSupport)
 import Data.Set as Set
-import FOL (asubst, convertFirstOrder, fApp, foldEquate, foldTerm, funcs, fva, HasEquate,
+import FOL (asubst, convertQuantified, fApp, foldEquate, foldTerm, funcs, fva, HasEquate,
             IsFirstOrder, IsQuantified(..), IsTerm, Predicate(NamedPredicate), V, vt)
 import Formulas (HasBoolean(fromBool, asBool))
 import Lit (IsLiteral(..))
@@ -128,9 +128,9 @@ doTest (TestFormula fm nm expect) =
                     cv = vt
                     fn :: Function -> [MyTerm] -> Ch.CTerm V Function
                     fn f ts = fApp f (List.map ct ts) in
-                let label = (nm ++ " converted to Chiou") in TestLabel label (TestCase (assertEqual label result (convertFirstOrder ca id fm :: Ch.Sentence V Predicate Function)))
+                let label = (nm ++ " converted to Chiou") in TestLabel label (TestCase (assertEqual label result (convertQuantified ca id fm :: Ch.Sentence V Predicate Function)))
       doExpected (ChiouKB1 result) = let label = (nm ++ " Chiou KB") in TestLabel label (TestCase (assertEqual label result ((runProver' Nothing (loadKB [fm] >>= return . head)) :: (Proof (Marked Prop.Literal MyFormula)))))
-      doExpected (PropLogicSat result) = let label = (nm ++ " PropLogic.satisfiable") in TestLabel label (TestCase (assertEqual label result (runSkolem (plSat (convertFirstOrder id id fm)))))
+      doExpected (PropLogicSat result) = let label = (nm ++ " PropLogic.satisfiable") in TestLabel label (TestCase (assertEqual label result (runSkolem (plSat (convertQuantified id id fm)))))
       doExpected (SatSolverCNF result) = let label = (nm ++ " SatSolver CNF") in TestLabel label (TestCase (assertEqual label (norm result) (runNormal (SS.toCNF fm))))
       doExpected (SatSolverSat result) = let label = (nm ++ " SatSolver CNF") in TestLabel label (TestCase (assertEqual label result ((List.null :: [a] -> Bool) (runNormalT (SS.toCNF fm >>= return . satisfiable)))))
 

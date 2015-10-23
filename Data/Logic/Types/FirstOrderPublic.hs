@@ -17,9 +17,9 @@ import qualified Data.Logic.Types.FirstOrder as N
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set, union)
 import Data.Typeable (Typeable)
-import FOL (fixityFirstOrder, HasEquals, HasFunctions(funcs), HasPredicate,
+import FOL (fixityQuantified, HasEquals, HasFunctions(funcs), HasPredicate,
             IsFirstOrder, IsFunction, IsPredicate, IsVariable, IsQuantified(..),
-            overatomsFirstOrder, onatomsFirstOrder, prettyQuantified)
+            overatomsQuantified, onatomsQuantified, prettyQuantified)
 import Formulas (HasBoolean(..), IsCombinable(..), Combination(..), IsFormula(..), IsNegatable(..))
 import Lit (IsLiteral(..))
 import Pretty (Pretty(pPrint), HasFixity(fixity))
@@ -42,9 +42,7 @@ instance (Data p, Ord p, Data v, Ord v, Data f, Ord f) => Bijection (PFormula v 
 
 instance (Data p, Ord p, Data v, Ord v, Data f, Ord f) => Bijection (Combination (PFormula v p f)) (Combination (N.NFormula v p f)) where
     public (BinOp x op y) = BinOp (public x) op (public y)
-    public ((:~:) x) = (:~:) (public x)
     intern (BinOp x op y) = BinOp (intern x) op (intern y)
-    intern ((:~:) x) = (:~:) (intern x)
 
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f,
           IsLiteral (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
@@ -81,8 +79,8 @@ instance (IsVariable v, IsPredicate p, IsFunction f,
           Data v, Data p, Data f
          ) => IsFormula (PFormula v p f) (N.NPredicate p (N.NTerm v f)) where
     atomic = Formula . atomic
-    overatoms = overatomsFirstOrder
-    onatoms = onatomsFirstOrder
+    overatoms = overatomsQuantified
+    onatoms = onatomsQuantified
 
 instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f) v f,
           HasBoolean (N.NPredicate p (N.NTerm v f)),
@@ -90,15 +88,16 @@ instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NT
           Data v, Data p, Data f
          ) => IsQuantified (PFormula v p f) (N.NPredicate p (N.NTerm v f)) v where
     quant q v x = public $ quant q v (intern x :: N.NFormula v p f)
-    foldQuantified qu co tf at f = foldQuantified qu' co' tf at (intern f :: N.NFormula v p f)
+    foldQuantified qu co ne tf at f = foldQuantified qu' co' ne' tf at (intern f :: N.NFormula v p f)
         where qu' op v form = qu op v (public form)
+              ne' x = ne (public x)
               co' x = co (public x)
 
 instance (IsVariable v, Data v, IsPredicate p, HasBoolean p, Data p, IsFunction f, Data f, HasEquals p, HasFunctions (N.NPredicate p (N.NTerm v f)) f
          ) => HasFunctions (PFormula v p f) f where
-    funcs = foldQuantified (\_ _ fm -> funcs fm) co (\_ -> mempty) funcs
+    funcs = foldQuantified (\_ _ fm -> funcs fm) co ne (\_ -> mempty) funcs
         where
-          co ((:~:) fm) = funcs fm
+          ne fm = funcs fm
           co (BinOp lhs _ rhs) = union (funcs lhs) (funcs rhs)
 
 instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f) v f,
@@ -106,8 +105,9 @@ instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NT
           IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
           Data v, Data p, Data f
          ) => IsPropositional (PFormula v p f) (N.NPredicate p (N.NTerm v f)) where
-    foldPropositional' ho co tf at f = foldPropositional' (ho . public) co' tf at (intern f :: N.NFormula v p f)
+    foldPropositional' ho co ne tf at f = foldPropositional' (ho . public) co' ne' tf at (intern f :: N.NFormula v p f)
         where co' x = co (public x)
+              ne' x = ne (public x)
 
 -- | Here are the magic Ord and Eq instances - formulas will be Eq if
 -- their normal forms are Eq up to renaming.
@@ -134,7 +134,7 @@ instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NT
           Data v, Data p, Data f
           {-HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), HasEquate p, IsFunction f, IsVariable v-}
          ) => HasFixity (PFormula v p f) where
-    fixity = fixityFirstOrder
+    fixity = fixityQuantified
 
 instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f) v f,
           IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)),

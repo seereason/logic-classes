@@ -10,7 +10,7 @@ import Data.Set.Extra as Set (Set, empty, toList, union)
 import FOL (IsFunction, HasFunctions(funcs), IsFirstOrder)
 import Formulas (IsCombinable(..), Combination(..), BinOp(..), HasBoolean(fromBool, asBool), IsFormula(..), IsNegatable(..))
 import Lit (IsLiteral(..))
-import Pretty (HasFixity(fixity), Pretty(pPrint), rootFixity, prettyShow)
+import Pretty (HasFixity(fixity), Pretty(pPrint), rootFixity)
 import Prop (foldPropositional, IsPropositional(foldPropositional'), JustPropositional, prettyPropositional)
 import PropLogic hiding (at)
 import Skolem (SkolemT, simpcnf')
@@ -44,24 +44,24 @@ instance (Pretty a, HasFixity a, Ord a) => IsFormula (PropForm a) a where
     onatoms = error "FIXME: onatoms PropForm"
 
 instance (IsCombinable (PropForm a), Pretty a, HasFixity a, Ord a) => IsPropositional (PropForm a) a where
-    foldPropositional' ho co tf at formula =
+    foldPropositional' ho co ne tf at formula =
         case formula of
           -- EJ [x,y,z,...] -> CJ [EJ [x,y], EJ[y,z], ...]
           EJ [] -> error "Empty equijunct"
-          EJ [x] -> foldPropositional' ho co tf at x
+          EJ [x] -> foldPropositional' ho co ne tf at x
           EJ [x0, x1] -> co (BinOp x0 (:<=>:) x1)
-          EJ xs -> foldPropositional' ho co tf at (CJ (map (\ (x0, x1) -> EJ [x0, x1]) (pairs xs)))
+          EJ xs -> foldPropositional' ho co ne tf at (CJ (map (\ (x0, x1) -> EJ [x0, x1]) (pairs xs)))
           SJ [] -> error "Empty subjunct"
-          SJ [x] -> foldPropositional' ho co tf at x
+          SJ [x] -> foldPropositional' ho co ne tf at x
           SJ [x0, x1] -> co (BinOp x0 (:=>:) x1)
-          SJ xs -> foldPropositional' ho co tf at (CJ (map (\ (x0, x1) -> SJ [x0, x1]) (pairs xs)))
+          SJ xs -> foldPropositional' ho co ne tf at (CJ (map (\ (x0, x1) -> SJ [x0, x1]) (pairs xs)))
           DJ [] -> tf False
-          DJ [x] -> foldPropositional' ho co tf at x
+          DJ [x] -> foldPropositional' ho co ne tf at x
           DJ (x0:xs) -> co (BinOp x0 (:|:) (DJ xs))
           CJ [] -> tf True
-          CJ [x] -> foldPropositional' ho co tf at x
+          CJ [x] -> foldPropositional' ho co ne tf at x
           CJ (x0:xs) -> co (BinOp x0 (:&:) (CJ xs))
-          N x -> co ((:~:) x)
+          N x -> ne x
           T -> tf True
           F -> tf False
           A x -> at x
@@ -80,9 +80,9 @@ instance (IsPropositional (PropForm atom) atom, HasFixity atom) => HasFixity (Pr
     fixity _ = rootFixity
 
 instance (IsFunction function, HasFunctions atom function, Ord atom, Pretty atom, HasFixity atom) => HasFunctions (PropForm atom) function where
-    funcs = foldPropositional co (const Set.empty) funcs
+    funcs = foldPropositional co ne (const Set.empty) funcs
         where
-          co ((:~:) fm) = funcs fm
+          ne fm = funcs fm
           co (BinOp lhs _ rhs) = Set.union (funcs lhs) (funcs rhs)
 
 pairs :: [a] -> [(a, a)]

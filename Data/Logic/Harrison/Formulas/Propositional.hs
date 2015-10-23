@@ -156,14 +156,14 @@ let dest_imp fm =
 
 antecedent :: (IsPropositional formula atomic, JustPropositional formula) => formula -> formula
 antecedent formula =
-    foldPropositional c (error "antecedent") (error "antecedent") formula
+    foldPropositional c (error "antecedent") (error "antecedent") (error "antecedent") formula
     where
       c (BinOp p (:=>:) _) = p
       c _ = error "antecedent"
 
 consequent :: (IsPropositional formula atomic, JustPropositional formula) => formula -> formula
 consequent formula =
-    foldPropositional c (error "consequent") (error "consequent") formula
+    foldPropositional c (error "consequent") (error "consequent") (error "consequent") formula
     where
       c (BinOp _ (:=>:) q) = q
       c _ = error "consequent"

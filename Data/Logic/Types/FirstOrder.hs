@@ -10,7 +10,7 @@ module Data.Logic.Types.FirstOrder
 import Data.Data (Data)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable (Typeable)
-import Formulas (Combination((:~:), BinOp), BinOp(..), IsNegatable(..), IsCombinable(..), HasBoolean(..), IsFormula(..))
+import Formulas (Combination(BinOp), BinOp(..), IsNegatable(..), IsCombinable(..), HasBoolean(..), IsFormula(..))
 import FOL (exists, HasEquals, HasEquate(equate, foldEquate'), HasFunctions(..), HasPredicate(..), IsFirstOrder,
             IsFunction, IsPredicate, IsQuantified(..), IsTerm(..), IsVariable(..),
             prettyPredicateApplicationEq, prettyQuantified, prettyTerm, Quant(..), V)
@@ -31,6 +31,7 @@ withUnivQuants fn formula =
                 (\ _ -> fn (reverse vs) f)
                 (\ _ -> fn (reverse vs) f)
                 (\ _ -> fn (reverse vs) f)
+                (\ _ -> fn (reverse vs) f)
                 f
       doQuant vs (:!:) v f = doFormula (v : vs) f
       doQuant vs (:?:) v f = fn (reverse vs) (exists v f)
@@ -39,6 +40,7 @@ withUnivQuants fn formula =
 data NFormula v p f
     = Predicate (NPredicate p (NTerm v f))
     | Combine (Combination (NFormula v p f))
+    | Negate (NFormula v p f)
     | Quant Quant v (NFormula v p f)
     -- Note that a derived Eq instance is not going to tell us that
     -- a&b is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).
@@ -67,8 +69,8 @@ instance (IsVariable v, Pretty v, IsFunction f, Pretty f) => Pretty (NTerm v f) 
     pPrint = prettyTerm
 instance (IsVariable v, IsPredicate p, IsFunction f
          ) => IsNegatable (NFormula v p f) where
-    naiveNegate = Combine . (:~:)
-    foldNegation' ne _ (Combine ((:~:) x)) = ne x
+    naiveNegate = Negate
+    foldNegation' ne _ (Negate x) = ne x
     foldNegation' _ other fm = other fm
 instance (IsVariable v, IsPredicate p, IsFunction f
          ) => IsCombinable (NFormula v p f) where
@@ -79,9 +81,10 @@ instance (IsVariable v, IsPredicate p, IsFunction f
     foldCombination = error "FIXME foldCombination"
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, atom ~ NPredicate p (NTerm v f), Pretty atom
          ) => IsPropositional (NFormula v p f) atom where
-    foldPropositional' ho _ _ _ fm@(Quant _ _ _) = ho fm
-    foldPropositional' _ co _ _ (Combine x) = co x
-    foldPropositional' _ _ tf at (Predicate x) = maybe (at x) tf (asBool x)
+    foldPropositional' ho _ _ _ _ fm@(Quant _ _ _) = ho fm
+    foldPropositional' _ co _ _ _ (Combine x) = co x
+    foldPropositional' _ _ ne _ _ (Negate x) = ne x
+    foldPropositional' _ _ _ tf at (Predicate x) = maybe (at x) tf (asBool x)
 instance HasFixity (NFormula v p f) where
     fixity _ = rootFixity
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, Pretty (NPredicate p (NTerm v f))) => Pretty (NFormula v p f) where
@@ -109,24 +112,24 @@ instance HasBoolean p => HasBoolean (NFormula v p f) where
 instance (IsVariable v, IsPredicate p, IsFunction f, Pretty (NPredicate p (NTerm v f))
          ) => IsFormula (NFormula v p f) (NPredicate p (NTerm v f)) where
     atomic = Predicate
-    onatoms f (Combine ((:~:) fm)) = Combine ((:~:) (onatoms f fm))
+    onatoms f (Negate fm) = Negate (onatoms f fm)
     onatoms f (Combine (BinOp lhs op rhs)) = Combine (BinOp (onatoms f lhs) op (onatoms f rhs))
     onatoms f (Quant op v fm) = Quant op v (onatoms f fm)
     onatoms f (Predicate p) = f p
-    overatoms f (Combine ((:~:) fm)) b = overatoms f fm b
+    overatoms f (Negate fm) b = overatoms f fm b
     overatoms f (Combine (BinOp lhs _ rhs)) b = overatoms f lhs (overatoms f rhs b)
     overatoms f (Quant _ _ fm) b = overatoms f fm b
     overatoms f (Predicate p) b = f p b
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, atom ~ NPredicate p (NTerm v f), Pretty atom
          ) => IsQuantified (NFormula v p f) atom v where
-    foldQuantified qu _ _ _ (Quant op v fm) = qu op v fm
-    foldQuantified _ co tf at fm = foldPropositional' (error "FIXME - need other function in case of embedded quantifiers") co tf at fm
+    foldQuantified qu _ _ _ _ (Quant op v fm) = qu op v fm
+    foldQuantified _ co ne tf at fm = foldPropositional' (error "FIXME - need other function in case of embedded quantifiers") co ne tf at fm
     quant = Quant
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, atom ~ NPredicate p (NTerm v f), Pretty atom
          ) => IsLiteral (NFormula v p f) atom where
     foldLiteral' ho ne _tf at fm =
         case fm of
-          Combine ((:~:) fm') -> ne fm'
+          Negate fm' -> ne fm'
           Predicate x -> at x
           _ -> ho fm
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f,

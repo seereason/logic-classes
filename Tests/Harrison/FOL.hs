@@ -51,12 +51,12 @@ holds :: forall formula atom term v p f a.
       -> formula
       -> Failing Bool
 holds m@(domain, _func, pred) v fm =
-    foldQuantified qu co tf at fm
+    foldQuantified qu co ne tf at fm
     where
       qu op x p = mapM (\ a -> holds m ((|->) x a v) p) domain >>= return . (asPred op) (== True)
       asPred (:?:) = any
       asPred (:!:) = all
-      co ((:~:) p) = holds m v p >>= return . not
+      ne p = holds m v p >>= return . not
       co (BinOp p (:|:) q) = (||) <$> (holds m v p) <*> (holds m v q)
       co (BinOp p (:&:) q) = (&&) <$> (holds m v p) <*> (holds m v q)
       co (BinOp p (:=>:) q) = (||) <$> (not <$> (holds m v p)) <*> (holds m v q)

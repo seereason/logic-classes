@@ -160,7 +160,7 @@ let dest_imp fm =
 
 antecedent :: IsQuantified formula atom v => formula -> formula
 antecedent formula =
-    foldQuantified (\ _ _ _ -> err) c (\ _ -> err) (\ _ -> err) formula
+    foldQuantified (\ _ _ _ -> err) c (\ _ -> err) (\ _ -> err) (\ _ -> err) formula
     where
       c (BinOp p (:=>:) _) = p
       c _ = err
@@ -168,7 +168,7 @@ antecedent formula =
 
 consequent :: IsQuantified formula atom v => formula -> formula
 consequent formula =
-    foldQuantified (\ _ _ _ -> err) c (\ _ -> err) (\ _ -> err) formula
+    foldQuantified (\ _ _ _ -> err) c (\ _ -> err) (\ _ -> err) (\ _ -> err) formula
     where
       c (BinOp _ (:=>:) q) = q
       c _ = err
@@ -180,10 +180,10 @@ consequent formula =
 
 on_atoms :: forall formula atom v. IsQuantified formula atom v => (atom -> formula) -> formula -> formula
 on_atoms f fm =
-    foldQuantified qu co tf at fm
+    foldQuantified qu co ne tf at fm
     where 
       qu op v fm' = quant op v (on_atoms f fm')
-      co ((:~:) fm') = (.~.) (on_atoms f fm')
+      ne fm' = (.~.) (on_atoms f fm')
       co (BinOp f1 op f2) = binop (on_atoms f f1) op (on_atoms f f2)
       tf _ = fm
       at = f
@@ -194,10 +194,10 @@ on_atoms f fm =
 
 over_atoms :: IsQuantified formula atom v => (atom -> b -> b) -> formula -> b -> b
 over_atoms f fm b =
-    foldQuantified qu co tf pr fm
+    foldQuantified qu co ne tf pr fm
     where
       qu _ _ p = over_atoms f p b
-      co ((:~:) p) = over_atoms f p b
+      ne p = over_atoms f p b
       co (BinOp p _ q) = over_atoms f p (over_atoms f q b)
       tf _ = b
       pr atom = f atom b
