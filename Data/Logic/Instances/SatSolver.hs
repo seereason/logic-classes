@@ -6,7 +6,6 @@ import Control.Monad.State (get, put)
 import Control.Monad.Trans (lift)
 import Data.Boolean (Literal(Pos, Neg), CNF)
 import Data.Boolean.SatSolver (newSatSolver, assertTrue', solve)
-import Data.Generics (Data, Typeable)
 import qualified Data.Map as M
 import qualified Data.Set.Extra as S
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(..))
@@ -15,21 +14,6 @@ import FOL (HasEquate, IsFirstOrder)
 import Formulas (IsNegatable(..), negated, (.~.))
 import qualified Lit as N
 import Skolem (simpcnf')
-
-instance Ord Literal where
-    compare (Neg _) (Pos _) = LT
-    compare (Pos _) (Neg _) = GT
-    compare (Pos m) (Pos n) = compare m n
-    compare (Neg m) (Neg n) = compare m n
-
-instance IsNegatable Literal where
-    naiveNegate (Neg x) = Pos x
-    naiveNegate (Pos x) = Neg x
-    foldNegation' inverted _ (Neg x) = inverted (Pos x)
-    foldNegation' _ normal (Pos x) = normal (Pos x)
-
-deriving instance Data Literal
-deriving instance Typeable Literal
 
 instance ClauseNormalFormula CNF Literal where
     clauses = S.fromList . map S.fromList

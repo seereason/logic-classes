@@ -17,9 +17,9 @@ import Data.Logic.Classes.Atom (Atom(isRename, getSubst))
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF, neg, pos))
 import Data.Map (Map, empty)
 import Data.Maybe (isJust)
-import FOL (HasEquate(equate), foldEquate, zipEquals, HasPredicate(applyPredicate), IsTerm(..))
+import FOL (HasEquate(equate), foldEquate, zipEquals, HasPredicate(applyPredicate), IsTerm(vt, fApp), foldTerm, zipTerms)
 import Formulas (fromBool, IsFormula(atomic))
-import Lit (IsLiteral(..), zipLiterals)
+import Lit (foldLiteral, IsLiteral, JustLiteral, zipLiterals)
 import qualified Data.Map as Map
 import qualified Data.Set.Extra as S
 
@@ -27,7 +27,11 @@ type SetOfSupport lit v term = S.Set (Unification lit v term)
 
 type Unification lit v term = (ImplicativeForm lit, Map.Map v term)
 
-prove :: (IsLiteral lit atom, Atom atom term v, IsTerm term v f, Ord lit, Ord term, Ord v, HasEquate atom p term) =>
+prove :: (IsLiteral lit atom, JustLiteral lit,
+          Atom atom term v,
+          IsTerm term v f,
+          HasEquate atom p term,
+          Ord lit, Ord term, Ord v) =>
          Maybe Int -- ^ Recursion limit.  We continue recursing until this
                    -- becomes zero.  If it is negative it may recurse until
                    -- it overflows the stack.
@@ -54,7 +58,10 @@ prove limit ss1 ss2' kb  =
 --         prove (ss1 ++ [s]) ss' (fst s:kb)
 
 prove' :: forall lit atom p f v term.
-          (IsLiteral lit atom, Atom atom term v, IsTerm term v f, Ord lit, Ord term, Ord v, HasEquate atom p term, Eq p) =>
+          (IsLiteral lit atom, JustLiteral lit,
+           HasEquate atom p term,
+           Atom atom term v, IsTerm term v f,
+           Ord lit, Ord term, Ord v, Eq p) =>
           Unification lit v term -> S.Set (ImplicativeForm lit) -> SetOfSupport lit v term -> SetOfSupport lit v term -> (SetOfSupport lit v term, Bool)
 prove' p kb ss1 ss2 =
     let
@@ -66,7 +73,12 @@ prove' p kb ss1 ss2 =
     in
       if S.null ss' then (ss1, False) else (S.union ss1 ss', tf)
 
-getResult :: (IsLiteral lit atom, Atom atom term v, IsTerm term v f, Ord lit, Ord term, Ord v, HasEquate atom p term, Eq p) =>
+getResult :: (IsLiteral lit atom,
+              JustLiteral lit,
+              Atom atom term v,
+              IsTerm term v f,
+              HasEquate atom p term,
+              Ord lit, Ord term, Ord v, Eq p) =>
              SetOfSupport lit v term -> S.Set (Maybe (Unification lit v term)) -> ((SetOfSupport lit v term), Bool)
 getResult ss us =
     case S.minView us of
@@ -94,7 +106,7 @@ getResult ss ((Just x):xs)  =
 -}
 
 -- |Convert the "question" to a set of support.
-getSetOfSupport :: (IsLiteral lit atom, Atom atom term v, IsTerm term v f, Ord lit, Ord term, Ord v) =>
+getSetOfSupport :: (IsLiteral lit atom, JustLiteral lit, Atom atom term v, IsTerm term v f, Ord lit, Ord term, Ord v) =>
                    S.Set (ImplicativeForm lit) -> S.Set (ImplicativeForm lit, Map.Map v term)
 getSetOfSupport s = S.map (\ x -> (x, getSubsts x empty)) s
 
@@ -133,7 +145,7 @@ getSubstsTerm term theta =
              (\ _ ts -> getSubstsTerms ts theta)
              term
 
-isRenameOf :: (IsLiteral lit atom, Atom atom term v, IsTerm term v f, Ord lit) =>
+isRenameOf :: (IsLiteral lit atom, JustLiteral lit, Atom atom term v, IsTerm term v f, Ord lit) =>
               ImplicativeForm lit -> ImplicativeForm lit -> Bool
 isRenameOf inf1 inf2 =
     (isRenameOfSentences lhs1 lhs2) && (isRenameOfSentences rhs1 rhs2)
@@ -143,11 +155,11 @@ isRenameOf inf1 inf2 =
       lhs2 = neg inf2
       rhs2 = pos inf2
 
-isRenameOfSentences :: (IsLiteral lit atom, Atom atom term v, IsTerm term v f) => S.Set lit -> S.Set lit -> Bool
+isRenameOfSentences :: (IsLiteral lit atom, JustLiteral lit, Atom atom term v, IsTerm term v f) => S.Set lit -> S.Set lit -> Bool
 isRenameOfSentences xs1 xs2 =
     S.size xs1 == S.size xs2 && all (uncurry isRenameOfSentence) (zip (S.toList xs1) (S.toList xs2))
 
-isRenameOfSentence :: forall lit atom term v f. (IsLiteral lit atom, Atom atom term v, IsTerm term v f) => lit -> lit -> Bool
+isRenameOfSentence :: forall lit atom term v f. (IsLiteral lit atom, JustLiteral lit, Atom atom term v, IsTerm term v f) => lit -> lit -> Bool
 isRenameOfSentence f1 f2 =
     maybe False id $
     zipLiterals (\ _ _ -> Just False) (\ x y -> Just (x == y)) (\ x y -> Just (isRename x y)) f1 f2
@@ -162,8 +174,8 @@ isRenameOfAtomEq a1 a2 =
 isRenameOfTerm :: IsTerm term v f => term -> term -> Bool
 isRenameOfTerm t1 t2 =
     maybe False id $
-    zipTerms (\ _ _ -> True)
-             (\ f1 ts1 f2 ts2 -> f1 == f2 && isRenameOfTerms ts1 ts2)
+    zipTerms (\ _ _ -> Just True)
+             (\ f1 ts1 f2 ts2 -> Just (f1 == f2 && isRenameOfTerms ts1 ts2))
              t1 t2
 
 isRenameOfTerms :: IsTerm term v f => [term] -> [term] -> Bool
@@ -176,7 +188,11 @@ isRenameOfTerms ts1 ts2 =
     else
       False
 
-resolution :: forall lit atom p f term v. (IsLiteral lit atom, Atom atom term v, IsTerm term v f, Eq lit, Ord lit, Eq term, Ord v, HasEquate atom p term, Eq p) =>
+resolution :: forall lit atom p f term v.
+              (IsLiteral lit atom, JustLiteral lit,
+               Atom atom term v, IsTerm term v f,
+               HasEquate atom p term,
+               Eq lit, Ord lit, Eq term, Ord v, Eq p) =>
              (ImplicativeForm lit, Map.Map v term) -> (ImplicativeForm lit, Map.Map v term) -> Maybe (ImplicativeForm lit, Map v term)
 resolution (inf1, theta1) (inf2, theta2) =
     let
@@ -212,7 +228,7 @@ resolution (inf1, theta1) (inf2, theta2) =
             Just (rhss', theta1', theta2') ->
                 Just ((S.union lhss' lhss, theta1'), (rhss', theta2'))
 
-      tryUnify'' :: (IsLiteral lit atom, Ord lit) =>
+      tryUnify'' :: (IsLiteral lit atom, JustLiteral lit, Ord lit) =>
                     lit -> S.Set lit -> S.Set lit -> Maybe (S.Set lit, Map.Map v term, Map.Map v term)
       tryUnify'' _x rhss _ | S.null rhss = Nothing
       tryUnify'' x rhss'' rhss' =
@@ -244,11 +260,11 @@ demodulate (inf1, theta1) (inf2, theta2) =
       rhs2 = pos inf2
 
 -- |Unification: unifies two sentences.
-unify :: (IsLiteral lit atom, Atom atom term v, IsTerm term v f, HasEquate atom p term, Eq p) =>
+unify :: (IsLiteral lit atom, JustLiteral lit, Atom atom term v, IsTerm term v f, HasEquate atom p term, Eq p) =>
          lit -> lit -> Maybe (Map.Map v term, Map.Map v term)
 unify s1 s2 = unify' s1 s2 empty empty
 
-unify' :: (IsLiteral lit atom, Atom atom term v, IsTerm term v f, HasEquate atom p term, Eq p) =>
+unify' :: (IsLiteral lit atom, JustLiteral lit, Atom atom term v, IsTerm term v f, HasEquate atom p term, Eq p) =>
           lit -> lit -> Map.Map v term -> Map.Map v term -> Maybe (Map.Map v term, Map.Map v term)
 unify' f1 f2 theta1 theta2 =
     zipLiterals
@@ -335,7 +351,7 @@ replaceTerm formula (tl', tr') =
           then tr'
           else foldTerm vt (\ f ts -> fApp f (map replaceTerm' ts)) t
       termEq t1 t2 =
-          maybe False id (zipTerms (==) (\ f1 ts1 f2 ts2 -> f1 == f2 && all (uncurry termEq) (zip ts1 ts2)) t1 t2)
+          maybe False id (zipTerms (\a b -> Just (a == b)) (\ f1 ts1 f2 ts2 -> Just (f1 == f2 && all (uncurry termEq) (zip ts1 ts2))) t1 t2)
 
 subst :: (IsLiteral formula atom, HasEquate atom p term, Atom atom term v, IsTerm term v f, Eq term) => formula -> Map.Map v term -> Maybe formula
 subst formula theta =

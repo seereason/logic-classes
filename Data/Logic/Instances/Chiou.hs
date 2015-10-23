@@ -19,7 +19,7 @@ import Data.String (IsString(..))
 import FOL ((.=.), foldEquate, HasEquate(..), HasPredicate(..), IsFunction, IsPredicate, IsQuantified(..),
             IsTerm(..), IsVariable, onatomsFirstOrder, overatomsFirstOrder, pApp, prettyQuantified, prettyTerm, Quant(..))
 import Formulas (HasBoolean(..), asBool, IsCombinable(..), BinOp(..), Combination(..), IsFormula(..), IsNegatable(..), (.~.))
-import Lit (IsLiteral(foldLiteral), JustLiteral, prettyLiteral)
+import Lit (IsLiteral(foldLiteral'), JustLiteral, prettyLiteral)
 import Pretty (Pretty(pPrint), HasFixity(..), rootFixity)
 import Prop (IsPropositional(foldPropositional'))
 import Skolem (HasSkolem(..))
@@ -103,10 +103,10 @@ instance (IsFormula (Sentence v p f) (Sentence v p f), IsLiteral (Sentence v p f
           _ -> ho formula
 
 instance (Ord p, HasBoolean p, IsVariable v, IsFunction f) => IsLiteral (Sentence v p f) (Sentence v p f) where
-    foldLiteral ne _ _ (Not x) = ne x
-    foldLiteral _ tf at (Predicate p ts) = maybe (at (Predicate p ts)) tf (asBool p)
-    foldLiteral _ _ at (Equal t1 t2) = at (Equal t1 t2)
-    foldLiteral _ _ _ _ = error "foldLiteral in IsLiteral (Sentence v p f) (Sentence v p f)"
+    foldLiteral' _ ne _ _ (Not x) = ne x
+    foldLiteral' _ _ tf at (Predicate p ts) = maybe (at (Predicate p ts)) tf (asBool p)
+    foldLiteral' _ _ _ at (Equal t1 t2) = at (Equal t1 t2)
+    foldLiteral' ho _ _ _ fm = ho fm
 
 data AtomicFunction v
     = AtomicFunction String
@@ -201,11 +201,6 @@ instance (IsVariable v, IsFunction f, Pretty (CTerm v f)) => IsTerm (CTerm v f) 
         case t of
           Variable x -> v x
           Function f ts -> fn f ts
-    zipTerms  v f t1 t2 =
-        case (t1, t2) of
-          (Variable v1, Variable v2) -> Just (v v1 v2)
-          (Function f1 ts1, Function f2 ts2) -> Just (f f1 ts1 f2 ts2)
-          _ -> Nothing
     vt = Variable
     fApp f ts = Function f ts
 
@@ -299,11 +294,6 @@ instance (IsVariable v, IsFunction f, Pretty (NormalTerm v f)) => IsTerm (Normal
             case t of
               NormalVariable x -> v x
               NormalFunction x ts -> f x ts
-    zipTerms v fn t1 t2 =
-        case (t1, t2) of
-          (NormalVariable x1, NormalVariable x2) -> Just (v x1 x2)
-          (NormalFunction f1 ts1, NormalFunction f2 ts2) -> Just (fn f1 ts1 f2 ts2)
-          _ -> Nothing
 
 instance (IsVariable v, IsFunction f) => Pretty (NormalTerm v f) where
     pPrint = prettyTerm

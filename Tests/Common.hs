@@ -31,10 +31,11 @@ import Data.Logic.Resolution (getSubstAtomEq, isRenameOfAtomEq, SetOfSupport)
 import Data.Set as Set
 import FOL (asubst, convertFirstOrder, fApp, foldEquate, foldTerm, funcs, fva, HasEquate,
             IsFirstOrder, IsQuantified(..), IsTerm, Predicate(NamedPredicate), V, vt)
-import Formulas (IsCombinable(..), HasBoolean(fromBool, asBool), IsNegatable(..), IsFormula(..))
+import Formulas (HasBoolean(fromBool, asBool))
 import Lit (IsLiteral(..))
-import Pretty (Pretty(pPrint), HasFixity(..))
-import Prop (IsPropositional(..), PFormula, satisfiable, trivial)
+import Pretty (Pretty(pPrint))
+import Prop (Marked, PFormula, satisfiable, trivial)
+import qualified Prop (Literal)
 import PropLogic (PropForm)
 import Safe (readMay)
 import Skolem (Function, MyAtom, MyTerm, SkolemT, MyFormula, MyAtom, MyTerm, simpcnf', HasSkolem)
@@ -59,29 +60,6 @@ instance IsQuantified (PropForm MyAtom) MyAtom V where
     quant _ _ _ = error "FIXME: IsQuantified (PropForm MyAtom) MyAtom V"
     foldQuantified = error "FIXME: IsQuantified (PropForm MyAtom) MyAtom V"
 
-instance IsPropositional CNF MyAtom where
-    foldPropositional' = error "FIXME: IsPropositional CNF MyAtom"
-instance IsCombinable CNF where
-    foldCombination = error "FIXME: IsCombinable CNF"
-    _ .|. _ = error "FIXME: IsCombinable CNF"
-    _ .&. _ = error "FIXME: IsCombinable CNF"
-    _ .=>. _ = error "FIXME: IsCombinable CNF"
-    _ .<=>. _ = error "FIXME: IsCombinable CNF"
-instance HasBoolean CNF where
-    asBool = error "FIXME: HasBoolean CNF"
-    fromBool = error "FIXME: HasBoolean CNF"
-instance IsNegatable CNF where
-    naiveNegate = error "FIXME: IsNegatable CNF"
-    foldNegation' = error "FIXME: IsNegatable CNF"
-instance HasFixity CNF where
-    fixity = error "FIXME: HasFixity CNF"
-instance IsLiteral CNF MyAtom where
-    foldLiteral = error "FIXME: IsLiteral CNF MyAtom"
-instance IsFormula CNF MyAtom where
-    atomic = error "FIXME: IsFormula CNF MyAtom"
-    overatoms = error "FIXME: IsFormula CNF MyAtom"
-    onatoms = error "FIXME: IsFormula CNF MyAtom"
-
 -- | Render a Pretty instance in single line mode
 render :: Pretty a => a -> String
 render = renderStyle (style {mode = OneLineMode}) . pPrint
@@ -101,10 +79,10 @@ data Expected formula atom v
     | PrenexNormalForm formula
     | SkolemNormalForm (PFormula MyAtom)
     | SkolemNumbers (Set Function)
-    | ClauseNormalForm (Set (Set formula))
+    | ClauseNormalForm (Set (Set (Marked Prop.Literal formula)))
     | TrivialClauses [(Bool, (Set formula))]
     | ConvertToChiou (Ch.Sentence V Predicate Function)
-    | ChiouKB1 (Proof formula)
+    | ChiouKB1 (Proof (Marked Prop.Literal formula))
     | PropLogicSat Bool
     | SatSolverCNF CNF
     | SatSolverSat Bool
@@ -136,7 +114,7 @@ doTest (TestFormula fm nm expect) =
       doExpected (ClauseNormalForm fss) =
           let label = (nm ++ " clause normal form") in
           TestLabel label (TestCase (assertEqual label
-                                                 (show (List.map (List.map pPrint) . Set.toList . Set.map Set.toList $ (fss :: (Set (Set MyFormula)))))
+                                                 (show (List.map (List.map pPrint) . Set.toList . Set.map Set.toList $ (fss :: (Set (Set (Marked Prop.Literal MyFormula))))))
                                                  (show (List.map (List.map pPrint) . Set.toList . Set.map Set.toList $ (Set.map (Set.map id) (simpcnf' fm) :: Set (Set MyFormula))))))
       doExpected (TrivialClauses flags) = let label = (nm ++ " trivial clauses") in TestLabel label (TestCase (assertEqual label flags (List.map (\ (x :: Set MyFormula) -> (trivial x, x)) (Set.toList (simpcnf' (fm :: MyFormula))))))
       doExpected (ConvertToChiou result) =
@@ -151,7 +129,7 @@ doTest (TestFormula fm nm expect) =
                     fn :: Function -> [MyTerm] -> Ch.CTerm V Function
                     fn f ts = fApp f (List.map ct ts) in
                 let label = (nm ++ " converted to Chiou") in TestLabel label (TestCase (assertEqual label result (convertFirstOrder ca id fm :: Ch.Sentence V Predicate Function)))
-      doExpected (ChiouKB1 result) = let label = (nm ++ " Chiou KB") in TestLabel label (TestCase (assertEqual label result (runProver' Nothing (loadKB [fm] >>= return . head))))
+      doExpected (ChiouKB1 result) = let label = (nm ++ " Chiou KB") in TestLabel label (TestCase (assertEqual label result ((runProver' Nothing (loadKB [fm] >>= return . head)) :: (Proof (Marked Prop.Literal MyFormula)))))
       doExpected (PropLogicSat result) = let label = (nm ++ " PropLogic.satisfiable") in TestLabel label (TestCase (assertEqual label result (runSkolem (plSat (convertFirstOrder id id fm)))))
       doExpected (SatSolverCNF result) = let label = (nm ++ " SatSolver CNF") in TestLabel label (TestCase (assertEqual label (norm result) (runNormal (SS.toCNF fm))))
       doExpected (SatSolverSat result) = let label = (nm ++ " SatSolver CNF") in TestLabel label (TestCase (assertEqual label result ((List.null :: [a] -> Bool) (runNormalT (SS.toCNF fm >>= return . satisfiable)))))
@@ -171,19 +149,19 @@ skolemSet = Set.map fst . funcs
 gFind :: (MonadPlus m, Data a, Typeable b) => a -> m b
 gFind = msum . List.map return . listify (const True)
 
-data TestProof formula term v
+data TestProof fof term v
     = TestProof
       { proofName :: String
-      , proofKnowledge :: (String, [formula])
-      , conjecture :: formula
-      , proofExpected :: [ProofExpected formula v term]
+      , proofKnowledge :: (String, [fof])
+      , conjecture :: fof
+      , proofExpected :: [ProofExpected (Marked Prop.Literal fof) v term]
       } deriving (Data, Typeable)
 
 type TTestProof = TestProof MyFormula MyTerm V
 
-data ProofExpected formula v term
-    = ChiouResult (Bool, SetOfSupport formula v term)
-    | ChiouKB (Set (WithId (ImplicativeForm formula)))
+data ProofExpected lit v term
+    = ChiouResult (Bool, SetOfSupport lit v term)
+    | ChiouKB (Set (WithId (ImplicativeForm lit)))
     deriving (Data, Typeable)
 
 {-
@@ -195,17 +173,19 @@ doProof :: forall formula atom term v p f. (IsQuantified formula atom v,
                                             Ord formula, Data formula, Typeable v, Eq term, Show term, Show v, Show formula, Eq p, Ord f, Show f) =>
            TestProof formula term v -> Test
 -}
-doProof :: forall formula atom p term v f.
+doProof :: forall formula lit atom p term v f.
            (IsFirstOrder formula atom p term v f,
             HasEquate atom p term,
             Atom atom term v,
             HasSkolem f v,
-            Eq formula, Eq term, Eq v, Ord term, Show formula, Show term, Data formula, Typeable f, Show v) => TestProof formula term v -> Test
+            lit ~ Marked Prop.Literal formula,
+            Eq formula, Eq term, Eq v, Ord term, Show formula, Show term, Data formula, Typeable f, Show v
+           ) => TestProof formula term v -> Test
 doProof p =
     TestLabel (proofName p) $ TestList $
     concatMap doExpected (proofExpected p)
     where
-      doExpected :: ProofExpected formula v term -> [Test]
+      doExpected :: ProofExpected lit v term -> [Test]
       doExpected (ChiouResult result) =
           [let label = (proofName p ++ " with " ++ fst (proofKnowledge p) ++ " using Chiou prover") in
            TestLabel label (TestCase (assertEqual label result (runProver' Nothing (loadKB' kb >> theoremKB' c))))]
@@ -216,7 +196,7 @@ doProof p =
       c = conjecture p :: formula
 
 loadKB' :: forall m formula lit atom p term v f.
-           (lit ~ formula,
+           (lit ~ Marked Prop.Literal formula,
             Monad m, Data formula,
             IsFirstOrder formula atom p term v f,
             IsQuantified formula atom v,
@@ -224,17 +204,17 @@ loadKB' :: forall m formula lit atom p term v f.
             HasSkolem f v,
             IsLiteral lit atom,
             Atom atom term v,
-            IsTerm term v f, Typeable f) => [formula] -> ProverT' v term (ImplicativeForm formula) m [Proof formula]
+            IsTerm term v f, Typeable f) => [formula] -> ProverT' v term (ImplicativeForm lit) m [Proof lit]
 loadKB' = loadKB
 
 theoremKB' :: forall m formula lit atom p term v f.
-              (lit ~ formula,
+              (lit ~ Marked Prop.Literal formula,
                Monad m, Data formula,
                IsFirstOrder formula atom p term v f,
-               IsQuantified formula atom v,
                HasEquate atom p term,
                HasSkolem f v,
                IsLiteral lit atom,
                Atom atom term v,
-               IsTerm term v f, Typeable f) => formula -> ProverT' v term (ImplicativeForm formula) m (Bool, SetOfSupport formula v term)
+               IsTerm term v f, Typeable f
+              ) => formula -> ProverT' v term (ImplicativeForm lit) m (Bool, SetOfSupport lit v term)
 theoremKB' = theoremKB

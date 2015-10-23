@@ -46,14 +46,12 @@ instance (Data p, Ord p, Data v, Ord v, Data f, Ord f) => Bijection (Combination
     intern (BinOp x op y) = BinOp (intern x) op (intern y)
     intern ((:~:) x) = (:~:) (intern x)
 
-instance (IsVariable v, IsPredicate p, IsFunction f,
+instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f,
           IsLiteral (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
           IsFormula (PFormula v p f)  (N.NPredicate p (N.NTerm v f)),
-          HasBoolean p, Data v, Data p, Data f
+          Data v, Data p, Data f
          ) => IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)) where
-    foldLiteral ne tf at fm = foldLiteral (ne . Formula) tf at (unFormula fm)
-
--- instance (IsVariable v, IsPredicate p, IsFunction f, HasBoolean p) => IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f) v f
+    foldLiteral' ho ne tf at fm = foldLiteral' (ho . Formula) (ne . Formula) tf at (unFormula fm)
 
 instance (IsVariable v, IsPredicate p, IsFunction f, HasBoolean (N.NPredicate p (N.NTerm v f)),
           IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f))
@@ -68,14 +66,7 @@ instance (HasBoolean (N.NFormula v p f), IsPredicate p, IsVariable v, IsFunction
 instance (IsVariable v, IsPredicate p, IsFunction f,
           HasBoolean (N.NPredicate p (N.NTerm v f)),
           IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f))
-{-
-          IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
-          HasEquate p,
-          HasBoolean (Formula v p f),
-          HasBoolean (N.NFormula v p f),
-          ,
-          IsLiteral (Formula v p f) (N.NPredicate p (N.NTerm v f)),
-          IsVariable v, IsPredicate p (N.NTerm v f), IsFunction f-}) => IsCombinable (PFormula v p f) where
+         ) => IsCombinable (PFormula v p f) where
     foldCombination dj cj imp iff other (Formula fm) =
         foldCombination (dj `on` Formula) (cj `on` Formula) (imp `on` Formula) (iff `on` Formula) (other . Formula) fm
     x .<=>. y = Formula $ (unFormula x) .<=>. (unFormula y)
@@ -88,7 +79,6 @@ instance (IsVariable v, IsPredicate p, IsFunction f,
           HasBoolean (N.NPredicate p (N.NTerm v f)),
           IsLiteral (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
           Data v, Data p, Data f
-         {-, HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), IsFunction f, IsVariable v-}
          ) => IsFormula (PFormula v p f) (N.NPredicate p (N.NTerm v f)) where
     atomic = Formula . atomic
     overatoms = overatomsFirstOrder
@@ -104,7 +94,7 @@ instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NT
         where qu' op v form = qu op v (public form)
               co' x = co (public x)
 
-instance (IsVariable v, Data v, IsPredicate p, Data p, IsFunction f, Data f, HasBoolean p, HasEquals p, HasFunctions (N.NPredicate p (N.NTerm v f)) f
+instance (IsVariable v, Data v, IsPredicate p, HasBoolean p, Data p, IsFunction f, Data f, HasEquals p, HasFunctions (N.NPredicate p (N.NTerm v f)) f
          ) => HasFunctions (PFormula v p f) f where
     funcs = foldQuantified (\_ _ fm -> funcs fm) co (\_ -> mempty) funcs
         where
@@ -119,8 +109,9 @@ instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NT
     foldPropositional' ho co tf at f = foldPropositional' (ho . public) co' tf at (intern f :: N.NFormula v p f)
         where co' x = co (public x)
 
--- |Here are the magic Ord and Eq instances
-instance (IsVariable v, Data v, IsPredicate p, Data p, IsFunction f, Data f, HasBoolean p, HasEquals p
+-- | Here are the magic Ord and Eq instances - formulas will be Eq if
+-- their normal forms are Eq up to renaming.
+instance (IsVariable v, Data v, IsPredicate p, HasBoolean p, Data p, IsFunction f, Data f, HasEquals p
          ) => Ord (PFormula v p f) where
     compare a b =
         let (a' :: Set (Set (N.NFormula v p f))) = simpcnf' (unFormula a)
@@ -153,8 +144,8 @@ instance (IsFirstOrder (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NT
          ) => Pretty (PFormula v p f) where
     pPrint = prettyQuantified
 
-instance (IsVariable v, IsPredicate p, IsFunction f,
-          Data v, Data p, Data f, HasBoolean p, HasEquals p,
+instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f,
+          Data v, Data p, Data f, HasEquals p,
           HasFunctions (N.NPredicate p (N.NTerm v f)) f) => IsFirstOrder (PFormula v p f) (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f) v f
 
 $(deriveSafeCopy 1 'base ''PFormula)

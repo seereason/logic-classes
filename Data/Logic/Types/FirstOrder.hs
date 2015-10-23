@@ -15,7 +15,7 @@ import FOL (exists, HasEquals, HasEquate(equate, foldEquate'), HasFunctions(..),
             IsFunction, IsPredicate, IsQuantified(..), IsTerm(..), IsVariable(..),
             prettyPredicateApplicationEq, prettyQuantified, prettyTerm, Quant(..), V)
 import Lit (IsLiteral(..))
-import Pretty (HasFixity(..), Pretty(pPrint), prettyShow, rootFixity)
+import Pretty (HasFixity(..), Pretty(pPrint), rootFixity)
 import Prop (IsPropositional(foldPropositional'))
 
 -- | Examine the formula to find the list of outermost universally
@@ -84,24 +84,18 @@ instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, atom ~ NPredi
     foldPropositional' _ _ tf at (Predicate x) = maybe (at x) tf (asBool x)
 instance HasFixity (NFormula v p f) where
     fixity _ = rootFixity
-instance (IsVariable v, IsPredicate p, IsFunction f, Pretty (NPredicate p (NTerm v f)), HasBoolean p) => Pretty (NFormula v p f) where
+instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, Pretty (NPredicate p (NTerm v f))) => Pretty (NFormula v p f) where
     pPrint = prettyQuantified
-instance (IsPredicate p, Pretty p, Pretty term, HasEquals p, HasBoolean p) => Pretty (NPredicate p term) where
+instance (IsPredicate p, Pretty p, Pretty term, HasEquals p) => Pretty (NPredicate p term) where
     pPrint = foldPredicate prettyPredicateApplicationEq
-instance (IsPredicate p, HasBoolean p) => HasPredicate (NPredicate p term) p term where
+instance (IsPredicate p) => HasPredicate (NPredicate p term) p term where
     applyPredicate = Apply
     foldPredicate f (Apply p ts) = f p ts
     foldPredicate _ (Equal _ _) = error "foldPredicate - found Equate"
-instance (IsPredicate p, HasBoolean p) => HasEquate (NPredicate p term) p term where
+instance (IsPredicate p) => HasEquate (NPredicate p term) p term where
     equate = Equal
     foldEquate' eq (Equal t1 t2) = Just (eq t1 t2)
     foldEquate' _ _ = Nothing
-{-
-instance (IsPredicate p, HasBoolean p) => HasEquate (NPredicate p (NTerm v f)) p (NTerm v f) where
-    equate = Equal
-    foldEquate' eq (Equal lhs rhs) = Just (eq lhs rhs)
-    foldEquate' _ _ = Nothing
--}
 instance HasFixity (NPredicate p (NTerm v f)) where
     fixity _ = rootFixity
 instance HasBoolean p => HasBoolean (NPredicate p (NTerm v f)) where
@@ -112,7 +106,7 @@ instance HasBoolean p => HasBoolean (NFormula v p f) where
     asBool (Predicate (Apply p [])) = asBool p
     asBool _ = Nothing
     fromBool = Predicate . fromBool
-instance (IsVariable v, IsPredicate p, IsFunction f, Pretty (NPredicate p (NTerm v f)), HasBoolean p
+instance (IsVariable v, IsPredicate p, IsFunction f, Pretty (NPredicate p (NTerm v f))
          ) => IsFormula (NFormula v p f) (NPredicate p (NTerm v f)) where
     atomic = Predicate
     onatoms f (Combine ((:~:) fm)) = Combine ((:~:) (onatoms f fm))
@@ -123,26 +117,23 @@ instance (IsVariable v, IsPredicate p, IsFunction f, Pretty (NPredicate p (NTerm
     overatoms f (Combine (BinOp lhs _ rhs)) b = overatoms f lhs (overatoms f rhs b)
     overatoms f (Quant _ _ fm) b = overatoms f fm b
     overatoms f (Predicate p) b = f p b
-instance (IsVariable v, IsPredicate p, IsFunction f, HasBoolean p, atom ~ NPredicate p (NTerm v f), Pretty atom {-FOL p (NTerm v f)-}
+instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, atom ~ NPredicate p (NTerm v f), Pretty atom
          ) => IsQuantified (NFormula v p f) atom v where
     foldQuantified qu _ _ _ (Quant op v fm) = qu op v fm
     foldQuantified _ co tf at fm = foldPropositional' (error "FIXME - need other function in case of embedded quantifiers") co tf at fm
     quant = Quant
-instance (IsVariable v, IsPredicate p, IsFunction f, HasBoolean p, atom ~ NPredicate p (NTerm v f) {-FOL p (NTerm v f)-}, Pretty atom
+instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, atom ~ NPredicate p (NTerm v f), Pretty atom
          ) => IsLiteral (NFormula v p f) atom where
-    foldLiteral ne _tf at fm =
+    foldLiteral' ho ne _tf at fm =
         case fm of
           Combine ((:~:) fm') -> ne fm'
           Predicate x -> at x
-          _ -> error ("foldLiteral NFormula - unexpected: " ++ prettyShow fm)
-instance (IsVariable v, IsPredicate p, IsFunction f, HasBoolean p,
+          _ -> ho fm
+instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f,
           HasPredicate (NPredicate p (NTerm v f)) p (NTerm v f),
           HasFunctions (NTerm v f) f,
           HasFunctions (NFormula v p f) f,
-          Pretty (NPredicate p (NTerm v f)) {-FOL p (NTerm v f)-}
-          -- term ~ (NTerm v f),
-          -- atom ~ NPredicate p term,
-          -- formula ~ (NFormula v p f)
+          Pretty (NPredicate p (NTerm v f))
          ) => IsFirstOrder (NFormula v p f) (NPredicate p (NTerm v f)) p (NTerm v f) v f
 
 instance (IsFirstOrder (NFormula v p f) (NPredicate p (NTerm v f)) p (NTerm v f) v f,
@@ -160,11 +151,6 @@ instance (IsVariable v, IsFunction f) => IsTerm (NTerm v f) v f where
     fApp = FunApp
     foldTerm vf _ (NVar v) = vf v
     foldTerm _ ff (FunApp f ts) = ff f ts
-    zipTerms vf ff t1 t2 =
-        foldTerm vf' ff' t1
-        where
-          vf' v1 = foldTerm (\v2 -> Just (vf v1 v2)) (\_ _ -> Nothing) t2
-          ff' f1 ts1 = foldTerm (\_ -> Nothing) (\f2 ts2 -> if length ts1 == length ts2 then Just (ff f1 ts1 f2 ts2) else Nothing) t2
 
 $(deriveSafeCopy 1 'base ''Combination)
 $(deriveSafeCopy 1 'base ''BinOp)

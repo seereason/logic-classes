@@ -30,13 +30,13 @@ instance Ord a => IsCombinable (PropForm a) where
     x .&.   y = CJ [x, y]
 
 instance (Ord a, HasFixity a, Pretty a) => IsLiteral (PropForm a) a where
-    foldLiteral ne tf at formula =
-        case formula of
+    foldLiteral' ho ne tf at fm =
+        case fm of
           N x -> ne x
           T -> tf True
           F -> tf False
           A x -> at x
-          _ -> error ("Invalid PropForm literal: " ++ prettyShow formula)
+          _ -> ho fm
 
 instance (Pretty a, HasFixity a, Ord a) => IsFormula (PropForm a) a where
     atomic = A

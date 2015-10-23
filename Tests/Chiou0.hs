@@ -13,6 +13,7 @@ import Data.Map (fromList)
 import FOL (exists, for_all, IsTerm(..), pApp)
 import Formulas (IsCombinable(..), IsNegatable(..), (.~.))
 import qualified Data.Set as S
+import Prop (Literal, Marked)
 import Skolem (HasSkolem(..), SkolemT)
 import Test.HUnit
 
@@ -24,7 +25,7 @@ loadTest =
     let label = "Chiuo0 - loadKB test" in
     TestLabel label (TestCase (assertEqual label expected (runProver' Nothing (loadKB sentences))))
     where
-      expected :: [Proof TFormula]
+      expected :: [Proof (Marked Literal TFormula)]
       expected = [Proof Invalid (S.fromList [makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem "x") []])]),
                                              makeINF' ([]) ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem "x") []])])]),
                   Proof Invalid (S.fromList [makeINF' ([(pApp ("Dog") [vt ("y2")]),(pApp ("Owns") [vt ("x"),vt ("y")])]) ([(pApp ("AnimalLover") [vt ("x")])])]),
@@ -40,7 +41,7 @@ proofTest1 = let label = "Chiuo0 - proof test 1" in
 inf' :: (IsNegatable lit, Ord lit) => [lit] -> [lit] -> ImplicativeForm lit
 inf' l1 l2 = INF (S.fromList l1) (S.fromList l2)
 
-proof1 :: (Bool, SetOfSupport TFormula V TTerm)
+proof1 :: (Bool, SetOfSupport (Marked Literal TFormula) V TTerm)
 proof1 = (False,
           (S.fromList
            [(makeINF' ([(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])]) ([]),fromList []),
@@ -62,7 +63,7 @@ proofTest2 = let label = "Chiuo0 - proof test 2" in
       conjecture :: TFormula
       conjecture = (pApp "Kills" [fApp "Curiosity" [], fApp (Fn "Tuna") []])
 
-proof2 :: (Bool, SetOfSupport TFormula V TTerm)
+proof2 :: (Bool, SetOfSupport (Marked Literal TFormula) V TTerm)
 proof2 = (True,
           S.fromList
           [(makeINF' ([]) ([]),fromList []),
@@ -81,7 +82,7 @@ proof2 = (True,
            (makeINF' ([(pApp ("Dog") [vt ("y2")]),(pApp ("Owns") [fApp ("Jack") [],vt ("y")])]) ([]),fromList []),
            (makeINF' ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []])]) ([]),fromList [])])
 
-testProof :: MonadIO m => String -> (TFormula, Bool, (S.Set (ImplicativeForm TFormula))) -> ProverT (ImplicativeForm TFormula) (SkolemT m) ()
+testProof :: MonadIO m => String -> (TFormula, Bool, (S.Set (ImplicativeForm (Marked Literal TFormula)))) -> ProverT (ImplicativeForm (Marked Literal TFormula)) (SkolemT m) ()
 testProof label (question, expectedAnswer, expectedProof) =
     theoremKB question >>= \ (actualFlag, actualProof) ->
     let actual' = (actualFlag, S.map fst actualProof) in
@@ -90,7 +91,7 @@ testProof label (question, expectedAnswer, expectedProof) =
                 "\n Actual:\n  " ++ show actual')
     else liftIO (putStrLn (label ++ " ok"))
 
-loadCmd :: Monad m => ProverT (ImplicativeForm TFormula) (SkolemT m) [Proof TFormula]
+loadCmd :: Monad m => ProverT (ImplicativeForm (Marked Literal TFormula)) (SkolemT m) [Proof (Marked Literal TFormula)]
 loadCmd = loadKB sentences
 
 -- instance IsAtom (Predicate Pr (PTerm V Function))

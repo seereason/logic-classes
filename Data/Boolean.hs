@@ -1,4 +1,7 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS -fno-warn-incomplete-patterns #-}
 -- |
@@ -28,9 +31,13 @@ module Data.Boolean (
   ) where
 
 import Control.Monad ( guard, liftM )
+import Data.Generics (Data, Typeable)
 import qualified Data.IntMap as IM
 import Data.Maybe ( mapMaybe )
-import Prop (JustPropositional)
+import Formulas (HasBoolean(..), IsCombinable(..), IsFormula(..), IsNegatable(..))
+import Lit (IsLiteral(..))
+import Prop (IsPropositional(..), JustPropositional)
+import Pretty (HasFixity(..))
 
 -- | Boolean formulas are represented as values of type @Boolean@.
 --
@@ -52,6 +59,21 @@ data Boolean
 -- | Literals are variables that occur either positively or negatively.
 --
 data Literal = Pos Int | Neg Int deriving (Eq, Show)
+
+instance Ord Literal where
+    compare (Neg _) (Pos _) = LT
+    compare (Pos _) (Neg _) = GT
+    compare (Pos m) (Pos n) = compare m n
+    compare (Neg m) (Neg n) = compare m n
+
+instance IsNegatable Literal where
+    naiveNegate (Neg x) = Pos x
+    naiveNegate (Pos x) = Neg x
+    foldNegation' inverted _ (Neg x) = inverted (Pos x)
+    foldNegation' _ normal (Pos x) = normal (Pos x)
+
+deriving instance Data Literal
+deriving instance Typeable Literal
 
 -- | This function returns the name of the variable in a literal.
 --
@@ -77,6 +99,29 @@ type CNF     = [Clause]
 type Clause  = [Literal]
 
 instance JustPropositional CNF
+
+instance IsFormula CNF Int where
+    atomic = error "FIXME: IsFormula CNF MyAtom"
+    overatoms = error "FIXME: IsFormula CNF MyAtom"
+    onatoms = error "FIXME: IsFormula CNF MyAtom"
+instance IsPropositional CNF Int where
+    foldPropositional' = error "FIXME: IsPropositional CNF MyAtom"
+instance IsCombinable CNF where
+    foldCombination = error "FIXME: IsCombinable CNF"
+    _ .|. _ = error "FIXME: IsCombinable CNF"
+    _ .&. _ = error "FIXME: IsCombinable CNF"
+    _ .=>. _ = error "FIXME: IsCombinable CNF"
+    _ .<=>. _ = error "FIXME: IsCombinable CNF"
+instance HasBoolean CNF where
+    asBool = error "FIXME: HasBoolean CNF"
+    fromBool = error "FIXME: HasBoolean CNF"
+instance IsNegatable CNF where
+    naiveNegate = error "FIXME: IsNegatable CNF"
+    foldNegation' = error "FIXME: IsNegatable CNF"
+instance HasFixity CNF where
+    fixity = error "FIXME: HasFixity CNF"
+instance IsLiteral CNF Int where
+    foldLiteral' = error "FIXME: IsLiteral CNF MyAtom"
 
 -- |
 -- We convert boolean formulas to conjunctive normal form by pushing
