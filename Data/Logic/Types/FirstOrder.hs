@@ -10,7 +10,7 @@ module Data.Logic.Types.FirstOrder
 import Data.Data (Data)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable (Typeable)
-import Formulas (Combination(BinOp), BinOp(..), IsNegatable(..), IsCombinable(..), HasBoolean(..), IsFormula(..))
+import Formulas (BinOp(..), IsNegatable(..), IsCombinable(..), HasBoolean(..), IsFormula(..))
 import FOL (exists, HasEquals, HasEquate(equate, foldEquate'), HasFunctions(..), HasPredicate(..), IsFirstOrder,
             IsFunction, IsPredicate, IsQuantified(..), IsTerm(..), IsVariable(..),
             prettyPredicateApplicationEq, prettyQuantified, prettyTerm, Quant(..), V)
@@ -28,7 +28,7 @@ withUnivQuants fn formula =
       doFormula vs f =
           foldQuantified
                 (doQuant vs)
-                (\ _ -> fn (reverse vs) f)
+                (\ _ _ _ -> fn (reverse vs) f)
                 (\ _ -> fn (reverse vs) f)
                 (\ _ -> fn (reverse vs) f)
                 (\ _ -> fn (reverse vs) f)
@@ -39,7 +39,7 @@ withUnivQuants fn formula =
 -- | The range of a formula is {True, False} when it has no free variables.
 data NFormula v p f
     = Predicate (NPredicate p (NTerm v f))
-    | Combine (Combination (NFormula v p f))
+    | Combine (NFormula v p f) BinOp (NFormula v p f)
     | Negate (NFormula v p f)
     | Quant Quant v (NFormula v p f)
     -- Note that a derived Eq instance is not going to tell us that
@@ -74,15 +74,15 @@ instance (IsVariable v, IsPredicate p, IsFunction f
     foldNegation' _ other fm = other fm
 instance (IsVariable v, IsPredicate p, IsFunction f
          ) => IsCombinable (NFormula v p f) where
-    a .|. b = Combine (BinOp a (:|:) b)
-    a .&. b = Combine (BinOp a (:&:) b)
-    a .=>. b = Combine (BinOp a (:=>:) b)
-    a .<=>. b = Combine (BinOp a (:<=>:) b)
+    a .|. b = Combine a (:|:) b
+    a .&. b = Combine a (:&:) b
+    a .=>. b = Combine a (:=>:) b
+    a .<=>. b = Combine a (:<=>:) b
     foldCombination = error "FIXME foldCombination"
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, atom ~ NPredicate p (NTerm v f), Pretty atom
          ) => IsPropositional (NFormula v p f) atom where
     foldPropositional' ho _ _ _ _ fm@(Quant _ _ _) = ho fm
-    foldPropositional' _ co _ _ _ (Combine x) = co x
+    foldPropositional' _ co _ _ _ (Combine x op y) = co x op y
     foldPropositional' _ _ ne _ _ (Negate x) = ne x
     foldPropositional' _ _ _ tf at (Predicate x) = maybe (at x) tf (asBool x)
 instance HasFixity (NFormula v p f) where
@@ -113,11 +113,11 @@ instance (IsVariable v, IsPredicate p, IsFunction f, Pretty (NPredicate p (NTerm
          ) => IsFormula (NFormula v p f) (NPredicate p (NTerm v f)) where
     atomic = Predicate
     onatoms f (Negate fm) = Negate (onatoms f fm)
-    onatoms f (Combine (BinOp lhs op rhs)) = Combine (BinOp (onatoms f lhs) op (onatoms f rhs))
+    onatoms f (Combine lhs op rhs) = Combine (onatoms f lhs) op (onatoms f rhs)
     onatoms f (Quant op v fm) = Quant op v (onatoms f fm)
     onatoms f (Predicate p) = f p
     overatoms f (Negate fm) b = overatoms f fm b
-    overatoms f (Combine (BinOp lhs _ rhs)) b = overatoms f lhs (overatoms f rhs b)
+    overatoms f (Combine lhs _ rhs) b = overatoms f lhs (overatoms f rhs b)
     overatoms f (Quant _ _ fm) b = overatoms f fm b
     overatoms f (Predicate p) b = f p b
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, atom ~ NPredicate p (NTerm v f), Pretty atom
@@ -155,7 +155,6 @@ instance (IsVariable v, IsFunction f) => IsTerm (NTerm v f) v f where
     foldTerm vf _ (NVar v) = vf v
     foldTerm _ ff (FunApp f ts) = ff f ts
 
-$(deriveSafeCopy 1 'base ''Combination)
 $(deriveSafeCopy 1 'base ''BinOp)
 $(deriveSafeCopy 1 'base ''Quant)
 $(deriveSafeCopy 1 'base ''NFormula)

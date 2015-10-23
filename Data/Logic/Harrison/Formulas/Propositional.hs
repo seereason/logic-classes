@@ -5,7 +5,7 @@ module Data.Logic.Harrison.Formulas.Propositional
     , consequent
     ) where
 
-import Formulas (Combination(..), BinOp((:=>:)))
+import Formulas (BinOp((:=>:)))
 import Prop (IsPropositional(..), JustPropositional, foldPropositional)
 
 -- ------------------------------------------------------------------------- 
@@ -158,12 +158,12 @@ antecedent :: (IsPropositional formula atomic, JustPropositional formula) => for
 antecedent formula =
     foldPropositional c (error "antecedent") (error "antecedent") (error "antecedent") formula
     where
-      c (BinOp p (:=>:) _) = p
-      c _ = error "antecedent"
+      c p (:=>:) _ = p
+      c _ _ _ = error "antecedent"
 
 consequent :: (IsPropositional formula atomic, JustPropositional formula) => formula -> formula
 consequent formula =
     foldPropositional c (error "consequent") (error "consequent") (error "consequent") formula
     where
-      c (BinOp _ (:=>:) q) = q
-      c _ = error "consequent"
+      c _ (:=>:) q = q
+      c _ _ _ = error "consequent"

@@ -19,7 +19,7 @@ import Data.String (IsString(..))
 import FOL ((.=.), foldEquate, HasEquate(..), HasPredicate(..), IsFunction, IsPredicate, IsQuantified(..), IsTerm(..),
             IsVariable, literalFromQuantified, onatomsQuantified, overatomsQuantified,
             pApp, prettyQuantified, prettyTerm, Quant(..))
-import Formulas (HasBoolean(..), asBool, IsCombinable(..), BinOp(..), Combination(..), IsFormula(..), IsNegatable(..), (.~.))
+import Formulas (HasBoolean(..), asBool, IsCombinable(..), BinOp(..), IsFormula(..), IsNegatable(..), (.~.))
 import Lit (IsLiteral(foldLiteral'), JustLiteral, onatomsLiteral, overatomsLiteral, prettyLiteral)
 import Pretty (Pretty(pPrint), HasFixity(..), rootFixity)
 import Prop (IsPropositional(foldPropositional'))
@@ -98,10 +98,10 @@ instance (IsFormula (Sentence v p f) (Sentence v p f),
     foldPropositional' ho co ne tf at formula =
         case formula of
           Not x -> ne x
-          Connective f1 Imply f2 -> co (BinOp f1 (:=>:) f2)
-          Connective f1 Equiv f2 -> co (BinOp f1 (:<=>:) f2)
-          Connective f1 And f2 -> co (BinOp f1 (:&:) f2)
-          Connective f1 Or f2 -> co (BinOp f1 (:|:) f2)
+          Connective f1 Imply f2 -> co f1 (:=>:) f2
+          Connective f1 Equiv f2 -> co f1 (:<=>:) f2
+          Connective f1 And f2 -> co f1 (:&:) f2
+          Connective f1 Or f2 -> co f1 (:|:) f2
           Predicate p ts -> maybe (at (Predicate p ts)) tf (asBool p)
           Equal t1 t2 -> at (Equal t1 t2)
           _ -> ho formula
@@ -165,10 +165,10 @@ instance (IsFormula (Sentence v p f) (Sentence v p f), IsLiteral (Sentence v p f
               -- empty variable lists.
               qu op' v (quant' op' vs f')
           Quantifier _ [] f' -> foldQuantified qu co ne tf at f'
-          Connective f1 Imply f2 -> co (BinOp f1 (:=>:) f2)
-          Connective f1 Equiv f2 -> co (BinOp f1 (:<=>:) f2)
-          Connective f1 And f2 -> co (BinOp f1 (:&:) f2)
-          Connective f1 Or f2 -> co (BinOp f1 (:|:) f2)
+          Connective f1 Imply f2 -> co f1 (:=>:) f2
+          Connective f1 Equiv f2 -> co f1 (:<=>:) f2
+          Connective f1 And f2 -> co f1 (:&:) f2
+          Connective f1 Or f2 -> co f1 (:|:) f2
           Predicate _ _ -> at f
           Equal _ _ -> at f
 

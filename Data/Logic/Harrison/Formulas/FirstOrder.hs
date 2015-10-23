@@ -10,7 +10,7 @@ module Data.Logic.Harrison.Formulas.FirstOrder
 
 import qualified Data.Set as Set
 import FOL (IsQuantified(..), quant)
-import Formulas (Combination(..), BinOp(..), binop, (.~.))
+import Formulas (BinOp(..), binop, (.~.))
 
 -- ------------------------------------------------------------------------- 
 -- General parsing of iterated infixes.                                      
@@ -162,16 +162,16 @@ antecedent :: IsQuantified formula atom v => formula -> formula
 antecedent formula =
     foldQuantified (\ _ _ _ -> err) c (\ _ -> err) (\ _ -> err) (\ _ -> err) formula
     where
-      c (BinOp p (:=>:) _) = p
-      c _ = err
+      c p (:=>:) _ = p
+      c _ _ _ = err
       err = error "antecedent"
 
 consequent :: IsQuantified formula atom v => formula -> formula
 consequent formula =
     foldQuantified (\ _ _ _ -> err) c (\ _ -> err) (\ _ -> err) (\ _ -> err) formula
     where
-      c (BinOp _ (:=>:) q) = q
-      c _ = err
+      c _ (:=>:) q = q
+      c _ _ _ = err
       err = error "consequent"
 
 -- ------------------------------------------------------------------------- 
@@ -184,7 +184,7 @@ on_atoms f fm =
     where 
       qu op v fm' = quant op v (on_atoms f fm')
       ne fm' = (.~.) (on_atoms f fm')
-      co (BinOp f1 op f2) = binop (on_atoms f f1) op (on_atoms f f2)
+      co f1 op f2 = binop (on_atoms f f1) op (on_atoms f f2)
       tf _ = fm
       at = f
 
@@ -198,7 +198,7 @@ over_atoms f fm b =
     where
       qu _ _ p = over_atoms f p b
       ne p = over_atoms f p b
-      co (BinOp p _ q) = over_atoms f p (over_atoms f q b)
+      co p _ q = over_atoms f p (over_atoms f q b)
       tf _ = b
       pr atom = f atom b
 

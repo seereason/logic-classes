@@ -11,20 +11,10 @@ module Data.Logic.Instances.Test
     ) where
 
 import Data.Char (isDigit)
-import Data.Generics (Data, Typeable)
 import Data.SafeCopy (base, deriveSafeCopy)
-import FOL (V(V), Predicate(..), FOL(..), Term(..), Quant(..))
-import Formulas (Combination(..), BinOp(..))
+import FOL (V(V), Predicate(..), FOL(..), Term(..), Quant(..), Formula(..))
+import Formulas (BinOp(..))
 import Skolem (Function(..), MyFormula, MyTerm, MyAtom)
-
--- | The range of a formula is {True, False} when it has no free variables.
-data Formula v p f
-    = Predicate (FOL p (Term v f))
-    | Combine (Combination (Formula v p f))
-    | Quant Quant v (Formula v p f)
-    -- Note that a derived Eq instance is not going to tell us that
-    -- a&b is equal to b&a, let alone that ~(a&b) equals (~a)|(~b).
-    deriving (Eq, Ord, Data, Typeable, Show)
 
 next :: String -> String
 next s =
@@ -102,7 +92,6 @@ instance Pretty TFormula where
 
 $(deriveSafeCopy 1 'base ''BinOp)
 $(deriveSafeCopy 1 'base ''Quant)
-$(deriveSafeCopy 1 'base ''Combination)
 $(deriveSafeCopy 1 'base ''Predicate)
 $(deriveSafeCopy 1 'base ''Term)
 $(deriveSafeCopy 1 'base ''FOL)

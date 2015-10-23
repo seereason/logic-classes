@@ -8,7 +8,7 @@ module Data.Logic.Instances.PropLogic
 
 import Data.Set.Extra as Set (Set, empty, toList, union)
 import FOL (IsFunction, HasFunctions(funcs), IsFirstOrder)
-import Formulas (IsCombinable(..), Combination(..), BinOp(..), HasBoolean(fromBool, asBool), IsFormula(..), IsNegatable(..))
+import Formulas (IsCombinable(..), BinOp(..), HasBoolean(fromBool, asBool), IsFormula(..), IsNegatable(..))
 import Lit (IsLiteral(..))
 import Pretty (HasFixity(fixity), Pretty(pPrint), rootFixity)
 import Prop (foldPropositional, IsPropositional(foldPropositional'), JustPropositional, prettyPropositional)
@@ -49,18 +49,18 @@ instance (IsCombinable (PropForm a), Pretty a, HasFixity a, Ord a) => IsProposit
           -- EJ [x,y,z,...] -> CJ [EJ [x,y], EJ[y,z], ...]
           EJ [] -> error "Empty equijunct"
           EJ [x] -> foldPropositional' ho co ne tf at x
-          EJ [x0, x1] -> co (BinOp x0 (:<=>:) x1)
+          EJ [x0, x1] -> co x0 (:<=>:) x1
           EJ xs -> foldPropositional' ho co ne tf at (CJ (map (\ (x0, x1) -> EJ [x0, x1]) (pairs xs)))
           SJ [] -> error "Empty subjunct"
           SJ [x] -> foldPropositional' ho co ne tf at x
-          SJ [x0, x1] -> co (BinOp x0 (:=>:) x1)
+          SJ [x0, x1] -> co x0 (:=>:) x1
           SJ xs -> foldPropositional' ho co ne tf at (CJ (map (\ (x0, x1) -> SJ [x0, x1]) (pairs xs)))
           DJ [] -> tf False
           DJ [x] -> foldPropositional' ho co ne tf at x
-          DJ (x0:xs) -> co (BinOp x0 (:|:) (DJ xs))
+          DJ (x0:xs) -> co x0 (:|:) (DJ xs)
           CJ [] -> tf True
           CJ [x] -> foldPropositional' ho co ne tf at x
-          CJ (x0:xs) -> co (BinOp x0 (:&:) (CJ xs))
+          CJ (x0:xs) -> co x0 (:&:) (CJ xs)
           N x -> ne x
           T -> tf True
           F -> tf False
@@ -83,7 +83,7 @@ instance (IsFunction function, HasFunctions atom function, Ord atom, Pretty atom
     funcs = foldPropositional co ne (const Set.empty) funcs
         where
           ne fm = funcs fm
-          co (BinOp lhs _ rhs) = Set.union (funcs lhs) (funcs rhs)
+          co lhs _ rhs = Set.union (funcs lhs) (funcs rhs)
 
 pairs :: [a] -> [(a, a)]
 pairs (x:y:zs) = (x,y) : pairs (y:zs)
