@@ -22,7 +22,7 @@ import Data.Maybe (isJust)
 import Data.Set.Extra as Set (empty, flatten, fold, fromList, insert, map, Set, singleton, toList)
 import FOL (IsFirstOrder)
 import Formulas (IsNegatable(..), true)
-import Lit (convertLiteral, foldLiteral, IsLiteral, JustLiteral)
+import Lit (convertLiteral, foldLiteral)
 import Pretty (Pretty(pPrint))
 import Prop (Literal, Marked, Propositional, simpcnf)
 import Skolem (HasSkolem(fromSkolem), runSkolem, runSkolemT, skolemize, SkolemT)
@@ -86,19 +86,25 @@ prettyProof p = cat $ [text "["] ++ intersperse (text ", ") (List.map prettyINF 
 --    a | b | c => e
 --    a | b | c => f
 -- @
+{-
 implicativeNormalForm :: forall m fof lit atom p term v f.
-                         (IsFirstOrder fof atom p term v f,
-                          IsLiteral lit atom, JustLiteral lit,
+                         (IsFirstOrder fof atom p term v f, Ord fof,
+                          IsLiteral lit atom, JustLiteral lit, Ord lit,
                           HasSkolem f v,
                           Monad m, Data lit, Typeable f) =>
                          fof -> SkolemT m (Set (ImplicativeForm lit))
+-}
+implicativeNormalForm :: forall m fof atom p term v f.
+                         (Monad m, Data fof, Typeable f,
+                          IsFirstOrder fof atom p term v f, Ord fof,
+                          HasSkolem f v) => fof -> SkolemT m (Set (ImplicativeForm (Marked Literal fof)))
 implicativeNormalForm formula =
-    do let (cnf :: Set (Set lit)) = (Set.map (Set.map convert) . simpcnf id) (runSkolem (skolemize id formula) :: Marked Propositional fof)
+    do let (cnf :: Set (Set (Marked Literal fof))) = (Set.map (Set.map convert) . simpcnf id) (runSkolem (skolemize id formula) :: Marked Propositional fof)
            pairs = Set.map (Set.fold collect (Set.empty, Set.empty)) cnf
            pairs' = Set.flatten (Set.map split pairs)
        return (Set.map (\ (n,p) -> INF n p) pairs')
     where
-      convert :: Marked Literal (Marked Propositional fof) -> lit
+      convert :: Marked Literal (Marked Propositional fof) -> Marked Literal fof
       convert = convertLiteral id
       collect f (n, p) =
           foldLiteral (\ f' -> (Set.insert f' n, p))

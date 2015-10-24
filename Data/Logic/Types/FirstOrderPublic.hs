@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE EmptyDataDecls #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -7,6 +8,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -17,23 +19,20 @@
 -- commutative operator.
 
 module Data.Logic.Types.FirstOrderPublic
-    ( PFormula(..)
+    ( PFormula
     , Bijection(..)
+    , Public
+    , markPublic
+    , unmarkPublic
     ) where
 
 import Data.Data (Data)
-import Data.Function (on)
 import qualified Data.Logic.Types.FirstOrder as N
 import Data.SafeCopy (base, deriveSafeCopy)
-import Data.Set (Set, union)
-import Data.Typeable (Typeable)
-import FOL (fixityQuantified, HasEquals, HasFunctions(funcs), HasPredicate,
-            IsFirstOrder, IsFunction, IsPredicate, IsVariable, IsQuantified(..),
-            overatomsQuantified, onatomsQuantified, prettyQuantified)
-import Formulas (HasBoolean(..), IsCombinable(..), Combination(..), IsFormula(..), IsNegatable(..))
-import Lit (IsLiteral(..))
-import Pretty (Pretty(pPrint), HasFixity(fixity))
-import Prop (IsPropositional(..), Marked(Mark, unMark'))
+import Data.Set (Set)
+import FOL (HasEquals, HasPredicate, IsFunction, IsPredicate, IsVariable, IsQuantified(..))
+import Formulas (HasBoolean(..), IsFormula(..))
+import Prop (Marked(Mark, unMark'))
 import Skolem (simpcnf')
 
 -- |The new Formula type is just a wrapper around the Native instance
@@ -41,6 +40,8 @@ import Skolem (simpcnf')
 -- derived Eq or Ord instances.
 type PFormula v p f = Marked Public (N.NFormula v p f)
 data Public = Public
+
+deriving instance Data Public
 
 markPublic :: a -> Marked Public a
 markPublic = Mark
@@ -165,8 +166,10 @@ instance (IsVariable v, Data v, IsPredicate p, HasBoolean p, Data p, IsFunction 
 instance (HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), IsFormula (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
           IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
           IsFunction f, IsVariable v, HasBoolean (N.NPredicate p (N.NTerm v f)),
-          IsQuantified (PFormula v p f) (N.NPredicate p (N.NTerm v f)) v
+          IsQuantified (PFormula v p f) (N.NPredicate p (N.NTerm v f)) v,
+          Data v, Data p, HasBoolean p, HasEquals p, Data f
          ) => Eq (PFormula v p f) where
     a == b = compare a b == EQ
 
--- $(deriveSafeCopy 1 'base ''PFormula)
+$(deriveSafeCopy 1 'base ''Marked)
+$(deriveSafeCopy 1 'base ''Public)

@@ -662,7 +662,11 @@ animalConjectures =
        }
      ]
 
--- socratesKB :: (Ord formula, IsString t, IsString p, IsQuantified formula atom1 v, HasPredicate atom p term, IsTerm term v f) => (t, [TestFormula formula atom v])
+socratesKB :: forall t formula atom v predicate term function.
+              (Ord formula, IsString t, IsTerm term v function,
+               IsQuantified formula atom v,
+               HasPredicate atom predicate term) =>
+             (t, [TestFormula formula atom v])
 socratesKB =
     let x = vt "x"
         socrates x = pApp "Socrates" [x]
@@ -1107,7 +1111,7 @@ proofs =
       }
     ]
 
-inf' :: IsNegatable lit => [lit] -> [lit] -> ImplicativeForm lit
+inf' :: (IsNegatable lit, Ord lit) => [lit] -> [lit] -> ImplicativeForm lit
 inf' = makeINF'
 
 toLL :: Set (Set a) -> [[a]]

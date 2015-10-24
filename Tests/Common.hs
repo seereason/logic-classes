@@ -32,7 +32,6 @@ import Data.Set as Set
 import FOL (asubst, convertQuantified, fApp, foldEquate, foldTerm, funcs, fva, HasEquate,
             IsFirstOrder, IsQuantified(..), IsTerm, Predicate(NamedPredicate), V, vt)
 import Formulas (HasBoolean(fromBool, asBool))
-import Lit (IsLiteral(..))
 import Pretty (Pretty(pPrint))
 import Prop (Marked, PFormula, satisfiable, trivial)
 import qualified Prop (Literal)
@@ -164,17 +163,8 @@ data ProofExpected lit v term
     | ChiouKB (Set (WithId (ImplicativeForm lit)))
     deriving (Data, Typeable)
 
-{-
-doProof :: forall formula atom term v p f. (IsQuantified formula atom v,
-                                            IsPropositional formula atom,
-                                            HasEquate atom p term, atom ~ FOL p (Term v f),
-                                            IsTerm term v f, term ~ Term v f,
-                                            IsLiteral formula atom,
-                                            Ord formula, Data formula, Typeable v, Eq term, Show term, Show v, Show formula, Eq p, Ord f, Show f) =>
-           TestProof formula term v -> Test
--}
 doProof :: forall formula lit atom p term v f.
-           (IsFirstOrder formula atom p term v f,
+           (IsFirstOrder formula atom p term v f, Ord formula,
             HasEquate atom p term,
             Atom atom term v,
             HasSkolem f v,
@@ -198,11 +188,9 @@ doProof p =
 loadKB' :: forall m formula lit atom p term v f.
            (lit ~ Marked Prop.Literal formula,
             Monad m, Data formula,
-            IsFirstOrder formula atom p term v f,
-            IsQuantified formula atom v,
+            IsFirstOrder formula atom p term v f, Ord formula,
             HasEquate atom p term,
             HasSkolem f v,
-            IsLiteral lit atom,
             Atom atom term v,
             IsTerm term v f, Typeable f) => [formula] -> ProverT' v term (ImplicativeForm lit) m [Proof lit]
 loadKB' = loadKB
@@ -210,10 +198,9 @@ loadKB' = loadKB
 theoremKB' :: forall m formula lit atom p term v f.
               (lit ~ Marked Prop.Literal formula,
                Monad m, Data formula,
-               IsFirstOrder formula atom p term v f,
+               IsFirstOrder formula atom p term v f, Ord formula,
                HasEquate atom p term,
                HasSkolem f v,
-               IsLiteral lit atom,
                Atom atom term v,
                IsTerm term v f, Typeable f
               ) => formula -> ProverT' v term (ImplicativeForm lit) m (Bool, SetOfSupport lit v term)

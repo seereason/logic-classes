@@ -16,7 +16,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import FOL (foldEquate, for_all, exists, Predicate(Equals), MyFormula1,
             HasEquate(..), (.=.), IsQuantified(..), IsTerm(vt, fApp, foldTerm), IsVariable(..), pApp, Quant(..))
-import Formulas ((.~.), false, IsCombinable(..), Combination(..), BinOp(..))
+import Formulas ((.~.), false, IsCombinable(..), BinOp(..))
 import Lib ((|->))
 import Prelude hiding (pred)
 import Skolem (MyFormula, MyTerm, Function)
@@ -57,10 +57,10 @@ holds m@(domain, _func, pred) v fm =
       asPred (:?:) = any
       asPred (:!:) = all
       ne p = holds m v p >>= return . not
-      co (BinOp p (:|:) q) = (||) <$> (holds m v p) <*> (holds m v q)
-      co (BinOp p (:&:) q) = (&&) <$> (holds m v p) <*> (holds m v q)
-      co (BinOp p (:=>:) q) = (||) <$> (not <$> (holds m v p)) <*> (holds m v q)
-      co (BinOp p (:<=>:) q) = (==) <$> (holds m v p) <*> (holds m v q)
+      co p (:|:) q = (||) <$> (holds m v p) <*> (holds m v q)
+      co p (:&:) q = (&&) <$> (holds m v p) <*> (holds m v q)
+      co p (:=>:) q = (||) <$> (not <$> (holds m v p)) <*> (holds m v q)
+      co p (:<=>:) q = (==) <$> (holds m v p) <*> (holds m v q)
       tf x = Success x
       at :: atom -> Failing Bool
       at = foldEquate (\ r args -> mapM (termval m v) args >>= return . pred r) (\ t1 t2 -> return $ termval m v t1 == termval m v t2)
