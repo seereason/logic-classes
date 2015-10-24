@@ -13,9 +13,10 @@ import Data.Set.Extra as Set (Set, singleton, toList, empty, fromList, map {-, m
 import Data.String (IsString(fromString))
 import FOL (vt, (∀), pApp, fv, (.=.), exists, for_all, applyPredicate, fApp, V(V), Predicate(NamedPredicate), subst, IsFirstOrder, IsTerm)
 import Formulas ((.~.), atomic, IsCombinable(..), (⇒))
+import Lib (assertEqual')
 import Lit (IsLiteral)
 import Pretty (pPrint)
-import Prop (IsPropositional, list_conj, list_disj, Literal, Marked, Propositional,
+import Prop (IsPropositional, list_conj, list_disj, Literal, Marked, markLiteral, markPropositional, Propositional,
              simpcnf, TruthTable(..), TruthTable, truthTable, unmarkLiteral)
 import Skolem (HasSkolem(..), runSkolem, skolemize, pnf, simpcnf')
 import Test.HUnit
@@ -212,12 +213,21 @@ inf1 =
 
 equality1 :: MyFormula
 equality1 = for_all "x" ( x .=. x) .=>. for_all "x" (exists "y" ((x .=. y))) :: MyFormula
-equality1expected :: (Bool, [Char])
-equality1expected = (False,
-                     concat ["({{x = sKy[x], ¬sKx[] = sKx[]}},\n",
+equality1expected :: (Bool, (Set (Set (Marked Literal (Marked Propositional MyFormula))), TruthTable MyAtom))
+equality1expected = (False, (fromList [fromList [markLiteral (markPropositional ((vt "x" :: MyTerm) .=. fApp (toSkolem "y")[vt (V "x")])),
+                                                 markLiteral (markPropositional ((.~.) ((fApp (toSkolem "x")[] :: MyTerm) .=. (fApp (toSkolem "x")[] :: MyTerm))))]],
+                             TruthTable ([{-(vt "x" :: MyTerm) .=. (fApp (toSkolem ("y" :: V)) [vt (V "x")] :: MyTerm),
+                                          fApp (toSkolem "x") [] .=. fApp (toSkolem "x") []-}] :: [MyAtom])
+                                        [([False,False],True),
+                                         ([False,True],False),
+                                         ([True,False],True),
+                                         ([True,True],True)]))
+-- equality1expected = (False, (fromList [], TruthTable [] []))
+{-
+                     concat ["({{x = sKy[x], ¬(sKx[] = sKx[])}},\n",
                              " ([x = sKy[x], sKx[] = sKx[]],\n",
                              "  [([False, False], True), ([False, True], False),\n",
-                             "   ([True, False], True), ([True, True], True)]))"])
+                             "   ([True, False], True), ([True, True], True)]))"]-}
 equality2 :: MyFormula
 equality2 = for_all "x" ( x .=. x .=>. for_all "x" ((.~.) (for_all "y" ((.~.) (x .=. y))))) -- convert existential
 equality2expected :: (Bool, [Char])
@@ -243,7 +253,7 @@ theoremTests =
     [ let label = "Logic - equality1" in
       TestLabel label (TestCase (assertEqual label
                                  equality1expected
-                                 (theorem equality1, prettyShow (table' equality1))))
+                                 (theorem equality1, table' equality1)))
     , let label = "Logic - equality2" in
       TestLabel label (TestCase (assertEqual label
                                  equality2expected
