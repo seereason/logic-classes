@@ -17,10 +17,10 @@ import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Atom (Atom)
 import Data.String (IsString(..))
 import FOL ((.=.), foldEquate, HasEquate(..), HasPredicate(..), IsFunction, IsPredicate, IsQuantified(..), IsTerm(..),
-            IsVariable, literalFromQuantified, onatomsQuantified, overatomsQuantified,
+            IsVariable, onatomsQuantified, overatomsQuantified,
             pApp, prettyQuantified, prettyTerm, Quant(..))
 import Formulas (HasBoolean(..), asBool, IsCombinable(..), BinOp(..), IsFormula(..), IsNegatable(..), (.~.))
-import Lit (IsLiteral(foldLiteral'), JustLiteral, onatomsLiteral, overatomsLiteral, prettyLiteral)
+import Lit (convertToLiteral, IsLiteral(foldLiteral'), JustLiteral, onatomsLiteral, overatomsLiteral, prettyLiteral)
 import Pretty (Pretty(pPrint), HasFixity(..), rootFixity)
 import Prop (IsPropositional(foldPropositional'))
 import Skolem (HasSkolem(..))
@@ -265,8 +265,9 @@ toTerm (NormalVariable v) = vt v
 fromSentence :: forall v p f. (IsQuantified (Sentence v p f) (Sentence v p f) v,
                                IsPredicate p, IsFunction f, HasBoolean p
                               ) => Sentence v p f -> NormalSentence v p f
-fromSentence = literalFromQuantified (foldEquate (\ p ts -> NFPredicate p (map fromTerm ts))
-                                                 (\ t1 t2 -> NFEqual (fromTerm t1) (fromTerm t2)))
+fromSentence = convertToLiteral (error "fromSentence failure")
+                                (foldEquate (\ p ts -> NFPredicate p (map fromTerm ts))
+                                            (\ t1 t2 -> NFEqual (fromTerm t1) (fromTerm t2)))
 {-
 fromSentence = convertQuantified (foldEquate (\ p ts -> applyPredicate p (map fromTerm ts))
                                              (\ t1 t2 -> equate (fromTerm t1) (fromTerm t2))) id
