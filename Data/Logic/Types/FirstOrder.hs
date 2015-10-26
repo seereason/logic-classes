@@ -12,7 +12,7 @@ import Data.Function (on)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable (Typeable)
 import Formulas (BinOp(..), IsNegatable(..), IsCombinable(..), HasBoolean(..), IsFormula(..))
-import FOL (exists, HasEquals, HasEquate(equate, foldEquate'), foldEquate, HasFunctions(..), HasPredicate(..), IsFirstOrder,
+import FOL (exists, IsAtomWithEquate(equate, foldEquate'), foldEquate, HasFunctions(..), IsAtom(..), IsFirstOrder,
             IsFunction, IsPredicate, IsQuantified(..), IsTerm(..), IsVariable(..),
             prettyApply, prettyEquate, prettyQuantified, prettyTerm, Quant(..), V)
 import Lit (IsLiteral(..))
@@ -96,11 +96,11 @@ instance (IsVariable v, IsPredicate p, Pretty p, HasBoolean p, IsFunction f) => 
 instance (IsPredicate p, Pretty p, Pretty term, HasEquals p) => Pretty (NPredicate p term) where
     pPrint = foldPredicate prettyPredicateApplicationEq
 -}
-instance (IsPredicate p) => HasPredicate (NPredicate p term) p term where
+instance (IsPredicate p) => IsAtom (NPredicate p term) p term where
     applyPredicate = Apply
     foldPredicate f (Apply p ts) = f p ts
     foldPredicate _ (Equal _ _) = error "foldPredicate - found Equate"
-instance (IsPredicate p) => HasEquate (NPredicate p term) p term where
+instance (IsPredicate p) => IsAtomWithEquate (NPredicate p term) p term where
     equate = Equal
     foldEquate' eq (Equal t1 t2) = Just (eq t1 t2)
     foldEquate' _ _ = Nothing
@@ -140,18 +140,9 @@ instance (IsVariable v, IsPredicate p, Pretty p, HasBoolean p, IsFunction f
           Predicate x -> at x
           _ -> ho fm
 instance (IsVariable v, IsPredicate p, Pretty p, HasBoolean p, IsFunction f
-          -- , HasPredicate (NPredicate p (NTerm v f)) p (NTerm v f)
-          -- , HasFunctions (NTerm v f) f
-          -- , HasFunctions (NFormula v p f) f
-          -- , Pretty (NPredicate p (NTerm v f))
          ) => IsFirstOrder (NFormula v p f) (NPredicate p (NTerm v f)) p (NTerm v f) v f
 
-instance (IsFunction f
-         -- IsFirstOrder (NFormula v p f) (NPredicate p (NTerm v f)) p (NTerm v f) v f,
-         -- HasPredicate (NPredicate p (NTerm v f)) p (NTerm v f),
-         -- IsTerm (NTerm v f) v f,
-         -- HasFunctions (NTerm v f) f
-         ) => HasFunctions (NFormula v p f) f where
+instance (IsFunction f) => HasFunctions (NFormula v p f) f where
     funcs = error "FIXME: HasFunctions (NFormula v p f) f"
 
 instance IsFunction f => HasFunctions (NTerm v f) f where

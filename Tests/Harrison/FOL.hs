@@ -15,7 +15,7 @@ import Control.Monad (filterM)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import FOL (foldEquate, for_all, exists, Predicate(Equals), MyFormula1,
-            HasEquate(..), (.=.), IsQuantified(..), IsTerm(vt, fApp, foldTerm), IsVariable(..), pApp, Quant(..))
+            IsAtomWithEquate(..), (.=.), IsQuantified(..), IsTerm(vt, fApp, foldTerm), IsVariable(..), pApp, Quant(..))
 import Formulas ((.~.), false, IsCombinable(..), BinOp(..))
 import Lib ((|->))
 import Prelude hiding (pred)
@@ -45,7 +45,7 @@ termval m@(_domain, func, _pred) v tm =
              tm
 
 holds :: forall formula atom term v p f a.
-         (IsQuantified formula atom v, HasEquate atom p term, IsTerm term v f, Show v, Eq a) =>
+         (IsQuantified formula atom v, IsAtomWithEquate atom p term, IsTerm term v f, Show v, Eq a) =>
          ([a], f -> [a] -> a, p -> [a] -> Bool)
       -> Map.Map v a
       -> formula

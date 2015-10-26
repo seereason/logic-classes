@@ -65,11 +65,6 @@ instance (IsVariable v, Data v, IsPredicate p, HasEquals p, Data p, Pretty p, Ha
           x -> {- if isRenameOf a' b' then EQ else -} x
 
 instance ( IsVariable v, Data v, IsPredicate p, HasEquals p, Data p, Pretty p, HasBoolean p, IsFunction f, Data f
-         -- , HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f)
-         -- , IsFormula (PFormula v p f) (N.NPredicate p (N.NTerm v f))
-         -- , IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f))
-         -- , IsFunction f, IsVariable v, HasBoolean (N.NPredicate p (N.NTerm v f))
-         -- , IsQuantified (PFormula v p f) (N.NPredicate p (N.NTerm v f)) v
          ) => Eq (PFormula v p f) where
     a == b = compare a b == EQ
 
