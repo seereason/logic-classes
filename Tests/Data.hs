@@ -22,7 +22,7 @@ import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
 import Data.Map as Map (fromList)
 import Data.Set as Set (Set, fromList, toList)
 import Data.String (IsString)
-import FOL (IsAtomWithEquate, (.=.), IsAtom, pApp, IsQuantified(..), IsTerm(..), V, Predicate, for_all, exists)
+import FOL (HasApply, HasApplyAndEquate, (.=.), IsAtom, pApp, IsQuantified(..), IsTerm(..), V, Predicate, for_all, exists)
 import Formulas ((.~.), HasBoolean(..), IsCombinable(..), IsFormula, IsNegatable)
 import Skolem (HasSkolem(toSkolem), MyFormula, MyAtom, MyTerm, Function)
 import Test.HUnit
@@ -36,7 +36,7 @@ for_all' vs f = foldr for_all f vs
 exists' :: IsQuantified formula atom v => [v] -> formula -> formula
 exists' vs f = foldr for_all f vs
 
-pApp2 :: (IsFormula formula atom, IsAtom atom p term) => p -> term -> term -> formula
+pApp2 :: (IsFormula formula atom, {-IsAtom atom p term,-} HasApply atom p term) => p -> term -> term -> formula
 pApp2 p a b = pApp p [a, b]
 
 {-
@@ -665,7 +665,8 @@ animalConjectures =
 socratesKB :: forall t formula atom v predicate term function.
               (Ord formula, IsString t, IsTerm term v function,
                IsQuantified formula atom v,
-               IsAtom atom predicate term) =>
+               HasApply atom predicate term,
+               IsTerm term v function) =>
              (t, [TestFormula formula atom v])
 socratesKB =
     let x = vt "x"
@@ -954,7 +955,7 @@ chang43ConjectureRenamed =
                     ]
                 }
 
-withKB :: forall formula atom term v p f. (formula ~ MyFormula, atom ~ MyAtom, v ~ V, IsQuantified formula atom v, IsAtomWithEquate atom p term, IsTerm term v f) =>
+withKB :: forall formula atom term v p f. (formula ~ MyFormula, atom ~ MyAtom, v ~ V, IsQuantified formula atom v, HasApplyAndEquate atom p term, IsTerm term v f) =>
           (String, [TestFormula formula atom v]) -> TestFormula formula atom v -> TestFormula formula atom v
 withKB (kbName, knowledge) conjecture =
     conjecture { name = name conjecture ++ " with " ++ kbName ++ " knowledge base"
@@ -969,7 +970,7 @@ withKB (kbName, knowledge) conjecture =
       conj (x:xs) = x .&. conj xs
 
 kbKnowledge :: forall formula atom term v p f. (formula ~ MyFormula, atom ~ MyAtom, v ~ V,
-                                                IsQuantified formula atom v, IsAtomWithEquate atom p term, IsTerm term v f) =>
+                                                IsQuantified formula atom v, HasApplyAndEquate atom p term, IsTerm term v f) =>
                (String, [TestFormula formula atom v]) -> (String, [formula])
 kbKnowledge kb = (fst (kb :: (String, [TestFormula formula atom v])), map formula (snd kb))
 

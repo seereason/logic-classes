@@ -16,7 +16,7 @@ module Data.Logic.Instances.Chiou
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Atom (Atom)
 import Data.String (IsString(..))
-import FOL ((.=.), IsAtomWithEquate(..), IsAtom(..), IsFunction, IsPredicate, IsQuantified(..), IsTerm(..),
+import FOL ((.=.), HasApply(..), HasApplyAndEquate(..), IsAtom(..), IsFunction, IsPredicate, IsQuantified(..), IsTerm(..),
             IsVariable, onatomsQuantified, overatomsQuantified,
             pApp, prettyQuantified, prettyTerm, Quant(..))
 import Formulas (HasBoolean(..), asBool, IsCombinable(..), BinOp(..), IsFormula(..), IsNegatable(..), (.~.))
@@ -128,12 +128,12 @@ instance IsVariable v => HasSkolem (AtomicFunction v) v where
     fromSkolem _ = Nothing
 
 -- The Atom type is not cleanly distinguished from the Sentence type, so we need an Atom instance for Sentence.
-instance (IsVariable v, IsFunction f, IsPredicate p) => IsAtom (Sentence v p f) p (CTerm v f) where
+instance (IsVariable v, IsFunction f, IsPredicate p) => HasApply (Sentence v p f) p (CTerm v f) where
     foldPredicate ap (Predicate p ts) = ap p ts
     foldPredicate _ _ = error "FIXME: IsAtom Sentence"
     applyPredicate = Predicate
 
-instance (IsFunction f, IsVariable v, IsPredicate p) => IsAtomWithEquate (Sentence v p f) p (CTerm v f) where
+instance (IsFunction f, IsVariable v, IsPredicate p) => HasApplyAndEquate (Sentence v p f) p (CTerm v f) where
     foldEquate eq _ (Equal t1 t2) = eq t1 t2
     foldEquate _ ap (Predicate p ts) = ap p ts
     foldEquate _ _ _ = error "IsAtomWithEquate Sentence"

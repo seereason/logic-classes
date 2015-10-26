@@ -29,7 +29,7 @@ import Data.Logic.KnowledgeBase (WithId, runProver', Proof, loadKB, theoremKB, g
 import Data.Logic.Normal.Implicative (ImplicativeForm, runNormal, runNormalT)
 import Data.Logic.Resolution (getSubstAtomEq, isRenameOfAtomEq, SetOfSupport)
 import Data.Set as Set
-import FOL (asubst, convertQuantified, fApp, foldTerm, funcs, fva, IsAtomWithEquate(foldEquate),
+import FOL (asubst, convertQuantified, fApp, foldTerm, funcs, fva, HasApplyAndEquate(foldEquate),
             IsFirstOrder, IsQuantified(..), IsTerm, Predicate(NamedPredicate), V, vt)
 import Formulas (HasBoolean(fromBool, asBool))
 import Pretty (Pretty(pPrint))
@@ -165,7 +165,7 @@ data ProofExpected lit v term
 
 doProof :: forall formula lit atom p term v f.
            (IsFirstOrder formula atom p term v f, Ord formula, Pretty formula,
-            IsAtomWithEquate atom p term,
+            HasApplyAndEquate atom p term,
             Atom atom term v,
             HasSkolem f v,
             lit ~ Marked Literal formula,
@@ -189,7 +189,7 @@ loadKB' :: forall m formula lit atom p term v f.
            (lit ~ Marked Literal formula,
             Monad m, Data formula,
             IsFirstOrder formula atom p term v f, Ord formula, Pretty formula,
-            IsAtomWithEquate atom p term,
+            HasApplyAndEquate atom p term,
             HasSkolem f v,
             Atom atom term v,
             IsTerm term v f, Typeable f) => [formula] -> ProverT' v term (ImplicativeForm lit) m [Proof lit]
@@ -199,7 +199,7 @@ theoremKB' :: forall m formula lit atom p term v f.
               (lit ~ Marked Literal formula,
                Monad m, Data formula,
                IsFirstOrder formula atom p term v f, Ord formula, Pretty formula,
-               IsAtomWithEquate atom p term,
+               HasApplyAndEquate atom p term,
                HasSkolem f v,
                Atom atom term v,
                IsTerm term v f, Typeable f

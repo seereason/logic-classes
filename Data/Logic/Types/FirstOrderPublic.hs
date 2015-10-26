@@ -30,7 +30,7 @@ import Data.Data (Data)
 import qualified Data.Logic.Types.FirstOrder as N
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set)
-import FOL (HasEquals, IsFunction, IsPredicate, IsVariable)
+import FOL (IsFunction, IsPredicate, IsVariable)
 import Formulas (HasBoolean(..))
 import Pretty (Pretty)
 import Prop (Marked(Mark, unMark'))
@@ -55,7 +55,7 @@ instance Show formula => Show (Marked Public formula) where
 
 -- | Here are the magic Ord and Eq instances - formulas will be Eq if
 -- their normal forms are Eq up to renaming.
-instance (IsVariable v, Data v, IsPredicate p, HasEquals p, Data p, Pretty p, HasBoolean p, IsFunction f, Data f
+instance (IsVariable v, Data v, IsPredicate p, Data p, Pretty p, HasBoolean p, IsFunction f, Data f
          ) => Ord (PFormula v p f) where
     compare a b =
         let (a' :: Set (Set (N.NFormula v p f))) = simpcnf' (unmarkPublic a)
@@ -64,7 +64,7 @@ instance (IsVariable v, Data v, IsPredicate p, HasEquals p, Data p, Pretty p, Ha
           EQ -> EQ
           x -> {- if isRenameOf a' b' then EQ else -} x
 
-instance ( IsVariable v, Data v, IsPredicate p, HasEquals p, Data p, Pretty p, HasBoolean p, IsFunction f, Data f
+instance ( IsVariable v, Data v, IsPredicate p, Data p, Pretty p, HasBoolean p, IsFunction f, Data f
          ) => Eq (PFormula v p f) where
     a == b = compare a b == EQ
 

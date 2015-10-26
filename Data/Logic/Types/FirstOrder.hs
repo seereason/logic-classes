@@ -12,9 +12,9 @@ import Data.Function (on)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable (Typeable)
 import Formulas (BinOp(..), IsNegatable(..), IsCombinable(..), HasBoolean(..), IsFormula(..))
-import FOL (exists, IsAtomWithEquate(equate, foldEquate), HasFunctions(..), IsAtom(..), IsFirstOrder,
+import FOL (exists, HasApply(..), HasApplyAndEquate(equate, foldEquate), HasFunctions(..), IsAtom(..), IsFirstOrder,
             IsFunction, IsPredicate, IsQuantified(..), IsTerm(..), IsVariable(..),
-            prettyApply, prettyEquate, prettyQuantified, prettyTerm, Quant(..), V)
+            overtermsEq, ontermsEq, prettyApply, prettyEquate, prettyQuantified, prettyTerm, Quant(..), V)
 import Lit (IsLiteral(..))
 import Pretty (HasFixity(..), Pretty(pPrint), rootFixity, text)
 import Prop (IsPropositional(foldPropositional'))
@@ -96,11 +96,11 @@ instance (IsVariable v, IsPredicate p, Pretty p, HasBoolean p, IsFunction f) => 
 instance (IsPredicate p, Pretty p, Pretty term, HasEquals p) => Pretty (NPredicate p term) where
     pPrint = foldPredicate prettyPredicateApplicationEq
 -}
-instance (IsPredicate p) => IsAtom (NPredicate p term) p term where
+instance (IsPredicate p) => HasApply (NPredicate p term) p term where
     applyPredicate = Apply
     foldPredicate f (Apply p ts) = f p ts
     foldPredicate _ (Equal _ _) = error "foldPredicate - found Equate"
-instance (IsPredicate p) => IsAtomWithEquate (NPredicate p term) p term where
+instance (IsPredicate p) => HasApplyAndEquate (NPredicate p term) p term where
     equate = Equal
     foldEquate eq _ (Equal t1 t2) = eq t1 t2
     foldEquate _ ap (Apply p ts) = ap p ts
@@ -139,6 +139,9 @@ instance (IsVariable v, IsPredicate p, Pretty p, HasBoolean p, IsFunction f
           Negate fm' -> ne fm'
           Predicate x -> at x
           _ -> ho fm
+instance IsPredicate p => IsAtom (NPredicate p (NTerm v f)) p (NTerm v f) where
+    overterms = overtermsEq
+    onterms = ontermsEq
 instance (IsVariable v, IsPredicate p, Pretty p, HasBoolean p, IsFunction f
          ) => IsFirstOrder (NFormula v p f) (NPredicate p (NTerm v f)) p (NTerm v f) v f
 

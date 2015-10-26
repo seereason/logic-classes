@@ -33,7 +33,7 @@ import Data.Logic.Normal.Implicative (ImplicativeForm, implicativeNormalForm, pr
 import Data.Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Data.SafeCopy (deriveSafeCopy, base)
 import Data.Set.Extra as Set (Set, empty, map, minView, null, partition, union)
-import FOL (IsAtomWithEquate, IsFirstOrder, IsTerm)
+import FOL (HasApplyAndEquate, IsFirstOrder, IsTerm)
 import Formulas ((.~.))
 import Lit (IsLiteral)
 import Prelude hiding (negate)
@@ -130,7 +130,7 @@ getKB = get >>= return . knowledgeBase
 inconsistantKB :: forall m fof lit atom term v p f.
                   (IsFirstOrder fof atom p term v f, Ord fof, lit ~ Marked Literal fof,
                    Atom atom term v,
-                   IsAtomWithEquate atom p term,
+                   HasApplyAndEquate atom p term,
                    IsTerm term v f,
                    HasSkolem f v,
                    Monad m, Data fof, Pretty fof, Typeable f) =>
@@ -148,7 +148,7 @@ theoremKB :: forall m fof lit atom term v p f.
              (Monad m,
               IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
               Atom atom term v,
-              IsAtomWithEquate atom p term,
+              HasApplyAndEquate atom p term,
               IsTerm term v f,
               HasSkolem f v,
               Data fof, Typeable f) =>
@@ -161,7 +161,7 @@ theoremKB s = inconsistantKB ((.~.) s)
 askKB :: (Monad m,
           IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
           Atom atom term v,
-          IsAtomWithEquate atom p term,
+          HasApplyAndEquate atom p term,
           IsTerm term v f,
           HasSkolem f v,
           Data fof, Typeable f) =>
@@ -172,7 +172,7 @@ askKB s = theoremKB s >>= return . fst
 -- for truth and falsity.
 validKB :: (IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
             Atom atom term v,
-            IsAtomWithEquate atom p term,
+            HasApplyAndEquate atom p term,
             IsTerm term v f,
             HasSkolem f v,
             Monad m, Data fof, Typeable f) =>
@@ -189,7 +189,7 @@ validKB s =
 -- new sentence is inconsistant with the current knowledgebase.
 tellKB :: (IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
            Atom atom term v,
-           IsAtomWithEquate atom p term,
+           HasApplyAndEquate atom p term,
            IsTerm term v f,
            HasSkolem f v,
            Monad m, Data fof, Typeable f) =>
@@ -208,7 +208,7 @@ tellKB s =
 loadKB :: (IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
            Atom atom term v,
            IsTerm term v f,
-           IsAtomWithEquate atom p term,
+           HasApplyAndEquate atom p term,
            HasSkolem f v,
            Monad m, Data fof, Typeable f) =>
           [fof] -> StateT (ProverState (ImplicativeForm lit)) (SkolemT m) [Proof lit]
