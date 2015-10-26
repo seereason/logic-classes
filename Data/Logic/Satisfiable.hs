@@ -28,7 +28,7 @@ import Skolem (HasSkolem, runSkolem, skolemize)
 satisfiable :: forall formula atom v term p f.
                (IsFirstOrder formula atom p term v f,
                 HasSkolem f v,
-                Ord atom, Eq formula, Ord formula, Pretty atom, HasFixity atom) =>
+                Ord atom, Eq formula, Ord formula, Pretty formula, Pretty atom, HasFixity atom) =>
                formula -> Bool
 satisfiable f =
     (PL.satisfiable . PL.CJ . List.map (PL.DJ . List.map convert) . List.map Set.toList . Set.toList . simpcnf id . skolemize') f
@@ -40,8 +40,9 @@ satisfiable f =
 -- |Is the formula always false?  (Not satisfiable.)
 inconsistant :: forall formula atom v term p f.
                 (IsFirstOrder formula atom p term v f,
-                HasSkolem f v,
-                 Ord atom, Eq formula, Ord formula, Pretty atom, HasFixity atom) =>
+                 HasSkolem f v,
+                 Eq formula, Ord formula, Pretty formula,
+                 Ord atom, Pretty atom, HasFixity atom) =>
                 formula -> Bool
 inconsistant f =  not (satisfiable f)
 
@@ -49,7 +50,8 @@ inconsistant f =  not (satisfiable f)
 theorem :: forall formula atom v term p f.
            (IsFirstOrder formula atom p term v f,
             HasSkolem f v,
-            Ord atom, Eq formula, Ord formula, Pretty atom, HasFixity atom) =>
+            Eq formula, Ord formula, Pretty formula,
+            Ord atom, Pretty atom, HasFixity atom) =>
            formula -> Bool
 theorem f = inconsistant ((.~.) f)
 
@@ -57,6 +59,7 @@ theorem f = inconsistant ((.~.) f)
 invalid :: forall formula atom v term p f.
            (IsFirstOrder formula atom p term v f,
             HasSkolem f v,
-            Ord atom, Eq formula, Ord formula, Pretty atom, HasFixity atom) =>
+            Eq formula, Ord formula, Pretty formula,
+            Ord atom, Pretty atom, HasFixity atom) =>
            formula -> Bool
 invalid f = not (inconsistant f || theorem f)

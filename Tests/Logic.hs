@@ -13,9 +13,8 @@ import Data.Set.Extra as Set (Set, singleton, toList, empty, fromList, map {-, m
 import Data.String (IsString(fromString))
 import FOL (vt, (∀), pApp, fv, (.=.), exists, for_all, applyPredicate, fApp, V(V), Predicate(NamedPredicate), subst, IsFirstOrder, IsTerm)
 import Formulas ((.~.), atomic, IsCombinable(..), (⇒))
-import Lib (assertEqual')
 import Lit (IsLiteral)
-import Pretty (pPrint)
+import Pretty (assertEqual', Pretty(pPrint))
 import Prop (IsPropositional, list_conj, list_disj, Literal, Marked, markLiteral, markPropositional, Propositional,
              simpcnf, TruthTable(..), TruthTable, truthTable, unmarkLiteral)
 import Skolem (HasSkolem(..), runSkolem, skolemize, pnf, simpcnf')
@@ -586,7 +585,7 @@ table :: forall formula atom p term v f.
           HasSkolem f v,
           Atom atom term v,
           IsTerm term v f,
-          Ord formula, Ord atom) =>
+          Ord formula, Pretty formula, Ord atom) =>
          formula -> (Set (Set (Marked Literal (Marked Propositional formula))), TruthTable atom)
 table f =
     -- truthTable :: Ord a => PropForm a -> TruthTable a

@@ -29,7 +29,7 @@ import "mtl" Control.Monad.State (StateT, evalStateT, MonadState(get, put))
 import "mtl" Control.Monad.Trans (lift)
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Atom (Atom)
-import Data.Logic.Normal.Implicative (ImplicativeForm, implicativeNormalForm)
+import Data.Logic.Normal.Implicative (ImplicativeForm, implicativeNormalForm, prettyProof)
 import Data.Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Data.SafeCopy (deriveSafeCopy, base)
 import Data.Set.Extra as Set (Set, empty, map, minView, null, partition, union)
@@ -37,6 +37,7 @@ import FOL (HasEquate, IsFirstOrder, IsTerm)
 import Formulas ((.~.))
 import Lit (IsLiteral)
 import Prelude hiding (negate)
+import Pretty (Pretty(pPrint), text, (<>))
 import Prop (Literal, Marked)
 import Skolem (SkolemT, runSkolemT, HasSkolem)
 
@@ -100,12 +101,18 @@ data ProofResult
     -- ^ Both are satisfiable
     deriving (Data, Typeable, Eq, Ord, Show)
 
+instance Pretty ProofResult where
+    pPrint = text . show
+
 $(deriveSafeCopy 1 'base ''ProofResult)
 
 data Proof lit = Proof {proofResult :: ProofResult, proof :: Set (ImplicativeForm lit)} deriving (Data, Typeable, Eq, Ord)
 
 instance (Ord lit, Show lit, IsLiteral lit atom) => Show (Proof lit) where
     show p = "Proof {proofResult = " ++ show (proofResult p) ++ ", proof = " ++ show (proof p) ++ "}"
+
+instance (Ord lit, Pretty lit, Show lit, IsLiteral lit atom) => Pretty (Proof lit) where
+    pPrint p = text "Proof {\n  proofResult = " <> pPrint (proofResult p) <> text ",\n  proof = " <> prettyProof (proof p) <> text "\n}"
 
 -- |Remove a particular sentence from the knowledge base
 unloadKB :: (Monad m, Ord inf) => SentenceCount -> ProverT inf m (Maybe (KnowledgeBase inf))
@@ -126,7 +133,7 @@ inconsistantKB :: forall m fof lit atom term v p f.
                    HasEquate atom p term,
                    IsTerm term v f,
                    HasSkolem f v,
-                   Monad m, Data fof, Typeable f) =>
+                   Monad m, Data fof, Pretty fof, Typeable f) =>
                   fof -> ProverT' v term (ImplicativeForm lit) m (Bool, SetOfSupport lit v term)
 inconsistantKB s =
     get >>= \ st ->
@@ -139,7 +146,7 @@ inconsistantKB s =
 -- proof.
 theoremKB :: forall m fof lit atom term v p f.
              (Monad m,
-              IsFirstOrder fof atom p term v f, Ord fof, lit ~ Marked Literal fof,
+              IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
               Atom atom term v,
               HasEquate atom p term,
               IsTerm term v f,
@@ -152,7 +159,7 @@ theoremKB s = inconsistantKB ((.~.) s)
 -- askKB should be in KnowledgeBase module. However, since resolution
 -- is here functions are here, it is also placed in this module.
 askKB :: (Monad m,
-          IsFirstOrder fof atom p term v f, Ord fof, lit ~ Marked Literal fof,
+          IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
           Atom atom term v,
           HasEquate atom p term,
           IsTerm term v f,
@@ -163,7 +170,7 @@ askKB s = theoremKB s >>= return . fst
 
 -- |See whether the sentence is true, false or invalid.  Return proofs
 -- for truth and falsity.
-validKB :: (IsFirstOrder fof atom p term v f, Ord fof, lit ~ Marked Literal fof,
+validKB :: (IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
             Atom atom term v,
             HasEquate atom p term,
             IsTerm term v f,
@@ -180,7 +187,7 @@ validKB s =
 -- |Validate a sentence and insert it into the knowledgebase.  Returns
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
-tellKB :: (IsFirstOrder fof atom p term v f, Ord fof, lit ~ Marked Literal fof,
+tellKB :: (IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
            Atom atom term v,
            HasEquate atom p term,
            IsTerm term v f,
@@ -198,7 +205,7 @@ tellKB s =
                      , sentenceCount = sentenceCount st + 1 }
        return $ Proof {proofResult = valid, proof = Set.map wiItem inf'}
 
-loadKB :: (IsFirstOrder fof atom p term v f, Ord fof, lit ~ Marked Literal fof,
+loadKB :: (IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
            Atom atom term v,
            IsTerm term v f,
            HasEquate atom p term,

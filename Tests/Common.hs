@@ -16,7 +16,7 @@ module Common
 
 import Control.Monad.Identity (Identity)
 import Control.Monad.Reader (MonadPlus(..), msum)
-import Data.Boolean (CNF, Literal)
+import qualified Data.Boolean as B (CNF, Literal)
 import Data.Generics (Data, Typeable, listify)
 import Data.List as List (map, null)
 import Data.Logic.Classes.Atom (Atom(..))
@@ -34,7 +34,7 @@ import FOL (asubst, convertQuantified, fApp, foldEquate, foldTerm, funcs, fva, H
 import Formulas (HasBoolean(fromBool, asBool))
 import Pretty (Pretty(pPrint))
 import Prop (Marked, PFormula, satisfiable, trivial)
-import qualified Prop (Literal)
+import Prop (Literal)
 import PropLogic (PropForm)
 import Safe (readMay)
 import Skolem (Function, MyAtom, MyTerm, SkolemT, MyFormula, MyAtom, MyTerm, simpcnf', HasSkolem)
@@ -78,12 +78,12 @@ data Expected formula atom v
     | PrenexNormalForm formula
     | SkolemNormalForm (PFormula MyAtom)
     | SkolemNumbers (Set Function)
-    | ClauseNormalForm (Set (Set (Marked Prop.Literal formula)))
+    | ClauseNormalForm (Set (Set (Marked Literal formula)))
     | TrivialClauses [(Bool, (Set formula))]
     | ConvertToChiou (Ch.Sentence V Predicate Function)
-    | ChiouKB1 (Proof (Marked Prop.Literal formula))
+    | ChiouKB1 (Proof (Marked Literal formula))
     | PropLogicSat Bool
-    | SatSolverCNF CNF
+    | SatSolverCNF B.CNF
     | SatSolverSat Bool
     -- deriving (Data, Typeable)
 
@@ -113,7 +113,7 @@ doTest (TestFormula fm nm expect) =
       doExpected (ClauseNormalForm fss) =
           let label = (nm ++ " clause normal form") in
           TestLabel label (TestCase (assertEqual label
-                                                 (show (List.map (List.map pPrint) . Set.toList . Set.map Set.toList $ (fss :: (Set (Set (Marked Prop.Literal MyFormula))))))
+                                                 (show (List.map (List.map pPrint) . Set.toList . Set.map Set.toList $ (fss :: (Set (Set (Marked Literal MyFormula))))))
                                                  (show (List.map (List.map pPrint) . Set.toList . Set.map Set.toList $ (Set.map (Set.map id) (simpcnf' fm) :: Set (Set MyFormula))))))
       doExpected (TrivialClauses flags) = let label = (nm ++ " trivial clauses") in TestLabel label (TestCase (assertEqual label flags (List.map (\ (x :: Set MyFormula) -> (trivial x, x)) (Set.toList (simpcnf' (fm :: MyFormula))))))
       doExpected (ConvertToChiou result) =
@@ -128,14 +128,14 @@ doTest (TestFormula fm nm expect) =
                     fn :: Function -> [MyTerm] -> Ch.CTerm V Function
                     fn f ts = fApp f (List.map ct ts) in
                 let label = (nm ++ " converted to Chiou") in TestLabel label (TestCase (assertEqual label result (convertQuantified ca id fm :: Ch.Sentence V Predicate Function)))
-      doExpected (ChiouKB1 result) = let label = (nm ++ " Chiou KB") in TestLabel label (TestCase (assertEqual label result ((runProver' Nothing (loadKB [fm] >>= return . head)) :: (Proof (Marked Prop.Literal MyFormula)))))
+      doExpected (ChiouKB1 result) = let label = (nm ++ " Chiou KB") in TestLabel label (TestCase (assertEqual label result ((runProver' Nothing (loadKB [fm] >>= return . head)) :: (Proof (Marked Literal MyFormula)))))
       doExpected (PropLogicSat result) = let label = (nm ++ " PropLogic.satisfiable") in TestLabel label (TestCase (assertEqual label result (runSkolem (plSat (convertQuantified id id fm)))))
       doExpected (SatSolverCNF result) = let label = (nm ++ " SatSolver CNF") in TestLabel label (TestCase (assertEqual label (norm result) (runNormal (SS.toCNF fm))))
       doExpected (SatSolverSat result) = let label = (nm ++ " SatSolver CNF") in TestLabel label (TestCase (assertEqual label result ((List.null :: [a] -> Bool) (runNormalT (SS.toCNF fm >>= return . satisfiable)))))
 
 -- p = id
 
-norm :: [[Literal]] -> [[Literal]]
+norm :: [[B.Literal]] -> [[B.Literal]]
 norm = List.map Set.toList . Set.toList . Set.fromList . List.map Set.fromList
 
 skolemSet :: PFormula MyAtom -> Set Function
@@ -153,7 +153,7 @@ data TestProof fof term v
       { proofName :: String
       , proofKnowledge :: (String, [fof])
       , conjecture :: fof
-      , proofExpected :: [ProofExpected (Marked Prop.Literal fof) v term]
+      , proofExpected :: [ProofExpected (Marked Literal fof) v term]
       } deriving (Data, Typeable)
 
 type TTestProof = TestProof MyFormula MyTerm V
@@ -164,11 +164,11 @@ data ProofExpected lit v term
     deriving (Data, Typeable)
 
 doProof :: forall formula lit atom p term v f.
-           (IsFirstOrder formula atom p term v f, Ord formula,
+           (IsFirstOrder formula atom p term v f, Ord formula, Pretty formula,
             HasEquate atom p term,
             Atom atom term v,
             HasSkolem f v,
-            lit ~ Marked Prop.Literal formula,
+            lit ~ Marked Literal formula,
             Eq formula, Eq term, Eq v, Ord term, Show formula, Show term, Data formula, Typeable f, Show v
            ) => TestProof formula term v -> Test
 doProof p =
@@ -186,9 +186,9 @@ doProof p =
       c = conjecture p :: formula
 
 loadKB' :: forall m formula lit atom p term v f.
-           (lit ~ Marked Prop.Literal formula,
+           (lit ~ Marked Literal formula,
             Monad m, Data formula,
-            IsFirstOrder formula atom p term v f, Ord formula,
+            IsFirstOrder formula atom p term v f, Ord formula, Pretty formula,
             HasEquate atom p term,
             HasSkolem f v,
             Atom atom term v,
@@ -196,9 +196,9 @@ loadKB' :: forall m formula lit atom p term v f.
 loadKB' = loadKB
 
 theoremKB' :: forall m formula lit atom p term v f.
-              (lit ~ Marked Prop.Literal formula,
+              (lit ~ Marked Literal formula,
                Monad m, Data formula,
-               IsFirstOrder formula atom p term v f, Ord formula,
+               IsFirstOrder formula atom p term v f, Ord formula, Pretty formula,
                HasEquate atom p term,
                HasSkolem f v,
                Atom atom term v,

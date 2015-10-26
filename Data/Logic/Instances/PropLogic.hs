@@ -105,18 +105,19 @@ flatten (SJ xs) = SJ (map flatten xs)
 flatten (N x) = N (flatten x)
 flatten x = x
 
-plSat0 :: (PropAlg a (PropForm atom), IsFirstOrder (PropForm atom) atom p term v f, IsPropositional (PropForm atom) atom, Ord atom, Pretty atom) => PropForm atom -> Bool
+plSat0 :: (PropAlg a (PropForm atom), IsFirstOrder (PropForm atom) atom p term v f, IsPropositional (PropForm atom) atom, Ord atom, Pretty atom, HasFixity atom) => PropForm atom -> Bool
 plSat0 f = satisfiable . (\ (x :: PropForm atom) -> x) . clauses0 $ f
 
-clauses0 :: forall atom p term v f. (IsFirstOrder (PropForm atom) atom p term v f, IsPropositional (PropForm atom) atom, Ord atom, Pretty atom) => PropForm atom -> PropForm atom
+clauses0 :: forall atom p term v f. (IsFirstOrder (PropForm atom) atom p term v f, IsPropositional (PropForm atom) atom, Ord atom, Pretty atom, HasFixity atom) => PropForm atom -> PropForm atom
 clauses0 f = CJ . map DJ . map Set.toList . Set.toList $ (simpcnf' f :: Set (Set (PropForm atom)))
 
-plSat :: forall m atom term v p f. (Monad m, IsFirstOrder (PropForm atom) atom p term v f, Eq atom, Ord atom) =>
+plSat :: forall m atom term v p f. (Monad m, IsFirstOrder (PropForm atom) atom p term v f, Eq atom, Ord atom, HasFixity atom) =>
                 PropForm atom -> SkolemT m Bool
 plSat f = clauses f >>= (\ (x :: PropForm atom) -> return x) >>= return . satisfiable
 
 clauses :: forall m atom term v p f.
-           (IsFirstOrder (PropForm atom) atom p term v f, Monad m, Eq atom, Ord atom) =>
+           (IsFirstOrder (PropForm atom) atom p term v f,
+            Monad m, Eq atom, Ord atom, HasFixity atom) =>
            PropForm atom -> SkolemT m (PropForm atom)
 clauses f =
     do let (cnf :: Set (Set (PropForm atom))) = simpcnf' f

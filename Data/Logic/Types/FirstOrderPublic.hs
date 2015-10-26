@@ -30,8 +30,9 @@ import Data.Data (Data)
 import qualified Data.Logic.Types.FirstOrder as N
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set)
-import FOL (HasEquals, HasPredicate, IsFunction, IsPredicate, IsVariable, IsQuantified(..))
-import Formulas (HasBoolean(..), IsFormula(..))
+import FOL (HasEquals, IsFunction, IsPredicate, IsVariable)
+import Formulas (HasBoolean(..))
+import Pretty (Pretty)
 import Prop (Marked(Mark, unMark'))
 import Skolem (simpcnf')
 
@@ -54,7 +55,7 @@ instance Show formula => Show (Marked Public formula) where
 
 -- | Here are the magic Ord and Eq instances - formulas will be Eq if
 -- their normal forms are Eq up to renaming.
-instance (IsVariable v, Data v, IsPredicate p, HasBoolean p, Data p, IsFunction f, Data f, HasEquals p
+instance (IsVariable v, Data v, IsPredicate p, HasEquals p, Data p, Pretty p, HasBoolean p, IsFunction f, Data f
          ) => Ord (PFormula v p f) where
     compare a b =
         let (a' :: Set (Set (N.NFormula v p f))) = simpcnf' (unmarkPublic a)
@@ -63,11 +64,12 @@ instance (IsVariable v, Data v, IsPredicate p, HasBoolean p, Data p, IsFunction 
           EQ -> EQ
           x -> {- if isRenameOf a' b' then EQ else -} x
 
-instance (HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f), IsFormula (PFormula v p f) (N.NPredicate p (N.NTerm v f)),
-          IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f)),
-          IsFunction f, IsVariable v, HasBoolean (N.NPredicate p (N.NTerm v f)),
-          IsQuantified (PFormula v p f) (N.NPredicate p (N.NTerm v f)) v,
-          Data v, Data p, HasBoolean p, HasEquals p, Data f
+instance ( IsVariable v, Data v, IsPredicate p, HasEquals p, Data p, Pretty p, HasBoolean p, IsFunction f, Data f
+         -- , HasPredicate (N.NPredicate p (N.NTerm v f)) p (N.NTerm v f)
+         -- , IsFormula (PFormula v p f) (N.NPredicate p (N.NTerm v f))
+         -- , IsFormula (N.NFormula v p f) (N.NPredicate p (N.NTerm v f))
+         -- , IsFunction f, IsVariable v, HasBoolean (N.NPredicate p (N.NTerm v f))
+         -- , IsQuantified (PFormula v p f) (N.NPredicate p (N.NTerm v f)) v
          ) => Eq (PFormula v p f) where
     a == b = compare a b == EQ
 

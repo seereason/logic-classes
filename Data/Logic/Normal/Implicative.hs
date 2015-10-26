@@ -95,7 +95,7 @@ implicativeNormalForm :: forall m fof lit atom p term v f.
                          fof -> SkolemT m (Set (ImplicativeForm lit))
 -}
 implicativeNormalForm :: forall m fof atom p term v f.
-                         (Monad m, Data fof, Typeable f,
+                         (Monad m, Data fof, Pretty fof, Typeable f,
                           IsFirstOrder fof atom p term v f, Ord fof,
                           HasSkolem f v) => fof -> SkolemT m (Set (ImplicativeForm (Marked Literal fof)))
 implicativeNormalForm formula =
