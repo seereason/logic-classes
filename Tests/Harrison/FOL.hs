@@ -14,7 +14,7 @@ import Control.Applicative.Error (Failing(..))
 import Control.Monad (filterM)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import FOL (foldEquate, for_all, exists, Predicate(Equals), MyFormula1,
+import FOL (for_all, exists, Predicate(Equals), MyFormula1,
             IsAtomWithEquate(..), (.=.), IsQuantified(..), IsTerm(vt, fApp, foldTerm), IsVariable(..), pApp, Quant(..))
 import Formulas ((.~.), false, IsCombinable(..), BinOp(..))
 import Lib ((|->))
@@ -63,8 +63,7 @@ holds m@(domain, _func, pred) v fm =
       co p (:<=>:) q = (==) <$> (holds m v p) <*> (holds m v q)
       tf x = Success x
       at :: atom -> Failing Bool
-      at = foldEquate (\ r args -> mapM (termval m v) args >>= return . pred r) (\ t1 t2 -> return $ termval m v t1 == termval m v t2)
-
+      at = foldEquate (\ t1 t2 -> return $ termval m v t1 == termval m v t2) (\ r args -> mapM (termval m v) args >>= return . pred r)
 -- | This becomes a method in FirstOrderFormulaEq, so it is not exported here.
 -- (.=.) :: MyTerm -> MyTerm -> Formula FOL
 -- a .=. b = Atom (R "=" [a, b])

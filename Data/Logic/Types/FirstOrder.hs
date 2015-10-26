@@ -12,7 +12,7 @@ import Data.Function (on)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable (Typeable)
 import Formulas (BinOp(..), IsNegatable(..), IsCombinable(..), HasBoolean(..), IsFormula(..))
-import FOL (exists, IsAtomWithEquate(equate, foldEquate'), foldEquate, HasFunctions(..), IsAtom(..), IsFirstOrder,
+import FOL (exists, IsAtomWithEquate(equate, foldEquate), HasFunctions(..), IsAtom(..), IsFirstOrder,
             IsFunction, IsPredicate, IsQuantified(..), IsTerm(..), IsVariable(..),
             prettyApply, prettyEquate, prettyQuantified, prettyTerm, Quant(..), V)
 import Lit (IsLiteral(..))
@@ -89,7 +89,7 @@ instance (IsVariable v, IsPredicate p, Pretty p, HasBoolean p, IsFunction f, ato
 instance HasFixity (NFormula v p f) where
     fixity _ = rootFixity
 instance (IsVariable v, IsPredicate p, Pretty p, IsFunction f) => Pretty (NPredicate p (NTerm v f)) where
-    pPrint = foldEquate (\p ts -> prettyApply (pPrint p) (text " ") (map pPrint ts)) (prettyEquate `on` pPrint)
+    pPrint = foldEquate (prettyEquate `on` pPrint) (\p ts -> prettyApply (pPrint p) (text " ") (map pPrint ts))
 instance (IsVariable v, IsPredicate p, Pretty p, HasBoolean p, IsFunction f) => Pretty (NFormula v p f) where
     pPrint = prettyQuantified
 {-
@@ -102,8 +102,8 @@ instance (IsPredicate p) => IsAtom (NPredicate p term) p term where
     foldPredicate _ (Equal _ _) = error "foldPredicate - found Equate"
 instance (IsPredicate p) => IsAtomWithEquate (NPredicate p term) p term where
     equate = Equal
-    foldEquate' eq (Equal t1 t2) = Just (eq t1 t2)
-    foldEquate' _ _ = Nothing
+    foldEquate eq _ (Equal t1 t2) = eq t1 t2
+    foldEquate _ ap (Apply p ts) = ap p ts
 instance HasFixity (NPredicate p (NTerm v f)) where
     fixity _ = rootFixity
 instance HasBoolean p => HasBoolean (NPredicate p (NTerm v f)) where

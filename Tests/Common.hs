@@ -29,7 +29,7 @@ import Data.Logic.KnowledgeBase (WithId, runProver', Proof, loadKB, theoremKB, g
 import Data.Logic.Normal.Implicative (ImplicativeForm, runNormal, runNormalT)
 import Data.Logic.Resolution (getSubstAtomEq, isRenameOfAtomEq, SetOfSupport)
 import Data.Set as Set
-import FOL (asubst, convertQuantified, fApp, foldEquate, foldTerm, funcs, fva, IsAtomWithEquate,
+import FOL (asubst, convertQuantified, fApp, foldTerm, funcs, fva, IsAtomWithEquate(foldEquate),
             IsFirstOrder, IsQuantified(..), IsTerm, Predicate(NamedPredicate), V, vt)
 import Formulas (HasBoolean(fromBool, asBool))
 import Pretty (Pretty(pPrint))
@@ -47,7 +47,7 @@ instance Atom MyAtom MyTerm V where
     allVariables = fva -- Variables are always free in an atom - this method is unnecessary
     unify = unify
     match = unify
-    foldTerms f r pr = foldEquate (\_ ts -> Prelude.foldr f r ts) (\t1 t2 -> f t2 (f t1 r)) pr
+    foldTerms f r pr = foldEquate (\t1 t2 -> f t2 (f t1 r)) (\_ ts -> Prelude.foldr f r ts) pr
     isRename = isRenameOfAtomEq
     getSubst = getSubstAtomEq
 
@@ -120,7 +120,7 @@ doTest (TestFormula fm nm expect) =
                 -- We need to convert formula to Chiou and see if it matches result.
                 let ca :: MyAtom -> Ch.Sentence V Predicate Function
                     -- ca = undefined
-                    ca = foldEquate (\p ts -> Ch.Predicate p (List.map ct ts)) (\t1 t2 -> Ch.Equal (ct t1) (ct t2))
+                    ca = foldEquate (\t1 t2 -> Ch.Equal (ct t1) (ct t2)) (\p ts -> Ch.Predicate p (List.map ct ts))
                     ct :: MyTerm -> Ch.CTerm V Function
                     ct = foldTerm cv fn
                     cv :: V -> Ch.CTerm V Function

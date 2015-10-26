@@ -16,7 +16,7 @@ module Data.Logic.Instances.Chiou
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Atom (Atom)
 import Data.String (IsString(..))
-import FOL ((.=.), foldEquate, IsAtomWithEquate(..), IsAtom(..), IsFunction, IsPredicate, IsQuantified(..), IsTerm(..),
+import FOL ((.=.), IsAtomWithEquate(..), IsAtom(..), IsFunction, IsPredicate, IsQuantified(..), IsTerm(..),
             IsVariable, onatomsQuantified, overatomsQuantified,
             pApp, prettyQuantified, prettyTerm, Quant(..))
 import Formulas (HasBoolean(..), asBool, IsCombinable(..), BinOp(..), IsFormula(..), IsNegatable(..), (.~.))
@@ -134,11 +134,9 @@ instance (IsVariable v, IsFunction f, IsPredicate p) => IsAtom (Sentence v p f) 
     applyPredicate = Predicate
 
 instance (IsFunction f, IsVariable v, IsPredicate p) => IsAtomWithEquate (Sentence v p f) p (CTerm v f) where
-    foldEquate' ap (Equal t1 t2) = Just (ap t1 t2)
-    foldEquate' _ _ = Nothing
-    -- foldAtomEq ap _ (Predicate p ts) = ap p ts
-    -- foldAtomEq _ eq (Equal t1 t2) = eq t1 t2
-    -- foldAtomEq _ _ _ = error "Data.Logic.Instances.Chiou: Invalid atom"
+    foldEquate eq _ (Equal t1 t2) = eq t1 t2
+    foldEquate _ ap (Predicate p ts) = ap p ts
+    foldEquate _ _ _ = error "IsAtomWithEquate Sentence"
     equate = Equal
     -- applyEq' = Predicate
 
@@ -266,8 +264,8 @@ fromSentence :: forall v p f. (IsQuantified (Sentence v p f) (Sentence v p f) v,
                                IsPredicate p, IsFunction f, HasBoolean p
                               ) => Sentence v p f -> NormalSentence v p f
 fromSentence = convertToLiteral (error "fromSentence failure")
-                                (foldEquate (\ p ts -> NFPredicate p (map fromTerm ts))
-                                            (\ t1 t2 -> NFEqual (fromTerm t1) (fromTerm t2)))
+                                (foldEquate (\ t1 t2 -> NFEqual (fromTerm t1) (fromTerm t2))
+                                            (\ p ts -> NFPredicate p (map fromTerm ts)))
 {-
 fromSentence = convertQuantified (foldEquate (\ p ts -> applyPredicate p (map fromTerm ts))
                                              (\ t1 t2 -> equate (fromTerm t1) (fromTerm t2))) id

@@ -17,7 +17,7 @@ import Data.Logic.Classes.Atom (Atom(isRename, getSubst))
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF, neg, pos))
 import Data.Map (Map, empty)
 import Data.Maybe (isJust)
-import FOL (IsAtomWithEquate(equate), foldEquate, zipEquals, IsAtom(applyPredicate), IsTerm(vt, fApp), foldTerm, zipTerms)
+import FOL (IsAtomWithEquate(equate, foldEquate), zipEquals, IsAtom(applyPredicate), IsTerm(vt, fApp), foldTerm, zipTerms)
 import Formulas (fromBool, IsFormula(atomic))
 import Lit (foldLiteral, IsLiteral, JustLiteral, zipLiterals)
 import qualified Data.Map as Map
@@ -128,7 +128,7 @@ getSubstSentence formula theta =
           formula
 
 getSubstAtomEq :: forall atom p term v f. (IsAtomWithEquate atom p term, IsTerm term v f) => Map v term -> atom -> Map v term
-getSubstAtomEq theta = foldEquate (\ _ ts -> getSubstsTerms ts theta) (\ t1 t2 -> getSubstsTerms [t1, t2] theta)
+getSubstAtomEq theta = foldEquate (\ t1 t2 -> getSubstsTerms [t1, t2] theta) (\ _ ts -> getSubstsTerms ts theta)
 
 getSubstsTerms :: IsTerm term v f => [term] -> Map.Map v term -> Map.Map v term
 getSubstsTerms [] theta = theta
@@ -243,7 +243,7 @@ demodulate :: (IsLiteral lit atom, Atom atom term v, IsTerm term v f, Eq lit, Or
 demodulate (inf1, theta1) (inf2, theta2) =
     case (S.null (neg inf1), S.toList (pos inf1)) of
       (True, [lit1]) ->
-          foldLiteral (\ _ -> error "demodulate") (\ _ -> Nothing) (foldEquate (\ _ _ -> Nothing) p) lit1
+          foldLiteral (\ _ -> error "demodulate") (\ _ -> Nothing) (foldEquate p (\ _ _ -> Nothing)) lit1
       _ -> Nothing
     where
       p t1 t2 =
@@ -320,7 +320,7 @@ findUnify tl tr s =
     where
       -- getTerms lit = foldLiteral (\ _ -> error "getTerms") p formula
       p :: atom -> [term]
-      p = foldEquate (\ _ ts -> concatMap getTerms' ts) (\ t1 t2 -> getTerms' t1 ++ getTerms' t2)
+      p = foldEquate (\ t1 t2 -> getTerms' t1 ++ getTerms' t2) (\ _ ts -> concatMap getTerms' ts)
       getTerms' :: term -> [term]
       getTerms' t = foldTerm (\ v -> [vt v]) (\ f ts -> fApp f ts : concatMap getTerms' ts) t
 
@@ -339,11 +339,11 @@ replaceTerm formula (tl', tr') =
     foldLiteral
           (\ _ -> error "error in replaceTerm")
           (\ x -> Just (fromBool x))
-          (foldEquate (\ p ts -> Just (atomic (applyPredicate p (map (\ t -> replaceTerm' t) ts))))
-                      (\ t1 t2 ->
+          (foldEquate (\ t1 t2 ->
                            let t1' = replaceTerm' t1
                                t2' = replaceTerm' t2 in
-                           if t1' == t2' then Nothing else Just (atomic (t1' `equate` t2'))))
+                           if t1' == t2' then Nothing else Just (atomic (t1' `equate` t2')))
+                      (\ p ts -> Just (atomic (applyPredicate p (map (\ t -> replaceTerm' t) ts)))))
           formula
     where
       replaceTerm' t =
@@ -358,11 +358,11 @@ subst formula theta =
     foldLiteral
           (\ _ -> Just formula)
           (\ x -> Just (fromBool x))
-          (foldEquate (\ p ts -> Just (atomic (applyPredicate p (substTerms ts theta))))
-                      (\ t1 t2 ->
+          (foldEquate (\ t1 t2 ->
                            let t1' = substTerm t1 theta
                                t2' = substTerm t2 theta in
-                           if t1' == t2' then Nothing else Just (atomic (t1' `equate` t2'))))
+                           if t1' == t2' then Nothing else Just (atomic (t1' `equate` t2')))
+                      (\ p ts -> Just (atomic (applyPredicate p (substTerms ts theta)))))
           formula
 
 substTerm :: IsTerm term v f => term -> Map.Map v term -> term
