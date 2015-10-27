@@ -22,7 +22,7 @@ import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
 import Data.Map as Map (fromList)
 import Data.Set as Set (Set, fromList, toList)
 import Data.String (IsString)
-import FOL (HasApply, HasApplyAndEquate, (.=.), IsAtom, pApp, IsQuantified(..), IsTerm(..), V, Predicate, for_all, exists)
+import FOL (HasApply, HasApplyAndEquate, (.=.), pApp, IsQuantified(..), IsTerm(..), V, Predicate, for_all, exists)
 import Formulas ((.~.), HasBoolean(..), IsCombinable(..), IsFormula, IsNegatable)
 import Skolem (HasSkolem(toSkolem), MyFormula, MyAtom, MyTerm, Function)
 import Test.HUnit
@@ -75,7 +75,7 @@ formulas =
         s0 = s []
         t0 = t []
         (x, y, z, u, v, w) = (vt "x" :: MyTerm, vt "y" :: MyTerm, vt "z" :: MyTerm, vt "u" :: MyTerm, vt "v" :: MyTerm, vt "w" :: MyTerm)
-        z2 = vt "z2" :: MyTerm in
+        z2 = vt "z'" :: MyTerm in
     [ doTest $
       TestFormula
       { formula = p0 .|. q0 .&. r0 .|. n s0 .&. n t0
@@ -119,7 +119,7 @@ formulas =
                      (for_all "x"
                       (for_all "y"
                        (for_all "z"
-                        (exists "z2"
+                        (exists "z'"
                          (((((q [x,y])) .&.
                             ((((((f [z,x])) .&.
                                 ((f [z,y])))) .|.
@@ -165,7 +165,7 @@ formulas =
       TestFormula
       { name = "move quantifiers out"
       , formula = (for_all "x" (pApp "p" [x]) .&. (pApp "q" [x]))
-      , expected = [PrenexNormalForm (for_all "x2" ((pApp "p" [vt ("x2")]) .&. ((pApp "q" [vt ("x")]))))]
+      , expected = [PrenexNormalForm (for_all "x'" ((pApp "p" [vt ("x'")]) .&. ((pApp "q" [vt ("x")]))))]
       }
     , doTest $
       TestFormula
@@ -397,7 +397,7 @@ formulas =
       , expected = [ClauseNormalForm
                     (toSS
                      [[(pApp ("p") [vt ("x"),fApp (toSkolem "y") [vt ("x")]]),
-                       (pApp ("q") [fApp (toSkolem "y") [vt "x"],fApp (toSkolem "x2") [vt "x"],fApp (toSkolem "z") [vt "x"]])],
+                       (pApp ("q") [fApp (toSkolem "y") [vt "x"],fApp (toSkolem "x'") [vt "x"],fApp (toSkolem "z") [vt "x"]])],
                       [(pApp ("p") [vt ("x"),fApp (toSkolem "y") [vt ("x")]]),
                        ((.~.) (pApp ("r") [fApp (toSkolem "y") [vt "x"]]))]])
                    ]
@@ -576,9 +576,9 @@ animalConjectures =
            , PrenexNormalForm
              (for_all "x"
               (for_all "y"
-               (exists "x2"
-                ((((pApp ("Dog") [vt ("x2")]) .&.
-                   ((pApp ("Owns") [fApp ("Jack") [],vt ("x2")]))) .&.
+               (exists "x'"
+                ((((pApp ("Dog") [vt ("x'")]) .&.
+                   ((pApp ("Owns") [fApp ("Jack") [],vt ("x'")]))) .&.
                   ((((((.~.) (pApp ("Dog") [vt ("y")])) .|.
                       (((.~.) (pApp ("Owns") [vt ("x"),vt ("y")])))) .|.
                      ((pApp ("AnimalLover") [vt ("x")]))) .&.
@@ -663,7 +663,7 @@ animalConjectures =
      ]
 
 socratesKB :: forall t formula atom v predicate term function.
-              (Ord formula, IsString t, IsTerm term v function,
+              (Ord formula, IsString t,
                IsQuantified formula atom v,
                HasApply atom predicate term,
                IsTerm term v function) =>
@@ -693,10 +693,10 @@ socratesConjectures =
        , expected = [ FirstOrderFormula ((.~.) (((for_all' [V "x"] ((pApp "Human" [vt "x"]) .=>. ((pApp "Mortal" [vt "x"])))) .&.
                                                  ((for_all' [V "x"] ((pApp "Socrates" [vt "x"]) .=>. ((pApp "Human" [vt "x"])))))) .=>.
                                                 ((for_all' [V "x"] ((pApp "Socrates" [vt "x"]) .=>. ((pApp "Mortal" [vt "x"])))))))
-                    , ClauseNormalForm  [[((.~.) (pApp "Human" [vt "x2"])),(pApp "Mortal" [vt "x2"])],
-                                          [((.~.) (pApp "Socrates" [vt "x2"])),(pApp "Human" [vt "x2"])],
-                                          [(pApp "Socrates" [fApp (toSkolem "x") [vt "x2",vt "x2"]])],
-                                          [((.~.) (pApp "Mortal" [fApp (toSkolem "x") [vt "x2",vt "x2"]]))]]
+                    , ClauseNormalForm  [[((.~.) (pApp "Human" [vt "x'"])),(pApp "Mortal" [vt "x'"])],
+                                          [((.~.) (pApp "Socrates" [vt "x'"])),(pApp "Human" [vt "x'"])],
+                                          [(pApp "Socrates" [fApp (toSkolem "x") [vt "x'",vt "x'"]])],
+                                          [((.~.) (pApp "Mortal" [fApp (toSkolem "x") [vt "x'",vt "x'"]]))]]
                     , SatPropLogic True ]
        }
      , TestFormula
@@ -711,8 +711,8 @@ socratesConjectures =
                     , ClauseNormalForm [[((.~.) (pApp "Human" [x])), (pApp "Mortal" [x])],
                                          [((.~.) (pApp "Socrates" [fApp (toSkolem "x") [x,y]])), (pApp "Human" [fApp (toSkolem "x") [x,y]])],
                                          [(pApp "Socrates" [fApp (toSkolem "x") [x,y]])], [((.~.) (pApp "Mortal" [fApp (toSkolem "x") [x,y]]))]]
-                    , ClauseNormalForm [[((.~.) (pApp "Human" [vt "x2"])), (pApp "Mortal" [vt "x2"])],
-                                         [((.~.) (pApp "Socrates" [vt "x2"])), (pApp "Human" [vt "x2"])],
+                    , ClauseNormalForm [[((.~.) (pApp "Human" [vt "x'"])), (pApp "Mortal" [vt "x'"])],
+                                         [((.~.) (pApp "Socrates" [vt "x'"])), (pApp "Human" [vt "x'"])],
                                          [((.~.) (pApp "Socrates" [vt "x"])), (pApp "Mortal" [vt "x"])]] ]
        }
      ]
@@ -799,12 +799,12 @@ chang43Conjecture =
                          (for_all "u"
                           (for_all "v"
                            (for_all "w"
-                            (exists "z2"
-                             (exists "x2"
-                              (exists "u2"
-                               (exists "v2"
-                                (exists "w2"
-                                 (((pApp ("P") [vt ("x"),vt ("y"),vt ("z2")]) .&.
+                            (exists "z'"
+                             (exists "x'"
+                              (exists "u'"
+                               (exists "v'"
+                                (exists "w'"
+                                 (((pApp ("P") [vt ("x"),vt ("y"),vt ("z'")]) .&.
                                    ((((((((.~.) (pApp ("P") [vt ("x"),vt ("y"),vt ("u")])) .|.
                                          (((.~.) (pApp ("P") [vt ("y"),vt ("z"),vt ("v")])))) .|.
                                         (((.~.) (pApp ("P") [vt ("u"),vt ("z"),vt ("w")])))) .|.
@@ -817,9 +817,9 @@ chang43Conjecture =
                                         ((pApp ("P") [fApp ("e") [],vt ("x"),vt ("x")]))) .&.
                                        (((pApp ("P") [vt ("x"),fApp ("i") [vt ("x")],fApp ("e") []]) .&.
                                          ((pApp ("P") [fApp ("i") [vt ("x")],vt ("x"),fApp ("e") []]))))))))) .&.
-                                  (((pApp ("P") [vt ("x2"),vt ("x2"),fApp ("e") []]) .&.
-                                    (((pApp ("P") [vt ("u2"),vt ("v2"),vt ("w2")]) .&.
-                                      (((.~.) (pApp ("P") [vt ("v2"),vt ("u2"),vt ("w2")])))))))))))))))))))
+                                  (((pApp ("P") [vt ("x'"),vt ("x'"),fApp ("e") []]) .&.
+                                    (((pApp ("P") [vt ("u'"),vt ("v'"),vt ("w'")]) .&.
+                                      (((.~.) (pApp ("P") [vt ("v'"),vt ("u'"),vt ("w'")])))))))))))))))))))
                     , SkolemNormalForm
                       (((pApp ("P") [vt ("x"),vt ("y"),fApp (toSkolem "z") [vt ("x"),vt ("y")]]) .&.
                         ((((((((.~.) (pApp ("P") [vt ("x"),vt ("y"),vt ("u")])) .|.
@@ -862,9 +862,9 @@ chang43Conjecture =
                     -- From the book
 {-
                     , let (a, b, c) =
-                              (fApp (toSkolem "x") [vt ("x"),vt ("y"),vt ("x2"),vt ("y2"),vt ("z2"),vt ("u"),vt ("v"),vt ("w"),vt ("x2"),vt ("y2"),vt ("z2"),vt ("u2"),vt ("v2"),vt ("w2"),vt ("x3"),vt ("x3"),vt ("x3"),vt ("x3")],
-                               fApp (toSkolem "x") [vt ("x"),vt ("y"),vt ("x2"),vt ("y2"),vt ("z2"),vt ("u"),vt ("v"),vt ("w"),vt ("x2"),vt ("y2"),vt ("z2"),vt ("u2"),vt ("v2"),vt ("w2"),vt ("x3"),vt ("x3"),vt ("x3"),vt ("x3")],
-                               fApp (toSkolem "x") [vt ("x"),vt ("y"),vt ("x2"),vt ("y2"),vt ("z2"),vt ("u"),vt ("v"),vt ("w"),vt ("x2"),vt ("y2"),vt ("z2"),vt ("u2"),vt ("v2"),vt ("w2"),vt ("x3"),vt ("x3"),vt ("x3"),vt ("x3")]) in
+                              (fApp (toSkolem "x") [vt ("x"),vt ("y"),vt ("x'"),vt ("y'"),vt ("z'"),vt ("u"),vt ("v"),vt ("w"),vt ("x'"),vt ("y'"),vt ("z'"),vt ("u'"),vt ("v'"),vt ("w'"),vt ("x''"),vt ("x''"),vt ("x''"),vt ("x''")],
+                               fApp (toSkolem "x") [vt ("x"),vt ("y"),vt ("x'"),vt ("y'"),vt ("z'"),vt ("u"),vt ("v"),vt ("w"),vt ("x'"),vt ("y'"),vt ("z'"),vt ("u'"),vt ("v'"),vt ("w'"),vt ("x''"),vt ("x''"),vt ("x''"),vt ("x''")],
+                               fApp (toSkolem "x") [vt ("x"),vt ("y"),vt ("x'"),vt ("y'"),vt ("z'"),vt ("u"),vt ("v"),vt ("w"),vt ("x'"),vt ("y'"),vt ("z'"),vt ("u'"),vt ("v'"),vt ("w'"),vt ("x''"),vt ("x''"),vt ("x''"),vt ("x''")]) in
                       ClauseNormalForm
                       [[(pApp "P" [vt "x",vt "y",fApp (toSkolem "x") [vt "x",vt "y"]])],
                        [((.~.) (pApp "P" [vt "x",vt "y",vt "u"])),
@@ -902,12 +902,12 @@ chang43ConjectureRenamed =
     let e = fApp "e" []
         (x, y, z, u, v, w) = (vt "x" :: MyTerm, vt "y" :: MyTerm, vt "z" :: MyTerm, vt "u" :: MyTerm, vt "v" :: MyTerm, vt "w" :: MyTerm)
         (u2, v2, w2, x2, y2, z2, u3, v3, w3, x3, y3, z3, x4, x5, x6, x7, x8) =
-            (vt "u2" :: MyTerm, vt "v2" :: MyTerm, vt "w2" :: MyTerm, vt "x2" :: MyTerm, vt "y2" :: MyTerm, vt "z2" :: MyTerm, vt "u3" :: MyTerm, vt "v3" :: MyTerm, vt "w3" :: MyTerm, vt "x3" :: MyTerm, vt "y3" :: MyTerm, vt "z3" :: MyTerm, vt "x4" :: MyTerm, vt "x5" :: MyTerm, vt "x6" :: MyTerm, vt "x7" :: MyTerm, vt "x8" :: MyTerm) in
+            (vt "u'" :: MyTerm, vt "v'" :: MyTerm, vt "w'" :: MyTerm, vt "x'" :: MyTerm, vt "y'" :: MyTerm, vt "z'" :: MyTerm, vt "u3" :: MyTerm, vt "v3" :: MyTerm, vt "w3" :: MyTerm, vt "x3" :: MyTerm, vt "y3" :: MyTerm, vt "z3" :: MyTerm, vt "x4" :: MyTerm, vt "x5" :: MyTerm, vt "x6" :: MyTerm, vt "x7" :: MyTerm, vt "x8" :: MyTerm) in
     doTest $
     TestFormula { name = "chang 43 renamed"
                 , formula = (.~.) ((for_all' ["x", "y"] (exists "z" (pApp "P" [x,y,z])) .&.
-                                    for_all' ["x2", "y2", "z2", "u", "v", "w"] (pApp "P" [x2, y2, u] .&. pApp "P" [y2, z2, v] .&. pApp "P" [u, z2, w] .=>. pApp "P" [x2, v, w]) .&.
-                                    for_all' ["x3", "y3", "z3", "u2", "v2", "w2"] (pApp "P" [x3, y3, u2] .&. pApp "P" [y3, z3, v2] .&. pApp "P" [x3, v2, w2] .=>. pApp "P" [u2, z3, w2]) .&.
+                                    for_all' ["x'", "y'", "z'", "u", "v", "w"] (pApp "P" [x2, y2, u] .&. pApp "P" [y2, z2, v] .&. pApp "P" [u, z2, w] .=>. pApp "P" [x2, v, w]) .&.
+                                    for_all' ["x3", "y3", "z3", "u'", "v'", "w'"] (pApp "P" [x3, y3, u2] .&. pApp "P" [y3, z3, v2] .&. pApp "P" [x3, v2, w2] .=>. pApp "P" [u2, z3, w2]) .&.
                                     for_all "x4" (pApp "P" [x4,e,x4]) .&.
                                     for_all "x5" (pApp "P" [e,x5,x5]) .&.
                                     for_all "x6" (pApp "P" [x6,fApp "i" [x6], e]) .&.
@@ -916,14 +916,14 @@ chang43ConjectureRenamed =
                 , expected =
                     [ FirstOrderFormula
                       ((.~.) ((((((((for_all' ["x","y"] (exists "z" (pApp "P" [vt "x",vt "y",vt "z"]))) .&.
-                                    ((for_all' ["x2","y2","z2","u","v","w"] ((((pApp "P" [vt "x2",vt "y2",vt "u"]) .&.
-                                                                                          ((pApp "P" [vt "y2",vt "z2",vt "v"]))) .&.
-                                                                                         ((pApp "P" [vt "u",vt "z2",vt "w"]))) .=>.
-                                                                                        ((pApp "P" [vt "x2",vt "v",vt "w"])))))) .&.
-                                   ((for_all' ["x3","y3","z3","u2","v2","w2"] ((((pApp "P" [vt "x3",vt "y3",vt "u2"]) .&.
-                                                                                            ((pApp "P" [vt "y3",vt "z3",vt "v2"]))) .&.
-                                                                                           ((pApp "P" [vt "x3",vt "v2",vt "w2"]))) .=>.
-                                                                                          ((pApp "P" [vt "u2",vt "z3",vt "w2"])))))) .&.
+                                    ((for_all' ["x'","y'","z'","u","v","w"] ((((pApp "P" [vt "x'",vt "y'",vt "u"]) .&.
+                                                                                          ((pApp "P" [vt "y'",vt "z'",vt "v"]))) .&.
+                                                                                         ((pApp "P" [vt "u",vt "z'",vt "w"]))) .=>.
+                                                                                        ((pApp "P" [vt "x'",vt "v",vt "w"])))))) .&.
+                                   ((for_all' ["x3","y3","z3","u'","v'","w'"] ((((pApp "P" [vt "x3",vt "y3",vt "u'"]) .&.
+                                                                                            ((pApp "P" [vt "y3",vt "z3",vt "v'"]))) .&.
+                                                                                           ((pApp "P" [vt "x3",vt "v'",vt "w'"]))) .=>.
+                                                                                          ((pApp "P" [vt "u'",vt "z3",vt "w'"])))))) .&.
                                   ((for_all "x4" (pApp "P" [vt "x4",fApp "e" [],vt "x4"])))) .&.
                                  ((for_all "x5" (pApp "P" [fApp "e" [],vt "x5",vt "x5"])))) .&.
                                 ((for_all "x6" (pApp "P" [vt "x6",fApp "i" [vt "x6"],fApp "e" []])))) .&.
@@ -938,13 +938,13 @@ chang43ConjectureRenamed =
                       (toSS
                       [[(pApp ("P") [vt ("x"),vt ("y"),fApp (toSkolem "z") [vt ("x"),vt ("y")]])],
                        [((.~.) (pApp ("P") [vt ("x"),vt ("y"),vt ("u")])),
-                        ((.~.) (pApp ("P") [vt ("y"),vt ("z2"),vt ("v")])),
-                        ((.~.) (pApp ("P") [vt ("u"),vt ("z2"),vt ("w")])),
+                        ((.~.) (pApp ("P") [vt ("y"),vt ("z'"),vt ("v")])),
+                        ((.~.) (pApp ("P") [vt ("u"),vt ("z'"),vt ("w")])),
                         (pApp ("P") [vt ("x"),vt ("v"),vt ("w")])],
                        [((.~.) (pApp ("P") [vt ("x"),vt ("y"),vt ("u")])),
-                        ((.~.) (pApp ("P") [vt ("y"),vt ("z2"),vt ("v")])),
+                        ((.~.) (pApp ("P") [vt ("y"),vt ("z'"),vt ("v")])),
                         ((.~.) (pApp ("P") [vt ("x"),vt ("v"),vt ("w")])),
-                        (pApp ("P") [vt ("u"),vt ("z2"),vt ("w")])],
+                        (pApp ("P") [vt ("u"),vt ("z'"),vt ("w")])],
                        [(pApp ("P") [vt ("x"),fApp ("e") [],vt ("x")])],
                        [(pApp ("P") [fApp ("e") [],vt ("x"),vt ("x")])],
                        [(pApp ("P") [vt ("x"),fApp ("i") [vt ("x")],fApp ("e") []])],

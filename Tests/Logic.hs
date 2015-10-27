@@ -11,15 +11,14 @@ import Data.Logic.Satisfiable (theorem, inconsistant)
 import Data.Map as Map (singleton)
 import Data.Set.Extra as Set (Set, singleton, toList, empty, fromList, map {-, minView, fold-})
 import Data.String (IsString(fromString))
-import FOL (vt, (∀), pApp, fv, (.=.), exists, for_all, applyPredicate, fApp, V(V), Predicate(NamedPredicate), subst, IsFirstOrder, IsTerm)
+import FOL (vt, (∀), pApp, fv, (.=.), exists, for_all, applyPredicate, fApp, HasApplyAndEquate(equate), V(V), Predicate(NamedPredicate), subst, IsFirstOrder, IsTerm)
 import Formulas ((.~.), atomic, IsCombinable(..), (⇒))
 import Lit (IsLiteral)
 import Pretty (assertEqual', Pretty(pPrint))
 import Prop (IsPropositional, list_conj, list_disj, Literal, Marked, markLiteral, markPropositional, Propositional,
              simpcnf, TruthTable(..), TruthTable, truthTable, unmarkLiteral)
-import Skolem (HasSkolem(..), runSkolem, skolemize, pnf, simpcnf')
+import Skolem (HasSkolem(..), runSkolem, skolemize, pnf, simpcnf', Function)
 import Test.HUnit
-import Text.PrettyPrint.HughesPJClass (prettyShow)
 import qualified TextDisplay as TD
 
 tests :: Test
@@ -213,6 +212,15 @@ inf1 =
 equality1 :: MyFormula
 equality1 = for_all "x" ( x .=. x) .=>. for_all "x" (exists "y" ((x .=. y))) :: MyFormula
 equality1expected :: (Bool, (Set (Set (Marked Literal (Marked Propositional MyFormula))), TruthTable MyAtom))
+equality1expected = (False,(fromList [fromList [markLiteral (markPropositional (vt "x" .=. fApp (toSkolem "y")[vt "x"])),
+                                                markLiteral (markPropositional ((.~.) (fApp (toSkolem "x")[] .=. fApp (toSkolem "x")[])))]],
+                            TruthTable [equate (vt (V "x")) ((fApp (toSkolem (V "y") :: Function)[vt (V "x")] :: MyTerm)),
+                                        equate (fApp (toSkolem (V "x"))[]) (fApp (toSkolem (V "x"))[] :: MyTerm)]
+                                       [([False,False],True),
+                                        ([False,True],False),
+                                        ([True,False],True),
+                                        ([True,True],True)]))
+{-
 equality1expected = (False, (fromList [fromList [markLiteral (markPropositional ((vt "x" :: MyTerm) .=. fApp (toSkolem "y")[vt (V "x")])),
                                                  markLiteral (markPropositional ((.~.) ((fApp (toSkolem "x")[] :: MyTerm) .=. (fApp (toSkolem "x")[] :: MyTerm))))]],
                              TruthTable ([{-(vt "x" :: MyTerm) .=. (fApp (toSkolem ("y" :: V)) [vt (V "x")] :: MyTerm),
@@ -221,6 +229,7 @@ equality1expected = (False, (fromList [fromList [markLiteral (markPropositional 
                                          ([False,True],False),
                                          ([True,False],True),
                                          ([True,True],True)]))
+-}
 -- equality1expected = (False, (fromList [], TruthTable [] []))
 {-
                      concat ["({{x = sKy[x], ¬(sKx[] = sKx[])}},\n",
@@ -229,13 +238,22 @@ equality1expected = (False, (fromList [fromList [markLiteral (markPropositional 
                              "   ([True, False], True), ([True, True], True)]))"]-}
 equality2 :: MyFormula
 equality2 = for_all "x" ( x .=. x .=>. for_all "x" ((.~.) (for_all "y" ((.~.) (x .=. y))))) -- convert existential
-equality2expected :: (Bool, [Char])
+equality2expected :: (Bool, (Set (Set (Marked Literal (Marked Propositional MyFormula))), TruthTable MyAtom))
+equality2expected = (False, (fromList [fromList [markLiteral (markPropositional (vt (V "x'") .=. fApp (toSkolem (V "y"))[vt (V "x'")])),
+                                                 markLiteral (markPropositional ((.~.) (vt (V "x") .=. vt (V "x"))))]],
+                             TruthTable [equate (vt (V "x")) (vt (V "x")),
+                                         equate (vt (V "x'")) (fApp (toSkolem (V "y"))[vt "x'"] :: MyTerm)]
+                                        [([False, False], True),
+                                         ([False, True], True),
+                                         ([True, False], False),
+                                         ([True, True], True)]))
+{-
 equality2expected = (False,
                      concat ["({{x2 = sKy[x2], ¬x = x}},\n",
                              " ([x = x, x2 = sKy[x2]],\n",
                              "  [([False, False], True), ([False, True], True),\n",
                              "   ([True, False], False), ([True, True], True)]))"])
-
+-}
 theoremTests :: Test
 theoremTests =
     let s = pApp "S" :: [MyTerm] -> MyFormula
@@ -250,13 +268,13 @@ theoremTests =
     in
     TestList
     [ let label = "Logic - equality1" in
-      TestLabel label (TestCase (assertEqual label
+      TestLabel label (TestCase (assertEqual' label
                                  equality1expected
                                  (theorem equality1, table' equality1)))
     , let label = "Logic - equality2" in
-      TestLabel label (TestCase (assertEqual label
+      TestLabel label (TestCase (assertEqual' label
                                  equality2expected
-                                 (theorem equality2, prettyShow (table' equality2))))
+                                 (theorem equality2, table' equality2)))
     , let label = "Logic - theorem test 1" in
       TestLabel label (TestCase (assertEqual label
                 (True,(Set.empty, (TruthTable []{-Just (CJ [])-} [([],True)])))
@@ -383,18 +401,18 @@ theoremTests =
           {- sky = fApp (toSkolem "y") -} in
       let label = "Socrates formula skolemized" in
       TestLabel label (TestCase (assertEqual label
-                 (((pApp "s" [skx []] .&. (.~.)(pApp "h" [skx []]) .|. pApp "h" [skx[]] .&. (.~.)(pApp "m" [skx []])) .|. (.~.)(pApp "s" [x]) .|. pApp "m" [x]) :: Marked Propositional MyFormula)
+                 (((pApp "S" [skx []] .&. (.~.)(pApp "H" [skx []]) .|. pApp "H" [skx[]] .&. (.~.)(pApp "M" [skx []])) .|. (.~.)(pApp "S" [x]) .|. pApp "M" [x]) :: Marked Propositional MyFormula)
                  (runSkolem (skolemize id socrates5) :: Marked Propositional MyFormula)))
 
     , let skx = fApp (toSkolem "x")
           sky = fApp (toSkolem "y") in
       let label = "Socrates formula skolemized" in
       TestLabel label (TestCase (assertEqual label
-                 ((pApp "s" [skx []] .&. (.~.)(pApp " h" [skx []]) .|. pApp "h" [sky[]] .&. (.~.)(pApp "m" [sky []])) .|. (.~.)(pApp "s" [z]) .|. pApp "m" [z])
+                 ((pApp "S" [skx []] .&. (.~.)(pApp "H" [skx []]) .|. pApp "H" [sky[]] .&. (.~.)(pApp "M" [sky []])) .|. (.~.)(pApp "S" [z]) .|. pApp "M" [z])
                  (runSkolem (skolemize id socrates6) :: Marked Propositional MyFormula)))
 
     , let label = "Logic - socrates is not mortal" in
-      TestLabel label (TestCase (assertEqual label
+      TestLabel label (TestCase (assertEqual' label
                 (False,
                  False,
                  (fromList [fromList [atomic (applyPredicate "H" [vt "x"]),
@@ -425,9 +443,9 @@ theoremTests =
                    ([True,True,False,True],True),
                    ([True,True,True,False],False),
                    ([True,True,True,True],False)])),
-                 toSS [[(pApp ("H") [vt ("x")]),((.~.) (pApp ("S") [vt ("x")]))],
+                 toSS [[(pApp ("S") [fApp ("socrates") []])],
+                       [(pApp ("H") [vt ("x")]),((.~.) (pApp ("S") [vt ("x")]))],
                        [(pApp ("M") [vt ("x")]),((.~.) (pApp ("H") [vt ("x")]))],
-                       [(pApp ("S") [fApp ("socrates") []])],
                        [((.~.) (pApp ("M") [vt ("x")])),((.~.) (pApp ("S") [vt ("x")]))]])
                 -- This represents a list of beliefs like those in our
                 -- database: socrates is a man, all men are mortal,
@@ -449,13 +467,13 @@ theoremTests =
               (.~.) (exists "x" (pApp "F" [vt "x"]))                           -- Someone / Nobody is funny
           input = table' formula
           expected = (fromList [fromList [atomic (applyPredicate "L" [fApp (toSkolem "x") []]),
-                                          (.~.) (atomic (applyPredicate "F" [vt "x2"])),
+                                          (.~.) (atomic (applyPredicate "F" [vt "x'"])),
                                           (.~.) (atomic (applyPredicate "L" [vt "x"]))],
-                                fromList [(.~.) (atomic (applyPredicate "F" [vt "x2"])),
+                                fromList [(.~.) (atomic (applyPredicate "F" [vt "x'"])),
                                           (.~.) (atomic (applyPredicate "F" [fApp (toSkolem "x") []])),
                                           (.~.) (atomic (applyPredicate "L" [vt "x"]))]],
                       (TruthTable
-                       [(applyPredicate ("F") [vt ("x2")]),
+                       [(applyPredicate ("F") [vt ("x'")]),
                        (applyPredicate ("F") [fApp (toSkolem "x") []]),
                        (applyPredicate ("L") [vt ("x")]),
                        (applyPredicate ("L") [fApp (toSkolem "x") []])]
@@ -476,7 +494,7 @@ theoremTests =
                        ([True,True,True,False],False),
                        ([True,True,True,True],False)]))
       in let label = "Logic - gensler189" in
-         TestLabel label (TestCase (assertEqual label expected input))
+         TestLabel label (TestCase (assertEqual' label expected input))
     , let (formula :: MyFormula) =
               (for_all "x" (pApp "L" [vt "x"] .=>. pApp "F" [vt "x"]) .&. -- All logicians are funny
                exists "y" (pApp "L" [vt (fromString "y")])) .=>.           -- Someone is a logician

@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, PackageImports, RankNTypes, ScopedTypeVariables, TypeFamilies #-}
+{-# LANGUAGE DeriveDataTypeable, PackageImports, RankNTypes, ScopedTypeVariables, TypeFamilies, UndecidableInstances #-}
 {-# OPTIONS -Wall #-}
 module Data.Logic.Normal.Implicative
     ( LiteralMapT
@@ -16,17 +16,17 @@ import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.State (StateT(runStateT), MonadPlus, msum)
 import Data.Bool (bool)
 import Data.Generics (Data, Typeable, listify)
-import Data.List as List (intersperse, map)
+import Data.List as List (map)
 import Data.Map as Map (empty, Map)
 import Data.Maybe (isJust)
 import Data.Set.Extra as Set (empty, flatten, fold, fromList, insert, map, Set, singleton, toList)
 import FOL (IsFirstOrder)
 import Formulas (IsNegatable(..), true)
-import Lit (convertLiteral, foldLiteral)
+import Lit (convertLiteral, foldLiteral, IsLiteral)
 import Pretty (Pretty(pPrint))
 import Prop (Literal, Marked, Propositional, simpcnf)
 import Skolem (HasSkolem(fromSkolem), runSkolem, runSkolemT, skolemize, SkolemT)
-import Text.PrettyPrint (Doc, cat, text, hsep)
+import Text.PrettyPrint ((<>), Doc, brackets, comma, hsep, parens, punctuate, text, vcat)
 
 -- |Combination of Normal monad and LiteralMap monad
 type NormalT formula v term m a = SkolemT (LiteralMapT formula m) a
@@ -60,11 +60,13 @@ makeINF' :: (IsNegatable lit, Ord lit) => [lit] -> [lit] -> ImplicativeForm lit
 makeINF' n p = INF (Set.fromList n) (Set.fromList p)
 
 prettyINF :: (IsNegatable lit, Ord lit, Pretty lit) => ImplicativeForm lit -> Doc
-prettyINF x = cat $ [text "(", hsep (List.map pPrint (Set.toList (neg x))),
-                         text ") => (", hsep (List.map pPrint (Set.toList (pos x))), text ")"]
+prettyINF x = parens (hsep (List.map pPrint (Set.toList (neg x)))) <> text " => " <> parens (hsep (List.map pPrint (Set.toList (pos x))))
 
 prettyProof :: (IsNegatable lit, Ord lit, Pretty lit) => Set (ImplicativeForm lit) -> Doc
-prettyProof p = cat $ [text "["] ++ intersperse (text ", ") (List.map prettyINF (Set.toList p)) ++ [text "]"]
+prettyProof p = brackets (vcat (punctuate comma (List.map prettyINF (Set.toList p))))
+
+instance (IsLiteral lit atom, Ord lit, Pretty lit) => Pretty (ImplicativeForm lit) where
+    pPrint = prettyINF
 
 -- |Take the clause normal form, and turn it into implicative form,
 -- where each clauses becomes an (LHS, RHS) pair with the negated
