@@ -11,11 +11,12 @@ import Data.Logic.Satisfiable (theorem, inconsistant)
 import Data.Map as Map (singleton)
 import Data.Set.Extra as Set (Set, singleton, toList, empty, fromList, map {-, minView, fold-})
 import Data.String (IsString(fromString))
-import FOL (vt, (∀), pApp, fv, (.=.), exists, for_all, applyPredicate, fApp, HasApplyAndEquate(equate), V(V), Predicate(NamedPredicate), subst, IsFirstOrder, IsTerm)
+import FOL (vt, (∀), pApp, fv, (.=.), exists, for_all, applyPredicate, fApp, HasApplyAndEquate(equate), V(V), Predicate, subst, IsFirstOrder, IsTerm)
 import Formulas ((.~.), atomic, IsCombinable(..), (⇒))
+import Lib (Marked)
 import Lit (IsLiteral)
 import Pretty (assertEqual', Pretty(pPrint))
-import Prop (IsPropositional, list_conj, list_disj, Literal, Marked, markLiteral, markPropositional, Propositional,
+import Prop (IsPropositional, list_conj, list_disj, Literal, markLiteral, markPropositional, Propositional,
              simpcnf, TruthTable(..), TruthTable, truthTable, unmarkLiteral)
 import Skolem (HasSkolem(..), runSkolem, skolemize, pnf, simpcnf', Function)
 import Test.HUnit
@@ -532,7 +533,7 @@ theoremTests =
     ]
 
 p :: String -> Predicate
-p = NamedPredicate
+p = fromString
 
 toSS :: Ord a => [[a]] -> Set (Set a)
 toSS = Set.fromList . List.map Set.fromList

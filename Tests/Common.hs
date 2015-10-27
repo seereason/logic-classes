@@ -20,7 +20,8 @@ import qualified Data.Boolean as B (CNF, Literal)
 import Data.Generics (Data, Typeable, listify)
 import Data.List as List (map, null)
 import Data.Logic.Classes.Atom (Atom(..))
-import Skolem (skolemize, runSkolem, pnf, nnf, simplify)
+import Data.Maybe (isJust)
+import Skolem (fromSkolem, nnf, pnf, runSkolem, simplify, skolemize)
 import qualified Data.Logic.Instances.Chiou as Ch
 import Data.Logic.Instances.PropLogic (plSat)
 import qualified Data.Logic.Instances.SatSolver as SS
@@ -30,14 +31,15 @@ import Data.Logic.Normal.Implicative (ImplicativeForm, runNormal, runNormalT)
 import Data.Logic.Resolution (getSubstAtomEq, isRenameOfAtomEq, SetOfSupport)
 import Data.Set as Set
 import FOL (asubst, convertQuantified, fApp, foldTerm, funcs, fva, HasApplyAndEquate(foldEquate),
-            IsFirstOrder, IsQuantified(..), IsTerm, Predicate(NamedPredicate), V, vt)
+            IsFirstOrder, IsQuantified(..), IsTerm, Predicate, V, vt)
 import Formulas (HasBoolean(fromBool, asBool))
+import Lib (Marked)
 import Pretty (assertEqual', Pretty(pPrint))
-import Prop (Marked, PFormula, satisfiable, trivial, unmarkLiteral)
+import Prop (PFormula, satisfiable, trivial, unmarkLiteral)
 import Prop (Literal, unmarkPropositional)
 import PropLogic (PropForm)
 import Safe (readMay)
-import Skolem (Function, MyAtom, MyTerm, SkolemT, MyFormula, MyAtom, MyTerm, simpcnf', HasSkolem)
+import Skolem (Function, MyAtom, MyTerm, SkolemT, MyFormula, MyAtom, MyTerm, simpcnf', simpdnf', HasSkolem)
 import Test.HUnit
 import Text.PrettyPrint (Style(mode), renderStyle, style, Mode(OneLineMode))
 
@@ -47,7 +49,7 @@ instance Atom MyAtom MyTerm V where
     allVariables = fva -- Variables are always free in an atom - this method is unnecessary
     unify = unify
     match = unify
-    foldTerms f r pr = foldEquate (\t1 t2 -> f t2 (f t1 r)) (\_ ts -> Prelude.foldr f r ts) pr
+    foldTerms f r pr = foldEquate (\t1 _p t2 -> f t2 (f t1 r)) (\_ ts -> Prelude.foldr f r ts) pr
     isRename = isRenameOfAtomEq
     getSubst = getSubstAtomEq
 
@@ -79,6 +81,7 @@ data Expected formula atom v
     | SkolemNormalForm (PFormula MyAtom)
     | SkolemNumbers (Set Function)
     | ClauseNormalForm (Set (Set (Marked Literal formula)))
+    | DisjNormalForm (Set (Set (Marked Literal formula)))
     | TrivialClauses [(Bool, (Set formula))]
     | ConvertToChiou (Ch.Sentence V Predicate Function)
     | ChiouKB1 (Proof (Marked Literal formula))
@@ -86,12 +89,6 @@ data Expected formula atom v
     | SatSolverCNF B.CNF
     | SatSolverSat Bool
     -- deriving (Data, Typeable)
-
--- | Predicate isn't really made to have a HasBoolean instance, but we need one for some tests.
-instance HasBoolean Predicate where
-    asBool (NamedPredicate s) = readMay s
-    asBool _ = Nothing
-    fromBool = NamedPredicate . show
 
 deriving instance Show (Ch.Sentence V Predicate Function)
 deriving instance Show (Ch.CTerm V Function)
@@ -105,7 +102,7 @@ doTest (TestFormula fm nm expect) =
     where
       doExpected :: Expected MyFormula MyAtom V -> Test
       doExpected (FirstOrderFormula f') = let label = (nm ++ " original formula") in TestLabel label (TestCase (assertEqual' label f' fm))
-      doExpected (SimplifiedForm f') = let label = (nm ++ " simplified") in TestLabel label (TestCase (assertEqual' label f' (simplify fm)))
+      doExpected (SimplifiedForm f') = let label = (nm ++ " simplified") in TestLabel label (TestCase (assertEqual label f' (simplify fm)))
       doExpected (PrenexNormalForm f') = let label = (nm ++ " prenex normal form") in TestLabel label (TestCase (assertEqual' label f' (pnf fm)))
       doExpected (NegationNormalForm f') = let label = (nm ++ " negation normal form") in TestLabel label (TestCase (assertEqual' label f' (nnf . simplify $ fm)))
       doExpected (SkolemNormalForm f') = let label = (nm ++ " skolem normal form") in TestLabel label (TestCase (assertEqual' label f' (runSkolem (skolemize id fm :: SkolemT Identity (PFormula MyAtom)))))
@@ -115,12 +112,17 @@ doTest (TestFormula fm nm expect) =
           TestLabel label (TestCase (assertEqual' label
                                                  ((List.map (List.map unmarkLiteral) . Set.toList . Set.map Set.toList $ fss) :: [[MyFormula]])
                                                  ((Set.toList . Set.map (Set.toList . Set.map unmarkPropositional) . simpcnf' . runSkolem . skolemize id $ fm) :: [[MyFormula]])))
+      doExpected (DisjNormalForm fss) =
+          let label = (nm ++ " disjunctive normal form") in
+          TestLabel label (TestCase (assertEqual' label
+                                                 ((List.map (List.map unmarkLiteral) . Set.toList . Set.map Set.toList $ fss) :: [[MyFormula]])
+                                                 ((Set.toList . Set.map (Set.toList . Set.map unmarkPropositional) . simpdnf' . runSkolem . skolemize id $ fm) :: [[MyFormula]])))
       doExpected (TrivialClauses flags) = let label = (nm ++ " trivial clauses") in TestLabel label (TestCase (assertEqual' label flags (List.map (\ (x :: Set MyFormula) -> (trivial x, x)) (Set.toList (simpcnf' (fm :: MyFormula))))))
       doExpected (ConvertToChiou result) =
                 -- We need to convert formula to Chiou and see if it matches result.
                 let ca :: MyAtom -> Ch.Sentence V Predicate Function
                     -- ca = undefined
-                    ca = foldEquate (\t1 t2 -> Ch.Equal (ct t1) (ct t2)) (\p ts -> Ch.Predicate p (List.map ct ts))
+                    ca = foldEquate (\t1 _p t2 -> Ch.Equal (ct t1) (ct t2)) (\p ts -> Ch.Predicate p (List.map ct ts))
                     ct :: MyTerm -> Ch.CTerm V Function
                     ct = foldTerm cv fn
                     cv :: V -> Ch.CTerm V Function
@@ -139,7 +141,7 @@ norm :: [[B.Literal]] -> [[B.Literal]]
 norm = List.map Set.toList . Set.toList . Set.fromList . List.map Set.fromList
 
 skolemSet :: PFormula MyAtom -> Set Function
-skolemSet = Set.map fst . funcs
+skolemSet = Set.filter (isJust . fromSkolem) . Set.map fst . funcs
 
 -- | @gFind a@ will extract any elements of type @b@ from
 -- @a@'s structure in accordance with the MonadPlus

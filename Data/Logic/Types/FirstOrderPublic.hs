@@ -32,8 +32,8 @@ import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set)
 import FOL (IsFunction, IsPredicate, IsVariable)
 import Formulas (HasBoolean(..))
+import Lib (Marked(Mark, unMark'))
 import Pretty (Pretty)
-import Prop (Marked(Mark, unMark'))
 import Skolem (simpcnf')
 
 -- |The new Formula type is just a wrapper around the Native instance

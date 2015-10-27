@@ -23,7 +23,7 @@ import Data.Map as Map (fromList)
 import Data.Set as Set (Set, fromList, toList)
 import Data.String (IsString)
 import FOL (HasApply, HasApplyAndEquate, (.=.), pApp, IsQuantified(..), IsTerm(..), V, Predicate, for_all, exists)
-import Formulas ((.~.), HasBoolean(..), IsCombinable(..), IsFormula, IsNegatable)
+import Formulas ((.~.), false, HasBoolean(..), IsCombinable(..), IsFormula, IsNegatable, true)
 import Skolem (HasSkolem(toSkolem), MyFormula, MyAtom, MyTerm, Function)
 import Test.HUnit
 import Text.PrettyPrint.HughesPJClass (prettyShow)
@@ -83,14 +83,24 @@ formulas =
       , expected = [ FirstOrderFormula (p0 .|. (q0 .&. r0) .|. ((n s0) .&. (n t0))) ] }
     , doTest $
       TestFormula
-      { formula = pApp (fromBool True) []
+      { formula = true {-pApp (fromBool True) []-}
       , name = "True"
+      , expected = [ClauseNormalForm  (toSS [[]])] }
+    , doTest $
+      TestFormula
+      { formula = false {-pApp (fromBool False) []-}
+      , name = "False"
       , expected = [ClauseNormalForm  (toSS [])] }
     , doTest $
       TestFormula
-      { formula = pApp (fromBool False) []
+      { formula = true {-pApp (fromBool True) []-}
+      , name = "True"
+      , expected = [DisjNormalForm  (toSS [[]])] } -- Make sure these are right
+    , doTest $
+      TestFormula
+      { formula = false {-pApp (fromBool False) []-}
       , name = "False"
-      , expected = [ClauseNormalForm  (toSS [[]])] }
+      , expected = [DisjNormalForm  (toSS [])] }
     , doTest $
       TestFormula
       { formula = pApp "p" []

@@ -10,11 +10,12 @@ import Data.Logic.KnowledgeBase (ProverT, runProver', Proof(..), ProofResult(..)
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
 import Data.Logic.Resolution (SetOfSupport)
 import Data.Map (fromList)
+import qualified Data.Set as S
 import FOL (exists, for_all, IsTerm(..), pApp)
 import Formulas (IsCombinable(..), IsNegatable(..), (.~.))
-import qualified Data.Set as S
+import Lib (Marked)
 import Pretty (assertEqual')
-import Prop (Literal, Marked)
+import Prop (Literal)
 import Skolem (HasSkolem(..), SkolemT)
 import Test.HUnit
 

@@ -134,7 +134,7 @@ instance (IsVariable v, IsFunction f, IsPredicate p) => HasApply (Sentence v p f
     applyPredicate = Predicate
 
 instance (IsFunction f, IsVariable v, IsPredicate p) => HasApplyAndEquate (Sentence v p f) p (CTerm v f) where
-    foldEquate eq _ (Equal t1 t2) = eq t1 t2
+    foldEquate eq _ p@(Equal t1 t2) = eq t1 (undefined :: p) t2
     foldEquate _ ap (Predicate p ts) = ap p ts
     foldEquate _ _ _ = error "IsAtomWithEquate Sentence"
     equate = Equal
@@ -264,7 +264,7 @@ fromSentence :: forall v p f. (IsQuantified (Sentence v p f) (Sentence v p f) v,
                                IsPredicate p, IsFunction f, HasBoolean p
                               ) => Sentence v p f -> NormalSentence v p f
 fromSentence = convertToLiteral (error "fromSentence failure")
-                                (foldEquate (\ t1 t2 -> NFEqual (fromTerm t1) (fromTerm t2))
+                                (foldEquate (\ t1 _p t2 -> NFEqual (fromTerm t1) (fromTerm t2))
                                             (\ p ts -> NFPredicate p (map fromTerm ts)))
 {-
 fromSentence = convertQuantified (foldEquate (\ p ts -> applyPredicate p (map fromTerm ts))
