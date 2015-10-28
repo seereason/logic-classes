@@ -32,13 +32,12 @@ import Data.Logic.Resolution (getSubstAtomEq, isRenameOfAtomEq, SetOfSupport)
 import Data.Set as Set
 import FOL (asubst, convertQuantified, fApp, foldTerm, funcs, fva, HasApplyAndEquate(foldEquate),
             IsFirstOrder, IsQuantified(..), IsTerm, Predicate, V, vt)
-import Formulas (HasBoolean(fromBool, asBool))
 import Lib (Marked)
 import Pretty (assertEqual', Pretty(pPrint))
 import Prop (PFormula, satisfiable, trivial, unmarkLiteral)
 import Prop (Literal, unmarkPropositional)
 import PropLogic (PropForm)
-import Safe (readMay)
+--import Safe (readMay)
 import Skolem (Function, MyAtom, MyTerm, SkolemT, MyFormula, MyAtom, MyTerm, simpcnf', simpdnf', HasSkolem)
 import Test.HUnit
 import Text.PrettyPrint (Style(mode), renderStyle, style, Mode(OneLineMode))
@@ -49,7 +48,7 @@ instance Atom MyAtom MyTerm V where
     allVariables = fva -- Variables are always free in an atom - this method is unnecessary
     unify = unify
     match = unify
-    foldTerms f r pr = foldEquate (\t1 _p t2 -> f t2 (f t1 r)) (\_ ts -> Prelude.foldr f r ts) pr
+    foldTerms f r pr = foldEquate (\t1 t2 -> f t2 (f t1 r)) (\_ ts -> Prelude.foldr f r ts) pr
     isRename = isRenameOfAtomEq
     getSubst = getSubstAtomEq
 
@@ -90,9 +89,6 @@ data Expected formula atom v
     | SatSolverSat Bool
     -- deriving (Data, Typeable)
 
-deriving instance Show (Ch.Sentence V Predicate Function)
-deriving instance Show (Ch.CTerm V Function)
-
 type TTestFormula = TestFormula MyFormula MyAtom V
 
 doTest :: TTestFormula -> Test
@@ -102,7 +98,7 @@ doTest (TestFormula fm nm expect) =
     where
       doExpected :: Expected MyFormula MyAtom V -> Test
       doExpected (FirstOrderFormula f') = let label = (nm ++ " original formula") in TestLabel label (TestCase (assertEqual' label f' fm))
-      doExpected (SimplifiedForm f') = let label = (nm ++ " simplified") in TestLabel label (TestCase (assertEqual label f' (simplify fm)))
+      doExpected (SimplifiedForm f') = let label = (nm ++ " simplified") in TestLabel label (TestCase (assertEqual' label f' (simplify fm)))
       doExpected (PrenexNormalForm f') = let label = (nm ++ " prenex normal form") in TestLabel label (TestCase (assertEqual' label f' (pnf fm)))
       doExpected (NegationNormalForm f') = let label = (nm ++ " negation normal form") in TestLabel label (TestCase (assertEqual' label f' (nnf . simplify $ fm)))
       doExpected (SkolemNormalForm f') = let label = (nm ++ " skolem normal form") in TestLabel label (TestCase (assertEqual' label f' (runSkolem (skolemize id fm :: SkolemT Identity (PFormula MyAtom)))))
@@ -122,7 +118,7 @@ doTest (TestFormula fm nm expect) =
                 -- We need to convert formula to Chiou and see if it matches result.
                 let ca :: MyAtom -> Ch.Sentence V Predicate Function
                     -- ca = undefined
-                    ca = foldEquate (\t1 _p t2 -> Ch.Equal (ct t1) (ct t2)) (\p ts -> Ch.Predicate p (List.map ct ts))
+                    ca = foldEquate (\t1 t2 -> Ch.Equal (ct t1) (ct t2)) (\p ts -> Ch.Predicate p (List.map ct ts))
                     ct :: MyTerm -> Ch.CTerm V Function
                     ct = foldTerm cv fn
                     cv :: V -> Ch.CTerm V Function
@@ -131,8 +127,8 @@ doTest (TestFormula fm nm expect) =
                     fn f ts = fApp f (List.map ct ts) in
                 let label = (nm ++ " converted to Chiou") in TestLabel label (TestCase (assertEqual' label result (convertQuantified ca id fm :: Ch.Sentence V Predicate Function)))
       doExpected (ChiouKB1 result) = let label = (nm ++ " Chiou KB") in TestLabel label (TestCase (assertEqual' label result ((runProver' Nothing (loadKB [fm] >>= return . head)) :: (Proof (Marked Literal MyFormula)))))
-      doExpected (PropLogicSat result) = let label = (nm ++ " PropLogic.satisfiable") in TestLabel label (TestCase (assertEqual' label result (runSkolem (plSat (convertQuantified id id fm)))))
-      doExpected (SatSolverCNF result) = let label = (nm ++ " SatSolver CNF") in TestLabel label (TestCase (assertEqual label (norm result) (runNormal (SS.toCNF fm))))
+      doExpected (PropLogicSat result) = let label = (nm ++ " PropLogic.satisfiable") in TestLabel label (TestCase (assertEqual' label result (plSat (runSkolem (skolemize id fm)))))
+      doExpected (SatSolverCNF result) = let label = (nm ++ " SatSolver CNF") in TestLabel label (TestCase (assertEqual' label (norm result) (runNormal (SS.toCNF fm))))
       doExpected (SatSolverSat result) = let label = (nm ++ " SatSolver CNF") in TestLabel label (TestCase (assertEqual' label result ((List.null :: [a] -> Bool) (runNormalT (SS.toCNF fm >>= return . satisfiable)))))
 
 -- p = id

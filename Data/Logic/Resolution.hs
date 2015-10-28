@@ -128,7 +128,7 @@ getSubstSentence formula theta =
           formula
 
 getSubstAtomEq :: forall atom p term v f. (HasApplyAndEquate atom p term, IsTerm term v f) => Map v term -> atom -> Map v term
-getSubstAtomEq theta = foldEquate (\ t1 _p t2 -> getSubstsTerms [t1, t2] theta) (\ _ ts -> getSubstsTerms ts theta)
+getSubstAtomEq theta = foldEquate (\ t1 t2 -> getSubstsTerms [t1, t2] theta) (\ _ ts -> getSubstsTerms ts theta)
 
 getSubstsTerms :: IsTerm term v f => [term] -> Map.Map v term -> Map.Map v term
 getSubstsTerms [] theta = theta
@@ -167,7 +167,7 @@ isRenameOfSentence f1 f2 =
 isRenameOfAtomEq :: (HasApplyAndEquate atom p term, IsTerm term v f) => atom -> atom -> Bool
 isRenameOfAtomEq a1 a2 =
     maybe False id $
-    zipPredicatesEq (\ t1l _p1 t1r t2l _p2 t2r -> Just (isRenameOfTerm t1l t2l && isRenameOfTerm t1r t2r))
+    zipPredicatesEq (\ t1l t1r t2l t2r -> Just (isRenameOfTerm t1l t2l && isRenameOfTerm t1r t2r))
                     (\ _ tps -> Just (uncurry isRenameOfTerms (unzip tps)))
                     a1 a2
 
@@ -246,7 +246,7 @@ demodulate (inf1, theta1) (inf2, theta2) =
           foldLiteral (\ _ -> error "demodulate") (\ _ -> Nothing) (foldEquate p (\ _ _ -> Nothing)) lit1
       _ -> Nothing
     where
-      p t1 _p t2 =
+      p t1 t2 =
           case findUnify t1 t2 (S.union lhs2 rhs2) of
             Just ((t1', t2'), theta1', theta2') ->
                 let substNeg2 = S.catMaybes $ S.map (\x -> subst x theta2') lhs2
@@ -275,7 +275,7 @@ unify' f1 f2 theta1 theta2 =
 
 unify2AtomsEq :: (HasApplyAndEquate atom p term, IsTerm term v f) => Map.Map v term -> Map.Map v term -> atom -> atom -> Maybe (Map.Map v term, Map.Map v term)
 unify2AtomsEq theta1 theta2 a1 a2 =
-    zipPredicatesEq (\ l1 _p1 r1 l2 _p2 r2 -> unifyTerms (zip [l1, r1] [l2, r2]) theta1 theta2)
+    zipPredicatesEq (\ l1 r1 l2 r2 -> unifyTerms (zip [l1, r1] [l2, r2]) theta1 theta2)
                     (\ _ tps -> unifyTerms tps theta1 theta2)
                     a1 a2
 
@@ -320,7 +320,7 @@ findUnify tl tr s =
     where
       -- getTerms lit = foldLiteral (\ _ -> error "getTerms") p formula
       p :: atom -> [term]
-      p = foldEquate (\ t1 _p t2 -> getTerms' t1 ++ getTerms' t2) (\ _ ts -> concatMap getTerms' ts)
+      p = foldEquate (\ t1 t2 -> getTerms' t1 ++ getTerms' t2) (\ _ ts -> concatMap getTerms' ts)
       getTerms' :: term -> [term]
       getTerms' t = foldTerm (\ v -> [vt v]) (\ f ts -> fApp f ts : concatMap getTerms' ts) t
 
@@ -339,7 +339,7 @@ replaceTerm formula (tl', tr') =
     foldLiteral
           (\ _ -> error "error in replaceTerm")
           (\ x -> Just (fromBool x))
-          (foldEquate (\ t1 _p t2 ->
+          (foldEquate (\ t1 t2 ->
                            let t1' = replaceTerm' t1
                                t2' = replaceTerm' t2 in
                            if t1' == t2' then Nothing else Just (atomic (t1' `equate` t2')))
@@ -358,7 +358,7 @@ subst formula theta =
     foldLiteral
           (\ _ -> Just formula)
           (\ x -> Just (fromBool x))
-          (foldEquate (\ t1 _p t2 ->
+          (foldEquate (\ t1 t2 ->
                            let t1' = substTerm t1 theta
                                t2' = substTerm t2 theta in
                            if t1' == t2' then Nothing else Just (atomic (t1' `equate` t2')))

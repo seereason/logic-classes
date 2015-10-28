@@ -402,14 +402,16 @@ theoremTests =
           {- sky = fApp (toSkolem "y") -} in
       let label = "Socrates formula skolemized" in
       TestLabel label (TestCase (assertEqual label
-                 (((pApp "S" [skx []] .&. (.~.)(pApp "H" [skx []]) .|. pApp "H" [skx[]] .&. (.~.)(pApp "M" [skx []])) .|. (.~.)(pApp "S" [x]) .|. pApp "M" [x]) :: Marked Propositional MyFormula)
+                 (((pApp "S" [skx []] .&. (.~.)(pApp "H" [skx []]) .|. pApp "H" [skx[]] .&. (.~.)(pApp "M" [skx []])) .|.
+                   ((.~.)(pApp "S" [x]) .|. pApp "M" [x])))
                  (runSkolem (skolemize id socrates5) :: Marked Propositional MyFormula)))
 
     , let skx = fApp (toSkolem "x")
           sky = fApp (toSkolem "y") in
       let label = "Socrates formula skolemized" in
       TestLabel label (TestCase (assertEqual label
-                 ((pApp "S" [skx []] .&. (.~.)(pApp "H" [skx []]) .|. pApp "H" [sky[]] .&. (.~.)(pApp "M" [sky []])) .|. (.~.)(pApp "S" [z]) .|. pApp "M" [z])
+                 ((pApp "S" [skx []] .&. (.~.)(pApp "H" [skx []]) .|. pApp "H" [sky[]] .&. (.~.)(pApp "M" [sky []])) .|.
+                  ((.~.)(pApp "S" [z]) .|. pApp "M" [z]))
                  (runSkolem (skolemize id socrates6) :: Marked Propositional MyFormula)))
 
     , let label = "Logic - socrates is not mortal" in

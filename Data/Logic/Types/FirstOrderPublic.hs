@@ -31,9 +31,8 @@ import qualified Data.Logic.Types.FirstOrder as N
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set)
 import FOL (IsFunction, IsPredicate, IsVariable)
-import Formulas (HasBoolean(..))
 import Lib (Marked(Mark, unMark'))
-import Pretty (Pretty)
+import Prop (IsAtom)
 import Skolem (simpcnf')
 
 -- |The new Formula type is just a wrapper around the Native instance
@@ -55,7 +54,7 @@ instance Show formula => Show (Marked Public formula) where
 
 -- | Here are the magic Ord and Eq instances - formulas will be Eq if
 -- their normal forms are Eq up to renaming.
-instance (IsVariable v, Data v, IsPredicate p, Data p, Pretty p, HasBoolean p, IsFunction f, Data f
+instance (IsAtom (N.NPredicate p (N.NTerm v f)), IsVariable v, Data v, IsPredicate p, Data p, IsFunction f, Data f
          ) => Ord (PFormula v p f) where
     compare a b =
         let (a' :: Set (Set (N.NFormula v p f))) = simpcnf' (unmarkPublic a)
@@ -64,7 +63,7 @@ instance (IsVariable v, Data v, IsPredicate p, Data p, Pretty p, HasBoolean p, I
           EQ -> EQ
           x -> {- if isRenameOf a' b' then EQ else -} x
 
-instance ( IsVariable v, Data v, IsPredicate p, Data p, Pretty p, HasBoolean p, IsFunction f, Data f
+instance (IsAtom (N.NPredicate p (N.NTerm v f)), IsVariable v, Data v, IsPredicate p, Data p, IsFunction f, Data f
          ) => Eq (PFormula v p f) where
     a == b = compare a b == EQ
 

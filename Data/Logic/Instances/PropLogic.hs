@@ -2,18 +2,16 @@
 {-# OPTIONS -fno-warn-orphans #-}
 module Data.Logic.Instances.PropLogic
     ( flatten
-    , plSat0
     , plSat
     ) where
 
-import Data.Set.Extra as Set (Set, empty, toList, union)
-import FOL (IsFunction, HasFunctions(funcs), IsFirstOrder)
-import Formulas (IsCombinable(..), BinOp(..), HasBoolean(fromBool, asBool), IsFormula(..), IsNegatable(..))
+import Data.Set.Extra as Set (empty, toList, union)
+import FOL (IsFunction, HasFunctions(funcs))
+import Formulas (BinOp(..), HasBoolean(fromBool, asBool), IsCombinable(..), IsFormula(..), IsNegatable(..))
 import Lit (IsLiteral(..))
 import Pretty (HasFixity(fixity), Pretty(pPrint), rootFixity)
-import Prop (foldPropositional, IsPropositional(foldPropositional'), JustPropositional, prettyPropositional)
+import Prop (foldPropositional, IsAtom, IsPropositional(foldPropositional'), JustPropositional, prettyPropositional, simpcnf, unmarkLiteral)
 import PropLogic hiding (at)
-import Skolem (SkolemT, simpcnf')
 
 instance JustPropositional (PropForm a)
 
@@ -29,7 +27,7 @@ instance Ord a => IsCombinable (PropForm a) where
     x .|.   y = DJ [x, y]
     x .&.   y = CJ [x, y]
 
-instance (Ord a, HasFixity a, Pretty a) => IsLiteral (PropForm a) a where
+instance IsAtom atom => IsLiteral (PropForm atom) atom where
     foldLiteral' ho ne tf at fm =
         case fm of
           N x -> ne x
@@ -38,12 +36,12 @@ instance (Ord a, HasFixity a, Pretty a) => IsLiteral (PropForm a) a where
           A x -> at x
           _ -> ho fm
 
-instance (Pretty a, HasFixity a, Ord a) => IsFormula (PropForm a) a where
+instance IsAtom atom => IsFormula (PropForm atom) atom where
     atomic = A
     overatoms = error "FIXME: overatoms PropForm"
     onatoms = error "FIXME: onatoms PropForm"
 
-instance (IsCombinable (PropForm a), Pretty a, HasFixity a, Ord a) => IsPropositional (PropForm a) a where
+instance IsAtom atom => IsPropositional (PropForm atom) atom where
     foldPropositional' ho co ne tf at formula =
         case formula of
           -- EJ [x,y,z,...] -> CJ [EJ [x,y], EJ[y,z], ...]
@@ -73,13 +71,13 @@ instance HasBoolean (PropForm formula) where
     asBool F = Just False
     asBool _ = Nothing
 
-instance (IsPropositional (PropForm atom) atom, Pretty atom, HasFixity atom) => Pretty (PropForm atom) where
+instance (IsPropositional (PropForm atom) atom, IsAtom atom) => Pretty (PropForm atom) where
     pPrint = prettyPropositional
 
-instance (IsPropositional (PropForm atom) atom, HasFixity atom) => HasFixity (PropForm atom) where
+instance (IsPropositional (PropForm atom) atom, IsAtom atom) => HasFixity (PropForm atom) where
     fixity _ = rootFixity
 
-instance (IsFunction function, HasFunctions atom function, Ord atom, Pretty atom, HasFixity atom) => HasFunctions (PropForm atom) function where
+instance (IsFunction function, HasFunctions atom function, IsAtom atom) => HasFunctions (PropForm atom) function where
     funcs = foldPropositional co ne (const Set.empty) funcs
         where
           ne fm = funcs fm
@@ -105,20 +103,16 @@ flatten (SJ xs) = SJ (map flatten xs)
 flatten (N x) = N (flatten x)
 flatten x = x
 
-plSat0 :: (PropAlg a (PropForm atom), IsFirstOrder (PropForm atom) atom p term v f, IsPropositional (PropForm atom) atom, Ord atom, Pretty atom, HasFixity atom) => PropForm atom -> Bool
+{-
+plSat0 :: (PropAlg a (PropForm atom), IsPropositional (PropForm atom) atom, Ord atom, Pretty atom, HasFixity atom) => PropForm atom -> Bool
 plSat0 f = satisfiable . (\ (x :: PropForm atom) -> x) . clauses0 $ f
 
-clauses0 :: forall atom p term v f. (IsFirstOrder (PropForm atom) atom p term v f, IsPropositional (PropForm atom) atom, Ord atom, Pretty atom, HasFixity atom) => PropForm atom -> PropForm atom
-clauses0 f = CJ . map DJ . map Set.toList . Set.toList $ (simpcnf' f :: Set (Set (PropForm atom)))
+clauses0 :: (IsPropositional (PropForm atom) atom, Ord atom, Pretty atom, HasFixity atom) => PropForm atom -> PropForm atom
+clauses0 = CJ . map (DJ . map unmarkLiteral . Set.toList) . Set.toList . simpcnf id
+-}
 
-plSat :: forall m atom term v p f. (Monad m, IsFirstOrder (PropForm atom) atom p term v f, Eq atom, Ord atom, HasFixity atom) =>
-                PropForm atom -> SkolemT m Bool
-plSat f = clauses f >>= (\ (x :: PropForm atom) -> return x) >>= return . satisfiable
+plSat :: (IsPropositional (PropForm atom) atom, Eq atom, Ord atom, HasFixity atom) => PropForm atom -> Bool
+plSat = satisfiable . clauses
 
-clauses :: forall m atom term v p f.
-           (IsFirstOrder (PropForm atom) atom p term v f,
-            Monad m, Eq atom, Ord atom, HasFixity atom) =>
-           PropForm atom -> SkolemT m (PropForm atom)
-clauses f =
-    do let (cnf :: Set (Set (PropForm atom))) = simpcnf' f
-       return . CJ . map DJ . map Set.toList . Set.toList $ cnf
+clauses :: IsPropositional (PropForm atom) atom => PropForm atom -> PropForm atom
+clauses = CJ . map (DJ . map unmarkLiteral . Set.toList) . Set.toList . simpcnf id

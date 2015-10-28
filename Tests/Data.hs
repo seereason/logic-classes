@@ -23,7 +23,7 @@ import Data.Map as Map (fromList)
 import Data.Set as Set (Set, fromList, toList)
 import Data.String (IsString)
 import FOL (HasApply, HasApplyAndEquate, (.=.), pApp, IsQuantified(..), IsTerm(..), V, Predicate, for_all, exists)
-import Formulas ((.~.), false, HasBoolean(..), IsCombinable(..), IsFormula, IsNegatable, true)
+import Formulas ((.~.), false, IsCombinable(..), IsFormula, IsNegatable, true)
 import Skolem (HasSkolem(toSkolem), MyFormula, MyAtom, MyTerm, Function)
 import Test.HUnit
 import Text.PrettyPrint.HughesPJClass (prettyShow)
@@ -53,7 +53,7 @@ prenexNormalForm true :: Formula V Predicate Function
 
 tests :: [Test] -> [TTestProof] -> Test
 tests fs ps =
-    TestLabel "Test.Data" $ TestList (fs ++ map doProof ps)
+    TestLabel "Tests.Data" $ TestList (fs ++ map doProof ps)
 
 allFormulas :: [Test]
 allFormulas = (formulas ++
@@ -83,22 +83,22 @@ formulas =
       , expected = [ FirstOrderFormula (p0 .|. (q0 .&. r0) .|. ((n s0) .&. (n t0))) ] }
     , doTest $
       TestFormula
-      { formula = true {-pApp (fromBool True) []-}
+      { formula = true
       , name = "True"
       , expected = [ClauseNormalForm  (toSS [[]])] }
     , doTest $
       TestFormula
-      { formula = false {-pApp (fromBool False) []-}
+      { formula = false
       , name = "False"
       , expected = [ClauseNormalForm  (toSS [])] }
     , doTest $
       TestFormula
-      { formula = true {-pApp (fromBool True) []-}
+      { formula = true
       , name = "True"
       , expected = [DisjNormalForm  (toSS [[]])] } -- Make sure these are right
     , doTest $
       TestFormula
-      { formula = false {-pApp (fromBool False) []-}
+      { formula = false
       , name = "False"
       , expected = [DisjNormalForm  (toSS [])] }
     , doTest $
@@ -440,23 +440,18 @@ formulas =
         -- [[x = sKy[x], ¬sKx[] = sKx[]]]
       , expected = [ClauseNormalForm (toSS [[x .=. fApp (toSkolem "y") [x], (.~.) (fApp (toSkolem "x") [] .=. fApp (toSkolem "x") [])]])]
       }
-    , let p = pApp "p" []
-          true = pApp (fromBool True) []
-          false = pApp (fromBool False) [] in
+    , let p = pApp "p" [] in
       doTest $
       TestFormula
       { name = "psimplify 50"
       , formula = true .=>. (p .<=>. (p .<=>. false))
       , expected = [ SimplifiedForm (p .<=>. (.~.) p) ] }
-    , let true = pApp (fromBool True) []
-          false = pApp (fromBool False) [] in
-      doTest $
+    , doTest $
       TestFormula
       { name = "psimplify 51"
       , formula = (((pApp "x" [] .=>. pApp "y" []) .=>. true) .|. false)
-      , expected = [ SimplifiedForm (pApp (fromBool True) []) ] }
-    , let false = pApp (fromBool False) []
-          q = pApp "q" [] in
+      , expected = [ SimplifiedForm true ] }
+    , let q = pApp "q" [] in
       doTest $
       TestFormula
       { name = "simplify 140.3"

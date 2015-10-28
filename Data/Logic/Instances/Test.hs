@@ -2,7 +2,7 @@
 {-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, TemplateHaskell, TypeFamilies #-}
 module Data.Logic.Instances.Test
     ( V(..)
-    , Predicate(..)
+    , Predicate
     , Formula(..)
     , Term(..)
     , Function(..)
@@ -12,7 +12,7 @@ module Data.Logic.Instances.Test
 
 import Data.Char (isDigit)
 import Data.SafeCopy (base, deriveSafeCopy)
-import FOL (V(V), Predicate(..), FOL(..), Term(..), Quant(..), Formula(..))
+import FOL (V(V), Predicate, FOL(..), Term(..), Quant(..), Formula(..))
 import Formulas (BinOp(..))
 import Skolem (Function(..), MyFormula, MyTerm, MyAtom)
 

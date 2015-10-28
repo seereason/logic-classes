@@ -8,16 +8,15 @@ module Data.Logic.Types.FirstOrder
     ) where
 
 import Data.Data (Data)
-import Data.Function (on)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable (Typeable)
 import Formulas (BinOp(..), IsNegatable(..), IsCombinable(..), HasBoolean(..), IsFormula(..))
-import FOL (exists, HasApply(..), HasApplyAndEquate(equate, foldEquate), HasFunctions(..), IsAtom(..), IsFirstOrder,
+import FOL (exists, HasApply(..), HasApplyAndEquate(equate, foldEquate), HasFunctions(..), IsAtomWithApply(..), IsFirstOrder,
             IsFunction, IsPredicate, IsQuantified(..), IsTerm(..), IsVariable(..),
             overtermsEq, ontermsEq, prettyApply, prettyEquate, prettyQuantified, prettyTerm, Quant(..), V)
 import Lit (IsLiteral(..))
-import Pretty (Doc, HasFixity(..), Pretty(pPrint), rootFixity, text)
-import Prop (IsPropositional(foldPropositional'))
+import Pretty (HasFixity(..), Pretty(pPrint), rootFixity)
+import Prop (IsAtom, IsPropositional(foldPropositional'))
 
 -- | Examine the formula to find the list of outermost universally
 -- quantified variables, and call a function with that list and the
@@ -98,11 +97,11 @@ instance (IsPredicate p, Pretty term, HasEquals p) => Pretty (NPredicate p term)
 -}
 instance (IsPredicate p) => HasApply (NPredicate p term) p term where
     applyPredicate = Apply
-    foldPredicate f (Apply p ts) = f p ts
-    foldPredicate _ (Equal _ _) = error "foldPredicate - found Equate"
+    foldPredicate' _ f (Apply p ts) = f p ts
+    foldPredicate' d _ x = d x
 instance (IsPredicate p) => HasApplyAndEquate (NPredicate p term) p term where
     equate = Equal
-    foldEquate eq _ (Equal t1 t2) = eq t1 (undefined :: p) t2
+    foldEquate eq _ (Equal t1 t2) = eq t1 t2
     foldEquate _ ap (Apply p ts) = ap p ts
 instance HasFixity (NPredicate p (NTerm v f)) where
     fixity _ = rootFixity
@@ -139,10 +138,11 @@ instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f
           Negate fm' -> ne fm'
           Predicate x -> at x
           _ -> ho fm
-instance (IsPredicate p, IsVariable v, IsFunction f) => IsAtom (NPredicate p (NTerm v f)) p (NTerm v f) where
+instance (IsPredicate p, IsVariable v, IsFunction f, IsAtom (NPredicate p (NTerm v f))
+         ) => IsAtomWithApply (NPredicate p (NTerm v f)) p (NTerm v f) where
     overterms = overtermsEq
     onterms = ontermsEq
-instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f
+instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, IsAtom (NPredicate p (NTerm v f))
          ) => IsFirstOrder (NFormula v p f) (NPredicate p (NTerm v f)) p (NTerm v f) v f
 
 instance (IsFunction f) => HasFunctions (NFormula v p f) f where
