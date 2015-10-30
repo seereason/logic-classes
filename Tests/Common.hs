@@ -56,7 +56,8 @@ instance IsFirstOrder (PropForm MyAtom) MyAtom Predicate MyTerm V Function
 
 -- | We shouldn't need this instance, but right now we need ot to use
 -- convertFirstOrder.  The conversion functions need work.
-instance IsQuantified (PropForm MyAtom) MyAtom V where
+instance IsQuantified (PropForm MyAtom) where
+    type VarOf (PropForm MyAtom) = V
     quant _ _ _ = error "FIXME: IsQuantified (PropForm MyAtom) MyAtom V"
     foldQuantified = error "FIXME: IsQuantified (PropForm MyAtom) MyAtom V"
 

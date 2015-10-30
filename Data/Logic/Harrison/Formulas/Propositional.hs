@@ -154,14 +154,14 @@ let dest_imp fm =
   match fm with Imp(p,q) -> (p,q) | _ -> failwith "dest_imp";;
 -}
 
-antecedent :: (IsPropositional formula atomic, JustPropositional formula) => formula -> formula
+antecedent :: (IsPropositional formula, JustPropositional formula) => formula -> formula
 antecedent formula =
     foldPropositional c (error "antecedent") (error "antecedent") (error "antecedent") formula
     where
       c p (:=>:) _ = p
       c _ _ _ = error "antecedent"
 
-consequent :: (IsPropositional formula atomic, JustPropositional formula) => formula -> formula
+consequent :: (IsPropositional formula, JustPropositional formula) => formula -> formula
 consequent formula =
     foldPropositional c (error "consequent") (error "consequent") (error "consequent") formula
     where

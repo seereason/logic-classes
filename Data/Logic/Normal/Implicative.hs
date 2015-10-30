@@ -66,7 +66,7 @@ prettyINF x = parens (hsep (List.map pPrint (Set.toList (neg x)))) <> text " => 
 prettyProof :: (IsNegatable lit, Ord lit, Pretty lit) => Set (ImplicativeForm lit) -> Doc
 prettyProof p = brackets (vcat (punctuate comma (List.map prettyINF (Set.toList p))))
 
-instance (IsLiteral lit atom, Ord lit, Pretty lit) => Pretty (ImplicativeForm lit) where
+instance (IsLiteral lit, Ord lit, Pretty lit) => Pretty (ImplicativeForm lit) where
     pPrint = prettyINF
 
 -- |Take the clause normal form, and turn it into implicative form,

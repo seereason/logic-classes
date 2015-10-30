@@ -11,8 +11,8 @@ import Data.Logic.Satisfiable (theorem, inconsistant)
 import Data.Map as Map (singleton)
 import Data.Set.Extra as Set (Set, singleton, toList, empty, fromList, map {-, minView, fold-})
 import Data.String (IsString(fromString))
-import FOL (vt, (∀), pApp, fv, (.=.), exists, for_all, applyPredicate, fApp, HasApplyAndEquate(equate), V(V), Predicate, subst, IsFirstOrder, IsTerm)
-import Formulas ((.~.), atomic, IsCombinable(..), (⇒))
+import FOL (vt, (∀), pApp, fv, (.=.), exists, for_all, applyPredicate, fApp, HasApplyAndEquate(equate), V(V), Predicate, subst, IsFirstOrder, IsQuantified(VarOf), IsTerm)
+import Formulas ((.~.), atomic, IsCombinable(..), IsFormula(AtomOf), (⇒))
 import Lib (Marked)
 import Lit (IsLiteral)
 import Pretty (assertEqual', Pretty(pPrint))
@@ -601,13 +601,13 @@ convertA = Just . A
 
 table :: forall formula atom p term v f.
          (IsFirstOrder formula atom p term v f,
-          IsPropositional formula atom,
-          IsLiteral formula atom,
-          HasSkolem f v,
-          Atom atom term v,
-          IsTerm term v f,
+          IsPropositional formula,
+          IsLiteral formula,
+          HasSkolem f (VarOf formula),
+          Atom (AtomOf formula) term (VarOf formula),
+          IsTerm term (VarOf formula) f,
           Ord formula, Pretty formula, Ord atom) =>
-         formula -> (Set (Set (Marked Literal (Marked Propositional formula))), TruthTable atom)
+         formula -> (Set (Set (Marked Literal (Marked Propositional formula))), TruthTable (AtomOf formula))
 table f =
     -- truthTable :: Ord a => PropForm a -> TruthTable a
     (cnf, truthTable cnf')

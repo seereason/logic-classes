@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, RankNTypes, ScopedTypeVariables, UndecidableInstances #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes, ScopedTypeVariables, TypeFamilies, UndecidableInstances #-}
 {-# OPTIONS -fno-warn-orphans #-}
 module Data.Logic.Instances.PropLogic
     ( flatten
@@ -27,7 +28,7 @@ instance Ord a => IsCombinable (PropForm a) where
     x .|.   y = DJ [x, y]
     x .&.   y = CJ [x, y]
 
-instance IsAtom atom => IsLiteral (PropForm atom) atom where
+instance IsAtom atom => IsLiteral (PropForm atom) where
     foldLiteral' ho ne tf at fm =
         case fm of
           N x -> ne x
@@ -36,12 +37,13 @@ instance IsAtom atom => IsLiteral (PropForm atom) atom where
           A x -> at x
           _ -> ho fm
 
-instance IsAtom atom => IsFormula (PropForm atom) atom where
+instance IsAtom atom => IsFormula (PropForm atom) where
+    type AtomOf (PropForm atom) = atom
     atomic = A
     overatoms = error "FIXME: overatoms PropForm"
     onatoms = error "FIXME: onatoms PropForm"
 
-instance IsAtom atom => IsPropositional (PropForm atom) atom where
+instance IsAtom atom => IsPropositional (PropForm atom) where
     foldPropositional' ho co ne tf at formula =
         case formula of
           -- EJ [x,y,z,...] -> CJ [EJ [x,y], EJ[y,z], ...]
@@ -71,10 +73,10 @@ instance HasBoolean (PropForm formula) where
     asBool F = Just False
     asBool _ = Nothing
 
-instance (IsPropositional (PropForm atom) atom, IsAtom atom) => Pretty (PropForm atom) where
+instance (IsPropositional (PropForm atom), IsAtom atom) => Pretty (PropForm atom) where
     pPrint = prettyPropositional
 
-instance (IsPropositional (PropForm atom) atom, IsAtom atom) => HasFixity (PropForm atom) where
+instance (IsPropositional (PropForm atom), IsAtom atom) => HasFixity (PropForm atom) where
     fixity _ = rootFixity
 
 instance (IsFunction function, HasFunctions atom function, IsAtom atom) => HasFunctions (PropForm atom) function where
@@ -111,8 +113,8 @@ clauses0 :: (IsPropositional (PropForm atom) atom, Ord atom, Pretty atom, HasFix
 clauses0 = CJ . map (DJ . map unmarkLiteral . Set.toList) . Set.toList . simpcnf id
 -}
 
-plSat :: (IsPropositional (PropForm atom) atom, Eq atom, Ord atom, HasFixity atom) => PropForm atom -> Bool
+plSat :: (IsPropositional (PropForm atom), IsAtom atom) => PropForm atom -> Bool
 plSat = satisfiable . clauses
 
-clauses :: IsPropositional (PropForm atom) atom => PropForm atom -> PropForm atom
+clauses :: IsPropositional (PropForm atom) => PropForm atom -> PropForm atom
 clauses = CJ . map (DJ . map unmarkLiteral . Set.toList) . Set.toList . simpcnf id

@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS -fno-warn-incomplete-patterns #-}
 -- |
@@ -34,7 +35,7 @@ import Control.Monad ( guard, liftM )
 import Data.Generics (Data, Typeable)
 import qualified Data.IntMap as IM
 import Data.Maybe ( mapMaybe )
-import Formulas (HasBoolean(..), IsCombinable(..), IsFormula(..), IsNegatable(..))
+import Formulas (HasBoolean(..), IsAtom, IsCombinable(..), IsFormula(..), IsNegatable(..))
 import Lit (IsLiteral(..))
 import Prop (IsPropositional(..), JustPropositional)
 import Pretty (HasFixity(..), leafFixity, Pretty(pPrint), text)
@@ -103,13 +104,16 @@ instance JustPropositional CNF
 instance HasFixity Int where
     fixity _ = leafFixity
 
-instance IsFormula CNF Int where
+instance IsAtom Int
+
+instance IsFormula CNF where
+    type AtomOf CNF = Int
     atomic = error "FIXME: IsFormula CNF MyAtom"
     overatoms = error "FIXME: IsFormula CNF MyAtom"
     onatoms = error "FIXME: IsFormula CNF MyAtom"
 instance Pretty Literal where
     pPrint = text . show
-instance IsPropositional CNF Int where
+instance IsPropositional CNF where
     foldPropositional' = error "FIXME: IsPropositional CNF MyAtom"
 instance IsCombinable CNF where
     foldCombination = error "FIXME: IsCombinable CNF"
@@ -125,7 +129,7 @@ instance IsNegatable CNF where
     foldNegation' = error "FIXME: IsNegatable CNF"
 instance HasFixity CNF where
     fixity = error "FIXME: HasFixity CNF"
-instance IsLiteral CNF Int where
+instance IsLiteral CNF where
     foldLiteral' = error "FIXME: IsLiteral CNF MyAtom"
 
 -- |

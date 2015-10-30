@@ -23,20 +23,20 @@ import Data.Map as Map (fromList)
 import Data.Set as Set (Set, fromList, toList)
 import Data.String (IsString)
 import FOL (HasApply, HasApplyAndEquate, (.=.), pApp, IsQuantified(..), IsTerm(..), V, Predicate, for_all, exists)
-import Formulas ((.~.), false, IsCombinable(..), IsFormula, IsNegatable, true)
+import Formulas ((.~.), false, IsCombinable(..), IsFormula(AtomOf), IsNegatable, true)
 import Skolem (HasSkolem(toSkolem), MyFormula, MyAtom, MyTerm, Function)
 import Test.HUnit
 import Text.PrettyPrint.HughesPJClass (prettyShow)
 
 -- |for_all with a list of variables, for backwards compatibility.
-for_all' :: IsQuantified formula atom v => [v] -> formula -> formula
+for_all' :: IsQuantified formula => [VarOf formula] -> formula -> formula
 for_all' vs f = foldr for_all f vs
 
 -- |exists with a list of variables, for backwards compatibility.
-exists' :: IsQuantified formula atom v => [v] -> formula -> formula
+exists' :: IsQuantified formula => [VarOf formula] -> formula -> formula
 exists' vs f = foldr for_all f vs
 
-pApp2 :: (IsFormula formula atom, {-IsAtom atom p term,-} HasApply atom p term) => p -> term -> term -> formula
+pApp2 :: (IsFormula formula, HasApply (AtomOf formula) p term) => p -> term -> term -> formula
 pApp2 p a b = pApp p [a, b]
 
 {-
@@ -667,12 +667,12 @@ animalConjectures =
        }
      ]
 
-socratesKB :: forall t formula atom v predicate term function.
+socratesKB :: forall t formula predicate term function.
               (Ord formula, IsString t,
-               IsQuantified formula atom v,
-               HasApply atom predicate term,
-               IsTerm term v function) =>
-             (t, [TestFormula formula atom v])
+               IsQuantified formula,
+               HasApply (AtomOf formula) predicate term,
+               IsTerm term (VarOf formula) function) =>
+             (t, [TestFormula formula (AtomOf formula) (VarOf formula)])
 socratesKB =
     let x = vt "x"
         socrates x = pApp "Socrates" [x]
@@ -960,7 +960,7 @@ chang43ConjectureRenamed =
                     ]
                 }
 
-withKB :: forall formula atom term v p f. (formula ~ MyFormula, atom ~ MyAtom, v ~ V, IsQuantified formula atom v, HasApplyAndEquate atom p term, IsTerm term v f) =>
+withKB :: forall formula atom term v p f. (formula ~ MyFormula, atom ~ MyAtom, v ~ V, IsQuantified formula, HasApplyAndEquate (AtomOf formula) p term, IsTerm term (VarOf formula) f) =>
           (String, [TestFormula formula atom v]) -> TestFormula formula atom v -> TestFormula formula atom v
 withKB (kbName, knowledge) conjecture =
     conjecture { name = name conjecture ++ " with " ++ kbName ++ " knowledge base"
@@ -975,7 +975,7 @@ withKB (kbName, knowledge) conjecture =
       conj (x:xs) = x .&. conj xs
 
 kbKnowledge :: forall formula atom term v p f. (formula ~ MyFormula, atom ~ MyAtom, v ~ V,
-                                                IsQuantified formula atom v, HasApplyAndEquate atom p term, IsTerm term v f) =>
+                                                IsQuantified formula, HasApplyAndEquate (AtomOf formula) p term, IsTerm term (VarOf formula) f) =>
                (String, [TestFormula formula atom v]) -> (String, [formula])
 kbKnowledge kb = (fst (kb :: (String, [TestFormula formula atom v])), map formula (snd kb))
 

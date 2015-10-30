@@ -109,10 +109,10 @@ $(deriveSafeCopy 1 'base ''ProofResult)
 
 data Proof lit = Proof {proofResult :: ProofResult, proof :: Set (ImplicativeForm lit)} deriving (Data, Typeable, Eq, Ord)
 
-instance (Ord lit, Show lit, IsLiteral lit atom) => Show (Proof lit) where
+instance (Ord lit, Show lit, IsLiteral lit) => Show (Proof lit) where
     show p = "Proof {proofResult = " ++ show (proofResult p) ++ ", proof = " ++ show (proof p) ++ "}"
 
-instance (Ord lit, Pretty lit, Show lit, IsLiteral lit atom) => Pretty (Proof lit) where
+instance (Ord lit, Pretty lit, Show lit, IsLiteral lit) => Pretty (Proof lit) where
     pPrint p = text "Proof {\n  proofResult = " <> pPrint (proofResult p) <> text ",\n  proof = " <> prettyProof (proof p) <> text "\n}"
 
 -- |Remove a particular sentence from the knowledge base

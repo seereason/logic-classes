@@ -24,7 +24,7 @@ instance ClauseNormalFormula CNF Literal where
 toCNF :: (Monad m,
           IsFirstOrder formula atom p term v f,
           -- IsAtomWithEquate atom p term,
-          N.IsLiteral formula atom,
+          N.IsLiteral formula,
           Ord formula, Pretty formula) =>
          formula -> NormalT formula v term m CNF
 toCNF f = S.ssMapM (lift . toLiteral) (simpcnf' f) >>= return . makeCNF

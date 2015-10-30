@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances, GADTs, MultiParamTypeClasses,
-             RankNTypes, TypeSynonymInstances, UndecidableInstances #-}
+             RankNTypes, TypeFamilies, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wall -Wwarn -fno-warn-orphans -fno-warn-missing-signatures #-}
 module Data.Logic.Instances.Chiou
     ( Sentence(..)
@@ -16,10 +16,10 @@ module Data.Logic.Instances.Chiou
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Atom (Atom)
 import Data.String (IsString(..))
-import FOL ((.=.), HasApply(..), HasApplyAndEquate(..), IsAtomWithApply(..), IsFunction, IsPredicate, IsQuantified(..), IsTerm(..),
-            IsVariable, onatomsQuantified, overatomsQuantified,
+import FOL ((.=.), HasApply(..), HasApplyAndEquate(..), IsFunction, IsPredicate, IsQuantified(..), IsTerm(..),
+            IsVariable, onatomsQuantified, overatomsQuantified, overtermsEq, ontermsEq,
             pApp, prettyQuantified, prettyTerm, Quant(..), showQuantified, showTerm)
-import Formulas (HasBoolean(..), asBool, IsCombinable(..), BinOp(..), IsFormula(..), IsNegatable(..), (.~.))
+import Formulas (HasBoolean(..), asBool, IsAtom, IsCombinable(..), BinOp(..), IsFormula(..), IsNegatable(..), (.~.))
 import Lit (convertToLiteral, IsLiteral(foldLiteral'), JustLiteral, onatomsLiteral, overatomsLiteral, prettyLiteral, showLiteral)
 import Pretty (Pretty(pPrint), HasFixity(..), rootFixity)
 import Prop (IsPropositional(foldPropositional'))
@@ -81,10 +81,11 @@ instance (Ord v, Ord p, Ord f) => IsCombinable (Sentence v p f) where
     x .|.   y = Connective x Or y
     x .&.   y = Connective x And y
 
-instance (IsLiteral (Sentence  v p f) (Sentence  v p f),
+instance (IsLiteral (Sentence  v p f),
           IsFunction f, IsVariable v,
           Ord p, HasBoolean p
-         ) => IsFormula (Sentence v p f) (Sentence v p f) where
+         ) => IsFormula (Sentence v p f) where
+    type AtomOf (Sentence v p f) = Sentence  v p f
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Not _) = error "Logic.Instances.Chiou.atomic: unexpected"
@@ -93,11 +94,11 @@ instance (IsLiteral (Sentence  v p f) (Sentence  v p f),
     overatoms = overatomsQuantified
     onatoms = onatomsQuantified
 
-instance (IsFormula (Sentence v p f) (Sentence v p f),
-          IsLiteral (Sentence v p f) (Sentence v p f),
+instance (IsFormula (Sentence v p f),
+          IsLiteral (Sentence v p f),
           IsCombinable (Sentence v p f),
           IsVariable v, IsFunction f, HasBoolean p
-         ) => IsPropositional (Sentence v p f) (Sentence v p f) where
+         ) => IsPropositional (Sentence v p f) where
     foldPropositional' ho co ne tf at formula =
         case formula of
           Not x -> ne x
@@ -109,10 +110,12 @@ instance (IsFormula (Sentence v p f) (Sentence v p f),
           Equal t1 t2 -> at (Equal t1 t2)
           _ -> ho formula
 
+instance (IsVariable v, IsPredicate p, IsFunction f) => IsAtom (Sentence v p f)
+
 instance (IsVariable v, IsPredicate p, IsFunction f) => Show (Sentence v p f) where
     show = showQuantified
 
-instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f) => IsLiteral (Sentence v p f) (Sentence v p f) where
+instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f) => IsLiteral (Sentence v p f) where
     foldLiteral' _ ne _ _ (Not x) = ne x
     foldLiteral' _ _ tf at (Predicate p ts) = maybe (at (Predicate p ts)) tf (asBool p)
     foldLiteral' _ _ _ at (Equal t1 t2) = at (Equal t1 t2)
@@ -138,23 +141,26 @@ instance (IsVariable v, IsFunction f, IsPredicate p) => HasApply (Sentence v p f
     foldPredicate' _ ap (Predicate p ts) = ap p ts
     foldPredicate' d _ p = d p
     applyPredicate = Predicate
+    overterms = overtermsEq
+    onterms = ontermsEq
 
 instance (IsFunction f, IsVariable v, IsPredicate p) => HasApplyAndEquate (Sentence v p f) p (CTerm v f) where
-    foldEquate eq _ p@(Equal t1 t2) = eq t1 t2
+    foldEquate eq _ (Equal t1 t2) = eq t1 t2
     foldEquate _ ap (Predicate p ts) = ap p ts
     foldEquate _ _ _ = error "IsAtomWithEquate Sentence"
     equate = Equal
     -- applyEq' = Predicate
 
-instance (IsQuantified (Sentence v p f) (Sentence v p f) v, IsVariable v, IsFunction f) => Pretty (Sentence v p f) where
+instance (IsQuantified (Sentence v p f), IsVariable v, IsFunction f) => Pretty (Sentence v p f) where
     pPrint = prettyQuantified
 
-instance (IsFormula (Sentence v p f) (Sentence v p f), IsFunction f, IsVariable v) => HasFixity (Sentence v p f) where
+instance (IsFormula (Sentence v p f), IsFunction f, IsVariable v) => HasFixity (Sentence v p f) where
     fixity _ = rootFixity
 
-instance (IsFormula (Sentence v p f) (Sentence v p f), IsLiteral (Sentence v p f) (Sentence v p f),
+instance (IsFormula (Sentence v p f), IsLiteral (Sentence v p f),
           IsVariable v, IsFunction f, Ord p, HasBoolean p
-         ) => IsQuantified (Sentence v p f) (Sentence v p f) v where
+         ) => IsQuantified (Sentence v p f) where
+    type (VarOf (Sentence v p f)) = v
     quant (:!:) v x = Quantifier ForAll [v] x
     quant (:?:) v x = Quantifier ExistsCh [v] x
     foldQuantified qu co ne tf at f =
@@ -176,7 +182,7 @@ instance (IsFormula (Sentence v p f) (Sentence v p f), IsLiteral (Sentence v p f
           Predicate _ _ -> at f
           Equal _ _ -> at f
 
-quant' :: IsQuantified formula atom v => Quant -> [v] -> formula -> formula
+quant' :: IsQuantified formula => Quant -> [VarOf formula] -> formula -> formula
 quant' op vs f = foldr (quant op) f vs
 
 instance (IsVariable v, IsFunction f, Pretty (CTerm v f)) => IsTerm (CTerm v f) v f where
@@ -220,23 +226,26 @@ instance (Ord v, Ord p, Ord f) => IsNegatable (NormalSentence v p f) where
 instance (IsVariable v, IsPredicate p, IsFunction f) => Show (NormalSentence v p f) where
     show = showLiteral
 
+instance (IsVariable v, IsPredicate p, IsFunction f) => IsAtom (NormalSentence v p f)
+
 instance JustLiteral (NormalSentence v p f)
 
-instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f) => IsLiteral (NormalSentence v p f) (NormalSentence v p f) where
+instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f) => IsLiteral (NormalSentence v p f) where
     foldLiteral' _ho ne _tf at fm =
         case fm of
           NFNot s -> ne s
           NFPredicate _p _ts -> at fm
           NFEqual _t1 _t2 -> at fm
 
-instance (IsLiteral (NormalSentence v p f) (NormalSentence v p f),
+instance (IsLiteral (NormalSentence v p f),
           IsVariable v, HasBoolean p, IsFunction f
          ) => Pretty (NormalSentence v p f) where
     pPrint = prettyLiteral
 
 instance (Pretty (NormalTerm v f),
           IsVariable v, IsPredicate p, HasBoolean p, IsFunction f
-         ) => IsFormula (NormalSentence v p f) (NormalSentence v p f) where
+         ) => IsFormula (NormalSentence v p f) where
+    type (AtomOf (NormalSentence v p f)) = NormalSentence v p f
     atomic x@(NFPredicate _ _) = x
     atomic x@(NFEqual _ _) = x
     atomic _ = error "Chiou: atomic"
@@ -261,7 +270,8 @@ instance (IsVariable v, IsFunction f) => Pretty (NormalTerm v f) where
 instance (IsVariable v, IsFunction f) => Show (NormalTerm v f) where
     show = showTerm
 
-toSentence :: (IsQuantified (Sentence v p f) (Sentence v p f) v, Atom (Sentence v p f) (CTerm v f) v,
+toSentence :: (IsQuantified (Sentence v p f),
+               Atom (Sentence v p f) (CTerm v f) v,
                IsFunction f, IsVariable v, IsPredicate p
               ) => NormalSentence v p f -> Sentence v p f
 toSentence (NFNot s) = (.~.) (toSentence s)
@@ -276,7 +286,7 @@ fromSentence :: forall v p f fof atom.
                 (IsVariable v, IsPredicate p, IsFunction f, HasBoolean p,
                  fof ~ Sentence v p f,
                  atom ~ Sentence v p f,
-                 IsQuantified fof atom v
+                 IsQuantified fof
                 ) => Sentence v p f -> NormalSentence v p f
 fromSentence = convertToLiteral (error "fromSentence failure")
                                 (foldEquate (\ t1 t2 -> NFEqual (fromTerm t1) (fromTerm t2))

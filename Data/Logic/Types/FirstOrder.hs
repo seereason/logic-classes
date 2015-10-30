@@ -11,7 +11,7 @@ import Data.Data (Data)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable (Typeable)
 import Formulas (BinOp(..), IsNegatable(..), IsCombinable(..), HasBoolean(..), IsFormula(..))
-import FOL (exists, HasApply(..), HasApplyAndEquate(equate, foldEquate), HasFunctions(..), IsAtomWithApply(..), IsFirstOrder,
+import FOL (exists, HasApply(..), HasApplyAndEquate(equate, foldEquate), HasFunctions(..), IsFirstOrder,
             IsFunction, IsPredicate, IsQuantified(..), IsTerm(..), IsVariable(..),
             overtermsEq, ontermsEq, prettyApply, prettyEquate, prettyQuantified, prettyTerm, Quant(..), V)
 import Lit (IsLiteral(..))
@@ -21,7 +21,7 @@ import Prop (IsAtom, IsPropositional(foldPropositional'))
 -- | Examine the formula to find the list of outermost universally
 -- quantified variables, and call a function with that list and the
 -- formula after the quantifiers are removed.
-withUnivQuants :: IsQuantified formula atom v => ([v] -> formula -> r) -> formula -> r
+withUnivQuants :: IsQuantified formula => ([VarOf formula] -> formula -> r) -> formula -> r
 withUnivQuants fn formula =
     doFormula [] formula
     where
@@ -79,32 +79,31 @@ instance (IsVariable v, IsPredicate p, IsFunction f
     a .=>. b = Combine a (:=>:) b
     a .<=>. b = Combine a (:<=>:) b
     foldCombination = error "FIXME foldCombination"
+instance HasFixity (NPredicate p term) where
+    fixity _ = rootFixity
+instance (IsPredicate p, IsTerm term v function) => IsAtom (NPredicate p term)
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, atom ~ NPredicate p (NTerm v f), Pretty atom
-         ) => IsPropositional (NFormula v p f) atom where
+         ) => IsPropositional (NFormula v p f) where
     foldPropositional' ho _ _ _ _ fm@(Quant _ _ _) = ho fm
     foldPropositional' _ co _ _ _ (Combine x op y) = co x op y
     foldPropositional' _ _ ne _ _ (Negate x) = ne x
     foldPropositional' _ _ _ tf at (Predicate x) = maybe (at x) tf (asBool x)
 instance HasFixity (NFormula v p f) where
     fixity _ = rootFixity
-instance (IsVariable v, IsPredicate p, IsFunction f) => Pretty (NPredicate p (NTerm v f)) where
-    pPrint p = foldEquate prettyEquate prettyApply p
+--instance (IsVariable v, IsPredicate p, IsFunction f) => Pretty (NPredicate p (NTerm v f)) where
+--    pPrint p = foldEquate prettyEquate prettyApply p
+instance (IsPredicate p, IsTerm term v function) => Pretty (NPredicate p term) where
+    pPrint = foldEquate prettyEquate prettyApply
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f) => Pretty (NFormula v p f) where
     pPrint = prettyQuantified
-{-
-instance (IsPredicate p, Pretty term, HasEquals p) => Pretty (NPredicate p term) where
-    pPrint = foldPredicate prettyPredicateApplicationEq
--}
-instance (IsPredicate p) => HasApply (NPredicate p term) p term where
+instance (IsPredicate p, IsTerm term v function) => HasApply (NPredicate p term) p term where
     applyPredicate = Apply
     foldPredicate' _ f (Apply p ts) = f p ts
     foldPredicate' d _ x = d x
-instance (IsPredicate p) => HasApplyAndEquate (NPredicate p term) p term where
+instance (IsPredicate p, IsTerm term v function) => HasApplyAndEquate (NPredicate p term) p term where
     equate = Equal
     foldEquate eq _ (Equal t1 t2) = eq t1 t2
     foldEquate _ ap (Apply p ts) = ap p ts
-instance HasFixity (NPredicate p (NTerm v f)) where
-    fixity _ = rootFixity
 instance HasBoolean p => HasBoolean (NPredicate p (NTerm v f)) where
     fromBool x = Apply (fromBool x) []
     asBool (Apply p []) = asBool p
@@ -114,7 +113,8 @@ instance HasBoolean p => HasBoolean (NFormula v p f) where
     asBool _ = Nothing
     fromBool = Predicate . fromBool
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f
-         ) => IsFormula (NFormula v p f) (NPredicate p (NTerm v f)) where
+         ) => IsFormula (NFormula v p f) where
+    type AtomOf (NFormula v p f) = NPredicate p (NTerm v f)
     atomic = Predicate
     onatoms f (Negate fm) = Negate (onatoms f fm)
     onatoms f (Combine lhs op rhs) = Combine (onatoms f lhs) op (onatoms f rhs)
@@ -126,22 +126,25 @@ instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f
     overatoms f (Predicate p) b = f p b
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f
          , atom ~ NPredicate p (NTerm v f) -- , Pretty atom
-         ) => IsQuantified (NFormula v p f) atom v where
+         ) => IsQuantified (NFormula v p f) where
+    type VarOf (NFormula v p f) = v
     foldQuantified qu _ _ _ _ (Quant op v fm) = qu op v fm
     foldQuantified _ co ne tf at fm = foldPropositional' (error "FIXME - need other function in case of embedded quantifiers") co ne tf at fm
     quant = Quant
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f
          , atom ~ NPredicate p (NTerm v f) -- , Pretty atom
-         ) => IsLiteral (NFormula v p f) atom where
+         ) => IsLiteral (NFormula v p f) where
     foldLiteral' ho ne _tf at fm =
         case fm of
           Negate fm' -> ne fm'
           Predicate x -> at x
           _ -> ho fm
+{-
 instance (IsPredicate p, IsVariable v, IsFunction f, IsAtom (NPredicate p (NTerm v f))
-         ) => IsAtomWithApply (NPredicate p (NTerm v f)) p (NTerm v f) where
+         ) => HasApplyAndEquate (NPredicate p (NTerm v f)) p (NTerm v f) where
     overterms = overtermsEq
     onterms = ontermsEq
+-}
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, IsAtom (NPredicate p (NTerm v f))
          ) => IsFirstOrder (NFormula v p f) (NPredicate p (NTerm v f)) p (NTerm v f) v f
 
