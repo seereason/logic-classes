@@ -11,7 +11,7 @@ import Data.Data (Data)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable (Typeable)
 import Formulas (BinOp(..), IsNegatable(..), IsCombinable(..), HasBoolean(..), IsFormula(..))
-import FOL (exists, HasApply(..), HasApplyAndEquate(equate, foldEquate), HasFunctions(..), IsFirstOrder,
+import FOL (exists, HasApply(..), HasApplyAndEquate(equate, foldEquate), IsFirstOrder,
             IsFunction, IsPredicate, IsQuantified(..), IsTerm(..), IsVariable(..),
             overtermsEq, ontermsEq, prettyApply, prettyEquate, prettyQuantified, prettyTerm, Quant(..), V)
 import Lit (IsLiteral(..))
@@ -151,12 +151,6 @@ instance (IsPredicate p, IsVariable v, IsFunction f, IsAtom (NPredicate p (NTerm
 -}
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, IsAtom (NPredicate p (NTerm v f))
          ) => IsFirstOrder (NFormula v p f)
-
-instance (IsFunction f) => HasFunctions (NFormula v p f) f where
-    funcs = error "FIXME: HasFunctions (NFormula v p f) f"
-
-instance IsFunction f => HasFunctions (NTerm v f) f where
-    funcs = error "FIXME: HasFunctions (NTerm v f)"
 
 instance (IsVariable v, IsFunction f) => IsTerm (NTerm v f) where
     type TVarOf (NTerm v f) = v

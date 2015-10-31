@@ -21,7 +21,7 @@ import Data.Generics (Data, Typeable, listify)
 import Data.List as List (map, null)
 import Data.Logic.Classes.Atom (Atom(..))
 import Data.Maybe (isJust)
-import Skolem (fromSkolem, nnf, pnf, runSkolem, simplify, skolemize)
+import Skolem (fromSkolem, nnf, pnf, runSkolem, simplify, skolemize, skolems)
 import qualified Data.Logic.Instances.Chiou as Ch
 import Data.Logic.Instances.PropLogic (plSat)
 import qualified Data.Logic.Instances.SatSolver as SS
@@ -30,7 +30,7 @@ import Data.Logic.KnowledgeBase (WithId, runProver', Proof, loadKB, theoremKB, g
 import Data.Logic.Normal.Implicative (ImplicativeForm, runNormal, runNormalT)
 import Data.Logic.Resolution (getSubstAtomEq, isRenameOfAtomEq, SetOfSupport)
 import Data.Set as Set
-import FOL (asubst, convertQuantified, fApp, foldTerm, funcs, fva,
+import FOL (asubst, convertQuantified, fApp, foldTerm, functions, fva,
             HasApply(TermOf, PredOf), HasApplyAndEquate(foldEquate),
             IsFirstOrder, IsQuantified(..), IsTerm(FunOf, TVarOf), Predicate, V, vt)
 import Formulas (IsFormula(AtomOf))
@@ -105,7 +105,7 @@ doTest (TestFormula fm nm expect) =
       doExpected (PrenexNormalForm f') = let label = (nm ++ " prenex normal form") in TestLabel label (TestCase (assertEqual' label f' (pnf fm)))
       doExpected (NegationNormalForm f') = let label = (nm ++ " negation normal form") in TestLabel label (TestCase (assertEqual' label f' (nnf . simplify $ fm)))
       doExpected (SkolemNormalForm f') = let label = (nm ++ " skolem normal form") in TestLabel label (TestCase (assertEqual' label f' (runSkolem (skolemize id fm :: SkolemT Identity (PFormula MyAtom)))))
-      doExpected (SkolemNumbers f') = let label = (nm ++ " skolem numbers") in TestLabel label (TestCase (assertEqual' label f' (skolemSet (runSkolem (skolemize id fm :: SkolemT Identity (PFormula MyAtom))))))
+      doExpected (SkolemNumbers f') = let label = (nm ++ " skolem numbers") in TestLabel label (TestCase (assertEqual' label f' (skolems (runSkolem (skolemize id fm :: SkolemT Identity (PFormula MyAtom))))))
       doExpected (ClauseNormalForm fss) =
           let label = (nm ++ " clause normal form") in
           TestLabel label (TestCase (assertEqual' label
@@ -138,9 +138,6 @@ doTest (TestFormula fm nm expect) =
 
 norm :: [[B.Literal]] -> [[B.Literal]]
 norm = List.map Set.toList . Set.toList . Set.fromList . List.map Set.fromList
-
-skolemSet :: PFormula MyAtom -> Set Function
-skolemSet = Set.filter (isJust . fromSkolem) . Set.map fst . funcs
 
 -- | @gFind a@ will extract any elements of type @b@ from
 -- @a@'s structure in accordance with the MonadPlus

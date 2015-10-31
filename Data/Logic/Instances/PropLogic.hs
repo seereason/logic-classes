@@ -7,7 +7,7 @@ module Data.Logic.Instances.PropLogic
     ) where
 
 import Data.Set.Extra as Set (empty, toList, union)
-import FOL (IsFunction, HasFunctions(funcs))
+import FOL (IsFunction, funcs)
 import Formulas (BinOp(..), HasBoolean(fromBool, asBool), IsCombinable(..), IsFormula(..), IsNegatable(..))
 import Lit (IsLiteral(..))
 import Pretty (HasFixity(fixity), Pretty(pPrint), rootFixity)
@@ -78,12 +78,6 @@ instance (IsPropositional (PropForm atom), IsAtom atom) => Pretty (PropForm atom
 
 instance (IsPropositional (PropForm atom), IsAtom atom) => HasFixity (PropForm atom) where
     fixity _ = rootFixity
-
-instance (IsFunction function, HasFunctions atom function, IsAtom atom) => HasFunctions (PropForm atom) function where
-    funcs = foldPropositional co ne (const Set.empty) funcs
-        where
-          ne fm = funcs fm
-          co lhs _ rhs = Set.union (funcs lhs) (funcs rhs)
 
 pairs :: [a] -> [(a, a)]
 pairs (x:y:zs) = (x,y) : pairs (y:zs)
