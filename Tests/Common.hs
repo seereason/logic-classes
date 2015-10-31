@@ -54,7 +54,7 @@ instance Atom MyAtom MyTerm V where
     isRename = isRenameOfAtomEq
     getSubst = getSubstAtomEq
 
-instance IsFirstOrder (PropForm MyAtom) MyAtom Predicate MyTerm V Function
+instance IsFirstOrder (PropForm MyAtom)
 
 -- | We shouldn't need this instance, but right now we need ot to use
 -- convertFirstOrder.  The conversion functions need work.
@@ -164,9 +164,9 @@ data ProofExpected lit v term
     | ChiouKB (Set (WithId (ImplicativeForm lit)))
     deriving (Data, Typeable)
 
-doProof :: forall formula lit atom p term v f.
-           (atom ~ AtomOf formula, v ~ VarOf formula, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
-            IsFirstOrder formula atom p term v f, Ord formula, Pretty formula,
+doProof :: forall formula lit atom term v f.
+           (atom ~ AtomOf formula, v ~ VarOf formula, v ~ TVarOf term, term ~ TermOf atom, f ~ FunOf term,
+            IsFirstOrder formula, Ord formula, Pretty formula,
             HasApplyAndEquate atom,
             Atom atom term v,
             HasSkolem f v,
@@ -191,7 +191,7 @@ loadKB' :: forall m formula lit atom p term v f.
            (atom ~ AtomOf formula, v ~ VarOf formula, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
             lit ~ Marked Literal formula,
             Monad m, Data formula,
-            IsFirstOrder formula atom p term v f, Ord formula, Pretty formula,
+            IsFirstOrder formula, Ord formula, Pretty formula,
             HasApplyAndEquate atom,
             HasSkolem f v,
             Atom atom term v,
@@ -202,7 +202,7 @@ theoremKB' :: forall m formula lit atom p term v f.
               (atom ~ AtomOf formula, v ~ VarOf formula, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
                lit ~ Marked Literal formula,
                Monad m, Data formula,
-               IsFirstOrder formula atom p term v f, Ord formula, Pretty formula,
+               IsFirstOrder formula, Ord formula, Pretty formula,
                HasApplyAndEquate atom,
                HasSkolem f v,
                Atom atom term v,

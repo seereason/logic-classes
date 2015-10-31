@@ -150,7 +150,7 @@ instance (IsPredicate p, IsVariable v, IsFunction f, IsAtom (NPredicate p (NTerm
     onterms = ontermsEq
 -}
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, IsAtom (NPredicate p (NTerm v f))
-         ) => IsFirstOrder (NFormula v p f) (NPredicate p (NTerm v f)) p (NTerm v f) v f
+         ) => IsFirstOrder (NFormula v p f)
 
 instance (IsFunction f) => HasFunctions (NFormula v p f) f where
     funcs = error "FIXME: HasFunctions (NFormula v p f) f"

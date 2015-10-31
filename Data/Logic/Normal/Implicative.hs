@@ -89,18 +89,10 @@ instance (IsLiteral lit, Ord lit, Pretty lit) => Pretty (ImplicativeForm lit) wh
 --    a | b | c => e
 --    a | b | c => f
 -- @
-{-
-implicativeNormalForm :: forall m fof lit atom p term v f.
-                         (IsFirstOrder fof atom p term v f, Ord fof,
-                          IsLiteral lit atom, JustLiteral lit, Ord lit,
-                          HasSkolem f v,
-                          Monad m, Data lit, Typeable f) =>
-                         fof -> SkolemT m (Set (ImplicativeForm lit))
--}
-implicativeNormalForm :: forall m fof atom p term v function.
-                         (atom ~ AtomOf fof, v ~ VarOf fof, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, function ~ FunOf term,
+implicativeNormalForm :: forall m fof atom term v function.
+                         (atom ~ AtomOf fof, v ~ VarOf fof, v ~ TVarOf term, term ~ TermOf atom, function ~ FunOf term,
                           Monad m, Data fof, Pretty fof, Typeable function,
-                          IsFirstOrder fof atom p term v function, Ord fof,
+                          IsFirstOrder fof, Ord fof,
                           HasSkolem function v) => fof -> SkolemT m (Set (ImplicativeForm (Marked Literal fof)))
 implicativeNormalForm formula =
     do let (cnf :: Set (Set (Marked Literal fof))) = (Set.map (Set.map convert) . simpcnf id) (runSkolem (skolemize id formula) :: Marked Propositional fof)

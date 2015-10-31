@@ -602,7 +602,7 @@ convertA = Just . A
 
 table :: forall formula atom p term v f.
          (atom ~ AtomOf formula, v ~ VarOf formula, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
-          IsFirstOrder formula atom p term v f,
+          IsFirstOrder formula,
           IsPropositional formula,
           IsLiteral formula,
           HasSkolem f v,

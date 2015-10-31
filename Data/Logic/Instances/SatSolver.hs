@@ -24,7 +24,7 @@ instance ClauseNormalFormula CNF Literal where
 
 toCNF :: (atom ~ AtomOf formula, p ~ PredOf atom, term ~ TermOf atom, v ~ VarOf formula, v ~ TVarOf term, function ~ FunOf term,
           Monad m,
-          IsFirstOrder formula atom p term v function,
+          IsFirstOrder formula,
           -- IsAtomWithEquate atom p term,
           N.IsLiteral formula,
           Ord formula, Pretty formula) =>

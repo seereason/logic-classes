@@ -130,7 +130,7 @@ getKB = get >>= return . knowledgeBase
 -- with a disproof.
 inconsistantKB :: forall m fof lit atom term v p f.
                   (atom ~ AtomOf fof, v ~ VarOf fof, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
-                   IsFirstOrder fof atom p term v f,
+                   IsFirstOrder fof,
                    Ord fof, lit ~ Marked Literal fof,
                    Atom atom term v,
                    HasApplyAndEquate atom,
@@ -150,7 +150,7 @@ inconsistantKB s =
 theoremKB :: forall m fof lit atom term v p f.
              (atom ~ AtomOf fof, v ~ VarOf fof, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
               Monad m,
-              IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
+              IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
               Atom atom term v,
               HasApplyAndEquate atom,
               IsTerm term,
@@ -164,7 +164,7 @@ theoremKB s = inconsistantKB ((.~.) s)
 -- is here functions are here, it is also placed in this module.
 askKB :: (atom ~ AtomOf fof, v ~ VarOf fof, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
           Monad m,
-          IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
+          IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
           Atom atom term v,
           HasApplyAndEquate atom,
           IsTerm term,
@@ -176,7 +176,7 @@ askKB s = theoremKB s >>= return . fst
 -- |See whether the sentence is true, false or invalid.  Return proofs
 -- for truth and falsity.
 validKB :: (atom ~ AtomOf fof, v ~ VarOf fof, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
-            IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
+            IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
             Atom atom term v,
             HasApplyAndEquate atom,
             IsTerm term,
@@ -194,7 +194,7 @@ validKB s =
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
 tellKB :: (atom ~ AtomOf fof, v ~ VarOf fof, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
-           IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
+           IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
            Atom atom term v,
            HasApplyAndEquate atom,
            IsTerm term,
@@ -213,7 +213,7 @@ tellKB s =
        return $ Proof {proofResult = valid, proof = Set.map wiItem inf'}
 
 loadKB :: (atom ~ AtomOf fof, v ~ VarOf fof, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
-           IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
+           IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
            Atom atom term v,
            IsTerm term,
            HasApplyAndEquate atom,
