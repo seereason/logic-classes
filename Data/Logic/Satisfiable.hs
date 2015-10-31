@@ -4,7 +4,7 @@
 -- we use the satisfiable function from the PropLogic package, by the
 -- Bucephalus project - it is much faster than a naive implementation
 -- such as Prop.satisfiable.
-{-# LANGUAGE FlexibleContexts, OverloadedStrings, RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts, OverloadedStrings, RankNTypes, ScopedTypeVariables, TypeFamilies #-}
 module Data.Logic.Satisfiable
     ( satisfiable
     , theorem
@@ -15,8 +15,8 @@ module Data.Logic.Satisfiable
 import Data.List as List (map)
 import Data.Logic.Instances.PropLogic ()
 import Data.Set as Set (toList)
-import FOL (IsFirstOrder)
-import Formulas ((.~.))
+import FOL (HasApply(TermOf, PredOf), IsFirstOrder, IsQuantified(VarOf))
+import Formulas ((.~.), IsFormula(AtomOf))
 import Lib (Marked)
 import Prop (convertPropositional, Literal, Propositional, simpcnf)
 import qualified PropLogic as PL -- ()
@@ -27,7 +27,8 @@ import Skolem (HasSkolem, runSkolem, skolemize)
 -- satisfiable :: forall formula atom term v f m. (Monad m, IsQuantified formula atom v, Formula atom term v, IsTerm term v f, Ord formula, IsLiteral formula atom v, Ord atom) =>
 --                 formula -> SkolemT v term m Bool
 satisfiable :: forall formula atom v term p f.
-               (IsFirstOrder formula atom p term v f,
+               (atom ~ AtomOf formula, term ~ TermOf atom, p ~ PredOf atom, v ~ VarOf formula,
+                IsFirstOrder formula atom p term v f,
                 HasSkolem f v,
                 Ord atom, Eq formula, Ord formula, Pretty formula, Pretty atom, HasFixity atom) =>
                formula -> Bool
@@ -40,7 +41,8 @@ satisfiable f =
 
 -- |Is the formula always false?  (Not satisfiable.)
 inconsistant :: forall formula atom v term p f.
-                (IsFirstOrder formula atom p term v f,
+                (atom ~ AtomOf formula, term ~ TermOf atom, p ~ PredOf atom, v ~ VarOf formula,
+                 IsFirstOrder formula atom p term v f,
                  HasSkolem f v,
                  Eq formula, Ord formula, Pretty formula,
                  Ord atom, Pretty atom, HasFixity atom) =>
@@ -49,7 +51,8 @@ inconsistant f =  not (satisfiable f)
 
 -- |Is the negation of the formula inconsistant?
 theorem :: forall formula atom v term p f.
-           (IsFirstOrder formula atom p term v f,
+           (atom ~ AtomOf formula, term ~ TermOf atom, p ~ PredOf atom, v ~ VarOf formula,
+            IsFirstOrder formula atom p term v f,
             HasSkolem f v,
             Eq formula, Ord formula, Pretty formula,
             Ord atom, Pretty atom, HasFixity atom) =>
@@ -58,7 +61,8 @@ theorem f = inconsistant ((.~.) f)
 
 -- |A formula is invalid if it is neither a theorem nor inconsistent.
 invalid :: forall formula atom v term p f.
-           (IsFirstOrder formula atom p term v f,
+           (atom ~ AtomOf formula, term ~ TermOf atom, p ~ PredOf atom, v ~ VarOf formula,
+            IsFirstOrder formula atom p term v f,
             HasSkolem f v,
             Eq formula, Ord formula, Pretty formula,
             Ord atom, Pretty atom, HasFixity atom) =>

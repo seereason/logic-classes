@@ -30,8 +30,10 @@ import Data.Logic.KnowledgeBase (WithId, runProver', Proof, loadKB, theoremKB, g
 import Data.Logic.Normal.Implicative (ImplicativeForm, runNormal, runNormalT)
 import Data.Logic.Resolution (getSubstAtomEq, isRenameOfAtomEq, SetOfSupport)
 import Data.Set as Set
-import FOL (asubst, convertQuantified, fApp, foldTerm, funcs, fva, HasApplyAndEquate(foldEquate),
+import FOL (asubst, convertQuantified, fApp, foldTerm, funcs, fva,
+            HasApply(TermOf, PredOf), HasApplyAndEquate(foldEquate),
             IsFirstOrder, IsQuantified(..), IsTerm, Predicate, V, vt)
+import Formulas (IsFormula(AtomOf))
 import Lib (Marked)
 import Pretty (assertEqual', Pretty(pPrint))
 import Prop (PFormula, satisfiable, trivial, unmarkLiteral)
@@ -163,8 +165,9 @@ data ProofExpected lit v term
     deriving (Data, Typeable)
 
 doProof :: forall formula lit atom p term v f.
-           (IsFirstOrder formula atom p term v f, Ord formula, Pretty formula,
-            HasApplyAndEquate atom p term,
+           (atom ~ AtomOf formula, v ~ VarOf formula, term ~ TermOf atom, p ~ PredOf atom,
+            IsFirstOrder formula atom p term v f, Ord formula, Pretty formula,
+            HasApplyAndEquate atom,
             Atom atom term v,
             HasSkolem f v,
             lit ~ Marked Literal formula,
@@ -185,20 +188,22 @@ doProof p =
       c = conjecture p :: formula
 
 loadKB' :: forall m formula lit atom p term v f.
-           (lit ~ Marked Literal formula,
+           (atom ~ AtomOf formula, v ~ VarOf formula, term ~ TermOf atom, p ~ PredOf atom,
+            lit ~ Marked Literal formula,
             Monad m, Data formula,
             IsFirstOrder formula atom p term v f, Ord formula, Pretty formula,
-            HasApplyAndEquate atom p term,
+            HasApplyAndEquate atom,
             HasSkolem f v,
             Atom atom term v,
             IsTerm term v f, Typeable f) => [formula] -> ProverT' v term (ImplicativeForm lit) m [Proof lit]
 loadKB' = loadKB
 
 theoremKB' :: forall m formula lit atom p term v f.
-              (lit ~ Marked Literal formula,
+              (atom ~ AtomOf formula, v ~ VarOf formula, term ~ TermOf atom, p ~ PredOf atom,
+               lit ~ Marked Literal formula,
                Monad m, Data formula,
                IsFirstOrder formula atom p term v f, Ord formula, Pretty formula,
-               HasApplyAndEquate atom p term,
+               HasApplyAndEquate atom,
                HasSkolem f v,
                Atom atom term v,
                IsTerm term v f, Typeable f

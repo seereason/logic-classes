@@ -137,14 +137,16 @@ instance IsVariable v => HasSkolem (AtomicFunction v) v where
     fromSkolem _ = Nothing
 
 -- The Atom type is not cleanly distinguished from the Sentence type, so we need an Atom instance for Sentence.
-instance (IsVariable v, IsFunction f, IsPredicate p) => HasApply (Sentence v p f) p (CTerm v f) where
+instance (IsVariable v, IsFunction f, IsPredicate p) => HasApply (Sentence v p f) where
+    type PredOf (Sentence v p f) = p
+    type TermOf (Sentence v p f) = CTerm v f
     foldPredicate' _ ap (Predicate p ts) = ap p ts
     foldPredicate' d _ p = d p
     applyPredicate = Predicate
     overterms = overtermsEq
     onterms = ontermsEq
 
-instance (IsFunction f, IsVariable v, IsPredicate p) => HasApplyAndEquate (Sentence v p f) p (CTerm v f) where
+instance (IsFunction f, IsVariable v, IsPredicate p) => HasApplyAndEquate (Sentence v p f) where
     foldEquate eq _ (Equal t1 t2) = eq t1 t2
     foldEquate _ ap (Predicate p ts) = ap p ts
     foldEquate _ _ _ = error "IsAtomWithEquate Sentence"

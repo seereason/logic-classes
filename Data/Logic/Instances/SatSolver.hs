@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleInstances, MultiParamTypeClasses, ScopedTypeVariables, StandaloneDeriving, TypeSynonymInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleInstances, MultiParamTypeClasses, ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving, TypeFamilies, TypeSynonymInstances #-}
 {-# OPTIONS -fno-warn-orphans #-}
 module Data.Logic.Instances.SatSolver where
 
@@ -10,8 +11,8 @@ import qualified Data.Map as M
 import qualified Data.Set.Extra as S
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(..))
 import Data.Logic.Normal.Implicative (LiteralMapT, NormalT)
-import FOL (HasApplyAndEquate, IsFirstOrder)
-import Formulas (IsNegatable(..), negated, (.~.))
+import FOL (HasApply(PredOf, TermOf), IsFirstOrder, IsQuantified(VarOf))
+import Formulas (IsFormula(AtomOf), IsNegatable(..), negated, (.~.))
 import qualified Lit as N
 import Pretty (Pretty)
 import Skolem (simpcnf')
@@ -21,7 +22,8 @@ instance ClauseNormalFormula CNF Literal where
     makeCNF = map S.toList . S.toList
     satisfiable cnf = return . not . (null :: [a] -> Bool) $ assertTrue' cnf newSatSolver >>= solve
 
-toCNF :: (Monad m,
+toCNF :: (atom ~ AtomOf formula, p ~ PredOf atom, term ~ TermOf atom, v ~ VarOf formula,
+          Monad m,
           IsFirstOrder formula atom p term v f,
           -- IsAtomWithEquate atom p term,
           N.IsLiteral formula,

@@ -33,8 +33,8 @@ import Data.Logic.Normal.Implicative (ImplicativeForm, implicativeNormalForm, pr
 import Data.Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Data.SafeCopy (deriveSafeCopy, base)
 import Data.Set.Extra as Set (Set, empty, map, minView, null, partition, union)
-import FOL (HasApplyAndEquate, IsFirstOrder, IsTerm)
-import Formulas ((.~.))
+import FOL (HasApply(TermOf, PredOf), HasApplyAndEquate, IsFirstOrder, IsQuantified(VarOf), IsTerm)
+import Formulas ((.~.), IsFormula(AtomOf))
 import Lib (Marked)
 import Lit (IsLiteral)
 import Prelude hiding (negate)
@@ -129,9 +129,11 @@ getKB = get >>= return . knowledgeBase
 -- |Return a flag indicating whether sentence was disproved, along
 -- with a disproof.
 inconsistantKB :: forall m fof lit atom term v p f.
-                  (IsFirstOrder fof atom p term v f, Ord fof, lit ~ Marked Literal fof,
+                  (atom ~ AtomOf fof, v ~ VarOf fof, term ~ TermOf atom, p ~ PredOf atom,
+                   IsFirstOrder fof atom p term v f,
+                   Ord fof, lit ~ Marked Literal fof,
                    Atom atom term v,
-                   HasApplyAndEquate atom p term,
+                   HasApplyAndEquate atom,
                    IsTerm term v f,
                    HasSkolem f v,
                    Monad m, Data fof, Pretty fof, Typeable f) =>
@@ -146,10 +148,11 @@ inconsistantKB s =
 -- |Return a flag indicating whether sentence was proved, along with a
 -- proof.
 theoremKB :: forall m fof lit atom term v p f.
-             (Monad m,
+             (atom ~ AtomOf fof, v ~ VarOf fof, term ~ TermOf atom, p ~ PredOf atom,
+              Monad m,
               IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
               Atom atom term v,
-              HasApplyAndEquate atom p term,
+              HasApplyAndEquate atom,
               IsTerm term v f,
               HasSkolem f v,
               Data fof, Typeable f) =>
@@ -159,10 +162,11 @@ theoremKB s = inconsistantKB ((.~.) s)
 -- |Try to prove a sentence, return the result and the proof.
 -- askKB should be in KnowledgeBase module. However, since resolution
 -- is here functions are here, it is also placed in this module.
-askKB :: (Monad m,
+askKB :: (atom ~ AtomOf fof, v ~ VarOf fof, term ~ TermOf atom, p ~ PredOf atom,
+          Monad m,
           IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
           Atom atom term v,
-          HasApplyAndEquate atom p term,
+          HasApplyAndEquate atom,
           IsTerm term v f,
           HasSkolem f v,
           Data fof, Typeable f) =>
@@ -171,9 +175,10 @@ askKB s = theoremKB s >>= return . fst
 
 -- |See whether the sentence is true, false or invalid.  Return proofs
 -- for truth and falsity.
-validKB :: (IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
+validKB :: (atom ~ AtomOf fof, v ~ VarOf fof, term ~ TermOf atom, p ~ PredOf atom,
+            IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
             Atom atom term v,
-            HasApplyAndEquate atom p term,
+            HasApplyAndEquate atom,
             IsTerm term v f,
             HasSkolem f v,
             Monad m, Data fof, Typeable f) =>
@@ -188,9 +193,10 @@ validKB s =
 -- |Validate a sentence and insert it into the knowledgebase.  Returns
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
-tellKB :: (IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
+tellKB :: (atom ~ AtomOf fof, v ~ VarOf fof, term ~ TermOf atom, p ~ PredOf atom,
+           IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
            Atom atom term v,
-           HasApplyAndEquate atom p term,
+           HasApplyAndEquate atom,
            IsTerm term v f,
            HasSkolem f v,
            Monad m, Data fof, Typeable f) =>
@@ -206,10 +212,11 @@ tellKB s =
                      , sentenceCount = sentenceCount st + 1 }
        return $ Proof {proofResult = valid, proof = Set.map wiItem inf'}
 
-loadKB :: (IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
+loadKB :: (atom ~ AtomOf fof, v ~ VarOf fof, term ~ TermOf atom, p ~ PredOf atom,
+           IsFirstOrder fof atom p term v f, Ord fof, Pretty fof, lit ~ Marked Literal fof,
            Atom atom term v,
            IsTerm term v f,
-           HasApplyAndEquate atom p term,
+           HasApplyAndEquate atom,
            HasSkolem f v,
            Monad m, Data fof, Typeable f) =>
           [fof] -> StateT (ProverState (ImplicativeForm lit)) (SkolemT m) [Proof lit]

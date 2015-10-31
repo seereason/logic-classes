@@ -20,8 +20,8 @@ import Data.List as List (map)
 import Data.Map as Map (empty, Map)
 import Data.Maybe (isJust)
 import Data.Set.Extra as Set (empty, flatten, fold, fromList, insert, map, Set, singleton, toList)
-import FOL (IsFirstOrder)
-import Formulas (IsNegatable(..), true)
+import FOL (IsFirstOrder, HasApply(TermOf, PredOf), IsQuantified(VarOf))
+import Formulas (IsFormula(AtomOf), IsNegatable(..), true)
 import Lib (Marked)
 import Lit (convertLiteral, foldLiteral, IsLiteral)
 import Pretty (Pretty(pPrint))
@@ -98,7 +98,8 @@ implicativeNormalForm :: forall m fof lit atom p term v f.
                          fof -> SkolemT m (Set (ImplicativeForm lit))
 -}
 implicativeNormalForm :: forall m fof atom p term v f.
-                         (Monad m, Data fof, Pretty fof, Typeable f,
+                         (atom ~ AtomOf fof, v ~ VarOf fof, term ~ TermOf atom, p ~ PredOf atom,
+                          Monad m, Data fof, Pretty fof, Typeable f,
                           IsFirstOrder fof atom p term v f, Ord fof,
                           HasSkolem f v) => fof -> SkolemT m (Set (ImplicativeForm (Marked Literal fof)))
 implicativeNormalForm formula =

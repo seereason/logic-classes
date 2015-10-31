@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings,
-             ScopedTypeVariables, TypeSynonymInstances, UndecidableInstances #-}
+             ScopedTypeVariables, TypeFamilies, TypeSynonymInstances, UndecidableInstances #-}
 {-# OPTIONS -Wall -Wwarn -fno-warn-name-shadowing -fno-warn-orphans #-}
 module Logic (tests) where
 
@@ -11,7 +11,8 @@ import Data.Logic.Satisfiable (theorem, inconsistant)
 import Data.Map as Map (singleton)
 import Data.Set.Extra as Set (Set, singleton, toList, empty, fromList, map {-, minView, fold-})
 import Data.String (IsString(fromString))
-import FOL (vt, (∀), pApp, fv, (.=.), exists, for_all, applyPredicate, fApp, HasApplyAndEquate(equate), V(V), Predicate, subst, IsFirstOrder, IsQuantified(VarOf), IsTerm)
+import FOL (vt, (∀), pApp, fv, (.=.), exists, for_all, applyPredicate, fApp,
+            HasApply(TermOf, PredOf), HasApplyAndEquate(equate), V(V), Predicate, subst, IsFirstOrder, IsQuantified(VarOf), IsTerm)
 import Formulas ((.~.), atomic, IsCombinable(..), IsFormula(AtomOf), (⇒))
 import Lib (Marked)
 import Lit (IsLiteral)
@@ -600,7 +601,8 @@ convertA = Just . A
           Ord formula, Skolem f v, IsString v, Variable v, TD.Display formula) => -}
 
 table :: forall formula atom p term v f.
-         (IsFirstOrder formula atom p term v f,
+         (atom ~ AtomOf formula, v ~ VarOf formula, term ~ TermOf atom, p ~ PredOf atom,
+          IsFirstOrder formula atom p term v f,
           IsPropositional formula,
           IsLiteral formula,
           HasSkolem f (VarOf formula),
