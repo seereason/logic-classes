@@ -20,7 +20,7 @@ import Data.List as List (map)
 import Data.Map as Map (empty, Map)
 import Data.Maybe (isJust)
 import Data.Set.Extra as Set (empty, flatten, fold, fromList, insert, map, Set, singleton, toList)
-import FOL (IsFirstOrder, HasApply(TermOf, PredOf), IsQuantified(VarOf))
+import FOL (HasApply(TermOf, PredOf), IsFirstOrder, IsQuantified(VarOf), IsTerm(FunOf, TVarOf))
 import Formulas (IsFormula(AtomOf), IsNegatable(..), true)
 import Lib (Marked)
 import Lit (convertLiteral, foldLiteral, IsLiteral)
@@ -97,11 +97,11 @@ implicativeNormalForm :: forall m fof lit atom p term v f.
                           Monad m, Data lit, Typeable f) =>
                          fof -> SkolemT m (Set (ImplicativeForm lit))
 -}
-implicativeNormalForm :: forall m fof atom p term v f.
-                         (atom ~ AtomOf fof, v ~ VarOf fof, term ~ TermOf atom, p ~ PredOf atom,
-                          Monad m, Data fof, Pretty fof, Typeable f,
-                          IsFirstOrder fof atom p term v f, Ord fof,
-                          HasSkolem f v) => fof -> SkolemT m (Set (ImplicativeForm (Marked Literal fof)))
+implicativeNormalForm :: forall m fof atom p term v function.
+                         (atom ~ AtomOf fof, v ~ VarOf fof, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, function ~ FunOf term,
+                          Monad m, Data fof, Pretty fof, Typeable function,
+                          IsFirstOrder fof atom p term v function, Ord fof,
+                          HasSkolem function v) => fof -> SkolemT m (Set (ImplicativeForm (Marked Literal fof)))
 implicativeNormalForm formula =
     do let (cnf :: Set (Set (Marked Literal fof))) = (Set.map (Set.map convert) . simpcnf id) (runSkolem (skolemize id formula) :: Marked Propositional fof)
            pairs = Set.map (Set.fold collect (Set.empty, Set.empty)) cnf
@@ -116,7 +116,7 @@ implicativeNormalForm formula =
                       (\ _ -> (n, Set.insert f p))
                       f
       split (lhs, rhs) =
-          if any (isJust . fromSkolem) (gFind rhs :: [f])
+          if any (isJust . fromSkolem) (gFind rhs :: [function])
           then Set.map (\ x -> (lhs, Set.singleton x)) rhs
           else Set.singleton (lhs, rhs)
 

@@ -15,7 +15,7 @@ module Data.Logic.Satisfiable
 import Data.List as List (map)
 import Data.Logic.Instances.PropLogic ()
 import Data.Set as Set (toList)
-import FOL (HasApply(TermOf, PredOf), IsFirstOrder, IsQuantified(VarOf))
+import FOL (HasApply(TermOf, PredOf), IsFirstOrder, IsQuantified(VarOf), IsTerm(FunOf, TVarOf))
 import Formulas ((.~.), IsFormula(AtomOf))
 import Lib (Marked)
 import Prop (convertPropositional, Literal, Propositional, simpcnf)
@@ -26,10 +26,10 @@ import Skolem (HasSkolem, runSkolem, skolemize)
 -- |Is there any variable assignment that makes the formula true?
 -- satisfiable :: forall formula atom term v f m. (Monad m, IsQuantified formula atom v, Formula atom term v, IsTerm term v f, Ord formula, IsLiteral formula atom v, Ord atom) =>
 --                 formula -> SkolemT v term m Bool
-satisfiable :: forall formula atom v term p f.
-               (atom ~ AtomOf formula, term ~ TermOf atom, p ~ PredOf atom, v ~ VarOf formula,
-                IsFirstOrder formula atom p term v f,
-                HasSkolem f v,
+satisfiable :: forall formula atom v term p function.
+               (atom ~ AtomOf formula, term ~ TermOf atom, p ~ PredOf atom, v ~ VarOf formula, v ~ TVarOf term, function ~ FunOf term,
+                IsFirstOrder formula atom p term v function,
+                HasSkolem function v,
                 Ord atom, Eq formula, Ord formula, Pretty formula, Pretty atom, HasFixity atom) =>
                formula -> Bool
 satisfiable f =
@@ -41,7 +41,7 @@ satisfiable f =
 
 -- |Is the formula always false?  (Not satisfiable.)
 inconsistant :: forall formula atom v term p f.
-                (atom ~ AtomOf formula, term ~ TermOf atom, p ~ PredOf atom, v ~ VarOf formula,
+                (atom ~ AtomOf formula, term ~ TermOf atom, p ~ PredOf atom, v ~ VarOf formula, v ~ TVarOf term, f ~ FunOf term,
                  IsFirstOrder formula atom p term v f,
                  HasSkolem f v,
                  Eq formula, Ord formula, Pretty formula,
@@ -51,7 +51,7 @@ inconsistant f =  not (satisfiable f)
 
 -- |Is the negation of the formula inconsistant?
 theorem :: forall formula atom v term p f.
-           (atom ~ AtomOf formula, term ~ TermOf atom, p ~ PredOf atom, v ~ VarOf formula,
+           (atom ~ AtomOf formula, term ~ TermOf atom, p ~ PredOf atom, v ~ VarOf formula, v ~ TVarOf term, f ~ FunOf term,
             IsFirstOrder formula atom p term v f,
             HasSkolem f v,
             Eq formula, Ord formula, Pretty formula,
@@ -61,7 +61,7 @@ theorem f = inconsistant ((.~.) f)
 
 -- |A formula is invalid if it is neither a theorem nor inconsistent.
 invalid :: forall formula atom v term p f.
-           (atom ~ AtomOf formula, term ~ TermOf atom, p ~ PredOf atom, v ~ VarOf formula,
+           (atom ~ AtomOf formula, term ~ TermOf atom, p ~ PredOf atom, v ~ VarOf formula, v ~ TVarOf term, f ~ FunOf term,
             IsFirstOrder formula atom p term v f,
             HasSkolem f v,
             Eq formula, Ord formula, Pretty formula,

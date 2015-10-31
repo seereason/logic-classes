@@ -81,7 +81,7 @@ instance (IsVariable v, IsPredicate p, IsFunction f
     foldCombination = error "FIXME foldCombination"
 instance HasFixity (NPredicate p term) where
     fixity _ = rootFixity
-instance (IsPredicate p, IsTerm term v function) => IsAtom (NPredicate p term)
+instance (IsPredicate p, IsTerm term) => IsAtom (NPredicate p term)
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f, atom ~ NPredicate p (NTerm v f), Pretty atom
          ) => IsPropositional (NFormula v p f) where
     foldPropositional' ho _ _ _ _ fm@(Quant _ _ _) = ho fm
@@ -92,11 +92,11 @@ instance HasFixity (NFormula v p f) where
     fixity _ = rootFixity
 --instance (IsVariable v, IsPredicate p, IsFunction f) => Pretty (NPredicate p (NTerm v f)) where
 --    pPrint p = foldEquate prettyEquate prettyApply p
-instance (IsPredicate p, IsTerm term v function) => Pretty (NPredicate p term) where
+instance (IsPredicate p, IsTerm term) => Pretty (NPredicate p term) where
     pPrint = foldEquate prettyEquate prettyApply
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f) => Pretty (NFormula v p f) where
     pPrint = prettyQuantified
-instance (IsPredicate p, IsTerm term v function) => HasApply (NPredicate p term) where
+instance (IsPredicate p, IsTerm term) => HasApply (NPredicate p term) where
     type PredOf (NPredicate p term) = p
     type TermOf (NPredicate p term) = term
     applyPredicate = Apply
@@ -104,7 +104,7 @@ instance (IsPredicate p, IsTerm term v function) => HasApply (NPredicate p term)
     foldPredicate' d _ x = d x
     overterms = overtermsEq
     onterms = ontermsEq
-instance (IsPredicate p, IsTerm term v function) => HasApplyAndEquate (NPredicate p term) where
+instance (IsPredicate p, IsTerm term) => HasApplyAndEquate (NPredicate p term) where
     equate = Equal
     foldEquate eq _ (Equal t1 t2) = eq t1 t2
     foldEquate _ ap (Apply p ts) = ap p ts
@@ -158,7 +158,9 @@ instance (IsFunction f) => HasFunctions (NFormula v p f) f where
 instance IsFunction f => HasFunctions (NTerm v f) f where
     funcs = error "FIXME: HasFunctions (NTerm v f)"
 
-instance (IsVariable v, IsFunction f) => IsTerm (NTerm v f) v f where
+instance (IsVariable v, IsFunction f) => IsTerm (NTerm v f) where
+    type TVarOf (NTerm v f) = v
+    type FunOf (NTerm v f) = f
     vt = NVar
     fApp = FunApp
     foldTerm vf _ (NVar v) = vf v

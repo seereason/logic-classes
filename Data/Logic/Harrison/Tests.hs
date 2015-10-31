@@ -65,6 +65,8 @@ data PTerm v f
 -}
 
 instance (Ord v, Variable v, Data v, Eq f, Skolem f, Data f) => IsTerm (Term v f) v f where
+    type FunOf (Term v f) = f
+    type TVarOf (Term v f) = v
     vt = Var
     fApp = FunApp
     foldTerm vf fn (Var v) = vf v

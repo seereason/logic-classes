@@ -674,7 +674,7 @@ socratesKB :: forall t formula atom predicate v term function.
                Ord formula, IsString t,
                IsQuantified formula,
                HasApply atom,
-               IsTerm term v function) =>
+               IsTerm term) =>
              (t, [TestFormula formula atom v])
 socratesKB =
     let x = vt "x"
@@ -966,7 +966,7 @@ chang43ConjectureRenamed =
 withKB :: forall formula atom term v f.
           (formula ~ MyFormula, atom ~ MyAtom, v ~ V,
            term ~ TermOf atom,
-           IsQuantified formula, HasApplyAndEquate atom, IsTerm term v f) =>
+           IsQuantified formula, HasApplyAndEquate atom, IsTerm term) =>
           (String, [TestFormula formula atom v]) -> TestFormula formula atom v -> TestFormula formula atom v
 withKB (kbName, knowledge) conjecture =
     conjecture { name = name conjecture ++ " with " ++ kbName ++ " knowledge base"
@@ -982,11 +982,11 @@ withKB (kbName, knowledge) conjecture =
 
 kbKnowledge :: forall formula atom term v f.
                (formula ~ MyFormula, atom ~ MyAtom, v ~ V, term ~ TermOf atom,
-                IsQuantified formula, HasApplyAndEquate atom, IsTerm term v f) =>
+                IsQuantified formula, HasApplyAndEquate atom, IsTerm term) =>
                (String, [TestFormula formula atom v]) -> (String, [formula])
 kbKnowledge kb = (fst (kb :: (String, [TestFormula formula atom v])), map formula (snd kb))
 
-proofs :: forall term v f. (IsTerm term v f, IsString v, Ord v) => [TestProof MyFormula term v]
+proofs :: forall term v f. (IsTerm term, IsString v, Ord v) => [TestProof MyFormula term v]
 proofs =
     let -- dog = pApp "Dog" :: [term] -> formula
         -- cat = pApp "Cat" :: [term] -> formula

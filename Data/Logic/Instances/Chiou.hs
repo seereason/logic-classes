@@ -187,7 +187,9 @@ instance (IsFormula (Sentence v p f), IsLiteral (Sentence v p f),
 quant' :: IsQuantified formula => Quant -> [VarOf formula] -> formula -> formula
 quant' op vs f = foldr (quant op) f vs
 
-instance (IsVariable v, IsFunction f, Pretty (CTerm v f)) => IsTerm (CTerm v f) v f where
+instance (IsVariable v, IsFunction f, Pretty (CTerm v f)) => IsTerm (CTerm v f) where
+    type TVarOf (CTerm v f) = v
+    type FunOf (CTerm v f) = f
     foldTerm v fn t =
         case t of
           Variable x -> v x
@@ -257,8 +259,9 @@ instance (Pretty (NormalTerm v f),
 instance HasFixity (NormalSentence v p f) where
     fixity _ = rootFixity
 
-instance (IsVariable v, IsFunction f, Pretty (NormalTerm v f)
-         ) => IsTerm (NormalTerm v f) v f where
+instance (IsVariable v, IsFunction f, Pretty (NormalTerm v f)) => IsTerm (NormalTerm v f) where
+    type TVarOf (NormalTerm v f) = v
+    type FunOf (NormalTerm v f) = f
     vt = NormalVariable
     fApp = NormalFunction
     foldTerm v f t =

@@ -11,7 +11,7 @@ import qualified Data.Map as M
 import qualified Data.Set.Extra as S
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(..))
 import Data.Logic.Normal.Implicative (LiteralMapT, NormalT)
-import FOL (HasApply(PredOf, TermOf), IsFirstOrder, IsQuantified(VarOf))
+import FOL (HasApply(PredOf, TermOf), IsFirstOrder, IsQuantified(VarOf), IsTerm(FunOf, TVarOf))
 import Formulas (IsFormula(AtomOf), IsNegatable(..), negated, (.~.))
 import qualified Lit as N
 import Pretty (Pretty)
@@ -22,9 +22,9 @@ instance ClauseNormalFormula CNF Literal where
     makeCNF = map S.toList . S.toList
     satisfiable cnf = return . not . (null :: [a] -> Bool) $ assertTrue' cnf newSatSolver >>= solve
 
-toCNF :: (atom ~ AtomOf formula, p ~ PredOf atom, term ~ TermOf atom, v ~ VarOf formula,
+toCNF :: (atom ~ AtomOf formula, p ~ PredOf atom, term ~ TermOf atom, v ~ VarOf formula, v ~ TVarOf term, function ~ FunOf term,
           Monad m,
-          IsFirstOrder formula atom p term v f,
+          IsFirstOrder formula atom p term v function,
           -- IsAtomWithEquate atom p term,
           N.IsLiteral formula,
           Ord formula, Pretty formula) =>
