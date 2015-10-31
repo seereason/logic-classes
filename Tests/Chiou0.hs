@@ -14,8 +14,8 @@ import qualified Data.Set as S
 import FOL (exists, for_all, IsTerm(..), pApp)
 import Formulas (IsCombinable(..), IsNegatable(..), (.~.))
 import Lib (Marked)
+import Lit (Literal)
 import Pretty (assertEqual')
-import Prop (Literal)
 import Skolem (HasSkolem(..), SkolemT)
 import Test.HUnit
 

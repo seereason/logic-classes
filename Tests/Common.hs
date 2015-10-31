@@ -20,8 +20,7 @@ import qualified Data.Boolean as B (CNF, Literal)
 import Data.Generics (Data, Typeable, listify)
 import Data.List as List (map, null)
 import Data.Logic.Classes.Atom (Atom(..))
-import Data.Maybe (isJust)
-import Skolem (fromSkolem, nnf, pnf, runSkolem, simplify, skolemize, skolems)
+import Skolem (nnf, pnf, runSkolem, simplify, skolemize, skolems)
 import qualified Data.Logic.Instances.Chiou as Ch
 import Data.Logic.Instances.PropLogic (plSat)
 import qualified Data.Logic.Instances.SatSolver as SS
@@ -30,14 +29,14 @@ import Data.Logic.KnowledgeBase (WithId, runProver', Proof, loadKB, theoremKB, g
 import Data.Logic.Normal.Implicative (ImplicativeForm, runNormal, runNormalT)
 import Data.Logic.Resolution (getSubstAtomEq, isRenameOfAtomEq, SetOfSupport)
 import Data.Set as Set
-import FOL (asubst, convertQuantified, fApp, foldTerm, functions, fva,
+import FOL (asubst, convertQuantified, fApp, foldTerm, fva,
             HasApply(TermOf, PredOf), HasApplyAndEquate(foldEquate),
             IsFirstOrder, IsQuantified(..), IsTerm(FunOf, TVarOf), Predicate, V, vt)
 import Formulas (IsFormula(AtomOf))
 import Lib (Marked)
+import Lit (Literal, unmarkLiteral)
 import Pretty (assertEqual', Pretty(pPrint))
-import Prop (PFormula, satisfiable, trivial, unmarkLiteral)
-import Prop (Literal, unmarkPropositional)
+import Prop (PFormula, satisfiable, trivial, unmarkPropositional)
 import PropLogic (PropForm)
 --import Safe (readMay)
 import Skolem (Function, MyAtom, MyTerm, SkolemT, MyFormula, MyAtom, MyTerm, simpcnf', simpdnf', HasSkolem)

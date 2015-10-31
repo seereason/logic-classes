@@ -15,10 +15,10 @@ import FOL (vt, (∀), pApp, fv, (.=.), exists, for_all, applyPredicate, fApp,
             HasApply(TermOf, PredOf), HasApplyAndEquate(equate), V(V), Predicate, subst, IsFirstOrder, IsQuantified(VarOf), IsTerm(FunOf, TVarOf))
 import Formulas ((.~.), atomic, IsCombinable(..), IsFormula(AtomOf), (⇒))
 import Lib (Marked)
-import Lit (IsLiteral)
+import Lit (IsLiteral, Literal, markLiteral, unmarkLiteral)
 import Pretty (assertEqual', Pretty(pPrint))
-import Prop (IsPropositional, list_conj, list_disj, Literal, markLiteral, markPropositional, Propositional,
-             simpcnf, TruthTable(..), TruthTable, truthTable, unmarkLiteral)
+import Prop (IsPropositional, list_conj, list_disj, markPropositional, Propositional,
+             simpcnf, TruthTable(..), TruthTable, truthTable)
 import Skolem (HasSkolem(..), runSkolem, skolemize, pnf, simpcnf', Function)
 import Test.HUnit
 import qualified TextDisplay as TD

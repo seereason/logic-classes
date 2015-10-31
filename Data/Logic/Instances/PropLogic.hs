@@ -6,12 +6,11 @@ module Data.Logic.Instances.PropLogic
     , plSat
     ) where
 
-import Data.Set.Extra as Set (empty, toList, union)
-import FOL (IsFunction, funcs)
+import Data.Set.Extra as Set (toList)
 import Formulas (BinOp(..), HasBoolean(fromBool, asBool), IsCombinable(..), IsFormula(..), IsNegatable(..))
-import Lit (IsLiteral(..))
+import Lit (IsLiteral(..), unmarkLiteral)
 import Pretty (HasFixity(fixity), Pretty(pPrint), rootFixity)
-import Prop (foldPropositional, IsAtom, IsPropositional(foldPropositional'), JustPropositional, prettyPropositional, simpcnf, unmarkLiteral)
+import Prop (IsAtom, IsPropositional(foldPropositional'), JustPropositional, prettyPropositional, simpcnf)
 import PropLogic hiding (at)
 
 instance JustPropositional (PropForm a)

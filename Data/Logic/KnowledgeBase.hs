@@ -36,10 +36,9 @@ import Data.Set.Extra as Set (Set, empty, map, minView, null, partition, union)
 import FOL (HasApply(TermOf, PredOf), HasApplyAndEquate, IsFirstOrder, IsQuantified(VarOf), IsTerm(FunOf, TVarOf))
 import Formulas ((.~.), IsFormula(AtomOf))
 import Lib (Marked)
-import Lit (IsLiteral)
+import Lit (IsLiteral, Literal)
 import Prelude hiding (negate)
 import Pretty (Pretty(pPrint), text, (<>))
-import Prop (Literal)
 import Skolem (SkolemT, runSkolemT, HasSkolem)
 
 type SentenceCount = Int
