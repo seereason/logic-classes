@@ -60,6 +60,7 @@ Library
     template-haskell
   if flag(local-atp-haskell)
     Hs-Source-Dirs: ., ../atp-haskell/src
+    Build-Depends: time
     Exposed-Modules:
       ATP
       Lib

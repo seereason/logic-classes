@@ -30,9 +30,9 @@ import Data.Data (Data)
 import qualified Data.Logic.Types.FirstOrder as N
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set)
+import Formulas (IsAtom)
 import FOL (IsFunction, IsPredicate, IsVariable)
 import Lib (Marked(Mark, unMark'))
-import Prop (IsAtom)
 import Skolem (simpcnf')
 
 -- |The new Formula type is just a wrapper around the Native instance

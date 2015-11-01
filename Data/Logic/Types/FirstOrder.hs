@@ -9,14 +9,15 @@ module Data.Logic.Types.FirstOrder
 
 import Data.Data (Data)
 import Data.SafeCopy (base, deriveSafeCopy)
+import Data.String (IsString(fromString))
 import Data.Typeable (Typeable)
-import Formulas (BinOp(..), IsNegatable(..), IsCombinable(..), HasBoolean(..), IsFormula(..))
+import Formulas (BinOp(..), IsNegatable(..), IsCombinable(..), HasBoolean(..), IsAtom, IsFormula(..))
 import FOL (exists, HasApply(..), HasApplyAndEquate(equate, foldEquate), IsFirstOrder,
             IsFunction, IsPredicate, IsQuantified(..), IsTerm(..), IsVariable(..),
             overtermsEq, ontermsEq, prettyApply, prettyEquate, prettyQuantified, prettyTerm, Quant(..), V)
 import Lit (IsLiteral(..))
 import Pretty (HasFixity(..), Pretty(pPrint), rootFixity)
-import Prop (IsAtom, IsPropositional(foldPropositional'))
+import Prop (IsPropositional(foldPropositional'))
 
 -- | Examine the formula to find the list of outermost universally
 -- quantified variables, and call a function with that list and the
@@ -65,13 +66,15 @@ data NTerm v f
                                     -- is another term.
     deriving (Eq, Ord, Data, Typeable, Show)
 
+instance IsVariable v => IsString (NTerm v f) where
+    fromString = NVar . fromString
 instance (IsVariable v, Pretty v, IsFunction f, Pretty f) => Pretty (NTerm v f) where
     pPrint = prettyTerm
 instance (IsVariable v, IsPredicate p, IsFunction f
          ) => IsNegatable (NFormula v p f) where
     naiveNegate = Negate
-    foldNegation' ne _ (Negate x) = ne x
-    foldNegation' _ other fm = other fm
+    foldNegation _ ne (Negate x) = ne x
+    foldNegation other _ fm = other fm
 instance (IsVariable v, IsPredicate p, IsFunction f
          ) => IsCombinable (NFormula v p f) where
     a .|. b = Combine a (:|:) b
@@ -100,8 +103,8 @@ instance (IsPredicate p, IsTerm term) => HasApply (NPredicate p term) where
     type PredOf (NPredicate p term) = p
     type TermOf (NPredicate p term) = term
     applyPredicate = Apply
-    foldPredicate' _ f (Apply p ts) = f p ts
-    foldPredicate' d _ x = d x
+    foldApply' _ f (Apply p ts) = f p ts
+    foldApply' d _ x = d x
     overterms = overtermsEq
     onterms = ontermsEq
 instance (IsPredicate p, IsTerm term) => HasApplyAndEquate (NPredicate p term) where

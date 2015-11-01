@@ -18,15 +18,14 @@ import Data.Bool (bool)
 import Data.Generics (Data, Typeable, listify)
 import Data.List as List (map)
 import Data.Map as Map (empty, Map)
-import Data.Maybe (isJust)
 import Data.Set.Extra as Set (empty, flatten, fold, fromList, insert, map, Set, singleton, toList)
 import FOL (HasApply(TermOf), IsFirstOrder, IsQuantified(VarOf), IsTerm(FunOf, TVarOf))
 import Formulas (IsFormula(AtomOf), IsNegatable(..), true)
 import Lib (Marked)
-import Lit (convertLiteral, foldLiteral, IsLiteral, Literal)
+import Lit (convertLiteral, foldLiteral, IsLiteral, JustLiteral, Literal)
 import Pretty (Pretty(pPrint))
-import Prop (Propositional, simpcnf)
-import Skolem (HasSkolem(fromSkolem), runSkolem, runSkolemT, skolemize, SkolemT)
+import Prop (IsPropositional, Propositional, simpcnf)
+import Skolem (HasSkolem(foldSkolem), runSkolem, runSkolemT, skolemize, SkolemT)
 import Text.PrettyPrint ((<>), Doc, brackets, comma, hsep, parens, punctuate, text, vcat)
 
 -- |Combination of Normal monad and LiteralMap monad
@@ -89,11 +88,15 @@ instance (IsLiteral lit, Ord lit, Pretty lit) => Pretty (ImplicativeForm lit) wh
 --    a | b | c => e
 --    a | b | c => f
 -- @
-implicativeNormalForm :: forall m fof atom term v function.
-                         (atom ~ AtomOf fof, v ~ VarOf fof, v ~ TVarOf term, term ~ TermOf atom, function ~ FunOf term,
-                          Monad m, Data fof, Pretty fof, Typeable function,
-                          IsFirstOrder fof, Ord fof,
-                          HasSkolem function v) => fof -> SkolemT m (Set (ImplicativeForm (Marked Literal fof)))
+implicativeNormalForm :: forall m fof pf lit atom term v function.
+                         (Monad m, IsFirstOrder fof, Data fof, Ord fof,
+                          IsPropositional pf, JustLiteral lit,
+                          HasSkolem function v, Typeable function,
+                          pf ~ Marked Propositional fof,
+                          lit ~ Marked Literal fof,
+                          atom ~ AtomOf fof, term ~ TermOf atom, v ~ VarOf fof,
+                          v ~ TVarOf term, function ~ FunOf term) =>
+                         fof -> SkolemT m (Set (ImplicativeForm lit))
 implicativeNormalForm formula =
     do let (cnf :: Set (Set (Marked Literal fof))) = (Set.map (Set.map convert) . simpcnf id) (runSkolem (skolemize id formula) :: Marked Propositional fof)
            pairs = Set.map (Set.fold collect (Set.empty, Set.empty)) cnf
@@ -108,7 +111,7 @@ implicativeNormalForm formula =
                       (\ _ -> (n, Set.insert f p))
                       f
       split (lhs, rhs) =
-          if any (isJust . fromSkolem) (gFind rhs :: [function])
+          if any (foldSkolem (const False) (const True)) (gFind rhs :: [function])
           then Set.map (\ x -> (lhs, Set.singleton x)) rhs
           else Set.singleton (lhs, rhs)
 

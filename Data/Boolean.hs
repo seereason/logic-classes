@@ -70,8 +70,8 @@ instance Ord Literal where
 instance IsNegatable Literal where
     naiveNegate (Neg x) = Pos x
     naiveNegate (Pos x) = Neg x
-    foldNegation' inverted _ (Neg x) = inverted (Pos x)
-    foldNegation' _ normal (Pos x) = normal (Pos x)
+    foldNegation normal _ (Pos x) = normal (Pos x)
+    foldNegation _ inverted (Neg x) = inverted (Pos x)
 
 deriving instance Data Literal
 deriving instance Typeable Literal
@@ -126,7 +126,7 @@ instance HasBoolean CNF where
     fromBool = error "FIXME: HasBoolean CNF"
 instance IsNegatable CNF where
     naiveNegate = error "FIXME: IsNegatable CNF"
-    foldNegation' = error "FIXME: IsNegatable CNF"
+    foldNegation = error "FIXME: IsNegatable CNF"
 instance HasFixity CNF where
     fixity = error "FIXME: HasFixity CNF"
 instance IsLiteral CNF where

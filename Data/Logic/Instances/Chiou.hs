@@ -21,9 +21,9 @@ import FOL ((.=.), HasApply(..), HasApplyAndEquate(..), IsFunction, IsPredicate,
             pApp, prettyQuantified, prettyTerm, Quant(..), showQuantified, showTerm)
 import Formulas (HasBoolean(..), asBool, IsAtom, IsCombinable(..), BinOp(..), IsFormula(..), IsNegatable(..), (.~.))
 import Lit (convertToLiteral, IsLiteral(foldLiteral'), JustLiteral, onatomsLiteral, overatomsLiteral, prettyLiteral, showLiteral)
-import Pretty (Pretty(pPrint), HasFixity(..), rootFixity)
+import Pretty (Pretty(pPrint), HasFixity(..), rootFixity, text)
 import Prop (IsPropositional(foldPropositional'))
-import Skolem (HasSkolem(..))
+import Skolem (HasSkolem(..), prettySkolem)
 
 data Sentence v p f
     = Connective (Sentence v p f) Connective (Sentence v p f)
@@ -37,6 +37,9 @@ data CTerm v f
     = Function f [CTerm v f]
     | Variable v
     deriving (Eq, Ord, Data, Typeable)
+
+instance IsString v => IsString (CTerm v f) where
+    fromString = Variable . fromString
 
 instance (IsVariable v, IsFunction f) => Show (CTerm v f) where
     show = showTerm
@@ -58,8 +61,8 @@ data Quantifier
 
 instance (Ord v, Ord p, Ord f) => IsNegatable (Sentence v p f) where
     naiveNegate = Not
-    foldNegation' ne _ (Not x) = ne x
-    foldNegation' _ other x = other x
+    foldNegation _ ne (Not x) = ne x
+    foldNegation other _ x = other x
 
 instance (HasBoolean p, Eq (Sentence v p f)) => HasBoolean (Sentence v p f) where
     fromBool x = Predicate (fromBool x) []
@@ -69,7 +72,7 @@ instance (HasBoolean p, Eq (Sentence v p f)) => HasBoolean (Sentence v p f) wher
         | True = Nothing
 
 instance (Ord v, Ord p, Ord f) => IsCombinable (Sentence v p f) where
-    foldCombination dj cj imp iff other fm =
+    foldCombination other dj cj imp iff fm =
         case fm of
           (Connective l Equiv r) -> l `iff` r
           (Connective l Imply r) -> l `imp` r
@@ -126,22 +129,27 @@ data AtomicFunction v
     -- This is redundant with the SkolemFunction and SkolemConstant
     -- constructors in the Chiou Term type.
     | AtomicSkolemFunction v
-    deriving (Eq, Show)
+    deriving (Eq, Ord, Show)
 
-instance IsString (AtomicFunction v) where
+instance IsVariable v => IsString (AtomicFunction v) where
     fromString = AtomicFunction
+
+instance IsVariable v => IsFunction (AtomicFunction v)
+
+instance IsVariable v => Pretty (AtomicFunction v) where
+    pPrint = prettySkolem (\(AtomicFunction s) -> text s)
 
 instance IsVariable v => HasSkolem (AtomicFunction v) v where
     toSkolem = AtomicSkolemFunction
-    fromSkolem (AtomicSkolemFunction v) = Just v
-    fromSkolem _ = Nothing
+    foldSkolem _ sk (AtomicSkolemFunction v) = sk v
+    foldSkolem f _ af = f af
 
 -- The Atom type is not cleanly distinguished from the Sentence type, so we need an Atom instance for Sentence.
 instance (IsVariable v, IsFunction f, IsPredicate p) => HasApply (Sentence v p f) where
     type PredOf (Sentence v p f) = p
     type TermOf (Sentence v p f) = CTerm v f
-    foldPredicate' _ ap (Predicate p ts) = ap p ts
-    foldPredicate' d _ p = d p
+    foldApply' _ ap (Predicate p ts) = ap p ts
+    foldApply' d _ p = d p
     applyPredicate = Predicate
     overterms = overtermsEq
     onterms = ontermsEq
@@ -223,16 +231,16 @@ instance (HasBoolean p, Eq (NormalSentence v p f)) => HasBoolean (NormalSentence
 
 instance (Ord v, Ord p, Ord f) => IsNegatable (NormalSentence v p f) where
     naiveNegate = NFNot
-    foldNegation' ne _ (NFNot x) = ne x
+    foldNegation _ ne (NFNot x) = ne x
     -- foldNegation' ne other (NFNot x) = foldNegation' other ne x
-    foldNegation' _ other x = other x
+    foldNegation other _ x = other x
 
 instance (IsVariable v, IsPredicate p, IsFunction f) => Show (NormalSentence v p f) where
     show = showLiteral
 
 instance (IsVariable v, IsPredicate p, IsFunction f) => IsAtom (NormalSentence v p f)
 
-instance JustLiteral (NormalSentence v p f)
+instance (IsVariable v, IsPredicate p, IsFunction f) => JustLiteral (NormalSentence v p f)
 
 instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f) => IsLiteral (NormalSentence v p f) where
     foldLiteral' _ho ne _tf at fm =
@@ -242,7 +250,7 @@ instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f) => IsLiteral 
           NFEqual _t1 _t2 -> at fm
 
 instance (IsLiteral (NormalSentence v p f),
-          IsVariable v, HasBoolean p, IsFunction f
+          IsVariable v, HasBoolean p, IsPredicate p, IsFunction f
          ) => Pretty (NormalSentence v p f) where
     pPrint = prettyLiteral
 
@@ -258,6 +266,9 @@ instance (Pretty (NormalTerm v f),
 
 instance HasFixity (NormalSentence v p f) where
     fixity _ = rootFixity
+
+instance IsVariable v => IsString (NormalTerm v f) where
+    fromString = NormalVariable . fromString
 
 instance (IsVariable v, IsFunction f, Pretty (NormalTerm v f)) => IsTerm (NormalTerm v f) where
     type TVarOf (NormalTerm v f) = v

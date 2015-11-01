@@ -7,18 +7,18 @@ module Data.Logic.Instances.PropLogic
     ) where
 
 import Data.Set.Extra as Set (toList)
-import Formulas (BinOp(..), HasBoolean(fromBool, asBool), IsCombinable(..), IsFormula(..), IsNegatable(..))
+import Formulas (BinOp(..), HasBoolean(fromBool, asBool), IsAtom, IsCombinable(..), IsFormula(..), IsNegatable(..))
 import Lit (IsLiteral(..), unmarkLiteral)
 import Pretty (HasFixity(fixity), Pretty(pPrint), rootFixity)
-import Prop (IsAtom, IsPropositional(foldPropositional'), JustPropositional, prettyPropositional, simpcnf)
+import Prop (IsPropositional(foldPropositional'), JustPropositional, prettyPropositional, simpcnf)
 import PropLogic hiding (at)
 
-instance JustPropositional (PropForm a)
+instance IsAtom a => JustPropositional (PropForm a)
 
 instance Ord a => IsNegatable (PropForm a) where
     naiveNegate = N
-    foldNegation' inverted normal (N x) = foldNegation' normal inverted x
-    foldNegation' _ normal x = normal x
+    foldNegation normal inverted (N x) = foldNegation inverted normal x
+    foldNegation normal _ x = normal x
 
 instance Ord a => IsCombinable (PropForm a) where
     foldCombination = error "FIXME: PropForm foldCombination"
