@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, PackageImports, RankNTypes, ScopedTypeVariables, TypeFamilies, UndecidableInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, PackageImports, RankNTypes, ScopedTypeVariables, TypeFamilies, UndecidableInstances #-}
 {-# OPTIONS -Wall #-}
 module Data.Logic.Normal.Implicative
     ( LiteralMapT
@@ -19,22 +19,22 @@ import Data.Generics (Data, Typeable, listify)
 import Data.List as List (map)
 import Data.Map as Map (empty, Map)
 import Data.Set.Extra as Set (empty, flatten, fold, fromList, insert, map, Set, singleton, toList)
-import FOL (HasApply(TermOf), IsFirstOrder, IsQuantified(VarOf), IsTerm(FunOf, TVarOf))
+import FOL (HasApply(TermOf), IsFirstOrder, IsFunction, IsQuantified(VarOf), IsTerm(FunOf))
 import Formulas (IsFormula(AtomOf), IsNegatable(..), true)
 import Lib (Marked)
 import Lit (convertLiteral, foldLiteral, IsLiteral, JustLiteral, Literal)
 import Pretty (Pretty(pPrint))
 import Prop (IsPropositional, Propositional, simpcnf)
-import Skolem (HasSkolem(foldSkolem), runSkolem, runSkolemT, skolemize, SkolemT)
+import Skolem (HasSkolem(SVarOf, foldSkolem), runSkolem, runSkolemT, skolemize, SkolemT)
 import Text.PrettyPrint ((<>), Doc, brackets, comma, hsep, parens, punctuate, text, vcat)
 
 -- |Combination of Normal monad and LiteralMap monad
-type NormalT formula v term m a = SkolemT (LiteralMapT formula m) a
+type NormalT formula m a = SkolemT (LiteralMapT formula m) (FunOf (TermOf (AtomOf formula))) a
 
-runNormalT :: Monad m => NormalT formula v term m a -> m a
+runNormalT :: (Monad m, IsFunction (FunOf (TermOf (AtomOf formula)))) => NormalT formula m a -> m a
 runNormalT action = runLiteralMapM (runSkolemT action)
 
-runNormal :: NormalT formula v term Identity a -> a
+runNormal :: (IsFunction (FunOf (TermOf (AtomOf formula)))) => NormalT formula Identity a -> a
 runNormal = runIdentity . runNormalT
 
 --type LiteralMap f = LiteralMapT f Identity
@@ -89,19 +89,23 @@ instance (IsLiteral lit, Ord lit, Pretty lit) => Pretty (ImplicativeForm lit) wh
 --    a | b | c => f
 -- @
 implicativeNormalForm :: forall m fof pf lit atom term v function.
-                         (Monad m, IsFirstOrder fof, Data fof, Ord fof,
-                          IsPropositional pf, JustLiteral lit,
-                          HasSkolem function v, Typeable function,
+                         (IsFirstOrder fof, Data fof, Ord fof,
+                          IsPropositional pf,
+                          JustLiteral lit,
+                          HasSkolem function, Typeable function, Monad m,
                           pf ~ Marked Propositional fof,
                           lit ~ Marked Literal fof,
-                          atom ~ AtomOf fof, term ~ TermOf atom, v ~ VarOf fof,
-                          v ~ TVarOf term, function ~ FunOf term) =>
-                         fof -> SkolemT m (Set (ImplicativeForm lit))
+                          atom ~ AtomOf fof,
+                          term ~ TermOf atom,
+                          function ~ FunOf term,
+                          v ~ VarOf fof,
+                          v ~ SVarOf function) =>
+                         fof -> SkolemT m function (Set (ImplicativeForm lit))
 implicativeNormalForm formula =
     do let (cnf :: Set (Set (Marked Literal fof))) = (Set.map (Set.map convert) . simpcnf id) (runSkolem (skolemize id formula) :: Marked Propositional fof)
            pairs = Set.map (Set.fold collect (Set.empty, Set.empty)) cnf
            pairs' = Set.flatten (Set.map split pairs)
-       return (Set.map (\ (n,p) -> INF n p) pairs')
+       return (Set.map (uncurry INF) pairs')
     where
       convert :: Marked Literal (Marked Propositional fof) -> Marked Literal fof
       convert = convertLiteral id
@@ -111,7 +115,7 @@ implicativeNormalForm formula =
                       (\ _ -> (n, Set.insert f p))
                       f
       split (lhs, rhs) =
-          if any (foldSkolem (const False) (const True)) (gFind rhs :: [function])
+          if any (foldSkolem (\_ -> False) (\_ _ -> True)) (gFind rhs :: [function])
           then Set.map (\ x -> (lhs, Set.singleton x)) rhs
           else Set.singleton (lhs, rhs)
 

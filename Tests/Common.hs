@@ -31,7 +31,7 @@ import Data.Logic.Resolution (getSubstAtomEq, isRenameOfAtomEq, SetOfSupport)
 import Data.Set as Set
 import FOL (asubst, convertQuantified, fApp, foldTerm, fva,
             HasApply(TermOf, PredOf), HasApplyAndEquate(foldEquate),
-            IsFirstOrder, IsQuantified(..), IsTerm(FunOf, TVarOf), Predicate, V, vt)
+            IsFirstOrder, IsQuantified(..), IsTerm(FunOf), Predicate, V, vt)
 import Formulas (IsFormula(AtomOf))
 import Lib (Marked)
 import Lit (Literal, unmarkLiteral)
@@ -39,7 +39,7 @@ import Pretty (assertEqual', Pretty(pPrint))
 import Prop (PFormula, satisfiable, trivial, unmarkPropositional)
 import PropLogic (PropForm)
 --import Safe (readMay)
-import Skolem (Function, MyAtom, MyTerm, SkolemT, MyFormula, MyAtom, MyTerm, simpcnf', simpdnf', HasSkolem)
+import Skolem (Function, MyAtom, MyTerm, SkolemT, MyFormula, MyAtom, MyTerm, simpcnf', simpdnf', HasSkolem(SVarOf))
 import Test.HUnit
 import Text.PrettyPrint (Style(mode), renderStyle, style, Mode(OneLineMode))
 
@@ -103,8 +103,8 @@ doTest (TestFormula fm nm expect) =
       doExpected (SimplifiedForm f') = let label = (nm ++ " simplified") in TestLabel label (TestCase (assertEqual' label f' (simplify fm)))
       doExpected (PrenexNormalForm f') = let label = (nm ++ " prenex normal form") in TestLabel label (TestCase (assertEqual' label f' (pnf fm)))
       doExpected (NegationNormalForm f') = let label = (nm ++ " negation normal form") in TestLabel label (TestCase (assertEqual' label f' (nnf . simplify $ fm)))
-      doExpected (SkolemNormalForm f') = let label = (nm ++ " skolem normal form") in TestLabel label (TestCase (assertEqual' label f' (runSkolem (skolemize id fm :: SkolemT Identity (PFormula MyAtom)))))
-      doExpected (SkolemNumbers f') = let label = (nm ++ " skolem numbers") in TestLabel label (TestCase (assertEqual' label f' (skolems (runSkolem (skolemize id fm :: SkolemT Identity (PFormula MyAtom))))))
+      doExpected (SkolemNormalForm f') = let label = (nm ++ " skolem normal form") in TestLabel label (TestCase (assertEqual' label f' (runSkolem (skolemize id fm :: SkolemT Identity Function (PFormula MyAtom)))))
+      doExpected (SkolemNumbers f') = let label = (nm ++ " skolem numbers") in TestLabel label (TestCase (assertEqual' label f' (skolems (runSkolem (skolemize id fm :: SkolemT Identity Function (PFormula MyAtom))))))
       doExpected (ClauseNormalForm fss) =
           let label = (nm ++ " clause normal form") in
           TestLabel label (TestCase (assertEqual' label
@@ -160,15 +160,16 @@ data ProofExpected lit v term
     | ChiouKB (Set (WithId (ImplicativeForm lit)))
     deriving (Data, Typeable)
 
-doProof :: forall formula lit atom term v f.
-           (atom ~ AtomOf formula, v ~ VarOf formula, v ~ TVarOf term, term ~ TermOf atom, f ~ FunOf term,
-            IsFirstOrder formula, Ord formula, Pretty formula,
+doProof :: forall formula lit atom term v function.
+           (IsFirstOrder formula, Ord formula, Pretty formula,
+            lit ~ Marked Literal formula,
             HasApplyAndEquate atom,
             Atom atom term v,
-            HasSkolem f v,
-            lit ~ Marked Literal formula,
-            Eq formula, Eq term, Eq v, Ord term, Show formula, Show term, Data formula, Typeable f, Show v
-           ) => TestProof formula term v -> Test
+            HasSkolem function,
+            Eq formula, Eq term, Eq v, Ord term, Show formula, Show term, Data formula, Typeable function, Show v,
+            atom ~ AtomOf formula, term ~ TermOf atom, function ~ FunOf term,
+            v ~ VarOf formula, v ~ SVarOf function) =>
+           TestProof formula term v -> Test
 doProof p =
     TestLabel (proofName p) $ TestList $
     concatMap doExpected (proofExpected p)
@@ -184,24 +185,24 @@ doProof p =
       c = conjecture p :: formula
 
 loadKB' :: forall m formula lit atom p term v f.
-           (atom ~ AtomOf formula, v ~ VarOf formula, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
+           (atom ~ AtomOf formula, v ~ VarOf formula, v ~ SVarOf f, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
             lit ~ Marked Literal formula,
             Monad m, Data formula,
             IsFirstOrder formula, Ord formula, Pretty formula,
             HasApplyAndEquate atom,
-            HasSkolem f v,
+            HasSkolem f,
             Atom atom term v,
-            IsTerm term, Typeable f) => [formula] -> ProverT' v term (ImplicativeForm lit) m [Proof lit]
+            IsTerm term, Typeable f) => [formula] -> ProverT' v term lit m [Proof lit]
 loadKB' = loadKB
 
 theoremKB' :: forall m formula lit atom p term v f.
-              (atom ~ AtomOf formula, v ~ VarOf formula, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
+              (atom ~ AtomOf formula, v ~ VarOf formula, v ~ SVarOf f, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
                lit ~ Marked Literal formula,
                Monad m, Data formula,
                IsFirstOrder formula, Ord formula, Pretty formula,
                HasApplyAndEquate atom,
-               HasSkolem f v,
+               HasSkolem f,
                Atom atom term v,
                IsTerm term, Typeable f
-              ) => formula -> ProverT' v term (ImplicativeForm lit) m (Bool, SetOfSupport lit v term)
+              ) => formula -> ProverT' v term lit m (Bool, SetOfSupport lit v term)
 theoremKB' = theoremKB

@@ -214,19 +214,19 @@ inf1 =
 equality1 :: MyFormula
 equality1 = for_all "x" ( x .=. x) .=>. for_all "x" (exists "y" ((x .=. y))) :: MyFormula
 equality1expected :: (Bool, (Set (Set (Marked Literal (Marked Propositional MyFormula))), TruthTable MyAtom))
-equality1expected = (False,(fromList [fromList [markLiteral (markPropositional (vt "x" .=. fApp (toSkolem "y")[vt "x"])),
-                                                markLiteral (markPropositional ((.~.) (fApp (toSkolem "x")[] .=. fApp (toSkolem "x")[])))]],
-                            TruthTable [equate (vt (V "x")) ((fApp (toSkolem (V "y") :: Function)[vt (V "x")] :: MyTerm)),
-                                        equate (fApp (toSkolem (V "x"))[]) (fApp (toSkolem (V "x"))[] :: MyTerm)]
+equality1expected = (False,(fromList [fromList [markLiteral (markPropositional (vt "x" .=. fApp (toSkolem "y" 1)[vt "x"])),
+                                                markLiteral (markPropositional ((.~.) (fApp (toSkolem "x" 1)[] .=. fApp (toSkolem "x" 1)[])))]],
+                            TruthTable [equate (vt (V "x")) ((fApp (toSkolem (V "y") 1 :: Function)[vt (V "x")] :: MyTerm)),
+                                        equate (fApp (toSkolem (V "x") 1)[]) (fApp (toSkolem (V "x") 1)[] :: MyTerm)]
                                        [([False,False],True),
                                         ([False,True],False),
                                         ([True,False],True),
                                         ([True,True],True)]))
 {-
-equality1expected = (False, (fromList [fromList [markLiteral (markPropositional ((vt "x" :: MyTerm) .=. fApp (toSkolem "y")[vt (V "x")])),
-                                                 markLiteral (markPropositional ((.~.) ((fApp (toSkolem "x")[] :: MyTerm) .=. (fApp (toSkolem "x")[] :: MyTerm))))]],
-                             TruthTable ([{-(vt "x" :: MyTerm) .=. (fApp (toSkolem ("y" :: V)) [vt (V "x")] :: MyTerm),
-                                          fApp (toSkolem "x") [] .=. fApp (toSkolem "x") []-}] :: [MyAtom])
+equality1expected = (False, (fromList [fromList [markLiteral (markPropositional ((vt "x" :: MyTerm) .=. fApp (toSkolem "y" 1)[vt (V "x")])),
+                                                 markLiteral (markPropositional ((.~.) ((fApp (toSkolem "x" 1)[] :: MyTerm) .=. (fApp (toSkolem "x" 1)[] :: MyTerm))))]],
+                             TruthTable ([{-(vt "x" :: MyTerm) .=. (fApp (toSkolem ("y" :: V) 1) [vt (V "x")] :: MyTerm),
+                                          fApp (toSkolem "x" 1) [] .=. fApp (toSkolem "x" 1) []-}] :: [MyAtom])
                                         [([False,False],True),
                                          ([False,True],False),
                                          ([True,False],True),
@@ -241,10 +241,10 @@ equality1expected = (False, (fromList [fromList [markLiteral (markPropositional 
 equality2 :: MyFormula
 equality2 = for_all "x" ( x .=. x .=>. for_all "x" ((.~.) (for_all "y" ((.~.) (x .=. y))))) -- convert existential
 equality2expected :: (Bool, (Set (Set (Marked Literal (Marked Propositional MyFormula))), TruthTable MyAtom))
-equality2expected = (False, (fromList [fromList [markLiteral (markPropositional (vt (V "x'") .=. fApp (toSkolem (V "y"))[vt (V "x'")])),
+equality2expected = (False, (fromList [fromList [markLiteral (markPropositional (vt (V "x'") .=. fApp (toSkolem (V "y") 1)[vt (V "x'")])),
                                                  markLiteral (markPropositional ((.~.) (vt (V "x") .=. vt (V "x"))))]],
                              TruthTable [equate (vt (V "x")) (vt (V "x")),
-                                         equate (vt (V "x'")) (fApp (toSkolem (V "y"))[vt "x'"] :: MyTerm)]
+                                         equate (vt (V "x'")) (fApp (toSkolem (V "y") 1)[vt "x'"] :: MyTerm)]
                                         [([False, False], True),
                                          ([False, True], True),
                                          ([True, False], False),
@@ -285,24 +285,24 @@ theoremTests =
       TestLabel label (TestCase (assertEqual label
                 (False,
                  False,
-                 (fromList [fromList [atomic (applyPredicate "H" [fApp (toSkolem "x") []]),
+                 (fromList [fromList [atomic (applyPredicate "H" [fApp (toSkolem "x" 1) []]),
                                       atomic (applyPredicate "M" [vt "y"]),
-                                      atomic (applyPredicate "S" [fApp (toSkolem "x") []]),
+                                      atomic (applyPredicate "S" [fApp (toSkolem "x" 1) []]),
                                       (.~.) (atomic (applyPredicate "S" [vt "y"]))],
                             fromList [atomic (applyPredicate "M" [vt "y"]),
-                                      atomic (applyPredicate "S" [fApp (toSkolem "x") []]),
-                                      (.~.) (atomic (applyPredicate "M" [fApp (toSkolem "x") []])),
+                                      atomic (applyPredicate "S" [fApp (toSkolem "x" 1) []]),
+                                      (.~.) (atomic (applyPredicate "M" [fApp (toSkolem "x" 1) []])),
                                       (.~.) (atomic (applyPredicate "S" [vt "y"]))],
                             fromList [atomic (applyPredicate "M" [vt "y"]),
-                                      (.~.) (atomic (applyPredicate "H" [fApp (toSkolem "x") []])),
-                                      (.~.) (atomic (applyPredicate "M" [fApp (toSkolem "x") []])),
+                                      (.~.) (atomic (applyPredicate "H" [fApp (toSkolem "x" 1) []])),
+                                      (.~.) (atomic (applyPredicate "M" [fApp (toSkolem "x" 1) []])),
                                       (.~.) (atomic (applyPredicate "S" [vt "y"]))]],
                  (TruthTable
-                  [(applyPredicate "H" [fApp (toSkolem "x") []]),
+                  [(applyPredicate "H" [fApp (toSkolem "x" 1) []]),
                    (applyPredicate "M" [vt ("y")]),
-                   (applyPredicate "M" [fApp (toSkolem "x") []]),
+                   (applyPredicate "M" [fApp (toSkolem "x" 1) []]),
                    (applyPredicate "S" [vt ("y")]),
-                   (applyPredicate "S" [fApp (toSkolem "x") []])]
+                   (applyPredicate "S" [fApp (toSkolem "x" 1) []])]
                   [([False,     False,  False,  False,  False], True),
                    ([False,     False,  False,  False,  True],  True),
                    ([False,     False,  False,  True,   False], False),
@@ -340,18 +340,18 @@ theoremTests =
                  table' socrates3)))
     , let label = "socrates1 truth table" in
       TestLabel label (TestCase (assertEqual label
-             (let skx = fApp (toSkolem "x") in
-              (fromList [fromList [atomic (applyPredicate "H" [fApp (toSkolem "x") []]),
+             (let skx = fApp (toSkolem "x" 1) in
+              (fromList [fromList [atomic (applyPredicate "H" [fApp (toSkolem "x" 1) []]),
                                    atomic (applyPredicate "M" [vt "x"]),
-                                   atomic (applyPredicate "S" [fApp (toSkolem "x") []]),
+                                   atomic (applyPredicate "S" [fApp (toSkolem "x" 1) []]),
                                    (.~.) (atomic (applyPredicate "S" [vt "x"]))],
                          fromList [atomic (applyPredicate "M" [vt "x"]),
-                                   atomic (applyPredicate "S" [fApp (toSkolem "x") []]),
-                                   (.~.) (atomic (applyPredicate "M" [fApp (toSkolem "x") []])),
+                                   atomic (applyPredicate "S" [fApp (toSkolem "x" 1) []]),
+                                   (.~.) (atomic (applyPredicate "M" [fApp (toSkolem "x" 1) []])),
                                    (.~.) (atomic (applyPredicate "S" [vt "x"]))],
                          fromList [atomic (applyPredicate "M" [vt "x"]),
-                                   (.~.) (atomic (applyPredicate "H" [fApp (toSkolem "x") []])),
-                                   (.~.) (atomic (applyPredicate "M" [fApp (toSkolem "x") []])),
+                                   (.~.) (atomic (applyPredicate "H" [fApp (toSkolem "x" 1) []])),
+                                   (.~.) (atomic (applyPredicate "M" [fApp (toSkolem "x" 1) []])),
                                    (.~.) (atomic (applyPredicate "S" [vt "x"]))]],
               (TruthTable
                [(applyPredicate "H" [skx []]),
@@ -399,16 +399,16 @@ theoremTests =
                 ([True, True, True, True, True], True)])))
                 (table' socrates1)))
 
-    , let skx = fApp (toSkolem "x")
-          {- sky = fApp (toSkolem "y") -} in
+    , let skx = fApp (toSkolem "x" 1)
+          {- sky = fApp (toSkolem "y" 1) -} in
       let label = "Socrates formula skolemized" in
       TestLabel label (TestCase (assertEqual label
                  (((pApp "S" [skx []] .&. (.~.)(pApp "H" [skx []]) .|. pApp "H" [skx[]] .&. (.~.)(pApp "M" [skx []])) .|.
                    ((.~.)(pApp "S" [x]) .|. pApp "M" [x])))
                  (runSkolem (skolemize id socrates5) :: Marked Propositional MyFormula)))
 
-    , let skx = fApp (toSkolem "x")
-          sky = fApp (toSkolem "y") in
+    , let skx = fApp (toSkolem "x" 1)
+          sky = fApp (toSkolem "y" 1) in
       let label = "Socrates formula skolemized" in
       TestLabel label (TestCase (assertEqual label
                  ((pApp "S" [skx []] .&. (.~.)(pApp "H" [skx []]) .|. pApp "H" [sky[]] .&. (.~.)(pApp "M" [sky []])) .|.
@@ -470,17 +470,17 @@ theoremTests =
                exists "x" (pApp "L" [vt "x"])) .=>.                            -- Someone is a logician
               (.~.) (exists "x" (pApp "F" [vt "x"]))                           -- Someone / Nobody is funny
           input = table' formula
-          expected = (fromList [fromList [atomic (applyPredicate "L" [fApp (toSkolem "x") []]),
+          expected = (fromList [fromList [atomic (applyPredicate "L" [fApp (toSkolem "x" 1) []]),
                                           (.~.) (atomic (applyPredicate "F" [vt "x'"])),
                                           (.~.) (atomic (applyPredicate "L" [vt "x"]))],
                                 fromList [(.~.) (atomic (applyPredicate "F" [vt "x'"])),
-                                          (.~.) (atomic (applyPredicate "F" [fApp (toSkolem "x") []])),
+                                          (.~.) (atomic (applyPredicate "F" [fApp (toSkolem "x" 1) []])),
                                           (.~.) (atomic (applyPredicate "L" [vt "x"]))]],
                       (TruthTable
                        [(applyPredicate ("F") [vt ("x'")]),
-                       (applyPredicate ("F") [fApp (toSkolem "x") []]),
+                       (applyPredicate ("F") [fApp (toSkolem "x" 1) []]),
                        (applyPredicate ("L") [vt ("x")]),
-                       (applyPredicate ("L") [fApp (toSkolem "x") []])]
+                       (applyPredicate ("L") [fApp (toSkolem "x" 1) []])]
                       [([False,False,False,False],True),
                        ([False,False,False,True],True),
                        ([False,False,True,False],True),
@@ -504,17 +504,17 @@ theoremTests =
                exists "y" (pApp "L" [vt (fromString "y")])) .=>.           -- Someone is a logician
               (.~.) (exists "z" (pApp "F" [vt "z"]))                       -- Someone / Nobody is funny
           input = table' formula
-          expected = (fromList [fromList [atomic (applyPredicate (p "L") [fApp (toSkolem "x") []]),
+          expected = (fromList [fromList [atomic (applyPredicate (p "L") [fApp (toSkolem "x" 1) []]),
                                           (.~.) (atomic (applyPredicate (p "F") [vt "z"])),
                                           (.~.) (atomic (applyPredicate (p "L") [vt "y"]))],
                                 fromList [(.~.) (atomic (applyPredicate (p "F") [vt "z"])),
-                                          (.~.) (atomic (applyPredicate (p "F") [fApp (toSkolem "x") []])),
+                                          (.~.) (atomic (applyPredicate (p "F") [fApp (toSkolem "x" 1) []])),
                                           (.~.) (atomic (applyPredicate (p "L") [vt "y"]))]],
                       (TruthTable
                        [applyPredicate (p "F") [vt (V "z")],
-                        applyPredicate (p "F") [fApp (toSkolem (V "x")) []],
+                        applyPredicate (p "F") [fApp (toSkolem (V "x") 1) []],
                         applyPredicate (p "L") [vt (V "y")],
-                        applyPredicate (p "L") [fApp (toSkolem (V "x")) []]]
+                        applyPredicate (p "L") [fApp (toSkolem (V "x") 1) []]]
                       [([False,False,False,False],True),
                        ([False,False,False,True],True),
                        ([False,False,True,False],True),
@@ -601,11 +601,11 @@ convertA = Just . A
           Ord formula, Skolem f v, IsString v, Variable v, TD.Display formula) => -}
 
 table :: forall formula atom p term v f.
-         (atom ~ AtomOf formula, v ~ VarOf formula, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
+         (atom ~ AtomOf formula, v ~ VarOf formula, v ~ SVarOf f, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
           IsFirstOrder formula,
           IsPropositional formula,
           IsLiteral formula,
-          HasSkolem f v,
+          HasSkolem f,
           Atom atom term v,
           IsTerm term,
           Ord formula, Pretty formula, Ord atom) =>

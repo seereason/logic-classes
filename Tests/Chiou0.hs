@@ -28,8 +28,8 @@ loadTest =
     TestLabel label (TestCase (assertEqual' label expected (runProver' Nothing (loadKB sentences))))
     where
       expected :: [Proof (Marked Literal TFormula)]
-      expected = [Proof Invalid (S.fromList [makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem "x") []])]),
-                                             makeINF' ([]) ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem "x") []])])]),
+      expected = [Proof Invalid (S.fromList [makeINF' ([]) ([(pApp ("Dog") [fApp (toSkolem "x" 1) []])]),
+                                             makeINF' ([]) ([(pApp ("Owns") [fApp ("Jack") [],fApp (toSkolem "x" 1) []])])]),
                   Proof Invalid (S.fromList [makeINF' ([(pApp ("Dog") [vt ("y'")]),(pApp ("Owns") [vt ("x"),vt ("y")])]) ([(pApp ("AnimalLover") [vt ("x")])])]),
                   Proof Invalid (S.fromList [makeINF' ([(pApp ("Animal") [vt ("y")]),(pApp ("AnimalLover") [vt ("x")]),(pApp ("Kills") [vt ("x"),vt ("y")])]) ([])]),
                   Proof Invalid (S.fromList [makeINF' ([]) ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []]),(pApp ("Kills") [fApp ("Jack") [],fApp ("Tuna") []])])]),
@@ -84,7 +84,10 @@ proof2 = (True,
            (makeINF' ([(pApp ("Dog") [vt ("y'")]),(pApp ("Owns") [fApp ("Jack") [],vt ("y")])]) ([]),fromList []),
            (makeINF' ([(pApp ("Kills") [fApp ("Curiosity") [],fApp ("Tuna") []])]) ([]),fromList [])])
 
-testProof :: MonadIO m => String -> (TFormula, Bool, (S.Set (ImplicativeForm (Marked Literal TFormula)))) -> ProverT (ImplicativeForm (Marked Literal TFormula)) (SkolemT m) ()
+testProof :: MonadIO m =>
+             String
+          -> (TFormula, Bool, (S.Set (ImplicativeForm (Marked Literal TFormula))))
+          -> ProverT (ImplicativeForm (Marked Literal TFormula)) (SkolemT m Function) ()
 testProof label (question, expectedAnswer, expectedProof) =
     theoremKB question >>= \ (actualFlag, actualProof) ->
     let actual' = (actualFlag, S.map fst actualProof) in
@@ -93,7 +96,7 @@ testProof label (question, expectedAnswer, expectedProof) =
                 "\n Actual:\n  " ++ show actual')
     else liftIO (putStrLn (label ++ " ok"))
 
-loadCmd :: Monad m => ProverT (ImplicativeForm (Marked Literal TFormula)) (SkolemT m) [Proof (Marked Literal TFormula)]
+loadCmd :: Monad m => ProverT (ImplicativeForm (Marked Literal TFormula)) (SkolemT m Function) [Proof (Marked Literal TFormula)]
 loadCmd = loadKB sentences
 
 -- instance IsAtom (Predicate Pr (PTerm V Function))

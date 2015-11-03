@@ -28,7 +28,7 @@ toCNF :: (atom ~ AtomOf formula, p ~ PredOf atom, term ~ TermOf atom, v ~ VarOf 
           -- IsAtomWithEquate atom p term,
           N.IsLiteral formula,
           Ord formula, Pretty formula) =>
-         formula -> NormalT formula v term m CNF
+         formula -> NormalT formula m CNF
 toCNF f = S.ssMapM (lift . toLiteral) (simpcnf' f) >>= return . makeCNF
 
 -- |Convert a [[formula]] to CNF, which means building a map from

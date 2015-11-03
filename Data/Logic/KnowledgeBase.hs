@@ -33,13 +33,13 @@ import Data.Logic.Normal.Implicative (ImplicativeForm, implicativeNormalForm, pr
 import Data.Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Data.SafeCopy (deriveSafeCopy, base)
 import Data.Set.Extra as Set (Set, empty, map, minView, null, partition, union)
-import FOL (HasApply(TermOf, PredOf), HasApplyAndEquate, IsFirstOrder, IsQuantified(VarOf), IsTerm(FunOf, TVarOf))
+import FOL (HasApply(TermOf, PredOf), HasApplyAndEquate, IsFirstOrder, IsFunction, IsQuantified(VarOf), IsTerm(FunOf))
 import Formulas ((.~.), IsFormula(AtomOf))
 import Lib (Marked)
 import Lit (IsLiteral, Literal)
 import Prelude hiding (negate)
 import Pretty (Pretty(pPrint), text, (<>))
-import Skolem (SkolemT, runSkolemT, HasSkolem)
+import Skolem (SkolemT, runSkolemT, HasSkolem(SVarOf))
 
 type SentenceCount = Int
 
@@ -79,13 +79,13 @@ zeroKB limit =
 
 -- |A monad for running the knowledge base.
 type ProverT inf = StateT (ProverState inf)
-type ProverT' v term inf m a = ProverT inf (SkolemT m) a
+type ProverT' v term lit m a = ProverT (ImplicativeForm lit) (SkolemT m (FunOf term)) a
 
-runProverT' :: Monad m => Maybe Int -> ProverT' v term inf m a -> m a
+runProverT' :: (Monad m, IsFunction (FunOf term), term ~ TermOf atom, atom ~ AtomOf lit) => Maybe Int -> ProverT' v term lit m a -> m a
 runProverT' limit = runSkolemT . runProverT limit
 runProverT :: Monad m => Maybe Int -> StateT (ProverState inf) m a -> m a
 runProverT limit action = evalStateT action (zeroKB limit)
-runProver' :: Maybe Int -> ProverT' v term inf Identity a -> a
+runProver' :: (IsFunction (FunOf term), term ~ TermOf atom, atom ~ AtomOf lit) => Maybe Int -> ProverT' v term lit Identity a -> a
 runProver' limit = runIdentity . runProverT' limit
 {-
 runProver :: StateT (ProverState inf) Identity a -> a
@@ -127,16 +127,18 @@ getKB = get >>= return . knowledgeBase
 
 -- |Return a flag indicating whether sentence was disproved, along
 -- with a disproof.
-inconsistantKB :: forall m fof lit atom term v p f.
-                  (atom ~ AtomOf fof, v ~ VarOf fof, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
-                   IsFirstOrder fof,
+inconsistantKB :: forall m fof lit atom term v function.
+                  (IsFirstOrder fof,
                    Ord fof, lit ~ Marked Literal fof,
                    Atom atom term v,
                    HasApplyAndEquate atom,
                    IsTerm term,
-                   HasSkolem f v,
-                   Monad m, Data fof, Pretty fof, Typeable f) =>
-                  fof -> ProverT' v term (ImplicativeForm lit) m (Bool, SetOfSupport lit v term)
+                   HasSkolem function,
+                   Monad m, Data fof, Pretty fof, Typeable function,
+                   atom ~ AtomOf fof, term ~ TermOf atom,
+                   function ~ FunOf term,
+                   v ~ VarOf fof, v ~ SVarOf function) =>
+                  fof -> ProverT' v term lit m (Bool, SetOfSupport lit v term)
 inconsistantKB s =
     get >>= \ st ->
     lift (implicativeNormalForm s) >>=
@@ -146,42 +148,48 @@ inconsistantKB s =
 
 -- |Return a flag indicating whether sentence was proved, along with a
 -- proof.
-theoremKB :: forall m fof lit atom term v p f.
-             (atom ~ AtomOf fof, v ~ VarOf fof, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
-              Monad m,
+theoremKB :: forall m fof lit atom term v function.
+             (Monad m,
               IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
               Atom atom term v,
               HasApplyAndEquate atom,
               IsTerm term,
-              HasSkolem f v,
-              Data fof, Typeable f) =>
-             fof -> ProverT' v term (ImplicativeForm lit) m (Bool, SetOfSupport lit v term)
+              HasSkolem function,
+              Data fof, Typeable function,
+              atom ~ AtomOf fof, term ~ TermOf atom,
+              function ~ FunOf term,
+              v ~ VarOf fof, v ~ SVarOf function) =>
+             fof -> ProverT' v term lit m (Bool, SetOfSupport lit v term)
 theoremKB s = inconsistantKB ((.~.) s)
 
 -- |Try to prove a sentence, return the result and the proof.
 -- askKB should be in KnowledgeBase module. However, since resolution
 -- is here functions are here, it is also placed in this module.
-askKB :: (atom ~ AtomOf fof, v ~ VarOf fof, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
-          Monad m,
+askKB :: (Monad m,
           IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
           Atom atom term v,
           HasApplyAndEquate atom,
           IsTerm term,
-          HasSkolem f v,
-          Data fof, Typeable f) =>
-         fof -> ProverT' v term (ImplicativeForm lit) m Bool
+          HasSkolem function,
+          Data fof, Typeable function,
+          atom ~ AtomOf fof, term ~ TermOf atom, p ~ PredOf atom,
+          function ~ FunOf term,
+          v ~ VarOf fof, v ~ SVarOf function) =>
+         fof -> ProverT' v term lit m Bool
 askKB s = theoremKB s >>= return . fst
 
 -- |See whether the sentence is true, false or invalid.  Return proofs
 -- for truth and falsity.
-validKB :: (atom ~ AtomOf fof, v ~ VarOf fof, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
-            IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
+validKB :: (IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
             Atom atom term v,
             HasApplyAndEquate atom,
             IsTerm term,
-            HasSkolem f v,
-            Monad m, Data fof, Typeable f) =>
-           fof -> ProverT' v term (ImplicativeForm lit) m (ProofResult,
+            HasSkolem function,
+            Monad m, Data fof, Typeable function,
+            atom ~ AtomOf fof, term ~ TermOf atom, p ~ PredOf atom,
+            function ~ FunOf term,
+            v ~ VarOf fof, v ~ SVarOf function) =>
+           fof -> ProverT' v term lit m (ProofResult,
                                                                             SetOfSupport lit v term,
                                                                             SetOfSupport lit v term)
 validKB s =
@@ -192,14 +200,16 @@ validKB s =
 -- |Validate a sentence and insert it into the knowledgebase.  Returns
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
-tellKB :: (atom ~ AtomOf fof, v ~ VarOf fof, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
-           IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
+tellKB :: (IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
            Atom atom term v,
            HasApplyAndEquate atom,
            IsTerm term,
-           HasSkolem f v,
-           Monad m, Data fof, Typeable f) =>
-          fof -> ProverT' v term (ImplicativeForm lit) m (Proof lit)
+           HasSkolem function,
+           Monad m, Data fof, Typeable function,
+           atom ~ AtomOf fof, term ~ TermOf atom, p ~ PredOf atom,
+           function ~ FunOf term,
+           v ~ VarOf fof, v ~ SVarOf function) =>
+          fof -> ProverT' v term lit m (Proof lit)
 tellKB s =
     do st <- get
        inf <- lift (implicativeNormalForm s)
@@ -211,14 +221,16 @@ tellKB s =
                      , sentenceCount = sentenceCount st + 1 }
        return $ Proof {proofResult = valid, proof = Set.map wiItem inf'}
 
-loadKB :: (atom ~ AtomOf fof, v ~ VarOf fof, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom, f ~ FunOf term,
-           IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
+loadKB :: (IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
            Atom atom term v,
            IsTerm term,
            HasApplyAndEquate atom,
-           HasSkolem f v,
-           Monad m, Data fof, Typeable f) =>
-          [fof] -> StateT (ProverState (ImplicativeForm lit)) (SkolemT m) [Proof lit]
+           HasSkolem function,
+           Monad m, Data fof, Typeable function,
+           atom ~ AtomOf fof, term ~ TermOf atom,
+           function ~ FunOf term,
+           v ~ VarOf fof, v ~ SVarOf function) =>
+          [fof] -> StateT (ProverState (ImplicativeForm lit)) (SkolemT m (FunOf term)) [Proof lit]
 loadKB sentences = mapM tellKB sentences
 
 -- |Delete an entry from the KB.

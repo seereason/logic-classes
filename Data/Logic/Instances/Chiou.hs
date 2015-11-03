@@ -15,8 +15,9 @@ module Data.Logic.Instances.Chiou
 
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Atom (Atom)
+import Data.Set as Set (notMember)
 import Data.String (IsString(..))
-import FOL ((.=.), HasApply(..), HasApplyAndEquate(..), IsFunction, IsPredicate, IsQuantified(..), IsTerm(..),
+import FOL ((.=.), HasApply(..), HasApplyAndEquate(..), IsFunction(variantFunction), IsPredicate, IsQuantified(..), IsTerm(..),
             IsVariable, onatomsQuantified, overatomsQuantified, overtermsEq, ontermsEq,
             pApp, prettyQuantified, prettyTerm, Quant(..), showQuantified, showTerm)
 import Formulas (HasBoolean(..), asBool, IsAtom, IsCombinable(..), BinOp(..), IsFormula(..), IsNegatable(..), (.~.))
@@ -128,20 +129,24 @@ data AtomicFunction v
     = AtomicFunction String
     -- This is redundant with the SkolemFunction and SkolemConstant
     -- constructors in the Chiou Term type.
-    | AtomicSkolemFunction v
+    | AtomicSkolemFunction v Int
     deriving (Eq, Ord, Show)
 
 instance IsVariable v => IsString (AtomicFunction v) where
     fromString = AtomicFunction
 
-instance IsVariable v => IsFunction (AtomicFunction v)
+instance IsVariable v => IsFunction (AtomicFunction v) where
+    variantFunction f fns | Set.notMember f fns = f
+    variantFunction (AtomicFunction s) fns = variantFunction (AtomicFunction (s ++ "'")) fns
+    variantFunction (AtomicSkolemFunction v n) fns = variantFunction (AtomicSkolemFunction v (succ n)) fns
 
 instance IsVariable v => Pretty (AtomicFunction v) where
     pPrint = prettySkolem (\(AtomicFunction s) -> text s)
 
-instance IsVariable v => HasSkolem (AtomicFunction v) v where
+instance IsVariable v => HasSkolem (AtomicFunction v) where
+    type SVarOf (AtomicFunction v) = v
     toSkolem = AtomicSkolemFunction
-    foldSkolem _ sk (AtomicSkolemFunction v) = sk v
+    foldSkolem _ sk (AtomicSkolemFunction v n) = sk v n
     foldSkolem f _ af = f af
 
 -- The Atom type is not cleanly distinguished from the Sentence type, so we need an Atom instance for Sentence.

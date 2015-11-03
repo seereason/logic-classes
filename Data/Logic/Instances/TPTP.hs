@@ -48,6 +48,7 @@ instance IsString AtomicFunction where
     fromString = Atom . AtomicWord
 
 instance HasSkolem AtomicFunction where
+    type SVarOf AtomicFunction = V
     toSkolem = Skolem . V . ("sK" ++) . show
     -- fromSkolem (Skolem (V s)) = Just (read (drop 2 s) :: Int)
     -- fromSkolem _ = Nothing
