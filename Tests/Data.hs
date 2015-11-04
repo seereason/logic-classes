@@ -25,7 +25,7 @@ import Data.Set as Set (Set, fromList, toList)
 import Data.String (IsString)
 import FOL (HasApply(TermOf, PredOf), HasApplyAndEquate, (.=.), pApp, IsQuantified(..), IsTerm(..), V, Predicate, for_all, exists)
 import Formulas ((.~.), false, IsCombinable(..), IsFormula(AtomOf), IsNegatable, true)
-import Skolem (HasSkolem(toSkolem), MyFormula, MyAtom, MyTerm, Function)
+import Skolem (HasSkolem(toSkolem), Formula, SkAtom, SkTerm, Function)
 import Test.HUnit
 import Text.PrettyPrint.HughesPJClass (prettyShow)
 
@@ -76,8 +76,8 @@ formulas =
         r0 = r []
         s0 = s []
         t0 = t []
-        (x, y, z, u, v, w) = (vt "x" :: MyTerm, vt "y" :: MyTerm, vt "z" :: MyTerm, vt "u" :: MyTerm, vt "v" :: MyTerm, vt "w" :: MyTerm)
-        z2 = vt "z'" :: MyTerm in
+        (x, y, z, u, v, w) = (vt "x" :: SkTerm, vt "y" :: SkTerm, vt "z" :: SkTerm, vt "u" :: SkTerm, vt "v" :: SkTerm, vt "w" :: SkTerm)
+        z2 = vt "z'" :: SkTerm in
     [ doTest $
       TestFormula
       { formula = p0 .|. q0 .&. r0 .|. n s0 .&. n t0
@@ -258,8 +258,8 @@ formulas =
                       [sk1,((.~.) (sk2)),((.~.) (q [x,y]))],
                       [q [x,y], ((.~.) sk2),((.~.) sk1)]])]
       }
-    , let x = vt "x" :: MyTerm
-          y = vt "y" :: MyTerm
+    , let x = vt "x" :: SkTerm
+          y = vt "y" :: SkTerm
           x' = vt "x" :: C.CTerm V Function
           y' = vt "y" :: C.CTerm V Function in
       doTest $
@@ -366,7 +366,7 @@ formulas =
       }
     , let f = pApp "f"
           q = pApp "q"
-          (x, y, z) = (vt "x" :: MyTerm, vt "y" :: MyTerm, vt "z" :: MyTerm) in
+          (x, y, z) = (vt "x" :: SkTerm, vt "y" :: SkTerm, vt "z" :: SkTerm) in
       doTest $
       TestFormula
       { name = "cnf test 9"
@@ -434,7 +434,7 @@ formulas =
                      [(pApp "p" []),(pApp "r" []),(pApp "t" [])],
                      [((.~.) (pApp "q" [])),(pApp "r" []),(pApp "t" [])]])]
       }
-    , let (f :: MyFormula) = for_all "x" ( x .=. x) .=>. for_all "x" (exists "y" ((x .=. y))) in
+    , let (f :: Formula) = for_all "x" ( x .=. x) .=>. for_all "x" (exists "y" ((x .=. y))) in
       doTest $
       TestFormula
       { name = "cnf test 13 " ++ prettyShow f
@@ -482,7 +482,7 @@ formulas =
                       (for_all "z"
                        ((((.~.) (pApp "p" [vt "x"])) .&. (((.~.) (pApp "r" [vt "y"])))) .|.
                         (((pApp "q" [vt "x"]) .|. ((((.~.) (pApp "p" [vt "z"])) .|. (((.~.) (pApp "q" [vt "z"])))))))))) ] }
-    , let (x, y, u, v) = (vt "x" :: MyTerm, vt "y" :: MyTerm, vt "u" :: MyTerm, vt "v" :: MyTerm)
+    , let (x, y, u, v) = (vt "x" :: SkTerm, vt "y" :: SkTerm, vt "u" :: SkTerm, vt "v" :: SkTerm)
           fv = fApp (toSkolem "v" 1) [u,x]
           fy = fApp (toSkolem "y" 1) [x] in
       doTest $
@@ -492,7 +492,7 @@ formulas =
       , expected = [ SkolemNormalForm (((.~.) (pApp "<" [x, fy])) .|. pApp "<" [fApp "*" [x, u], fApp "*" [fy, fv]]) ] }
     , let p x = pApp "p" [x]
           q x = pApp "q" [x]
-          (x, y, z) = (vt "x" :: MyTerm, vt "y" :: MyTerm, vt "z" :: MyTerm) in
+          (x, y, z) = (vt "x" :: SkTerm, vt "y" :: SkTerm, vt "z" :: SkTerm) in
       doTest $
       TestFormula
       { name = "snf 150.2"
@@ -500,7 +500,7 @@ formulas =
       , expected = [ SkolemNormalForm (((.~.) (p x)) .|. (q (fApp (toSkolem "y" 1) []) .|. (((.~.) (p z)) .|. ((.~.) (q z))))) ] }
     ]
 
-animalKB :: (String, [TestFormula MyFormula MyAtom V])
+animalKB :: (String, [TestFormula Formula SkAtom V])
 animalKB =
     let x = vt "x"
         y = vt "y"
@@ -726,10 +726,10 @@ socratesConjectures =
      ]
 -}
 
-chang43KB :: (String, [TestFormula MyFormula MyAtom V])
+chang43KB :: (String, [TestFormula Formula SkAtom V])
 chang43KB =
     let e = fApp "e" []
-        (x, y, z, u, v, w) = (vt "x" :: MyTerm, vt "y" :: MyTerm, vt "z" :: MyTerm, vt "u" :: MyTerm, vt "v" :: MyTerm, vt "w" :: MyTerm) in
+        (x, y, z, u, v, w) = (vt "x" :: SkTerm, vt "y" :: SkTerm, vt "z" :: SkTerm, vt "u" :: SkTerm, vt "v" :: SkTerm, vt "w" :: SkTerm) in
     ("chang example 4.3"
     , [ TestFormula { name = "closure property"
                     , formula = for_all' ["x", "y"] (exists "z" (pApp "P" [x,y,z]))
@@ -749,7 +749,7 @@ chang43KB =
 chang43Conjecture :: Test
 chang43Conjecture =
     let e = (fApp "e" [])
-        (x, u, v, w) = (vt "x" :: MyTerm, vt "u" :: MyTerm, vt "v" :: MyTerm, vt "w" :: MyTerm) in
+        (x, u, v, w) = (vt "x" :: SkTerm, vt "u" :: SkTerm, vt "v" :: SkTerm, vt "w" :: SkTerm) in
     doTest . withKB chang43KB $
     TestFormula { name = "G is commutative"
                 , formula = for_all "x" (pApp "P" [x, x, e] .=>. (for_all' ["u", "v", "w"] (pApp "P" [u, v, w] .=>. pApp "P" [v, u, w])))
@@ -908,9 +908,9 @@ chang43Conjecture =
 chang43ConjectureRenamed :: Test
 chang43ConjectureRenamed =
     let e = fApp "e" []
-        (x, y, z, u, v, w) = (vt "x" :: MyTerm, vt "y" :: MyTerm, vt "z" :: MyTerm, vt "u" :: MyTerm, vt "v" :: MyTerm, vt "w" :: MyTerm)
+        (x, y, z, u, v, w) = (vt "x" :: SkTerm, vt "y" :: SkTerm, vt "z" :: SkTerm, vt "u" :: SkTerm, vt "v" :: SkTerm, vt "w" :: SkTerm)
         (u2, v2, w2, x2, y2, z2, u3, v3, w3, x3, y3, z3, x4, x5, x6, x7, x8) =
-            (vt "u'" :: MyTerm, vt "v'" :: MyTerm, vt "w'" :: MyTerm, vt "x'" :: MyTerm, vt "y'" :: MyTerm, vt "z'" :: MyTerm, vt "u3" :: MyTerm, vt "v3" :: MyTerm, vt "w3" :: MyTerm, vt "x3" :: MyTerm, vt "y3" :: MyTerm, vt "z3" :: MyTerm, vt "x4" :: MyTerm, vt "x5" :: MyTerm, vt "x6" :: MyTerm, vt "x7" :: MyTerm, vt "x8" :: MyTerm) in
+            (vt "u'" :: SkTerm, vt "v'" :: SkTerm, vt "w'" :: SkTerm, vt "x'" :: SkTerm, vt "y'" :: SkTerm, vt "z'" :: SkTerm, vt "u3" :: SkTerm, vt "v3" :: SkTerm, vt "w3" :: SkTerm, vt "x3" :: SkTerm, vt "y3" :: SkTerm, vt "z3" :: SkTerm, vt "x4" :: SkTerm, vt "x5" :: SkTerm, vt "x6" :: SkTerm, vt "x7" :: SkTerm, vt "x8" :: SkTerm) in
     doTest $
     TestFormula { name = "chang 43 renamed"
                 , formula = (.~.) ((for_all' ["x", "y"] (exists "z" (pApp "P" [x,y,z])) .&.
@@ -964,7 +964,7 @@ chang43ConjectureRenamed =
                 }
 
 withKB :: forall formula atom term v.
-          (formula ~ MyFormula, atom ~ MyAtom, v ~ V,
+          (formula ~ Formula, atom ~ SkAtom, v ~ V,
            term ~ TermOf atom,
            IsQuantified formula, HasApplyAndEquate atom, IsTerm term) =>
           (String, [TestFormula formula atom v]) -> TestFormula formula atom v -> TestFormula formula atom v
@@ -981,12 +981,12 @@ withKB (kbName, knowledge) conjecture =
       conj (x:xs) = x .&. conj xs
 
 kbKnowledge :: forall formula atom term v.
-               (formula ~ MyFormula, atom ~ MyAtom, v ~ V, term ~ TermOf atom,
+               (formula ~ Formula, atom ~ SkAtom, v ~ V, term ~ TermOf atom,
                 IsQuantified formula, HasApplyAndEquate atom, IsTerm term) =>
                (String, [TestFormula formula atom v]) -> (String, [formula])
 kbKnowledge kb = (fst (kb :: (String, [TestFormula formula atom v])), map formula (snd kb))
 
-proofs :: forall term v. (IsTerm term, IsString v, Ord v) => [TestProof MyFormula term v]
+proofs :: [TestProof Formula SkAtom SkTerm V]
 proofs =
     let -- dog = pApp "Dog" :: [term] -> formula
         -- cat = pApp "Cat" :: [term] -> formula

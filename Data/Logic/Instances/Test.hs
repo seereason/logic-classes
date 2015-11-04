@@ -3,18 +3,18 @@
 module Data.Logic.Instances.Test
     ( V(..)
     , Predicate
-    , Formula(..)
+    , QFormula(..)
     , Term(..)
     , Function(..)
-    , MyFormula, MyAtom, MyTerm
+    , Formula, SkAtom, SkTerm
     , TFormula, TAtom, TTerm -- deprecated
     ) where
 
 import Data.Char (isDigit)
 import Data.SafeCopy (base, deriveSafeCopy)
-import FOL (V(V), Predicate, FOL(..), Term(..), Quant(..), Formula(..))
+import FOL (V(V), Predicate, FOL(..), Term(..), Quant(..), QFormula(..))
 import Formulas (BinOp(..))
-import Skolem (Function(..), MyFormula, MyTerm, MyAtom)
+import Skolem (Function(..), Formula, SkTerm, SkAtom)
 
 next :: String -> String
 next s =
@@ -23,13 +23,13 @@ next s =
       ("", nondigits) -> nondigits ++ "2"
       (digits, nondigits) -> nondigits ++ show (1 + read (reverse digits) :: Int)
 
-type TFormula = MyFormula
-type TAtom = MyAtom
-type TTerm = MyTerm
+type TFormula = Formula
+type TAtom = SkAtom
+type TTerm = SkTerm
 
 $(deriveSafeCopy 1 'base ''BinOp)
 $(deriveSafeCopy 1 'base ''Quant)
 $(deriveSafeCopy 1 'base ''Predicate)
 $(deriveSafeCopy 1 'base ''Term)
 $(deriveSafeCopy 1 'base ''FOL)
-$(deriveSafeCopy 1 'base ''Formula)
+$(deriveSafeCopy 1 'base ''QFormula)

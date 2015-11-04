@@ -8,7 +8,7 @@ module Data.Logic.Instances.PropLogic
 
 import Data.Set.Extra as Set (toList)
 import Formulas (BinOp(..), HasBoolean(fromBool, asBool), IsAtom, IsCombinable(..), IsFormula(..), IsNegatable(..))
-import Lit (IsLiteral(..), unmarkLiteral)
+import Lit (convertLiteral, IsLiteral(..), LFormula)
 import Pretty (HasFixity(fixity), Pretty(pPrint), rootFixity)
 import Prop (IsPropositional(foldPropositional'), JustPropositional, prettyPropositional, simpcnf)
 import PropLogic hiding (at)
@@ -109,5 +109,5 @@ clauses0 = CJ . map (DJ . map unmarkLiteral . Set.toList) . Set.toList . simpcnf
 plSat :: (IsPropositional (PropForm atom), IsAtom atom) => PropForm atom -> Bool
 plSat = satisfiable . clauses
 
-clauses :: IsPropositional (PropForm atom) => PropForm atom -> PropForm atom
-clauses = CJ . map (DJ . map unmarkLiteral . Set.toList) . Set.toList . simpcnf id
+clauses :: forall atom. IsPropositional (PropForm atom) => PropForm atom -> PropForm atom
+clauses = CJ . map (DJ . map (convertLiteral id :: LFormula atom -> PropForm atom) . Set.toList) . Set.toList . simpcnf id

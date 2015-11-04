@@ -1,5 +1,5 @@
 import Common (TestProof)
-import Data.Logic.Instances.Test (V, TFormula, TTerm)
+import Data.Logic.Instances.Test (V, Formula, SkAtom, SkTerm)
 import System.Exit
 import Test.HUnit
 import qualified Logic
@@ -18,4 +18,4 @@ main =
       doCounts counts' = exitWith (if errors counts' /= 0 || failures counts' /= 0 then ExitFailure 1 else ExitSuccess)
       -- Generate the test data with a particular instantiation of FirstOrderFormula.
       formulas = Data.allFormulas
-      proofs = (Data.proofs :: [TestProof TFormula TTerm V])
+      proofs = (Data.proofs :: [TestProof Formula SkAtom SkTerm V])

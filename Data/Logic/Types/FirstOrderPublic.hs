@@ -27,13 +27,15 @@ module Data.Logic.Types.FirstOrderPublic
     ) where
 
 import Data.Data (Data)
+import Data.Generics (Typeable)
 import qualified Data.Logic.Types.FirstOrder as N
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set)
 import Formulas (IsAtom)
 import FOL (IsFunction, IsPredicate, IsVariable)
-import Lib (Marked(Mark, unMark'))
 import Skolem (simpcnf')
+
+data Marked mark a = Mark {unMark' :: a} deriving (Data, Typeable, Read)
 
 -- |The new Formula type is just a wrapper around the Native instance
 -- (which eventually should be renamed the Internal instance.)  No

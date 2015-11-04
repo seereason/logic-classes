@@ -22,9 +22,10 @@ import FOL ((.=.), HasApply(..), HasApplyAndEquate(..), IsFunction(variantFuncti
             pApp, prettyQuantified, prettyTerm, Quant(..), showQuantified, showTerm)
 import Formulas (HasBoolean(..), asBool, IsAtom, IsCombinable(..), BinOp(..), IsFormula(..), IsNegatable(..), (.~.))
 import Lit (convertToLiteral, IsLiteral(foldLiteral'), JustLiteral, onatomsLiteral, overatomsLiteral, prettyLiteral, showLiteral)
-import Pretty (Pretty(pPrint), HasFixity(..), rootFixity, text)
+import Pretty (HasFixity(..), rootFixity, text)
 import Prop (IsPropositional(foldPropositional'))
 import Skolem (HasSkolem(..), prettySkolem)
+import Text.PrettyPrint.HughesPJClass (Pretty(pPrint, pPrintPrec))
 
 data Sentence v p f
     = Connective (Sentence v p f) Connective (Sentence v p f)
@@ -32,6 +33,7 @@ data Sentence v p f
     | Not (Sentence v p f)
     | Predicate p [CTerm v f]
     | Equal (CTerm v f) (CTerm v f)
+    | TT | FF
     deriving (Eq, Ord, Data, Typeable)
 
 data CTerm v f
@@ -65,12 +67,14 @@ instance (Ord v, Ord p, Ord f) => IsNegatable (Sentence v p f) where
     foldNegation _ ne (Not x) = ne x
     foldNegation other _ x = other x
 
-instance (HasBoolean p, Eq (Sentence v p f)) => HasBoolean (Sentence v p f) where
+{-
+instance (Eq (Sentence v p f)) => HasBoolean (Sentence v p f) where
     fromBool x = Predicate (fromBool x) []
     asBool x
         | fromBool True == x = Just True
         | fromBool False == x = Just False
         | True = Nothing
+-}
 
 instance (Ord v, Ord p, Ord f) => IsCombinable (Sentence v p f) where
     foldCombination other dj cj imp iff fm =
@@ -86,13 +90,13 @@ instance (Ord v, Ord p, Ord f) => IsCombinable (Sentence v p f) where
     x .&.   y = Connective x And y
 
 instance (IsLiteral (Sentence  v p f),
-          IsFunction f, IsVariable v,
-          Ord p, HasBoolean p
-         ) => IsFormula (Sentence v p f) where
+          IsFunction f, IsVariable v, Ord p) => IsFormula (Sentence v p f) where
     type AtomOf (Sentence v p f) = Sentence  v p f
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Quantifier _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic (Not _) = error "Logic.Instances.Chiou.atomic: unexpected"
+    atomic TT = error "Logic.Instances.Chiou.atomic: unexpected"
+    atomic FF = error "Logic.Instances.Chiou.atomic: unexpected"
     atomic x@(Predicate _ _) = x
     atomic x@(Equal _ _) = x
     overatoms = overatomsQuantified
@@ -101,27 +105,37 @@ instance (IsLiteral (Sentence  v p f),
 instance (IsFormula (Sentence v p f),
           IsLiteral (Sentence v p f),
           IsCombinable (Sentence v p f),
-          IsVariable v, IsFunction f, HasBoolean p
-         ) => IsPropositional (Sentence v p f) where
+          IsVariable v, IsFunction f) => IsPropositional (Sentence v p f) where
     foldPropositional' ho co ne tf at formula =
         case formula of
           Not x -> ne x
+          TT -> tf True
+          FF -> tf False
           Connective f1 Imply f2 -> co f1 (:=>:) f2
           Connective f1 Equiv f2 -> co f1 (:<=>:) f2
           Connective f1 And f2 -> co f1 (:&:) f2
           Connective f1 Or f2 -> co f1 (:|:) f2
-          Predicate p ts -> maybe (at (Predicate p ts)) tf (asBool p)
+          Predicate p ts -> at (Predicate p ts)
           Equal t1 t2 -> at (Equal t1 t2)
           _ -> ho formula
+
+instance HasBoolean (Sentence v p f) where
+    asBool TT = Just True
+    asBool FF = Just False
+    asBool _ = Nothing
+    fromBool True = TT
+    fromBool False = FF
 
 instance (IsVariable v, IsPredicate p, IsFunction f) => IsAtom (Sentence v p f)
 
 instance (IsVariable v, IsPredicate p, IsFunction f) => Show (Sentence v p f) where
-    show = showQuantified
+    showsPrec = showQuantified
 
-instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f) => IsLiteral (Sentence v p f) where
+instance (IsVariable v, IsPredicate p, IsFunction f) => IsLiteral (Sentence v p f) where
     foldLiteral' _ ne _ _ (Not x) = ne x
-    foldLiteral' _ _ tf at (Predicate p ts) = maybe (at (Predicate p ts)) tf (asBool p)
+    foldLiteral' _ _ tf _ TT = tf True
+    foldLiteral' _ _ tf _ FF = tf False
+    foldLiteral' _ _ _ at (Predicate p ts) = at (Predicate p ts)
     foldLiteral' _ _ _ at (Equal t1 t2) = at (Equal t1 t2)
     foldLiteral' ho _ _ _ fm = ho fm
 
@@ -167,13 +181,12 @@ instance (IsFunction f, IsVariable v, IsPredicate p) => HasApplyAndEquate (Sente
     -- applyEq' = Predicate
 
 instance (IsQuantified (Sentence v p f), IsVariable v, IsFunction f) => Pretty (Sentence v p f) where
-    pPrint = prettyQuantified
+    pPrintPrec = prettyQuantified
 
 instance (IsFormula (Sentence v p f), IsFunction f, IsVariable v) => HasFixity (Sentence v p f) where
     fixity _ = rootFixity
 
-instance (IsFormula (Sentence v p f), IsLiteral (Sentence v p f),
-          IsVariable v, IsFunction f, Ord p, HasBoolean p
+instance (IsFormula (Sentence v p f), IsLiteral (Sentence v p f), IsVariable v, IsFunction f, Ord p
          ) => IsQuantified (Sentence v p f) where
     type (VarOf (Sentence v p f)) = v
     quant (:!:) v x = Quantifier ForAll [v] x
@@ -181,6 +194,8 @@ instance (IsFormula (Sentence v p f), IsLiteral (Sentence v p f),
     foldQuantified qu co ne tf at f =
         case f of
           Not x -> ne x
+          TT -> tf True
+          FF -> tf False
           Quantifier op (v:vs) f' ->
               let op' = case op of
                           ForAll -> (:!:)
@@ -218,6 +233,8 @@ data NormalSentence v p f
     = NFNot (NormalSentence v p f)
     | NFPredicate p [NormalTerm v f]
     | NFEqual (NormalTerm v f) (NormalTerm v f)
+    | NFTT
+    | NFFF
     deriving (Eq, Ord, Data, Typeable)
 
 -- We need a distinct type here because of the functional dependencies
@@ -227,12 +244,12 @@ data NormalTerm v f
     | NormalVariable v
     deriving (Eq, Ord, Data, Typeable)
 
-instance (HasBoolean p, Eq (NormalSentence v p f)) => HasBoolean (NormalSentence v p f) where
-    fromBool x = NFPredicate (fromBool x) []
-    asBool x
-        | fromBool True == x = Just True
-        | fromBool False == x = Just False
-        | True = Nothing
+instance (Eq (NormalSentence v p f)) => HasBoolean (NormalSentence v p f) where
+    fromBool True = NFTT
+    fromBool False = NFFF
+    asBool NFTT = Just True
+    asBool NFFF = Just False
+    asBool _ = Nothing
 
 instance (Ord v, Ord p, Ord f) => IsNegatable (NormalSentence v p f) where
     naiveNegate = NFNot
@@ -247,20 +264,22 @@ instance (IsVariable v, IsPredicate p, IsFunction f) => IsAtom (NormalSentence v
 
 instance (IsVariable v, IsPredicate p, IsFunction f) => JustLiteral (NormalSentence v p f)
 
-instance (IsVariable v, IsPredicate p, HasBoolean p, IsFunction f) => IsLiteral (NormalSentence v p f) where
-    foldLiteral' _ho ne _tf at fm =
+instance (IsVariable v, IsPredicate p, IsFunction f) => IsLiteral (NormalSentence v p f) where
+    foldLiteral' _ho ne tf at fm =
         case fm of
           NFNot s -> ne s
+          NFTT -> tf True
+          NFFF -> tf False
           NFPredicate _p _ts -> at fm
           NFEqual _t1 _t2 -> at fm
 
 instance (IsLiteral (NormalSentence v p f),
-          IsVariable v, HasBoolean p, IsPredicate p, IsFunction f
+          IsVariable v, IsPredicate p, IsFunction f
          ) => Pretty (NormalSentence v p f) where
     pPrint = prettyLiteral
 
 instance (Pretty (NormalTerm v f),
-          IsVariable v, IsPredicate p, HasBoolean p, IsFunction f
+          IsVariable v, IsPredicate p, IsFunction f
          ) => IsFormula (NormalSentence v p f) where
     type (AtomOf (NormalSentence v p f)) = NormalSentence v p f
     atomic x@(NFPredicate _ _) = x
@@ -296,6 +315,8 @@ toSentence :: (IsQuantified (Sentence v p f),
                IsFunction f, IsVariable v, IsPredicate p
               ) => NormalSentence v p f -> Sentence v p f
 toSentence (NFNot s) = (.~.) (toSentence s)
+toSentence NFTT = fromBool True
+toSentence NFFF = fromBool False
 toSentence (NFEqual t1 t2) = toTerm t1 .=. toTerm t2
 toSentence (NFPredicate p ts) = pApp p (map toTerm ts)
 
@@ -304,7 +325,7 @@ toTerm (NormalFunction f ts) = fApp f (map toTerm ts)
 toTerm (NormalVariable v) = vt v
 
 fromSentence :: forall v p f fof atom.
-                (IsVariable v, IsPredicate p, IsFunction f, HasBoolean p,
+                (IsVariable v, IsPredicate p, IsFunction f,
                  fof ~ Sentence v p f,
                  atom ~ Sentence v p f,
                  IsQuantified fof

@@ -15,11 +15,10 @@ module Data.Logic.Satisfiable
 import Data.List as List (map)
 import Data.Logic.Instances.PropLogic ()
 import Data.Set as Set (toList)
-import FOL (HasApply(TermOf, PredOf), IsFirstOrder, IsQuantified(VarOf), IsTerm(FunOf))
+import FOL (HasApply(TermOf, PredOf), IsFirstOrder, IsQuantified(VarOf), IsTerm(FunOf, TVarOf))
 import Formulas ((.~.), IsFormula(AtomOf))
-import Lib (Marked)
-import Lit (Literal)
-import Prop (convertPropositional, Propositional, simpcnf)
+import Lit (convertLiteral, LFormula)
+import Prop (PFormula, simpcnf)
 import qualified PropLogic as PL -- ()
 import Pretty (HasFixity, Pretty, )
 import Skolem (HasSkolem(SVarOf), runSkolem, skolemize)
@@ -28,17 +27,16 @@ import Skolem (HasSkolem(SVarOf), runSkolem, skolemize)
 -- satisfiable :: forall formula atom term v f m. (Monad m, IsQuantified formula atom v, Formula atom term v, IsTerm term v f, Ord formula, IsLiteral formula atom v, Ord atom) =>
 --                 formula -> SkolemT v term m Bool
 satisfiable :: forall formula atom v term function.
-               (IsFirstOrder formula,
-                HasSkolem function, Ord formula,
+               (IsFirstOrder formula, HasSkolem function, Ord formula,
                 atom ~ AtomOf formula, term ~ TermOf atom, function ~ FunOf term,
-                v ~ VarOf formula, v ~ SVarOf function) =>
+                v ~ TVarOf term, v ~ SVarOf function) =>
                formula -> Bool
 satisfiable f =
     (PL.satisfiable . PL.CJ . List.map (PL.DJ . List.map convert) . List.map Set.toList . Set.toList . simpcnf id . skolemize') f
     where
-      skolemize' = ((runSkolem . skolemize id) :: formula -> Marked Propositional formula)
-      convert :: Marked Literal (Marked Propositional formula) -> PL.PropForm atom
-      convert = convertPropositional id
+      skolemize' = ((runSkolem . skolemize id) :: formula -> PFormula atom)
+      convert :: LFormula atom -> PL.PropForm atom
+      convert = convertLiteral id
 
 -- |Is the formula always false?  (Not satisfiable.)
 inconsistant :: forall formula atom v term p function.

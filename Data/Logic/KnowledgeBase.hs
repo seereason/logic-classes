@@ -33,10 +33,9 @@ import Data.Logic.Normal.Implicative (ImplicativeForm, implicativeNormalForm, pr
 import Data.Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Data.SafeCopy (deriveSafeCopy, base)
 import Data.Set.Extra as Set (Set, empty, map, minView, null, partition, union)
-import FOL (HasApply(TermOf, PredOf), HasApplyAndEquate, IsFirstOrder, IsFunction, IsQuantified(VarOf), IsTerm(FunOf))
+import FOL (HasApply(TermOf, PredOf), HasApplyAndEquate, IsFirstOrder, IsFunction, IsQuantified(VarOf), IsTerm(FunOf, TVarOf))
 import Formulas ((.~.), IsFormula(AtomOf))
-import Lib (Marked)
-import Lit (IsLiteral, Literal)
+import Lit (IsLiteral, LFormula)
 import Prelude hiding (negate)
 import Pretty (Pretty(pPrint), text, (<>))
 import Skolem (SkolemT, runSkolemT, HasSkolem(SVarOf))
@@ -128,16 +127,14 @@ getKB = get >>= return . knowledgeBase
 -- |Return a flag indicating whether sentence was disproved, along
 -- with a disproof.
 inconsistantKB :: forall m fof lit atom term v function.
-                  (IsFirstOrder fof,
-                   Ord fof, lit ~ Marked Literal fof,
+                  (IsFirstOrder fof, Ord fof, lit ~ LFormula atom,
                    Atom atom term v,
                    HasApplyAndEquate atom,
                    IsTerm term,
                    HasSkolem function,
-                   Monad m, Data fof, Pretty fof, Typeable function,
-                   atom ~ AtomOf fof, term ~ TermOf atom,
-                   function ~ FunOf term,
-                   v ~ VarOf fof, v ~ SVarOf function) =>
+                   Monad m, Data lit, Pretty fof, Typeable function,
+                   atom ~ AtomOf fof, term ~ TermOf atom, function ~ FunOf term,
+                   v ~ TVarOf term, v ~ SVarOf function) =>
                   fof -> ProverT' v term lit m (Bool, SetOfSupport lit v term)
 inconsistantKB s =
     get >>= \ st ->
@@ -150,12 +147,12 @@ inconsistantKB s =
 -- proof.
 theoremKB :: forall m fof lit atom term v function.
              (Monad m,
-              IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
+              IsFirstOrder fof, Ord fof, Pretty fof, lit ~ LFormula atom,
               Atom atom term v,
               HasApplyAndEquate atom,
               IsTerm term,
               HasSkolem function,
-              Data fof, Typeable function,
+              Data lit, Typeable function,
               atom ~ AtomOf fof, term ~ TermOf atom,
               function ~ FunOf term,
               v ~ VarOf fof, v ~ SVarOf function) =>
@@ -166,12 +163,12 @@ theoremKB s = inconsistantKB ((.~.) s)
 -- askKB should be in KnowledgeBase module. However, since resolution
 -- is here functions are here, it is also placed in this module.
 askKB :: (Monad m,
-          IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
+          IsFirstOrder fof, Ord fof, Pretty fof, lit ~ LFormula atom,
           Atom atom term v,
           HasApplyAndEquate atom,
           IsTerm term,
           HasSkolem function,
-          Data fof, Typeable function,
+          Data lit, Typeable function,
           atom ~ AtomOf fof, term ~ TermOf atom, p ~ PredOf atom,
           function ~ FunOf term,
           v ~ VarOf fof, v ~ SVarOf function) =>
@@ -180,12 +177,12 @@ askKB s = theoremKB s >>= return . fst
 
 -- |See whether the sentence is true, false or invalid.  Return proofs
 -- for truth and falsity.
-validKB :: (IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
+validKB :: (IsFirstOrder fof, Ord fof, Pretty fof, lit ~ LFormula atom,
             Atom atom term v,
             HasApplyAndEquate atom,
             IsTerm term,
             HasSkolem function,
-            Monad m, Data fof, Typeable function,
+            Monad m, Data lit, Typeable function,
             atom ~ AtomOf fof, term ~ TermOf atom, p ~ PredOf atom,
             function ~ FunOf term,
             v ~ VarOf fof, v ~ SVarOf function) =>
@@ -200,12 +197,12 @@ validKB s =
 -- |Validate a sentence and insert it into the knowledgebase.  Returns
 -- the INF sentences derived from the new sentence, or Nothing if the
 -- new sentence is inconsistant with the current knowledgebase.
-tellKB :: (IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
+tellKB :: (IsFirstOrder fof, Ord fof, Pretty fof, lit ~ LFormula atom,
            Atom atom term v,
            HasApplyAndEquate atom,
            IsTerm term,
            HasSkolem function,
-           Monad m, Data fof, Typeable function,
+           Monad m, Data lit, Typeable function,
            atom ~ AtomOf fof, term ~ TermOf atom, p ~ PredOf atom,
            function ~ FunOf term,
            v ~ VarOf fof, v ~ SVarOf function) =>
@@ -221,12 +218,12 @@ tellKB s =
                      , sentenceCount = sentenceCount st + 1 }
        return $ Proof {proofResult = valid, proof = Set.map wiItem inf'}
 
-loadKB :: (IsFirstOrder fof, Ord fof, Pretty fof, lit ~ Marked Literal fof,
+loadKB :: (IsFirstOrder fof, Ord fof, Pretty fof, lit ~ LFormula atom,
            Atom atom term v,
            IsTerm term,
            HasApplyAndEquate atom,
            HasSkolem function,
-           Monad m, Data fof, Typeable function,
+           Monad m, Data lit, Typeable function,
            atom ~ AtomOf fof, term ~ TermOf atom,
            function ~ FunOf term,
            v ~ VarOf fof, v ~ SVarOf function) =>

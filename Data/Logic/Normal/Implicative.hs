@@ -21,10 +21,9 @@ import Data.Map as Map (empty, Map)
 import Data.Set.Extra as Set (empty, flatten, fold, fromList, insert, map, Set, singleton, toList)
 import FOL (HasApply(TermOf), IsFirstOrder, IsQuantified(VarOf), IsTerm(FunOf))
 import Formulas (IsFormula(AtomOf), IsNegatable(..), true)
-import Lib (Marked)
-import Lit (convertLiteral, foldLiteral, IsLiteral, JustLiteral, Literal)
+import Lit (foldLiteral, IsLiteral, JustLiteral, LFormula)
 import Pretty (Pretty(pPrint))
-import Prop (IsPropositional, Propositional, simpcnf)
+import Prop (IsPropositional, PFormula, simpcnf)
 import Skolem (HasSkolem(SVarOf, foldSkolem), runSkolem, runSkolemT, skolemize, SkolemT)
 import Text.PrettyPrint ((<>), Doc, brackets, comma, hsep, parens, punctuate, text, vcat)
 
@@ -89,26 +88,24 @@ instance (IsLiteral lit, Ord lit, Pretty lit) => Pretty (ImplicativeForm lit) wh
 --    a | b | c => f
 -- @
 implicativeNormalForm :: forall m fof pf lit atom term v function.
-                         (IsFirstOrder fof, Data fof, Ord fof,
+                         (IsFirstOrder fof, Ord fof,
                           IsPropositional pf,
                           JustLiteral lit,
                           HasSkolem function, Typeable function, Monad m,
-                          pf ~ Marked Propositional fof,
-                          lit ~ Marked Literal fof,
                           atom ~ AtomOf fof,
+                          pf ~ PFormula atom,
+                          lit ~ LFormula atom, Data lit,
                           term ~ TermOf atom,
                           function ~ FunOf term,
                           v ~ VarOf fof,
                           v ~ SVarOf function) =>
                          fof -> SkolemT m function (Set (ImplicativeForm lit))
 implicativeNormalForm formula =
-    do let (cnf :: Set (Set (Marked Literal fof))) = (Set.map (Set.map convert) . simpcnf id) (runSkolem (skolemize id formula) :: Marked Propositional fof)
+    do let (cnf :: Set (Set (LFormula atom))) = simpcnf id (runSkolem (skolemize id formula) :: PFormula atom)
            pairs = Set.map (Set.fold collect (Set.empty, Set.empty)) cnf
            pairs' = Set.flatten (Set.map split pairs)
        return (Set.map (uncurry INF) pairs')
     where
-      convert :: Marked Literal (Marked Propositional fof) -> Marked Literal fof
-      convert = convertLiteral id
       collect f (n, p) =
           foldLiteral (\ f' -> (Set.insert f' n, p))
                       (bool (Set.insert true n, p) (n, Set.insert true p))

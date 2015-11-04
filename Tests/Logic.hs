@@ -3,22 +3,20 @@
 {-# OPTIONS -Wall -Wwarn -fno-warn-name-shadowing -fno-warn-orphans #-}
 module Logic (tests) where
 
-import Common ({-instance Atom MyAtom MyTerm V-})
+import Common ({-instance Atom SkAtom SkTerm V-})
 import Data.List as List (map)
 import Data.Logic.Classes.Atom (Atom)
-import Data.Logic.Instances.Test (MyFormula, MyAtom, MyTerm)
+import Data.Logic.Instances.Test (Formula, SkAtom, SkTerm)
 import Data.Logic.Satisfiable (theorem, inconsistant)
 import Data.Map as Map (singleton)
 import Data.Set.Extra as Set (Set, singleton, toList, empty, fromList, map {-, minView, fold-})
 import Data.String (IsString(fromString))
 import FOL (vt, (∀), pApp, fv, (.=.), exists, for_all, applyPredicate, fApp,
-            HasApply(TermOf, PredOf), HasApplyAndEquate(equate), V(V), Predicate, subst, IsFirstOrder, IsQuantified(VarOf), IsTerm(FunOf, TVarOf))
+            HasApply(TermOf, PredOf), HasApplyAndEquate(equate), V(V), Predicate, subst, IsFirstOrder, IsQuantified(VarOf), IsTerm(FunOf))
 import Formulas ((.~.), atomic, IsCombinable(..), IsFormula(AtomOf), (⇒))
-import Lib (Marked)
-import Lit (IsLiteral, Literal, markLiteral, unmarkLiteral)
+import Lit (convertLiteral, IsLiteral, LFormula)
 import Pretty (assertEqual', Pretty(pPrint))
-import Prop (IsPropositional, list_conj, list_disj, markPropositional, Propositional,
-             simpcnf, TruthTable(..), TruthTable, truthTable)
+import Prop (IsPropositional, list_conj, list_disj, PFormula, simpcnf, TruthTable(..), TruthTable, truthTable)
 import Skolem (HasSkolem(..), runSkolem, skolemize, pnf, simpcnf', Function)
 import Test.HUnit
 import qualified TextDisplay as TD
@@ -47,7 +45,7 @@ precTests =
     , let label = "Logic - prec test 2" in
       TestLabel label (TestCase (assertEqual label
                                  (((.~.) a) .&. b)
-                                 ((.~.) a .&. b :: MyFormula)))
+                                 ((.~.) a .&. b :: Formula)))
     -- I switched the precedence of .&. and .|. from infixl to infixr to get
     -- some of the test cases to match the answers given on the miami.edu site,
     -- but maybe I should switch them back and adjust the answer given in the
@@ -55,20 +53,20 @@ precTests =
     , let label = "Logic - prec test 3" in
       TestLabel label (TestCase (assertEqual label
                                  ((a .&. b) .&. c) -- infixl, with infixr we get (a .&. (b .&. c))
-                                 (a .&. b .&. c :: MyFormula)))
-    , let -- x = vt "x" :: MyTerm
-          y = vt "y" :: MyTerm
+                                 (a .&. b .&. c :: Formula)))
+    , let -- x = vt "x" :: SkTerm
+          y = vt "y" :: SkTerm
           -- This is not the desired result, but it is the result we
           -- will get due to the fact that function application
           -- precedence is always 10, and that rule applies when you
           -- put the operator in parentheses.  This means that direct
           -- input of examples from Harrison won't always work.
-          expected = ((∀) "y" (pApp "g" [y])) ⇒ (pApp "f" [y]) :: MyFormula
-          input =     (∀) "y" (pApp "g" [y])  ⇒ (pApp "f" [y]) :: MyFormula in
+          expected = ((∀) "y" (pApp "g" [y])) ⇒ (pApp "f" [y]) :: Formula
+          input =     (∀) "y" (pApp "g" [y])  ⇒ (pApp "f" [y]) :: Formula in
       let label = "Logic - prec test 4" in
       TestLabel label (TestCase (assertEqual label expected input))
     , TestCase (assertEqual "Logic - Find a free variable"
-                (fv (for_all "x" (x .=. y) :: MyFormula))
+                (fv (for_all "x" (x .=. y) :: Formula))
                 (Set.singleton "y"))
 {-
     , let a = Combine (BinOp
@@ -97,8 +95,8 @@ precTests =
                 (List.map sub
                          [ for_all "x" (x .=. y) {- :: Formula String String -}
                          , for_all "y" (x .=. y) {- :: Formula String String -} ])
-                [ for_all "x" (x .=. z) :: MyFormula
-                , for_all "y" (z .=. y) :: MyFormula ])
+                [ for_all "x" (x .=. z) :: Formula
+                , for_all "y" (z .=. y) :: Formula ])
     ]
     where
       sub f = subst (Map.singleton (head . Set.toList . fv $ f) (vt "z")) f
@@ -106,11 +104,11 @@ precTests =
       b = pApp ("b") []
       c = pApp ("c") []
 
-x :: MyTerm
+x :: SkTerm
 x = vt (fromString "x")
-y :: MyTerm
+y :: SkTerm
 y = vt (fromString "y")
-z :: MyTerm
+z :: SkTerm
 z = vt (fromString "z")
 
 normalTests :: Test
@@ -118,20 +116,20 @@ normalTests =
     let s = pApp "S"
         h = pApp "H"
         m = pApp "M"
-        x' = vt "x'" :: MyTerm
+        x' = vt "x'" :: SkTerm
         for_all' x fm = for_all (fromString x) fm
         exists' x fm = exists (fromString x) fm
     in
     TestList
     [TestCase (assertEqual
                "nnf"
-               (show (pPrint (for_all' "x" (exists' "x'" ((s[x'] .&. ((.~.)(h[x'])) .|. h[x'] .&. ((.~.)(m[x']))) .|. ((.~.)(s[x])) .|. m[x])) :: MyFormula)))
+               (show (pPrint (for_all' "x" (exists' "x'" ((s[x'] .&. ((.~.)(h[x'])) .|. h[x'] .&. ((.~.)(m[x']))) .|. ((.~.)(s[x])) .|. m[x])) :: Formula)))
                -- <<forall x. exists x'. (S(x') /\ ~H(x') \/ H(x') /\ ~M(x')) \/ ~S(x) \/ M(x)>>
                -- ∀x. ∃x'. ((S(x') ∧ ¬H(x') ∨ H(x') ∧ ¬M(x')) ∨ ¬S(x) ∨ M(x))
                (show
                 (pPrint
                  (pnf (((for_all' "x" (s[x] .=>. h[x])) .&. (for_all "x" (h[x] .=>. m[x]))) .=>.
-                    (for_all "x" (s[x] .=>. m[x])) :: MyFormula) :: MyFormula))))]
+                    (for_all "x" (s[x] .=>. m[x])) :: Formula) :: Formula))))]
 
 -- |Here is an example of automatic conversion from a IsQuantified
 -- instance to a IsPropositional instance.  The result is PropForm
@@ -147,7 +145,7 @@ test9a = TestCase
     where
       f = pApp "f"
       q = pApp "q"
-      expected :: PropForm MyFormula
+      expected :: PropForm Formula
       expected = CJ [DJ [N (A (pApp ("q") [vt (V "x"),vt (V "y")])),
                          N (A (pApp ("f") [vt (V "z"),vt (V "x")])),
                          A (pApp ("f") [vt (V "z"),vt (V "y")])],
@@ -177,27 +175,27 @@ skolemize1 :: Test
 skolemize1 =
     myTest "Logic - skolemize1" expected formula
     where
-      expected :: MyFormula
+      expected :: Formula
       expected = for_all [V "y",V "z"] (for_all [V "v"] (pApp "P" [fApp (toSkolem 1) [], y, z, fApp ((toSkolem 2)) [y, z], v, fApp (toSkolem 3) [y, z, v]]))
-      formula :: MyFormula
+      formula :: Formula
       formula = (snf' (exists ["x"] (for_all ["y", "z"] (exists ["u"] (for_all ["v"] (exists ["w"] (pApp "P" [x, y, z, u, v, w])))))))
 
 skolemize2 :: Test
 skolemize2 =
     myTest "Logic - skolemize2" expected formula
     where
-      expected :: MyFormula
+      expected :: Formula
       expected = for_all [V "y"] (pApp ("loves") [fApp (toSkolem 1) [],y])
-      formula :: MyFormula
+      formula :: Formula
       formula = snf' (exists ["x"] (for_all ["y"] (pApp "loves" [x, y])))
 
 skolemize3 :: Test
 skolemize3 =
     myTest "Logic - skolemize3" expected formula
     where
-      expected :: MyFormula
+      expected :: Formula
       expected = for_all [V "y"] (pApp ("loves") [fApp (toSkolem 1) [y],y])
-      formula :: MyFormula
+      formula :: Formula
       formula = snf' (for_all ["y"] (exists ["x"] (pApp "loves" [x, y])))
 -}
 {-
@@ -205,28 +203,28 @@ inf1 :: Test
 inf1 =
     myTest "Logic - inf1" expected formula
     where
-      expected :: MyFormula
+      expected :: Formula
       expected = ((pApp ("p") [vt ("x")]) .=>. (((pApp ("q") [vt ("x")]) .|. ((pApp ("r") [vt ("x")])))))
-      formula :: {- ImplicativeNormalFormula inf (C.Sentence V String AtomicFunction) (C.Term V AtomicFunction) V String AtomicFunction => -} MyFormula
+      formula :: {- ImplicativeNormalFormula inf (C.Sentence V String AtomicFunction) (C.Term V AtomicFunction) V String AtomicFunction => -} Formula
       formula = convertFOF id id id (implicativeNormalForm (convertFOF id id id (for_all ["x"] (p [x] .=>. (q [x] .|. r [x]))) :: C.Sentence V String AtomicFunction) :: C.Sentence V String AtomicFunction)
 -}
 
-equality1 :: MyFormula
-equality1 = for_all "x" ( x .=. x) .=>. for_all "x" (exists "y" ((x .=. y))) :: MyFormula
-equality1expected :: (Bool, (Set (Set (Marked Literal (Marked Propositional MyFormula))), TruthTable MyAtom))
-equality1expected = (False,(fromList [fromList [markLiteral (markPropositional (vt "x" .=. fApp (toSkolem "y" 1)[vt "x"])),
-                                                markLiteral (markPropositional ((.~.) (fApp (toSkolem "x" 1)[] .=. fApp (toSkolem "x" 1)[])))]],
-                            TruthTable [equate (vt (V "x")) ((fApp (toSkolem (V "y") 1 :: Function)[vt (V "x")] :: MyTerm)),
-                                        equate (fApp (toSkolem (V "x") 1)[]) (fApp (toSkolem (V "x") 1)[] :: MyTerm)]
+equality1 :: Formula
+equality1 = for_all "x" ( x .=. x) .=>. for_all "x" (exists "y" ((x .=. y))) :: Formula
+equality1expected :: (Bool, (Set (Set (LFormula SkAtom)), TruthTable SkAtom))
+equality1expected = (False,(fromList [fromList [(vt "x" .=. fApp (toSkolem "y" 1)[vt "x"]) :: LFormula SkAtom,
+                                                ((.~.) (fApp (toSkolem "x" 1)[] .=. fApp (toSkolem "x" 1)[])) :: LFormula SkAtom]],
+                            TruthTable [equate (vt (V "x")) ((fApp (toSkolem (V "y") 1 :: Function)[vt (V "x")] :: SkTerm)),
+                                        equate (fApp (toSkolem (V "x") 1)[]) (fApp (toSkolem (V "x") 1)[] :: SkTerm)]
                                        [([False,False],True),
                                         ([False,True],False),
                                         ([True,False],True),
                                         ([True,True],True)]))
 {-
-equality1expected = (False, (fromList [fromList [markLiteral (markPropositional ((vt "x" :: MyTerm) .=. fApp (toSkolem "y" 1)[vt (V "x")])),
-                                                 markLiteral (markPropositional ((.~.) ((fApp (toSkolem "x" 1)[] :: MyTerm) .=. (fApp (toSkolem "x" 1)[] :: MyTerm))))]],
-                             TruthTable ([{-(vt "x" :: MyTerm) .=. (fApp (toSkolem ("y" :: V) 1) [vt (V "x")] :: MyTerm),
-                                          fApp (toSkolem "x" 1) [] .=. fApp (toSkolem "x" 1) []-}] :: [MyAtom])
+equality1expected = (False, (fromList [fromList [markLiteral (markPropositional ((vt "x" :: SkTerm) .=. fApp (toSkolem "y" 1)[vt (V "x")])),
+                                                 markLiteral (markPropositional ((.~.) ((fApp (toSkolem "x" 1)[] :: SkTerm) .=. (fApp (toSkolem "x" 1)[] :: SkTerm))))]],
+                             TruthTable ([{-(vt "x" :: SkTerm) .=. (fApp (toSkolem ("y" :: V) 1) [vt (V "x")] :: SkTerm),
+                                          fApp (toSkolem "x" 1) [] .=. fApp (toSkolem "x" 1) []-}] :: [SkAtom])
                                         [([False,False],True),
                                          ([False,True],False),
                                          ([True,False],True),
@@ -238,13 +236,13 @@ equality1expected = (False, (fromList [fromList [markLiteral (markPropositional 
                              " ([x = sKy[x], sKx[] = sKx[]],\n",
                              "  [([False, False], True), ([False, True], False),\n",
                              "   ([True, False], True), ([True, True], True)]))"]-}
-equality2 :: MyFormula
+equality2 :: Formula
 equality2 = for_all "x" ( x .=. x .=>. for_all "x" ((.~.) (for_all "y" ((.~.) (x .=. y))))) -- convert existential
-equality2expected :: (Bool, (Set (Set (Marked Literal (Marked Propositional MyFormula))), TruthTable MyAtom))
-equality2expected = (False, (fromList [fromList [markLiteral (markPropositional (vt (V "x'") .=. fApp (toSkolem (V "y") 1)[vt (V "x'")])),
-                                                 markLiteral (markPropositional ((.~.) (vt (V "x") .=. vt (V "x"))))]],
+equality2expected :: (Bool, (Set (Set (LFormula SkAtom)), TruthTable SkAtom))
+equality2expected = (False, (fromList [fromList [(vt (V "x'") .=. fApp (toSkolem (V "y") 1)[vt (V "x'")]) :: LFormula SkAtom,
+                                                 ((.~.) (vt (V "x") .=. vt (V "x"))) :: LFormula SkAtom]],
                              TruthTable [equate (vt (V "x")) (vt (V "x")),
-                                         equate (vt (V "x'")) (fApp (toSkolem (V "y") 1)[vt "x'"] :: MyTerm)]
+                                         equate (vt (V "x'")) (fApp (toSkolem (V "y") 1)[vt "x'"] :: SkTerm)]
                                         [([False, False], True),
                                          ([False, True], True),
                                          ([True, False], False),
@@ -258,14 +256,14 @@ equality2expected = (False,
 -}
 theoremTests :: Test
 theoremTests =
-    let s = pApp "S" :: [MyTerm] -> MyFormula
-        h = pApp "H" :: [MyTerm] -> MyFormula
-        m = pApp "M" :: [MyTerm] -> MyFormula
-        socrates1 = (for_all "x"   (s [x] .=>. h [x]) .&. for_all "x" (h [x] .=>. m [x]))  .=>.  for_all "x" (s [x] .=>. m [x])  :: MyFormula -- First two clauses grouped - compare to 5
-        socrates2 =  for_all "x" (((s [x] .=>. h [x]) .&.             (h [x] .=>. m [x]))  .=>.              (s [x] .=>. m [x])) :: MyFormula -- shared binding for x
-        socrates3 = (for_all "x"  ((s [x] .=>. h [x]) .&.             (h [x] .=>. m [x]))) .=>. (for_all "y" (s [y] .=>. m [y])) :: MyFormula -- First two clauses share x, third is renamed y
-        socrates5 =  for_all "x"   (s [x] .=>. h [x]) .&. for_all "x" (h [x] .=>. m [x])   .=>.  for_all "x" (s [x] .=>. m [x])  :: MyFormula -- like 1, but less parens - check precedence
-        socrates6 =  for_all "x"   (s [x] .=>. h [x]) .&. for_all "y" (h [y] .=>. m [y])   .=>.  for_all "z" (s [z] .=>. m [z])  :: MyFormula -- Like 5, but with variables renamed
+    let s = pApp "S" :: [SkTerm] -> Formula
+        h = pApp "H" :: [SkTerm] -> Formula
+        m = pApp "M" :: [SkTerm] -> Formula
+        socrates1 = (for_all "x"   (s [x] .=>. h [x]) .&. for_all "x" (h [x] .=>. m [x]))  .=>.  for_all "x" (s [x] .=>. m [x])  :: Formula -- First two clauses grouped - compare to 5
+        socrates2 =  for_all "x" (((s [x] .=>. h [x]) .&.             (h [x] .=>. m [x]))  .=>.              (s [x] .=>. m [x])) :: Formula -- shared binding for x
+        socrates3 = (for_all "x"  ((s [x] .=>. h [x]) .&.             (h [x] .=>. m [x]))) .=>. (for_all "y" (s [y] .=>. m [y])) :: Formula -- First two clauses share x, third is renamed y
+        socrates5 =  for_all "x"   (s [x] .=>. h [x]) .&. for_all "x" (h [x] .=>. m [x])   .=>.  for_all "x" (s [x] .=>. m [x])  :: Formula -- like 1, but less parens - check precedence
+        socrates6 =  for_all "x"   (s [x] .=>. h [x]) .&. for_all "y" (h [y] .=>. m [y])   .=>.  for_all "z" (s [z] .=>. m [z])  :: Formula -- Like 5, but with variables renamed
         socrates7 =  for_all "x"  ((s [x] .=>. h [x]) .&.             (h [x] .=>. m [x])   .&.               (m [x] .=>. ((.~.) (s [x])))) .&. (s [fApp "socrates" []])
     in
     TestList
@@ -405,7 +403,7 @@ theoremTests =
       TestLabel label (TestCase (assertEqual label
                  (((pApp "S" [skx []] .&. (.~.)(pApp "H" [skx []]) .|. pApp "H" [skx[]] .&. (.~.)(pApp "M" [skx []])) .|.
                    ((.~.)(pApp "S" [x]) .|. pApp "M" [x])))
-                 (runSkolem (skolemize id socrates5) :: Marked Propositional MyFormula)))
+                 (runSkolem (skolemize id socrates5) :: PFormula SkAtom)))
 
     , let skx = fApp (toSkolem "x" 1)
           sky = fApp (toSkolem "y" 1) in
@@ -413,7 +411,7 @@ theoremTests =
       TestLabel label (TestCase (assertEqual label
                  ((pApp "S" [skx []] .&. (.~.)(pApp "H" [skx []]) .|. pApp "H" [sky[]] .&. (.~.)(pApp "M" [sky []])) .|.
                   ((.~.)(pApp "S" [z]) .|. pApp "M" [z]))
-                 (runSkolem (skolemize id socrates6) :: Marked Propositional MyFormula)))
+                 (runSkolem (skolemize id socrates6) :: PFormula SkAtom)))
 
     , let label = "Logic - socrates is not mortal" in
       TestLabel label (TestCase (assertEqual' label
@@ -464,8 +462,8 @@ theoremTests =
                 -- M(x) is false, the remaining lines would all be zero,
                 -- the argument would be inconsistant (an anti-theorem.)
                 -- How can we modify the formula to make these lines 0?
-                (theorem socrates7, inconsistant socrates7, table' socrates7, simpcnf' socrates7 :: Set (Set MyFormula))))
-    , let (formula :: MyFormula) =
+                (theorem socrates7, inconsistant socrates7, table' socrates7, simpcnf' socrates7 :: Set (Set Formula))))
+    , let (formula :: Formula) =
               (for_all "x" (pApp "L" [vt "x"] .=>. pApp "F" [vt "x"]) .&. -- All logicians are funny
                exists "x" (pApp "L" [vt "x"])) .=>.                            -- Someone is a logician
               (.~.) (exists "x" (pApp "F" [vt "x"]))                           -- Someone / Nobody is funny
@@ -499,7 +497,7 @@ theoremTests =
                        ([True,True,True,True],False)]))
       in let label = "Logic - gensler189" in
          TestLabel label (TestCase (assertEqual' label expected input))
-    , let (formula :: MyFormula) =
+    , let (formula :: Formula) =
               (for_all "x" (pApp "L" [vt "x"] .=>. pApp "F" [vt "x"]) .&. -- All logicians are funny
                exists "y" (pApp "L" [vt (fromString "y")])) .=>.           -- Someone is a logician
               (.~.) (exists "z" (pApp "F" [vt "z"]))                       -- Someone / Nobody is funny
@@ -551,7 +549,7 @@ theorem5 =
                                              ((.~.) (m [x])))))))
 -}
 
-instance TD.Display MyFormula where
+instance TD.Display Formula where
     textFrame x = [show x]
 {-
     textFrame x = [quickShow x]
@@ -609,21 +607,21 @@ table :: forall formula atom p term v f.
           Atom atom term v,
           IsTerm term,
           Ord formula, Pretty formula, Ord atom) =>
-         formula -> (Set (Set (Marked Literal (Marked Propositional formula))), TruthTable (AtomOf formula))
+         formula -> (Set (Set (LFormula atom)), TruthTable (AtomOf formula))
 table f =
     -- truthTable :: Ord a => PropForm a -> TruthTable a
     (cnf, truthTable cnf')
     where
-      cnf' :: Marked Propositional formula
-      cnf' = unmarkLiteral $ list_conj (Set.map list_disj cnf :: Set (Marked Literal (Marked Propositional formula)))
-      cnf :: Set (Set (Marked Literal (Marked Propositional formula)))
-      cnf = simpcnf id (runSkolem (skolemize id f) :: Marked Propositional formula)
+      cnf' :: PFormula atom
+      cnf' = list_conj (Set.map (list_disj . Set.map (convertLiteral id)) cnf)
+      cnf :: Set (Set (LFormula atom))
+      cnf = simpcnf id (runSkolem (skolemize id f) :: PFormula atom)
       -- fromSS = List.map Set.toList . Set.toList
       -- n f = (if negated f then (.~.) . atomic . (.~.) else atomic) $ f
       -- list_disj = setFoldr1 (.|.)
       -- list_conj = setFoldr1 (.&.)
 
-table' :: MyFormula -> (Set (Set (Marked Literal (Marked Propositional MyFormula))), TruthTable MyAtom)
+table' :: Formula -> (Set (Set (LFormula SkAtom)), TruthTable SkAtom)
 table' = table
 
 {-
