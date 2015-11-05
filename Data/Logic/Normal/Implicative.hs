@@ -19,7 +19,7 @@ import Data.Generics (Data, Typeable, listify)
 import Data.List as List (map)
 import Data.Map as Map (empty, Map)
 import Data.Set.Extra as Set (empty, flatten, fold, fromList, insert, map, Set, singleton, toList)
-import FOL (HasApply(TermOf), IsFirstOrder, IsQuantified(VarOf), IsTerm(FunOf))
+import FOL (HasApply(TermOf), IsFirstOrder, IsFunction, IsQuantified(VarOf), IsTerm(FunOf))
 import Formulas (IsFormula(AtomOf), IsNegatable(..), true)
 import Lit (foldLiteral, IsLiteral, JustLiteral, LFormula)
 import Pretty (Pretty(pPrint))
@@ -28,16 +28,16 @@ import Skolem (HasSkolem(SVarOf, foldSkolem), runSkolem, runSkolemT, skolemize, 
 import Text.PrettyPrint ((<>), Doc, brackets, comma, hsep, parens, punctuate, text, vcat)
 
 -- |Combination of Normal monad and LiteralMap monad
-type NormalT formula m a = SkolemT (LiteralMapT formula m) (FunOf (TermOf (AtomOf formula))) a
+type NormalT lit m a = SkolemT (LiteralMapT lit m) (FunOf (TermOf (AtomOf lit))) a
 
-runNormalT :: (Monad m, IsFirstOrder formula) => NormalT formula m a -> m a
+runNormalT :: (Monad m, IsLiteral lit, IsFunction (FunOf (TermOf (AtomOf lit)))) => NormalT lit m a -> m a
 runNormalT action = runLiteralMapM (runSkolemT action)
 
-runNormal :: (IsFirstOrder formula) => NormalT formula Identity a -> a
+runNormal :: (IsLiteral lit, IsFunction (FunOf (TermOf (AtomOf lit)))) => NormalT lit Identity a -> a
 runNormal = runIdentity . runNormalT
 
 --type LiteralMap f = LiteralMapT f Identity
-type LiteralMapT f = StateT (Int, Map f Int)
+type LiteralMapT lit = StateT (Int, Map lit Int)
 
 --runLiteralMap :: LiteralMap p a -> a
 --runLiteralMap action = runIdentity (runLiteralMapM action)
