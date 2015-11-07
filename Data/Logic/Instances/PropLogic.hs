@@ -9,8 +9,9 @@ module Data.Logic.Instances.PropLogic
 import Data.Set.Extra as Set (toList)
 import Formulas (BinOp(..), HasBoolean(fromBool, asBool), IsAtom, IsCombinable(..), IsFormula(..), IsNegatable(..))
 import Lit (convertLiteral, IsLiteral(..), LFormula)
-import Pretty (HasFixity(fixity), Pretty(pPrint), rootFixity)
-import Prop (IsPropositional(foldPropositional'), JustPropositional, prettyPropositional, simpcnf)
+import Pretty (HasFixity(precedence, associativity), Pretty(pPrintPrec), Side(Top))
+import Prop (associativityPropositional, IsPropositional(foldPropositional'), JustPropositional,
+             precedencePropositional, prettyPropositional, simpcnf)
 import PropLogic hiding (at)
 
 instance IsAtom a => JustPropositional (PropForm a)
@@ -73,10 +74,11 @@ instance HasBoolean (PropForm formula) where
     asBool _ = Nothing
 
 instance (IsPropositional (PropForm atom), IsAtom atom) => Pretty (PropForm atom) where
-    pPrint = prettyPropositional
+    pPrintPrec = prettyPropositional Top
 
 instance (IsPropositional (PropForm atom), IsAtom atom) => HasFixity (PropForm atom) where
-    fixity _ = rootFixity
+    precedence = precedencePropositional
+    associativity = associativityPropositional
 
 pairs :: [a] -> [(a, a)]
 pairs (x:y:zs) = (x,y) : pairs (y:zs)

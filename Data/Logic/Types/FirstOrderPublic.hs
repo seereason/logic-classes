@@ -82,7 +82,8 @@ instance (IsLiteral formula, IsNegatable formula) => IsLiteral (Marked mk formul
     foldLiteral' ho ne tf at (Mark x) = foldLiteral' (ho . Mark) (ne . Mark) tf at x
 
 instance HasFixity formula => HasFixity (Marked mk formula) where
-    fixity (Mark x) = fixity x
+    precedence (Mark x) = precedence x
+    associativity (Mark x) = associativity x
 
 instance Pretty formula => Pretty (Marked mk formula) where
     pPrint = pPrint . unMark'

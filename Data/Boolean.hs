@@ -38,7 +38,7 @@ import Data.Maybe ( mapMaybe )
 import Formulas (HasBoolean(..), IsAtom, IsCombinable(..), IsFormula(..), IsNegatable(..))
 import Lit (IsLiteral(..))
 import Prop (IsPropositional(..), JustPropositional)
-import Pretty (HasFixity(..), leafFixity, Pretty(pPrint), text)
+import Pretty (HasFixity(..), Pretty(pPrint), text)
 
 -- | Boolean formulas are represented as values of type @Boolean@.
 --
@@ -101,8 +101,7 @@ type Clause  = [Literal]
 
 instance JustPropositional CNF
 
-instance HasFixity Int where
-    fixity _ = leafFixity
+instance HasFixity Int
 
 instance IsAtom Int
 
@@ -128,7 +127,8 @@ instance IsNegatable CNF where
     naiveNegate = error "FIXME: IsNegatable CNF"
     foldNegation = error "FIXME: IsNegatable CNF"
 instance HasFixity CNF where
-    fixity = error "FIXME: HasFixity CNF"
+    precedence _ = error "FIXME: HasFixity CNF"
+    associativity _ = error "FIXME: HasFixity CNF"
 instance IsLiteral CNF where
     foldLiteral' = error "FIXME: IsLiteral CNF MyAtom"
 

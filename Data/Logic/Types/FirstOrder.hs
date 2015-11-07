@@ -12,11 +12,11 @@ import Data.SafeCopy (base, deriveSafeCopy)
 import Data.String (IsString(fromString))
 import Data.Typeable (Typeable)
 import Formulas (BinOp(..), IsNegatable(..), IsCombinable(..), HasBoolean(..), IsAtom, IsFormula(..))
-import FOL (exists, HasApply(..), HasApplyAndEquate(equate, foldEquate), IsFirstOrder,
-            IsFunction, IsPredicate, IsQuantified(..), IsTerm(..), IsVariable(..),
-            overtermsEq, ontermsEq, prettyApply, prettyEquate, prettyQuantified, prettyTerm, Quant(..), V)
+import FOL (associativityQuantified, associativityEquate, exists, HasApply(..), HasApplyAndEquate(equate, foldEquate), IsFirstOrder,
+            IsFunction, IsPredicate, IsQuantified(..), IsTerm(..), IsVariable(..), overtermsEq, ontermsEq,
+            precedenceQuantified, precedenceEquate, prettyApply, prettyEquate, prettyQuantified, prettyTerm, Quant(..), V)
 import Lit (IsLiteral(..))
-import Pretty (HasFixity(..), Pretty(pPrint, pPrintPrec), rootFixity)
+import Pretty (HasFixity(..), Pretty(pPrint, pPrintPrec), Side(Top))
 import Prop (IsPropositional(foldPropositional'))
 
 -- | Examine the formula to find the list of outermost universally
@@ -84,8 +84,9 @@ instance (IsVariable v, IsPredicate p, IsFunction f
     a .=>. b = Combine a (:=>:) b
     a .<=>. b = Combine a (:<=>:) b
     foldCombination = error "FIXME foldCombination"
-instance HasFixity (NPredicate p term) where
-    fixity _ = rootFixity
+instance (IsPredicate p, IsTerm term) => HasFixity (NPredicate p term) where
+    precedence = precedenceEquate
+    associativity = associativityEquate
 instance (IsPredicate p, IsTerm term) => IsAtom (NPredicate p term)
 instance (IsVariable v, IsPredicate p, IsFunction f, atom ~ NPredicate p (NTerm v f), Pretty atom
          ) => IsPropositional (NFormula v p f) where
@@ -95,14 +96,15 @@ instance (IsVariable v, IsPredicate p, IsFunction f, atom ~ NPredicate p (NTerm 
     foldPropositional' _ _ _ tf _ TT = tf True
     foldPropositional' _ _ _ tf _ FF = tf False
     foldPropositional' _ _ _ _ at (Predicate x) = at x
-instance HasFixity (NFormula v p f) where
-    fixity _ = rootFixity
+instance (IsVariable v, IsPredicate p, IsFunction f) => HasFixity (NFormula v p f) where
+    precedence = precedenceQuantified
+    associativity = associativityQuantified
 --instance (IsVariable v, IsPredicate p, IsFunction f) => Pretty (NPredicate p (NTerm v f)) where
 --    pPrint p = foldEquate prettyEquate prettyApply p
 instance (IsPredicate p, IsTerm term) => Pretty (NPredicate p term) where
     pPrintPrec d r = foldEquate (prettyEquate d r) prettyApply
 instance (IsVariable v, IsPredicate p, IsFunction f) => Pretty (NFormula v p f) where
-    pPrintPrec = prettyQuantified
+    pPrintPrec = prettyQuantified Top
 instance (IsPredicate p, IsTerm term) => HasApply (NPredicate p term) where
     type PredOf (NPredicate p term) = p
     type TermOf (NPredicate p term) = term

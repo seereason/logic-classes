@@ -17,12 +17,13 @@ import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Atom (Atom)
 import Data.Set as Set (notMember)
 import Data.String (IsString(..))
-import FOL ((.=.), HasApply(..), HasApplyAndEquate(..), IsFunction(variantFunction), IsPredicate, IsQuantified(..), IsTerm(..),
-            IsVariable, onatomsQuantified, overatomsQuantified, overtermsEq, ontermsEq,
-            pApp, prettyQuantified, prettyTerm, Quant(..), showQuantified, showTerm)
+import FOL ((.=.), associativityQuantified, HasApply(..), HasApplyAndEquate(..), IsFunction(variantFunction), IsPredicate,
+            IsQuantified(..), IsTerm(..), IsVariable, onatomsQuantified, overatomsQuantified, overtermsEq, ontermsEq,
+            pApp, precedenceQuantified, prettyQuantified, prettyTerm, Quant(..), showQuantified, showTerm)
 import Formulas (HasBoolean(..), asBool, IsAtom, IsCombinable(..), BinOp(..), IsFormula(..), IsNegatable(..), (.~.))
-import Lit (convertToLiteral, IsLiteral(foldLiteral'), JustLiteral, onatomsLiteral, overatomsLiteral, prettyLiteral, showLiteral)
-import Pretty (HasFixity(..), rootFixity, text)
+import Lit (associativityLiteral, convertToLiteral, IsLiteral(foldLiteral'), JustLiteral, onatomsLiteral, overatomsLiteral,
+            precedenceLiteral, prettyLiteral, showLiteral)
+import Pretty (HasFixity(..), Side(Top), text)
 import Prop (IsPropositional(foldPropositional'))
 import Skolem (HasSkolem(..), prettySkolem)
 import Text.PrettyPrint.HughesPJClass (Pretty(pPrint, pPrintPrec))
@@ -129,7 +130,7 @@ instance HasBoolean (Sentence v p f) where
 instance (IsVariable v, IsPredicate p, IsFunction f) => IsAtom (Sentence v p f)
 
 instance (IsVariable v, IsPredicate p, IsFunction f) => Show (Sentence v p f) where
-    showsPrec = showQuantified
+    showsPrec = showQuantified Top
 
 instance (IsVariable v, IsPredicate p, IsFunction f) => IsLiteral (Sentence v p f) where
     foldLiteral' _ ne _ _ (Not x) = ne x
@@ -181,10 +182,11 @@ instance (IsFunction f, IsVariable v, IsPredicate p) => HasApplyAndEquate (Sente
     -- applyEq' = Predicate
 
 instance (IsQuantified (Sentence v p f), IsVariable v, IsFunction f) => Pretty (Sentence v p f) where
-    pPrintPrec = prettyQuantified
+    pPrintPrec = prettyQuantified Top
 
-instance (IsFormula (Sentence v p f), IsFunction f, IsVariable v) => HasFixity (Sentence v p f) where
-    fixity _ = rootFixity
+instance (IsFormula (Sentence v p f), IsVariable v, IsPredicate p, IsFunction f) => HasFixity (Sentence v p f) where
+    precedence = precedenceQuantified
+    associativity = associativityQuantified
 
 instance (IsFormula (Sentence v p f), IsLiteral (Sentence v p f), IsVariable v, IsFunction f, Ord p
          ) => IsQuantified (Sentence v p f) where
@@ -288,8 +290,9 @@ instance (Pretty (NormalTerm v f),
     overatoms = overatomsLiteral
     onatoms = onatomsLiteral
 
-instance HasFixity (NormalSentence v p f) where
-    fixity _ = rootFixity
+instance (IsVariable v, IsPredicate p, IsFunction f) => HasFixity (NormalSentence v p f) where
+    precedence = precedenceLiteral
+    associativity = associativityLiteral
 
 instance IsVariable v => IsString (NormalTerm v f) where
     fromString = NormalVariable . fromString

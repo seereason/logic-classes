@@ -280,7 +280,7 @@ theoremTests =
                 (True,(Set.empty, (TruthTable []{-Just (CJ [])-} [([],True)])))
                 (theorem socrates2, table' socrates2)))
     , let label = "Logic - theorem test 1a" in
-      TestLabel label (TestCase (assertEqual label
+      TestLabel label (TestCase (assertEqual' label
                 (False,
                  False,
                  (fromList [fromList [atomic (applyPredicate "H" [fApp (toSkolem "x" 1) []]),
@@ -337,7 +337,7 @@ theoremTests =
                 (theorem socrates3, inconsistant socrates3,
                  table' socrates3)))
     , let label = "socrates1 truth table" in
-      TestLabel label (TestCase (assertEqual label
+      TestLabel label (TestCase (assertEqual' label
              (let skx = fApp (toSkolem "x" 1) in
               (fromList [fromList [atomic (applyPredicate "H" [fApp (toSkolem "x" 1) []]),
                                    atomic (applyPredicate "M" [vt "x"]),
@@ -400,7 +400,7 @@ theoremTests =
     , let skx = fApp (toSkolem "x" 1)
           {- sky = fApp (toSkolem "y" 1) -} in
       let label = "Socrates formula skolemized" in
-      TestLabel label (TestCase (assertEqual label
+      TestLabel label (TestCase (assertEqual' label
                  (((pApp "S" [skx []] .&. (.~.)(pApp "H" [skx []]) .|. pApp "H" [skx[]] .&. (.~.)(pApp "M" [skx []])) .|.
                    ((.~.)(pApp "S" [x]) .|. pApp "M" [x])))
                  (runSkolem (skolemize id socrates5) :: PFormula SkAtom)))
@@ -408,7 +408,7 @@ theoremTests =
     , let skx = fApp (toSkolem "x" 1)
           sky = fApp (toSkolem "y" 1) in
       let label = "Socrates formula skolemized" in
-      TestLabel label (TestCase (assertEqual label
+      TestLabel label (TestCase (assertEqual' label
                  ((pApp "S" [skx []] .&. (.~.)(pApp "H" [skx []]) .|. pApp "H" [sky[]] .&. (.~.)(pApp "M" [sky []])) .|.
                   ((.~.)(pApp "S" [z]) .|. pApp "M" [z]))
                  (runSkolem (skolemize id socrates6) :: PFormula SkAtom)))
