@@ -5,7 +5,7 @@ module Data.Logic.Classes.ClauseNormalForm
 
 import Control.Monad (MonadPlus)
 import Data.Set as S
-import Formulas
+import Lit
 
 -- |A class to represent formulas in CNF, which is the conjunction of
 -- a set of disjuncted literals each which may or may not be negated.

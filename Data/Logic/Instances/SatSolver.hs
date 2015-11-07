@@ -12,8 +12,8 @@ import qualified Data.Set.Extra as S
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(..))
 import Data.Logic.Normal.Implicative (LiteralMapT, NormalT)
 import FOL (HasApply(PredOf, TermOf), IsFirstOrder, IsQuantified(VarOf), IsTerm(FunOf, TVarOf))
-import Formulas (IsFormula(AtomOf), IsNegatable(..), negated, (.~.))
-import qualified Lit as N
+import Formulas (IsFormula(AtomOf))
+import Lit (IsLiteral, IsNegatable(..), negated, (.~.))
 import Pretty (Pretty)
 import Skolem (simpcnf')
 
@@ -26,7 +26,7 @@ toCNF :: (atom ~ AtomOf formula, p ~ PredOf atom, term ~ TermOf atom, v ~ VarOf 
           Monad m,
           IsFirstOrder formula,
           -- IsAtomWithEquate atom p term,
-          N.IsLiteral formula,
+          IsLiteral formula,
           Ord formula, Pretty formula) =>
          formula -> NormalT formula m CNF
 toCNF f = S.ssMapM (lift . toLiteral) (simpcnf' f) >>= return . makeCNF

@@ -13,10 +13,10 @@ import Data.Set.Extra as Set (Set, singleton, toList, empty, fromList, map {-, m
 import Data.String (IsString(fromString))
 import FOL (vt, (∀), pApp, fv, (.=.), exists, for_all, applyPredicate, fApp,
             HasApply(TermOf, PredOf), HasApplyAndEquate(equate), V(V), Predicate, subst, IsFirstOrder, IsQuantified(VarOf), IsTerm(FunOf))
-import Formulas ((.~.), atomic, IsCombinable(..), IsFormula(AtomOf), (⇒))
-import Lit (convertLiteral, IsLiteral, LFormula)
+import Formulas (atomic, IsFormula(AtomOf))
+import Lit ((.~.), convertLiteral, IsLiteral, LFormula)
 import Pretty (assertEqual', Pretty(pPrint))
-import Prop (IsPropositional, list_conj, list_disj, PFormula, simpcnf, TruthTable(..), TruthTable, truthTable)
+import Prop ((⇒), IsCombinable(..), IsPropositional, list_conj, list_disj, PFormula, simpcnf, TruthTable(..), TruthTable, truthTable)
 import Skolem (HasSkolem(..), runSkolem, skolemize, pnf, simpcnf', Function)
 import Test.HUnit
 import qualified TextDisplay as TD

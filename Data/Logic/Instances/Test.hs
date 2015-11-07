@@ -13,7 +13,7 @@ module Data.Logic.Instances.Test
 import Data.Char (isDigit)
 import Data.SafeCopy (base, deriveSafeCopy)
 import FOL (V(V), Predicate, FOL(..), Term(..), Quant(..), QFormula(..))
-import Formulas (BinOp(..))
+import Prop (BinOp(..))
 import Skolem (Function(..), Formula, SkTerm, SkAtom)
 
 next :: String -> String

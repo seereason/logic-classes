@@ -12,9 +12,9 @@ import Data.Logic.Resolution (SetOfSupport)
 import Data.Map (fromList)
 import qualified Data.Set as S
 import FOL (exists, for_all, IsTerm(..), pApp)
-import Formulas (IsCombinable(..), IsNegatable(..), (.~.))
-import Lit (LFormula)
+import Lit ((.~.), IsNegatable(..), LFormula)
 import Pretty (assertEqual')
+import Prop (IsCombinable(..))
 import Skolem (HasSkolem(..), SkolemT, SkAtom)
 import Test.HUnit
 

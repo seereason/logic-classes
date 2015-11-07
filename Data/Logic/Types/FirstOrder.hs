@@ -11,13 +11,13 @@ import Data.Data (Data)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.String (IsString(fromString))
 import Data.Typeable (Typeable)
-import Formulas (BinOp(..), IsNegatable(..), IsCombinable(..), HasBoolean(..), IsAtom, IsFormula(..))
+import Formulas (HasBoolean(..), IsAtom, IsFormula(..))
 import FOL (associativityQuantified, associativityEquate, exists, HasApply(..), HasApplyAndEquate(equate, foldEquate), IsFirstOrder,
             IsFunction, IsPredicate, IsQuantified(..), IsTerm(..), IsVariable(..), overtermsEq, ontermsEq,
             precedenceQuantified, precedenceEquate, prettyApply, prettyEquate, prettyQuantified, prettyTerm, Quant(..), V)
-import Lit (IsLiteral(..))
+import Lit (IsLiteral(..), IsNegatable(..))
 import Pretty (HasFixity(..), Pretty(pPrint, pPrintPrec), Side(Top))
-import Prop (IsPropositional(foldPropositional'))
+import Prop (BinOp(..), IsCombinable(..), IsPropositional(foldPropositional'))
 
 -- | Examine the formula to find the list of outermost universally
 -- quantified variables, and call a function with that list and the

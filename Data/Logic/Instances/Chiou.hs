@@ -20,11 +20,11 @@ import Data.String (IsString(..))
 import FOL ((.=.), associativityQuantified, HasApply(..), HasApplyAndEquate(..), IsFunction(variantFunction), IsPredicate,
             IsQuantified(..), IsTerm(..), IsVariable, onatomsQuantified, overatomsQuantified, overtermsEq, ontermsEq,
             pApp, precedenceQuantified, prettyQuantified, prettyTerm, Quant(..), showQuantified, showTerm)
-import Formulas (HasBoolean(..), asBool, IsAtom, IsCombinable(..), BinOp(..), IsFormula(..), IsNegatable(..), (.~.))
-import Lit (associativityLiteral, convertToLiteral, IsLiteral(foldLiteral'), JustLiteral, onatomsLiteral, overatomsLiteral,
+import Formulas (HasBoolean(..), asBool, IsAtom, IsFormula(..))
+import Lit ((.~.), associativityLiteral, convertToLiteral, IsLiteral(foldLiteral'), IsNegatable(..), JustLiteral, onatomsLiteral, overatomsLiteral,
             precedenceLiteral, prettyLiteral, showLiteral)
 import Pretty (HasFixity(..), Side(Top), text)
-import Prop (IsPropositional(foldPropositional'))
+import Prop (BinOp(..), IsCombinable(..), IsPropositional(foldPropositional'))
 import Skolem (HasSkolem(..), prettySkolem)
 import Text.PrettyPrint.HughesPJClass (Pretty(pPrint, pPrintPrec))
 

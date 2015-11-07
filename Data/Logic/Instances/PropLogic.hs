@@ -7,10 +7,10 @@ module Data.Logic.Instances.PropLogic
     ) where
 
 import Data.Set.Extra as Set (toList)
-import Formulas (BinOp(..), HasBoolean(fromBool, asBool), IsAtom, IsCombinable(..), IsFormula(..), IsNegatable(..))
-import Lit (convertLiteral, IsLiteral(..), LFormula)
+import Formulas (HasBoolean(fromBool, asBool), IsAtom, IsFormula(..))
+import Lit (convertLiteral, IsLiteral(..), IsNegatable(..), LFormula)
 import Pretty (HasFixity(precedence, associativity), Pretty(pPrintPrec), Side(Top))
-import Prop (associativityPropositional, IsPropositional(foldPropositional'), JustPropositional,
+import Prop (BinOp(..), associativityPropositional, IsCombinable(..), IsPropositional(foldPropositional'), JustPropositional,
              precedencePropositional, prettyPropositional, simpcnf)
 import PropLogic hiding (at)
 

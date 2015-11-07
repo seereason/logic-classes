@@ -35,9 +35,9 @@ import Control.Monad ( guard, liftM )
 import Data.Generics (Data, Typeable)
 import qualified Data.IntMap as IM
 import Data.Maybe ( mapMaybe )
-import Formulas (HasBoolean(..), IsAtom, IsCombinable(..), IsFormula(..), IsNegatable(..))
-import Lit (IsLiteral(..))
-import Prop (IsPropositional(..), JustPropositional)
+import Formulas (HasBoolean(..), IsAtom, IsFormula(..))
+import Lit (IsLiteral(..), IsNegatable(..))
+import Prop (IsCombinable(..), IsPropositional(..), JustPropositional)
 import Pretty (HasFixity(..), Pretty(pPrint), text)
 
 -- | Boolean formulas are represented as values of type @Boolean@.

@@ -24,7 +24,9 @@ import Data.Map as Map (fromList)
 import Data.Set as Set (Set, fromList, toList)
 import Data.String (IsString)
 import FOL (HasApply(TermOf, PredOf), HasApplyAndEquate, (.=.), pApp, IsQuantified(..), IsTerm(..), V, Predicate, for_all, exists)
-import Formulas ((.~.), false, IsCombinable(..), IsFormula(AtomOf), IsNegatable, true)
+import Formulas (false, IsFormula(AtomOf), true)
+import Lit ((.~.), IsNegatable)
+import Prop (IsCombinable(..))
 import Skolem (HasSkolem(toSkolem), Formula, SkAtom, SkTerm, Function)
 import Test.HUnit
 import Text.PrettyPrint.HughesPJClass (prettyShow)
@@ -405,7 +407,7 @@ formulas =
     , doTest $
       TestFormula
       { name = "cnf test 10"
-      , formula = (for_all "x" (exists "y" ((p [x, y] .<=. for_all "x" (exists "z" (q [y, x, z]) .=>. r [y])))))
+      , formula = (for_all "x" (exists "y" ((for_all "x" (exists "z" (q [y, x, z]) .=>. r [y]) .=>. p [x, y]))))
       , expected = [ClauseNormalForm
                     (toSS
                      [[(pApp ("p") [vt ("x"),fApp (toSkolem "y" 1) [vt ("x")]]),
