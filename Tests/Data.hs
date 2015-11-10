@@ -23,10 +23,13 @@ import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
 import Data.Map as Map (fromList)
 import Data.Set as Set (Set, fromList, toList)
 import Data.String (IsString)
-import FOL (HasApply(TermOf, PredOf), HasApplyAndEquate, (.=.), pApp, IsQuantified(..), IsTerm(..), V, Predicate, for_all, exists)
+import Apply (HasApply(TermOf, PredOf), pApp, Predicate)
+import Equate ((.=.), HasEquate)
+import Quantified (IsQuantified(..), for_all, exists)
+import Term (IsTerm(..), V)
 import Formulas (false, IsFormula(AtomOf), true)
-import Lit ((.~.), IsNegatable)
-import Prop (IsCombinable(..))
+import Lit ((.~.), IsLiteral)
+import Prop (IsPropositional(..))
 import Skolem (HasSkolem(toSkolem), Formula, SkAtom, SkTerm, Function)
 import Test.HUnit
 import Text.PrettyPrint.HughesPJClass (prettyShow)
@@ -968,7 +971,7 @@ chang43ConjectureRenamed =
 withKB :: forall formula atom term v.
           (formula ~ Formula, atom ~ SkAtom, v ~ V,
            term ~ TermOf atom,
-           IsQuantified formula, HasApplyAndEquate atom, IsTerm term) =>
+           IsQuantified formula, HasEquate atom, IsTerm term) =>
           (String, [TestFormula formula atom v]) -> TestFormula formula atom v -> TestFormula formula atom v
 withKB (kbName, knowledge) conjecture =
     conjecture { name = name conjecture ++ " with " ++ kbName ++ " knowledge base"
@@ -984,7 +987,7 @@ withKB (kbName, knowledge) conjecture =
 
 kbKnowledge :: forall formula atom term v.
                (formula ~ Formula, atom ~ SkAtom, v ~ V, term ~ TermOf atom,
-                IsQuantified formula, HasApplyAndEquate atom, IsTerm term) =>
+                IsQuantified formula, HasEquate atom, IsTerm term) =>
                (String, [TestFormula formula atom v]) -> (String, [formula])
 kbKnowledge kb = (fst (kb :: (String, [TestFormula formula atom v])), map formula (snd kb))
 
@@ -1126,7 +1129,7 @@ proofs =
       }
     ]
 
-inf' :: (IsNegatable lit, Ord lit) => [lit] -> [lit] -> ImplicativeForm lit
+inf' :: (IsLiteral lit, Ord lit) => [lit] -> [lit] -> ImplicativeForm lit
 inf' = makeINF'
 
 toLL :: Set (Set a) -> [[a]]

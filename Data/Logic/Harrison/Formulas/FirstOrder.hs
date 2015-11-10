@@ -9,10 +9,10 @@ module Data.Logic.Harrison.Formulas.FirstOrder
     ) where
 
 import qualified Data.Set as Set
-import FOL (IsQuantified(..), quant)
 import Formulas (IsFormula(AtomOf))
 import Lit ((.~.))
 import Prop (BinOp(..), binop)
+import Quantified (IsQuantified(..), quant)
 
 -- ------------------------------------------------------------------------- 
 -- General parsing of iterated infixes.                                      

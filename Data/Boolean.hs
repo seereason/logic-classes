@@ -35,9 +35,9 @@ import Control.Monad ( guard, liftM )
 import Data.Generics (Data, Typeable)
 import qualified Data.IntMap as IM
 import Data.Maybe ( mapMaybe )
-import Formulas (HasBoolean(..), IsAtom, IsFormula(..))
-import Lit (IsLiteral(..), IsNegatable(..))
-import Prop (IsCombinable(..), IsPropositional(..), JustPropositional)
+import Formulas (IsAtom, IsFormula(..))
+import Lit (IsLiteral(..))
+import Prop (IsPropositional(..), JustPropositional)
 import Pretty (HasFixity(..), Pretty(pPrint), text)
 
 -- | Boolean formulas are represented as values of type @Boolean@.
@@ -66,12 +66,6 @@ instance Ord Literal where
     compare (Pos _) (Neg _) = GT
     compare (Pos m) (Pos n) = compare m n
     compare (Neg m) (Neg n) = compare m n
-
-instance IsNegatable Literal where
-    naiveNegate (Neg x) = Pos x
-    naiveNegate (Pos x) = Neg x
-    foldNegation normal _ (Pos x) = normal (Pos x)
-    foldNegation _ inverted (Neg x) = inverted (Pos x)
 
 deriving instance Data Literal
 deriving instance Typeable Literal
@@ -110,27 +104,25 @@ instance IsFormula CNF where
     atomic = error "FIXME: IsFormula CNF MyAtom"
     overatoms = error "FIXME: IsFormula CNF MyAtom"
     onatoms = error "FIXME: IsFormula CNF MyAtom"
+    asBool = error "FIXME: HasBoolean CNF"
+    true = error "FIXME: HasBoolean CNF"
+    false = error "FIXME: HasBoolean CNF"
 instance Pretty Literal where
     pPrint = text . show
 instance IsPropositional CNF where
     foldPropositional' = error "FIXME: IsPropositional CNF MyAtom"
-instance IsCombinable CNF where
     foldCombination = error "FIXME: IsCombinable CNF"
     _ .|. _ = error "FIXME: IsCombinable CNF"
     _ .&. _ = error "FIXME: IsCombinable CNF"
     _ .=>. _ = error "FIXME: IsCombinable CNF"
     _ .<=>. _ = error "FIXME: IsCombinable CNF"
-instance HasBoolean CNF where
-    asBool = error "FIXME: HasBoolean CNF"
-    fromBool = error "FIXME: HasBoolean CNF"
-instance IsNegatable CNF where
-    naiveNegate = error "FIXME: IsNegatable CNF"
-    foldNegation = error "FIXME: IsNegatable CNF"
 instance HasFixity CNF where
     precedence _ = error "FIXME: HasFixity CNF"
     associativity _ = error "FIXME: HasFixity CNF"
 instance IsLiteral CNF where
     foldLiteral' = error "FIXME: IsLiteral CNF MyAtom"
+    naiveNegate = error "FIXME: IsNegatable CNF"
+    foldNegation = error "FIXME: IsNegatable CNF"
 
 -- |
 -- We convert boolean formulas to conjunctive normal form by pushing

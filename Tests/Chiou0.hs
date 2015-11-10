@@ -3,6 +3,7 @@
 
 module Chiou0 where
 
+import Apply (pApp)
 import Common ({-instance Atom MyAtom MyTerm V-})
 import Control.Monad.Trans (MonadIO, liftIO)
 import Data.Logic.Instances.Test (V(..), Function(..), TFormula, TTerm)
@@ -11,11 +12,12 @@ import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
 import Data.Logic.Resolution (SetOfSupport)
 import Data.Map (fromList)
 import qualified Data.Set as S
-import FOL (exists, for_all, IsTerm(..), pApp)
-import Lit ((.~.), IsNegatable(..), LFormula)
+import Lit ((.~.), IsLiteral(..), LFormula)
 import Pretty (assertEqual')
-import Prop (IsCombinable(..))
+import Prop (IsPropositional(..))
+import Quantified (exists, for_all)
 import Skolem (HasSkolem(..), SkolemT, SkAtom)
+import Term (IsTerm(..))
 import Test.HUnit
 
 tests :: Test
@@ -39,7 +41,7 @@ proofTest1 :: Test
 proofTest1 = let label = "Chiuo0 - proof test 1" in
              TestLabel label (TestCase (assertEqual' label proof1 (runProver' Nothing (loadKB sentences >> theoremKB (pApp "Kills" [fApp "Jack" [], fApp "Tuna" []] :: TFormula)))))
 
-inf' :: (IsNegatable lit, Ord lit) => [lit] -> [lit] -> ImplicativeForm lit
+inf' :: (IsLiteral lit, Ord lit) => [lit] -> [lit] -> ImplicativeForm lit
 inf' l1 l2 = INF (S.fromList l1) (S.fromList l2)
 
 proof1 :: (Bool, SetOfSupport (LFormula SkAtom) V TTerm)

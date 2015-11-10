@@ -7,28 +7,19 @@ module Data.Logic.Instances.PropLogic
     ) where
 
 import Data.Set.Extra as Set (toList)
-import Formulas (HasBoolean(fromBool, asBool), IsAtom, IsFormula(..))
-import Lit (convertLiteral, IsLiteral(..), IsNegatable(..), LFormula)
+import Formulas (IsFormula(asBool), IsAtom, IsFormula(..))
+import Lit (convertLiteral, IsLiteral(..), IsLiteral(..), LFormula)
 import Pretty (HasFixity(precedence, associativity), Pretty(pPrintPrec), Side(Top))
-import Prop (BinOp(..), associativityPropositional, IsCombinable(..), IsPropositional(foldPropositional'), JustPropositional,
+import Prop (BinOp(..), associativityPropositional, IsPropositional(..), JustPropositional,
              precedencePropositional, prettyPropositional, simpcnf)
 import PropLogic hiding (at)
 
-instance IsAtom a => JustPropositional (PropForm a)
+instance IsAtom atom => JustPropositional (PropForm atom)
 
-instance Ord a => IsNegatable (PropForm a) where
+instance IsAtom atom => IsLiteral (PropForm atom) where
     naiveNegate = N
     foldNegation normal inverted (N x) = foldNegation inverted normal x
     foldNegation normal _ x = normal x
-
-instance Ord a => IsCombinable (PropForm a) where
-    foldCombination = error "FIXME: PropForm foldCombination"
-    x .<=>. y = EJ [x, y]
-    x .=>.  y = SJ [x, y]
-    x .|.   y = DJ [x, y]
-    x .&.   y = CJ [x, y]
-
-instance IsAtom atom => IsLiteral (PropForm atom) where
     foldLiteral' ho ne tf at fm =
         case fm of
           N x -> ne x
@@ -37,13 +28,24 @@ instance IsAtom atom => IsLiteral (PropForm atom) where
           A x -> at x
           _ -> ho fm
 
+
 instance IsAtom atom => IsFormula (PropForm atom) where
     type AtomOf (PropForm atom) = atom
     atomic = A
     overatoms = error "FIXME: overatoms PropForm"
     onatoms = error "FIXME: onatoms PropForm"
+    true = T
+    false = F
+    asBool T = Just True
+    asBool F = Just False
+    asBool _ = Nothing
 
 instance IsAtom atom => IsPropositional (PropForm atom) where
+    foldCombination = error "FIXME: PropForm foldCombination"
+    x .<=>. y = EJ [x, y]
+    x .=>.  y = SJ [x, y]
+    x .|.   y = DJ [x, y]
+    x .&.   y = CJ [x, y]
     foldPropositional' ho co ne tf at formula =
         case formula of
           -- EJ [x,y,z,...] -> CJ [EJ [x,y], EJ[y,z], ...]
@@ -65,13 +67,6 @@ instance IsAtom atom => IsPropositional (PropForm atom) where
           T -> tf True
           F -> tf False
           A x -> at x
-
-instance HasBoolean (PropForm formula) where
-    fromBool True = T
-    fromBool False = F
-    asBool T = Just True
-    asBool F = Just False
-    asBool _ = Nothing
 
 instance (IsPropositional (PropForm atom), IsAtom atom) => Pretty (PropForm atom) where
     pPrintPrec = prettyPropositional Top

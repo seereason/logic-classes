@@ -24,6 +24,7 @@ module Data.Logic.KnowledgeBase
     , showKB
     ) where
 
+import Apply (HasApply(TermOf, PredOf))
 import "mtl" Control.Monad.Identity (Identity(runIdentity))
 import "mtl" Control.Monad.State (StateT, evalStateT, MonadState(get, put))
 import "mtl" Control.Monad.Trans (lift)
@@ -33,12 +34,15 @@ import Data.Logic.Normal.Implicative (ImplicativeForm, implicativeNormalForm, pr
 import Data.Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Data.SafeCopy (deriveSafeCopy, base)
 import Data.Set.Extra as Set (Set, empty, map, minView, null, partition, union)
-import FOL (HasApply(TermOf, PredOf), HasApplyAndEquate, IsFirstOrder, IsFunction, IsQuantified(VarOf), IsTerm(FunOf, TVarOf))
+import Equate (HasEquate)
+import FOL (IsFirstOrder)
 import Formulas (IsFormula(AtomOf))
 import Lit ((.~.), IsLiteral, LFormula)
 import Prelude hiding (negate)
 import Pretty (Pretty(pPrint), text, (<>))
+import Quantified (IsQuantified(VarOf))
 import Skolem (SkolemT, runSkolemT, HasSkolem(SVarOf))
+import Term (IsFunction, IsTerm(FunOf, TVarOf))
 
 type SentenceCount = Int
 
@@ -129,7 +133,7 @@ getKB = get >>= return . knowledgeBase
 inconsistantKB :: forall m fof lit atom term v function.
                   (IsFirstOrder fof, Ord fof, lit ~ LFormula atom,
                    Atom atom term v,
-                   HasApplyAndEquate atom,
+                   HasEquate atom,
                    IsTerm term,
                    HasSkolem function,
                    Monad m, Data lit, Pretty fof, Typeable function,
@@ -149,7 +153,7 @@ theoremKB :: forall m fof lit atom term v function.
              (Monad m,
               IsFirstOrder fof, Ord fof, Pretty fof, lit ~ LFormula atom,
               Atom atom term v,
-              HasApplyAndEquate atom,
+              HasEquate atom,
               IsTerm term,
               HasSkolem function,
               Data lit, Typeable function,
@@ -165,7 +169,7 @@ theoremKB s = inconsistantKB ((.~.) s)
 askKB :: (Monad m,
           IsFirstOrder fof, Ord fof, Pretty fof, lit ~ LFormula atom,
           Atom atom term v,
-          HasApplyAndEquate atom,
+          HasEquate atom,
           IsTerm term,
           HasSkolem function,
           Data lit, Typeable function,
@@ -179,7 +183,7 @@ askKB s = theoremKB s >>= return . fst
 -- for truth and falsity.
 validKB :: (IsFirstOrder fof, Ord fof, Pretty fof, lit ~ LFormula atom,
             Atom atom term v,
-            HasApplyAndEquate atom,
+            HasEquate atom,
             IsTerm term,
             HasSkolem function,
             Monad m, Data lit, Typeable function,
@@ -199,7 +203,7 @@ validKB s =
 -- new sentence is inconsistant with the current knowledgebase.
 tellKB :: (IsFirstOrder fof, Ord fof, Pretty fof, lit ~ LFormula atom,
            Atom atom term v,
-           HasApplyAndEquate atom,
+           HasEquate atom,
            IsTerm term,
            HasSkolem function,
            Monad m, Data lit, Typeable function,
@@ -221,7 +225,7 @@ tellKB s =
 loadKB :: (IsFirstOrder fof, Ord fof, Pretty fof, lit ~ LFormula atom,
            Atom atom term v,
            IsTerm term,
-           HasApplyAndEquate atom,
+           HasEquate atom,
            HasSkolem function,
            Monad m, Data lit, Typeable function,
            atom ~ AtomOf fof, term ~ TermOf atom,

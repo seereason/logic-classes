@@ -13,16 +13,17 @@ module Data.Logic.Resolution
     , getSubstAtomEq
     ) where
 
+import Apply (HasApply(TermOf, PredOf, applyPredicate))
 import Data.Logic.Classes.Atom (Atom(isRename, getSubst))
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF, neg, pos))
 import Data.Map (Map, empty)
 import Data.Maybe (isJust)
-import FOL (HasApplyAndEquate(equate, foldEquate), HasApply(TermOf, PredOf, applyPredicate), IsTerm(TVarOf, vt, fApp),
-            foldTerm, zipEquates, zipTerms)
+import Equate (HasEquate(equate, foldEquate), zipEquates)
 import Formulas (fromBool, IsFormula(AtomOf, atomic))
 import Lit (foldLiteral, IsLiteral, JustLiteral, zipLiterals)
 import qualified Data.Map as Map
 import qualified Data.Set.Extra as S
+import Term (IsTerm(TVarOf, vt, fApp), foldTerm, zipTerms)
 
 type SetOfSupport lit v term = S.Set (Unification lit v term)
 
@@ -32,7 +33,7 @@ prove :: (atom ~ AtomOf lit, term ~ TermOf atom, v ~ TVarOf term,
           IsLiteral lit, JustLiteral lit,
           Atom atom term v,
           IsTerm term,
-          HasApplyAndEquate atom,
+          HasEquate atom,
           Ord lit, Ord term, Ord v) =>
          Maybe Int -- ^ Recursion limit.  We continue recursing until this
                    -- becomes zero.  If it is negative it may recurse until
@@ -62,7 +63,7 @@ prove limit ss1 ss2' kb  =
 prove' :: forall lit atom v p term.
           (atom ~ AtomOf lit, term ~ TermOf atom, p ~ PredOf atom, v ~ TVarOf term,
            IsLiteral lit, JustLiteral lit,
-           HasApplyAndEquate atom,
+           HasEquate atom,
            Atom (AtomOf lit) term v, IsTerm term,
            Ord lit, Ord term, Ord v, Eq p) =>
           Unification lit v term -> S.Set (ImplicativeForm lit) -> SetOfSupport lit v term -> SetOfSupport lit v term -> (SetOfSupport lit v term, Bool)
@@ -81,7 +82,7 @@ getResult :: (atom ~ AtomOf lit, term ~ TermOf atom, p ~ PredOf atom, v ~ TVarOf
               JustLiteral lit,
               Atom atom term v,
               IsTerm term,
-              HasApplyAndEquate atom,
+              HasEquate atom,
               Ord lit, Ord term, Ord v) =>
              SetOfSupport lit v term -> S.Set (Maybe (Unification lit v term)) -> ((SetOfSupport lit v term), Bool)
 getResult ss us =
@@ -136,7 +137,7 @@ getSubstSentence formula theta =
           formula
 
 getSubstAtomEq :: forall atom term v. (term ~ TermOf atom, v ~ TVarOf term,
-                                         HasApplyAndEquate atom, IsTerm term) => Map v term -> atom -> Map v term
+                                         HasEquate atom, IsTerm term) => Map v term -> atom -> Map v term
 getSubstAtomEq theta = foldEquate (\ t1 t2 -> getSubstsTerms [t1, t2] theta) (\ _ ts -> getSubstsTerms ts theta)
 
 getSubstsTerms :: (v ~ TVarOf term, IsTerm term) => [term] -> Map.Map v term -> Map.Map v term
@@ -176,7 +177,7 @@ isRenameOfSentence f1 f2 =
     maybe False id $
     zipLiterals (\ _ _ -> Just False) (\ x y -> Just (x == y)) (\ x y -> Just (isRename x y)) f1 f2
 
-isRenameOfAtomEq :: (term ~ TermOf atom, HasApplyAndEquate atom, IsTerm term) => atom -> atom -> Bool
+isRenameOfAtomEq :: (term ~ TermOf atom, HasEquate atom, IsTerm term) => atom -> atom -> Bool
 isRenameOfAtomEq a1 a2 =
     maybe False id $
     zipEquates (\ t1l t1r t2l t2r -> Just (isRenameOfTerm t1l t2l && isRenameOfTerm t1r t2r))
@@ -203,7 +204,7 @@ isRenameOfTerms ts1 ts2 =
 resolution :: forall lit atom v p term.
               (atom ~ AtomOf lit, v ~ TVarOf term, term ~ TermOf atom, p ~ PredOf atom,
                IsLiteral lit, JustLiteral lit,
-               HasApplyAndEquate atom,
+               HasEquate atom,
                Atom atom term v, IsTerm term,
                Eq lit, Ord lit, Eq term, Ord v, Eq p) =>
               (ImplicativeForm lit, Map.Map v term) -> (ImplicativeForm lit, Map.Map v term) -> Maybe (ImplicativeForm lit, Map v term)
@@ -251,7 +252,7 @@ resolution (inf1, theta1) (inf2, theta2) =
             Just (theta1', theta2') -> Just (S.union rhss' rhss, theta1', theta2')
 
 -- |Try to unify the second argument using the equate in the first.
-demodulate :: (JustLiteral lit, HasApplyAndEquate atom, Atom atom term v, IsTerm term, Eq lit, Ord lit,
+demodulate :: (JustLiteral lit, HasEquate atom, Atom atom term v, IsTerm term, Eq lit, Ord lit,
                atom ~ AtomOf lit, v ~ TVarOf term, term ~ TermOf atom,
                Eq term, Ord v) =>
               (Unification lit v term) -> (Unification lit v term) -> Maybe (Unification lit v term)
@@ -276,12 +277,12 @@ demodulate (inf1, theta1) (inf2, theta2) =
 
 -- |Unification: unifies two sentences.
 unify :: (atom ~ AtomOf lit, v ~ TVarOf term, term ~ TermOf atom,
-          IsLiteral lit, JustLiteral lit, Atom atom term v, IsTerm term, HasApplyAndEquate atom) =>
+          IsLiteral lit, JustLiteral lit, Atom atom term v, IsTerm term, HasEquate atom) =>
          lit -> lit -> Maybe (Map.Map v term, Map.Map v term)
 unify s1 s2 = unify' s1 s2 empty empty
 
 unify' :: (atom ~ AtomOf lit, v ~ TVarOf term, term ~ TermOf atom,
-           IsLiteral lit, JustLiteral lit, Atom atom term v, IsTerm term, HasApplyAndEquate atom) =>
+           IsLiteral lit, JustLiteral lit, Atom atom term v, IsTerm term, HasEquate atom) =>
           lit -> lit -> Map.Map v term -> Map.Map v term -> Maybe (Map.Map v term, Map.Map v term)
 unify' f1 f2 theta1 theta2 =
     zipLiterals
@@ -290,7 +291,7 @@ unify' f1 f2 theta1 theta2 =
          (unify2AtomsEq theta1 theta2)
          f1 f2
 
-unify2AtomsEq :: (term ~ TermOf atom, HasApplyAndEquate atom, IsTerm term, v ~ TVarOf term
+unify2AtomsEq :: (term ~ TermOf atom, HasEquate atom, IsTerm term, v ~ TVarOf term
                  ) => Map.Map v term -> Map.Map v term -> atom -> atom -> Maybe (Map.Map v term, Map.Map v term)
 unify2AtomsEq theta1 theta2 a1 a2 =
     zipEquates (\ l1 r1 l2 r2 -> unifyTerms (zip [l1, r1] [l2, r2]) theta1 theta2)
@@ -323,7 +324,7 @@ unifyTerms ((t1, t2) : tps) theta1 theta2 =
       Just (theta1',theta2') -> unifyTerms tps theta1' theta2'
 
 findUnify :: forall lit atom term v.
-             (JustLiteral lit, Atom atom term v, IsTerm term, HasApplyAndEquate atom,
+             (JustLiteral lit, Atom atom term v, IsTerm term, HasEquate atom,
               atom ~ AtomOf lit, v ~ TVarOf term, term ~ TermOf atom) =>
              term -> term -> S.Set lit -> Maybe ((term, term), Map.Map v term, Map.Map v term)
 findUnify tl tr s =
@@ -354,7 +355,7 @@ getTerms formula =
       p (Apply _ ts) = concatMap getTerms' ts
 -}
 
-replaceTerm :: (JustLiteral lit, Atom atom term v, IsTerm term, Eq term, HasApplyAndEquate atom,
+replaceTerm :: (JustLiteral lit, Atom atom term v, IsTerm term, Eq term, HasEquate atom,
                 atom ~ AtomOf lit, term ~ TermOf atom, v ~ TVarOf term) =>
                lit -> (term, term) -> Maybe lit
 replaceTerm formula (tl', tr') =
@@ -375,7 +376,7 @@ replaceTerm formula (tl', tr') =
       termEq t1 t2 =
           maybe False id (zipTerms (\a b -> Just (a == b)) (\ f1 ts1 f2 ts2 -> Just (f1 == f2 && all (uncurry termEq) (zip ts1 ts2))) t1 t2)
 
-subst :: (JustLiteral lit, HasApplyAndEquate atom, Atom atom term v, IsTerm term, Eq term,
+subst :: (JustLiteral lit, HasEquate atom, Atom atom term v, IsTerm term, Eq term,
           atom ~ AtomOf lit, v ~ TVarOf term, term ~ TermOf atom) =>
          lit -> Map.Map v term -> Maybe lit
 subst formula theta =

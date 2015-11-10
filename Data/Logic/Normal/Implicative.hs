@@ -12,6 +12,7 @@ module Data.Logic.Normal.Implicative
     , prettyProof
     ) where
 
+import Apply (HasApply(TermOf))
 import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.State (StateT(runStateT), MonadPlus, msum)
 import Data.Bool (bool)
@@ -19,12 +20,14 @@ import Data.Generics (Data, Typeable, listify)
 import Data.List as List (map)
 import Data.Map as Map (empty, Map)
 import Data.Set.Extra as Set (empty, flatten, fold, fromList, insert, map, Set, singleton, toList)
-import FOL (HasApply(TermOf), IsFirstOrder, IsFunction, IsQuantified(VarOf), IsTerm(FunOf))
+import FOL (IsFirstOrder)
 import Formulas (IsFormula(AtomOf), true)
-import Lit (foldLiteral, IsLiteral, IsNegatable(..), JustLiteral, LFormula)
+import Lit (foldLiteral, IsLiteral, JustLiteral, LFormula)
 import Pretty (Pretty(pPrint))
 import Prop (IsPropositional, PFormula, simpcnf)
+import Quantified (IsQuantified(VarOf))
 import Skolem (HasSkolem(SVarOf, foldSkolem), runSkolem, runSkolemT, skolemize, SkolemT)
+import Term (IsFunction, IsTerm(FunOf))
 import Text.PrettyPrint ((<>), Doc, brackets, comma, hsep, parens, punctuate, text, vcat)
 
 -- |Combination of Normal monad and LiteralMap monad
@@ -55,13 +58,13 @@ data ImplicativeForm lit =
 
 -- |A version of MakeINF that takes lists instead of sets, used for
 -- implementing a more attractive show method.
-makeINF' :: (IsNegatable lit, Ord lit) => [lit] -> [lit] -> ImplicativeForm lit
+makeINF' :: (IsLiteral lit, Ord lit) => [lit] -> [lit] -> ImplicativeForm lit
 makeINF' n p = INF (Set.fromList n) (Set.fromList p)
 
-prettyINF :: (IsNegatable lit, Ord lit, Pretty lit) => ImplicativeForm lit -> Doc
+prettyINF :: (IsLiteral lit, Ord lit, Pretty lit) => ImplicativeForm lit -> Doc
 prettyINF x = parens (hsep (List.map pPrint (Set.toList (neg x)))) <> text " => " <> parens (hsep (List.map pPrint (Set.toList (pos x))))
 
-prettyProof :: (IsNegatable lit, Ord lit, Pretty lit) => Set (ImplicativeForm lit) -> Doc
+prettyProof :: (IsLiteral lit, Ord lit, Pretty lit) => Set (ImplicativeForm lit) -> Doc
 prettyProof p = brackets (vcat (punctuate comma (List.map prettyINF (Set.toList p))))
 
 instance (IsLiteral lit, Ord lit, Pretty lit) => Pretty (ImplicativeForm lit) where

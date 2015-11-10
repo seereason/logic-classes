@@ -27,17 +27,20 @@ module Data.Logic.Types.FirstOrderPublic
     , unmarkPublic
     ) where
 
+import Apply (IsPredicate)
 import Data.Data (Data)
 import Data.Generics (Typeable)
 import qualified Data.Logic.Types.FirstOrder as N
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set)
-import Formulas (HasBoolean(..), IsAtom, IsFormula(..))
-import FOL (IsFirstOrder, IsFunction, IsPredicate, IsQuantified(..), IsVariable)
-import Lit (IsLiteral(..), IsNegatable(..))
+import Formulas (IsAtom, IsFormula(..))
+import FOL (IsFirstOrder)
+import Lit (IsLiteral(..))
 import Pretty (HasFixity(..), Pretty(..))
-import Prop (IsCombinable(..), IsPropositional(..))
+import Prop (IsPropositional(..))
+import Quantified (IsQuantified(..))
 import Skolem (simpcnf')
+import Term (IsFunction, IsVariable)
 
 data Marked mark a = Mark {unMark' :: a} deriving (Data, Typeable, Read)
 
@@ -55,31 +58,15 @@ instance IsFormula formula => IsFormula (Marked mk formula) where
     type AtomOf (Marked mk formula) = AtomOf formula
     atomic = Mark . atomic
     overatoms at (Mark fm) = overatoms at fm
-    onatoms at (Mark fm) = Mark (onatoms (unMark' . at) fm)
-
-instance HasBoolean formula => HasBoolean (Marked mk formula) where
+    onatoms at (Mark fm) = Mark (onatoms at fm)
     asBool (Mark x) = asBool x
-    fromBool x = Mark (fromBool x)
+    true = Mark true
+    false = Mark false
 
-instance IsNegatable formula => IsNegatable (Marked mk formula) where
+instance IsLiteral formula => IsLiteral (Marked mk formula) where
+    foldLiteral' ho ne tf at (Mark x) = foldLiteral' (ho . Mark) (ne . Mark) tf at x
     naiveNegate (Mark x) = Mark (naiveNegate x)
     foldNegation ot ne (Mark x) = foldNegation (ot . Mark) (ne . Mark) x
-
-instance IsCombinable formula => IsCombinable (Marked mk formula) where
-    (Mark a) .|. (Mark b) = Mark (a .|. b)
-    (Mark a) .&. (Mark b) = Mark (a .&. b)
-    (Mark a) .=>. (Mark b) = Mark (a .=>. b)
-    (Mark a) .<=>. (Mark b) = Mark (a .<=>. b)
-    foldCombination other dj cj imp iff fm =
-        foldCombination (\a -> other a)
-                        (\a b -> dj a b)
-                        (\a b -> cj a b)
-                        (\a b -> imp a b)
-                        (\a b -> iff a b)
-                        fm
-
-instance (IsLiteral formula, IsNegatable formula) => IsLiteral (Marked mk formula) where
-    foldLiteral' ho ne tf at (Mark x) = foldLiteral' (ho . Mark) (ne . Mark) tf at x
 
 instance HasFixity formula => HasFixity (Marked mk formula) where
     precedence (Mark x) = precedence x
@@ -92,6 +79,17 @@ instance IsPropositional formula => IsPropositional (Marked mk formula) where
     foldPropositional' ho co ne tf at (Mark x) = foldPropositional' (ho . Mark) co' (ne . Mark) tf at x
         where
           co' lhs op rhs = co (Mark lhs) op (Mark rhs)
+    (Mark a) .|. (Mark b) = Mark (a .|. b)
+    (Mark a) .&. (Mark b) = Mark (a .&. b)
+    (Mark a) .=>. (Mark b) = Mark (a .=>. b)
+    (Mark a) .<=>. (Mark b) = Mark (a .<=>. b)
+    foldCombination other dj cj imp iff fm =
+        foldCombination (\a -> other a)
+                        (\a b -> dj a b)
+                        (\a b -> cj a b)
+                        (\a b -> imp a b)
+                        (\a b -> iff a b)
+                        fm
 
 -- |The new Formula type is just a wrapper around the Native instance
 -- (which eventually should be renamed the Internal instance.)  No

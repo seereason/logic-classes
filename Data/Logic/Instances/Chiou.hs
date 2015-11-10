@@ -13,19 +13,20 @@ module Data.Logic.Instances.Chiou
     , fromSentence
     ) where
 
+import Apply (HasApply(..), IsPredicate, pApp)
 import Data.Generics (Data, Typeable)
 import Data.Logic.Classes.Atom (Atom)
 import Data.Set as Set (notMember)
 import Data.String (IsString(..))
-import FOL ((.=.), associativityQuantified, HasApply(..), HasApplyAndEquate(..), IsFunction(variantFunction), IsPredicate,
-            IsQuantified(..), IsTerm(..), IsVariable, onatomsQuantified, overatomsQuantified, overtermsEq, ontermsEq,
-            pApp, precedenceQuantified, prettyQuantified, prettyTerm, Quant(..), showQuantified, showTerm)
-import Formulas (HasBoolean(..), asBool, IsAtom, IsFormula(..))
-import Lit ((.~.), associativityLiteral, convertToLiteral, IsLiteral(foldLiteral'), IsNegatable(..), JustLiteral, onatomsLiteral, overatomsLiteral,
+import Equate ((.=.), HasEquate(..), overtermsEq, ontermsEq)
+import Formulas (asBool, IsAtom, IsFormula(..))
+import Lit ((.~.), associativityLiteral, convertToLiteral, IsLiteral(..), JustLiteral, onatomsLiteral, overatomsLiteral,
             precedenceLiteral, prettyLiteral, showLiteral)
-import Pretty (HasFixity(..), Side(Top), text)
-import Prop (BinOp(..), IsCombinable(..), IsPropositional(foldPropositional'))
+import Pretty (Associativity(..), HasFixity(..), Side(Top), text)
+import Prop (BinOp(..), IsPropositional(..))
+import Quantified (associativityQuantified, IsQuantified(..), onatomsQuantified, overatomsQuantified, precedenceQuantified, prettyQuantified, Quant(..), showQuantified)
 import Skolem (HasSkolem(..), prettySkolem)
+import Term (associativityTerm, IsFunction(variantFunction), IsTerm(..), IsVariable, precedenceTerm, prettyTerm, showTerm)
 import Text.PrettyPrint.HughesPJClass (Pretty(pPrint, pPrintPrec))
 
 data Sentence v p f
@@ -48,8 +49,12 @@ instance IsString v => IsString (CTerm v f) where
 instance (IsVariable v, IsFunction f) => Show (CTerm v f) where
     show = showTerm
 
+instance HasFixity (CTerm v f) where
+    precedence _ = 0
+    associativity _ = InfixN
+
 instance (IsVariable v, Pretty v, IsFunction f, Pretty f) => Pretty (CTerm v f) where
-    pPrint = prettyTerm
+    pPrintPrec = prettyTerm
 
 data Connective
     = Imply
@@ -63,11 +68,6 @@ data Quantifier
     | ExistsCh
     deriving (Eq, Ord, Show, Data, Typeable)
 
-instance (Ord v, Ord p, Ord f) => IsNegatable (Sentence v p f) where
-    naiveNegate = Not
-    foldNegation _ ne (Not x) = ne x
-    foldNegation other _ x = other x
-
 {-
 instance (Eq (Sentence v p f)) => HasBoolean (Sentence v p f) where
     fromBool x = Predicate (fromBool x) []
@@ -76,19 +76,6 @@ instance (Eq (Sentence v p f)) => HasBoolean (Sentence v p f) where
         | fromBool False == x = Just False
         | True = Nothing
 -}
-
-instance (Ord v, Ord p, Ord f) => IsCombinable (Sentence v p f) where
-    foldCombination other dj cj imp iff fm =
-        case fm of
-          (Connective l Equiv r) -> l `iff` r
-          (Connective l Imply r) -> l `imp` r
-          (Connective l Or r) -> l `dj` r
-          (Connective l And r) -> l `cj` r
-          _ -> other fm
-    x .<=>. y = Connective x Equiv y
-    x .=>.  y = Connective x Imply y
-    x .|.   y = Connective x Or y
-    x .&.   y = Connective x And y
 
 instance (IsLiteral (Sentence  v p f),
           IsFunction f, IsVariable v, Ord p) => IsFormula (Sentence v p f) where
@@ -102,10 +89,13 @@ instance (IsLiteral (Sentence  v p f),
     atomic x@(Equal _ _) = x
     overatoms = overatomsQuantified
     onatoms = onatomsQuantified
+    asBool TT = Just True
+    asBool FF = Just False
+    asBool _ = Nothing
+    true = TT
+    false = FF
 
-instance (IsFormula (Sentence v p f),
-          IsLiteral (Sentence v p f),
-          IsCombinable (Sentence v p f),
+instance (IsPropositional (Sentence v p f),
           IsVariable v, IsFunction f) => IsPropositional (Sentence v p f) where
     foldPropositional' ho co ne tf at formula =
         case formula of
@@ -119,13 +109,17 @@ instance (IsFormula (Sentence v p f),
           Predicate p ts -> at (Predicate p ts)
           Equal t1 t2 -> at (Equal t1 t2)
           _ -> ho formula
-
-instance HasBoolean (Sentence v p f) where
-    asBool TT = Just True
-    asBool FF = Just False
-    asBool _ = Nothing
-    fromBool True = TT
-    fromBool False = FF
+    foldCombination other dj cj imp iff fm =
+        case fm of
+          (Connective l Equiv r) -> l `iff` r
+          (Connective l Imply r) -> l `imp` r
+          (Connective l Or r) -> l `dj` r
+          (Connective l And r) -> l `cj` r
+          _ -> other fm
+    x .<=>. y = Connective x Equiv y
+    x .=>.  y = Connective x Imply y
+    x .|.   y = Connective x Or y
+    x .&.   y = Connective x And y
 
 instance (IsVariable v, IsPredicate p, IsFunction f) => IsAtom (Sentence v p f)
 
@@ -139,6 +133,9 @@ instance (IsVariable v, IsPredicate p, IsFunction f) => IsLiteral (Sentence v p 
     foldLiteral' _ _ _ at (Predicate p ts) = at (Predicate p ts)
     foldLiteral' _ _ _ at (Equal t1 t2) = at (Equal t1 t2)
     foldLiteral' ho _ _ _ fm = ho fm
+    naiveNegate = Not
+    foldNegation _ ne (Not x) = ne x
+    foldNegation other _ x = other x
 
 data AtomicFunction v
     = AtomicFunction String
@@ -174,7 +171,7 @@ instance (IsVariable v, IsFunction f, IsPredicate p) => HasApply (Sentence v p f
     overterms = overtermsEq
     onterms = ontermsEq
 
-instance (IsFunction f, IsVariable v, IsPredicate p) => HasApplyAndEquate (Sentence v p f) where
+instance (IsFunction f, IsVariable v, IsPredicate p) => HasEquate (Sentence v p f) where
     foldEquate eq _ (Equal t1 t2) = eq t1 t2
     foldEquate _ ap (Predicate p ts) = ap p ts
     foldEquate _ _ _ = error "IsAtomWithEquate Sentence"
@@ -246,19 +243,6 @@ data NormalTerm v f
     | NormalVariable v
     deriving (Eq, Ord, Data, Typeable)
 
-instance (Eq (NormalSentence v p f)) => HasBoolean (NormalSentence v p f) where
-    fromBool True = NFTT
-    fromBool False = NFFF
-    asBool NFTT = Just True
-    asBool NFFF = Just False
-    asBool _ = Nothing
-
-instance (Ord v, Ord p, Ord f) => IsNegatable (NormalSentence v p f) where
-    naiveNegate = NFNot
-    foldNegation _ ne (NFNot x) = ne x
-    -- foldNegation' ne other (NFNot x) = foldNegation' other ne x
-    foldNegation other _ x = other x
-
 instance (IsVariable v, IsPredicate p, IsFunction f) => Show (NormalSentence v p f) where
     show = showLiteral
 
@@ -274,11 +258,16 @@ instance (IsVariable v, IsPredicate p, IsFunction f) => IsLiteral (NormalSentenc
           NFFF -> tf False
           NFPredicate _p _ts -> at fm
           NFEqual _t1 _t2 -> at fm
+    naiveNegate = NFNot
+    foldNegation _ ne (NFNot x) = ne x
+    -- foldNegation' ne other (NFNot x) = foldNegation' other ne x
+    foldNegation other _ x = other x
+
 
 instance (IsLiteral (NormalSentence v p f),
           IsVariable v, IsPredicate p, IsFunction f
          ) => Pretty (NormalSentence v p f) where
-    pPrint = prettyLiteral
+    pPrintPrec = prettyLiteral
 
 instance (Pretty (NormalTerm v f),
           IsVariable v, IsPredicate p, IsFunction f
@@ -289,6 +278,11 @@ instance (Pretty (NormalTerm v f),
     atomic _ = error "Chiou: atomic"
     overatoms = overatomsLiteral
     onatoms = onatomsLiteral
+    true = NFTT
+    false = NFFF
+    asBool NFTT = Just True
+    asBool NFFF = Just False
+    asBool _ = Nothing
 
 instance (IsVariable v, IsPredicate p, IsFunction f) => HasFixity (NormalSentence v p f) where
     precedence = precedenceLiteral
@@ -296,6 +290,10 @@ instance (IsVariable v, IsPredicate p, IsFunction f) => HasFixity (NormalSentenc
 
 instance IsVariable v => IsString (NormalTerm v f) where
     fromString = NormalVariable . fromString
+
+instance (IsFunction f, IsVariable v) => HasFixity (NormalTerm v f) where
+    precedence = precedenceTerm
+    associativity = associativityTerm
 
 instance (IsVariable v, IsFunction f, Pretty (NormalTerm v f)) => IsTerm (NormalTerm v f) where
     type TVarOf (NormalTerm v f) = v
@@ -308,7 +306,7 @@ instance (IsVariable v, IsFunction f, Pretty (NormalTerm v f)) => IsTerm (Normal
               NormalFunction x ts -> f x ts
 
 instance (IsVariable v, IsFunction f) => Pretty (NormalTerm v f) where
-    pPrint = prettyTerm
+    pPrintPrec = prettyTerm
 
 instance (IsVariable v, IsFunction f) => Show (NormalTerm v f) where
     show = showTerm
@@ -318,8 +316,8 @@ toSentence :: (IsQuantified (Sentence v p f),
                IsFunction f, IsVariable v, IsPredicate p
               ) => NormalSentence v p f -> Sentence v p f
 toSentence (NFNot s) = (.~.) (toSentence s)
-toSentence NFTT = fromBool True
-toSentence NFFF = fromBool False
+toSentence NFTT = true
+toSentence NFFF = false
 toSentence (NFEqual t1 t2) = toTerm t1 .=. toTerm t2
 toSentence (NFPredicate p ts) = pApp p (map toTerm ts)
 

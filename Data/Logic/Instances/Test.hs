@@ -10,11 +10,14 @@ module Data.Logic.Instances.Test
     , TFormula, TAtom, TTerm -- deprecated
     ) where
 
+import Apply (Predicate)
 import Data.Char (isDigit)
 import Data.SafeCopy (base, deriveSafeCopy)
-import FOL (V(V), Predicate, FOL(..), Term(..), Quant(..), QFormula(..))
+import Equate (FOL(..))
+import Quantified (Quant(..), QFormula(..))
 import Prop (BinOp(..))
 import Skolem (Function(..), Formula, SkTerm, SkAtom)
+import Term (V(V), Term(..))
 
 next :: String -> String
 next s =

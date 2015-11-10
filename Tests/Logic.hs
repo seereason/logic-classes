@@ -3,6 +3,7 @@
 {-# OPTIONS -Wall -Wwarn -fno-warn-name-shadowing -fno-warn-orphans #-}
 module Logic (tests) where
 
+import Apply (applyPredicate, HasApply(TermOf, PredOf), pApp, Predicate)
 import Common ({-instance Atom SkAtom SkTerm V-})
 import Data.List as List (map)
 import Data.Logic.Classes.Atom (Atom)
@@ -11,13 +12,15 @@ import Data.Logic.Satisfiable (theorem, inconsistant)
 import Data.Map as Map (singleton)
 import Data.Set.Extra as Set (Set, singleton, toList, empty, fromList, map {-, minView, fold-})
 import Data.String (IsString(fromString))
-import FOL (vt, (∀), pApp, fv, (.=.), exists, for_all, applyPredicate, fApp,
-            HasApply(TermOf, PredOf), HasApplyAndEquate(equate), V(V), Predicate, subst, IsFirstOrder, IsQuantified(VarOf), IsTerm(FunOf))
+import Equate ((.=.), HasEquate(equate))
+import FOL (fv, subst, IsFirstOrder)
 import Formulas (atomic, IsFormula(AtomOf))
 import Lit ((.~.), convertLiteral, IsLiteral, LFormula)
 import Pretty (assertEqual', Pretty(pPrint))
-import Prop ((⇒), IsCombinable(..), IsPropositional, list_conj, list_disj, PFormula, simpcnf, TruthTable(..), TruthTable, truthTable)
+import Prop ((⇒), IsPropositional(..), list_conj, list_disj, PFormula, simpcnf, TruthTable(..), TruthTable, truthTable)
+import Quantified ((∀), exists, for_all, IsQuantified(VarOf))
 import Skolem (HasSkolem(..), runSkolem, skolemize, pnf, simpcnf', Function)
+import Term (vt, IsTerm(FunOf), V(V), fApp)
 import Test.HUnit
 import qualified TextDisplay as TD
 

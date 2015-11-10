@@ -62,15 +62,19 @@ Library
     Hs-Source-Dirs: ., ../atp-haskell/src
     Build-Depends: time
     Exposed-Modules:
+      Apply
       ATP
       Lib
       Pretty
       Formulas
+      Equate
       Lit
+      Term
       Prop
       PropExamples
       DefCNF
       DP
+      Quantified
       FOL
       Skolem
       Parser

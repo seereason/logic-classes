@@ -14,13 +14,13 @@ module Common
     , doProof
     ) where
 
+import Apply (HasApply(TermOf, PredOf), Predicate)
 import Control.Monad.Identity (Identity)
 import Control.Monad.Reader (MonadPlus(..), msum)
 import qualified Data.Boolean as B (CNF, Literal)
 import Data.Generics (Data, Typeable, listify)
 import Data.List as List (map, null)
 import Data.Logic.Classes.Atom (Atom(..))
-import Skolem (nnf, pnf, runSkolem, simplify, skolemize, skolems)
 import qualified Data.Logic.Instances.Chiou as Ch
 import Data.Logic.Instances.PropLogic (plSat)
 import qualified Data.Logic.Instances.SatSolver as SS
@@ -29,16 +29,17 @@ import Data.Logic.KnowledgeBase (WithId, runProver', Proof, loadKB, theoremKB, g
 import Data.Logic.Normal.Implicative (ImplicativeForm, runNormal, runNormalT)
 import Data.Logic.Resolution (getSubstAtomEq, isRenameOfAtomEq, SetOfSupport)
 import Data.Set as Set
-import FOL (asubst, convertQuantified, fApp, foldTerm, fva,
-            HasApply(TermOf, PredOf), HasApplyAndEquate(foldEquate),
-            IsFirstOrder, IsQuantified(..), IsTerm(FunOf, TVarOf), Predicate, V, vt)
+import Equate (HasEquate(foldEquate))
+import FOL (asubst, fva, IsFirstOrder)
 import Formulas (IsFormula(AtomOf))
 import Lit (convertLiteral, LFormula)
 import Pretty (assertEqual', Pretty(pPrint))
 import Prop (convertPropositional, PFormula, satisfiable, trivial)
 import PropLogic (PropForm)
---import Safe (readMay)
-import Skolem (Function, SkAtom, SkTerm, SkolemT, Formula, simpcnf', simpdnf', HasSkolem(SVarOf))
+import Quantified (convertQuantified, IsQuantified(..))
+import Skolem (Function, SkAtom, SkTerm, SkolemT, Formula, simpcnf', simpdnf', HasSkolem(SVarOf),
+               nnf, pnf, runSkolem, simplify, skolemize, skolems)
+import Term (fApp, foldTerm, IsTerm(FunOf, TVarOf), V, vt)
 import Test.HUnit
 import Text.PrettyPrint (Style(mode), renderStyle, style, Mode(OneLineMode))
 
@@ -165,7 +166,7 @@ data ProofExpected lit v term
 doProof :: forall formula lit atom term v function.
            (IsFirstOrder formula, Ord formula, Pretty formula,
             lit ~ LFormula atom,
-            HasApplyAndEquate atom,
+            HasEquate atom,
             Atom atom term v,
             HasSkolem function,
             Eq formula, Eq term, Eq v, Ord term, Show formula, Show term, Show v,
@@ -192,7 +193,7 @@ loadKB' :: forall m formula lit atom p term v f.
             lit ~ LFormula atom,
             Monad m, Data formula, Data atom,
             IsFirstOrder formula, Ord formula, Pretty formula,
-            HasApplyAndEquate atom,
+            HasEquate atom,
             HasSkolem f,
             Atom atom term v,
             IsTerm term, Typeable f) => [formula] -> ProverT' v term lit m [Proof lit]
@@ -203,7 +204,7 @@ theoremKB' :: forall m formula lit atom p term v f.
                lit ~ LFormula atom,
                Monad m, Data formula, Data atom,
                IsFirstOrder formula, Ord formula, Pretty formula,
-               HasApplyAndEquate atom,
+               HasEquate atom,
                HasSkolem f,
                Atom atom term v,
                IsTerm term, Typeable f
