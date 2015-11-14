@@ -26,7 +26,7 @@ import Pretty (Associativity(..), HasFixity(..), Side(Top), text)
 import Prop (BinOp(..), IsPropositional(..))
 import Quantified (associativityQuantified, IsQuantified(..), onatomsQuantified, overatomsQuantified, precedenceQuantified, prettyQuantified, Quant(..), showQuantified)
 import Skolem (HasSkolem(..), prettySkolem)
-import Term (associativityTerm, IsFunction(variantFunction), IsTerm(..), IsVariable, precedenceTerm, prettyTerm, showTerm)
+import Term (associativityTerm, IsFunction, IsTerm(..), IsVariable, precedenceTerm, prettyTerm, showTerm)
 import Text.PrettyPrint.HughesPJClass (Pretty(pPrint, pPrintPrec))
 
 data Sentence v p f
@@ -148,9 +148,6 @@ instance IsVariable v => IsString (AtomicFunction v) where
     fromString = AtomicFunction
 
 instance IsVariable v => IsFunction (AtomicFunction v) where
-    variantFunction f fns | Set.notMember f fns = f
-    variantFunction (AtomicFunction s) fns = variantFunction (AtomicFunction (s ++ "'")) fns
-    variantFunction (AtomicSkolemFunction v n) fns = variantFunction (AtomicSkolemFunction v (succ n)) fns
 
 instance IsVariable v => Pretty (AtomicFunction v) where
     pPrint = prettySkolem (\(AtomicFunction s) -> text s)
@@ -160,6 +157,9 @@ instance IsVariable v => HasSkolem (AtomicFunction v) where
     toSkolem = AtomicSkolemFunction
     foldSkolem _ sk (AtomicSkolemFunction v n) = sk v n
     foldSkolem f _ af = f af
+    variantSkolem f fns | Set.notMember f fns = f
+    variantSkolem (AtomicFunction s) fns = variantSkolem (AtomicFunction (s ++ "'")) fns
+    variantSkolem (AtomicSkolemFunction v n) fns = variantSkolem (AtomicSkolemFunction v (succ n)) fns
 
 -- The Atom type is not cleanly distinguished from the Sentence type, so we need an Atom instance for Sentence.
 instance (IsVariable v, IsFunction f, IsPredicate p) => HasApply (Sentence v p f) where
