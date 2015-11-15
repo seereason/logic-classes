@@ -34,11 +34,11 @@ module Data.Boolean (
 import Control.Monad ( guard, liftM )
 import Data.Generics (Data, Typeable)
 import qualified Data.IntMap as IM
+import Data.Logic.ATP.Formulas (IsAtom, IsFormula(..))
+import Data.Logic.ATP.Lit (IsLiteral(..))
+import Data.Logic.ATP.Prop (IsPropositional(..), JustPropositional)
+import Data.Logic.ATP.Pretty (HasFixity(..), Pretty(pPrint), text)
 import Data.Maybe ( mapMaybe )
-import Formulas (IsAtom, IsFormula(..))
-import Lit (IsLiteral(..))
-import Prop (IsPropositional(..), JustPropositional)
-import Pretty (HasFixity(..), Pretty(pPrint), text)
 
 -- | Boolean formulas are represented as values of type @Boolean@.
 --

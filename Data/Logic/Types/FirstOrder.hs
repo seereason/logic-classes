@@ -8,18 +8,18 @@ module Data.Logic.Types.FirstOrder
     ) where
 
 import Data.Data (Data)
+import Data.Logic.ATP.Apply (HasApply(..), IsPredicate, prettyApply)
+import Data.Logic.ATP.Equate (associativityEquate, HasEquate(equate, foldEquate), overtermsEq, ontermsEq, precedenceEquate, prettyEquate)
+import Data.Logic.ATP.FOL (IsFirstOrder)
+import Data.Logic.ATP.Formulas (IsAtom, IsFormula(..))
+import Data.Logic.ATP.Lit (IsLiteral(..))
+import Data.Logic.ATP.Pretty (HasFixity(..), Pretty(pPrint, pPrintPrec), Side(Top))
+import Data.Logic.ATP.Prop (BinOp(..), IsPropositional(..))
+import Data.Logic.ATP.Quantified (associativityQuantified, exists, IsQuantified(..), precedenceQuantified, prettyQuantified, Quant(..))
+import Data.Logic.ATP.Term (IsFunction, IsTerm(..), IsVariable(..), prettyTerm, V)
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.String (IsString(fromString))
 import Data.Typeable (Typeable)
-import Formulas (IsAtom, IsFormula(..))
-import Quantified (associativityQuantified, exists, IsQuantified(..), precedenceQuantified, prettyQuantified, Quant(..))
-import Equate (associativityEquate, HasEquate(equate, foldEquate), overtermsEq, ontermsEq, precedenceEquate, prettyEquate)
-import Apply (HasApply(..), IsPredicate, prettyApply)
-import Term (IsFunction, IsTerm(..), IsVariable(..), prettyTerm, V)
-import FOL (IsFirstOrder)
-import Lit (IsLiteral(..))
-import Pretty (HasFixity(..), Pretty(pPrint, pPrintPrec), Side(Top))
-import Prop (BinOp(..), IsPropositional(..))
 
 -- | Examine the formula to find the list of outermost universally
 -- quantified variables, and call a function with that list and the

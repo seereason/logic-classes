@@ -4,8 +4,8 @@ module Data.Logic.Classes.ClauseNormalForm
     ) where
 
 import Control.Monad (MonadPlus)
+import Data.Logic.ATP.Lit
 import Data.Set as S
-import Lit
 
 -- |A class to represent formulas in CNF, which is the conjunction of
 -- a set of disjuncted literals each which may or may not be negated.

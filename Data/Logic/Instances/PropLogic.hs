@@ -6,12 +6,12 @@ module Data.Logic.Instances.PropLogic
     , plSat
     ) where
 
+import Data.Logic.ATP.Formulas (IsFormula(asBool), IsAtom, IsFormula(..))
+import Data.Logic.ATP.Lit (convertLiteral, IsLiteral(..), IsLiteral(..), LFormula)
+import Data.Logic.ATP.Pretty (HasFixity(precedence, associativity), Pretty(pPrintPrec), Side(Top))
+import Data.Logic.ATP.Prop (BinOp(..), associativityPropositional, IsPropositional(..), JustPropositional,
+                            precedencePropositional, prettyPropositional, simpcnf)
 import Data.Set.Extra as Set (toList)
-import Formulas (IsFormula(asBool), IsAtom, IsFormula(..))
-import Lit (convertLiteral, IsLiteral(..), IsLiteral(..), LFormula)
-import Pretty (HasFixity(precedence, associativity), Pretty(pPrintPrec), Side(Top))
-import Prop (BinOp(..), associativityPropositional, IsPropositional(..), JustPropositional,
-             precedencePropositional, prettyPropositional, simpcnf)
 import PropLogic hiding (at)
 
 instance IsAtom atom => JustPropositional (PropForm atom)

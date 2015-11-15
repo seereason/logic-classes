@@ -13,20 +13,21 @@ module Data.Logic.Instances.Chiou
     , fromSentence
     ) where
 
-import Apply (HasApply(..), IsPredicate, pApp)
 import Data.Generics (Data, Typeable)
+import Data.Logic.ATP.Apply (HasApply(..), IsPredicate, pApp)
+import Data.Logic.ATP.Equate ((.=.), HasEquate(..), overtermsEq, ontermsEq)
+import Data.Logic.ATP.Formulas (asBool, IsAtom, IsFormula(..))
+import Data.Logic.ATP.Lit ((.~.), associativityLiteral, convertToLiteral, IsLiteral(..), JustLiteral,
+                           onatomsLiteral, overatomsLiteral, precedenceLiteral, prettyLiteral, showLiteral)
+import Data.Logic.ATP.Pretty (Associativity(..), HasFixity(..), Side(Top), text)
+import Data.Logic.ATP.Prop (BinOp(..), IsPropositional(..))
+import Data.Logic.ATP.Quantified (associativityQuantified, IsQuantified(..), onatomsQuantified, overatomsQuantified,
+                                  precedenceQuantified, prettyQuantified, Quant(..), showQuantified)
+import Data.Logic.ATP.Skolem (HasSkolem(..), prettySkolem)
+import Data.Logic.ATP.Term (associativityTerm, IsFunction, IsTerm(..), IsVariable, precedenceTerm, prettyTerm, showTerm)
 import Data.Logic.Classes.Atom (Atom)
 import Data.Set as Set (notMember)
 import Data.String (IsString(..))
-import Equate ((.=.), HasEquate(..), overtermsEq, ontermsEq)
-import Formulas (asBool, IsAtom, IsFormula(..))
-import Lit ((.~.), associativityLiteral, convertToLiteral, IsLiteral(..), JustLiteral, onatomsLiteral, overatomsLiteral,
-            precedenceLiteral, prettyLiteral, showLiteral)
-import Pretty (Associativity(..), HasFixity(..), Side(Top), text)
-import Prop (BinOp(..), IsPropositional(..))
-import Quantified (associativityQuantified, IsQuantified(..), onatomsQuantified, overatomsQuantified, precedenceQuantified, prettyQuantified, Quant(..), showQuantified)
-import Skolem (HasSkolem(..), prettySkolem)
-import Term (associativityTerm, IsFunction, IsTerm(..), IsVariable, precedenceTerm, prettyTerm, showTerm)
 import Text.PrettyPrint.HughesPJClass (Pretty(pPrint, pPrintPrec))
 
 data Sentence v p f

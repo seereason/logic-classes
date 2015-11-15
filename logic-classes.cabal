@@ -62,29 +62,29 @@ Library
     Hs-Source-Dirs: ., ../atp-haskell/src
     Build-Depends: time
     Exposed-Modules:
-      Apply
-      ATP
-      Lib
-      Pretty
-      Formulas
-      Equate
-      Lit
-      Term
-      Prop
-      PropExamples
-      DefCNF
-      DP
-      Quantified
-      FOL
-      Skolem
-      Parser
-      Herbrand
-      Unif
-      Tableaux
-      Resolution
-      Prolog
-      Meson
-      Equal
+      Data.Logic.ATP
+      Data.Logic.ATP.Apply
+      Data.Logic.ATP.Lib
+      Data.Logic.ATP.Pretty
+      Data.Logic.ATP.Formulas
+      Data.Logic.ATP.Equate
+      Data.Logic.ATP.Lit
+      Data.Logic.ATP.Term
+      Data.Logic.ATP.Prop
+      Data.Logic.ATP.PropExamples
+      Data.Logic.ATP.DefCNF
+      Data.Logic.ATP.DP
+      Data.Logic.ATP.Quantified
+      Data.Logic.ATP.FOL
+      Data.Logic.ATP.Skolem
+      Data.Logic.ATP.Parser
+      Data.Logic.ATP.Herbrand
+      Data.Logic.ATP.Unif
+      Data.Logic.ATP.Tableaux
+      Data.Logic.ATP.Resolution
+      Data.Logic.ATP.Prolog
+      Data.Logic.ATP.Meson
+      Data.Logic.ATP.Equal
   else
     Build-Depends: atp-haskell
 

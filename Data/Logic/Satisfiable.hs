@@ -12,19 +12,19 @@ module Data.Logic.Satisfiable
     , invalid
     ) where
 
-import Apply (HasApply(TermOf, PredOf))
 import Data.List as List (map)
+import Data.Logic.ATP.Apply (HasApply(TermOf, PredOf))
+import Data.Logic.ATP.FOL (IsFirstOrder)
+import Data.Logic.ATP.Formulas (IsFormula(AtomOf))
+import Data.Logic.ATP.Lit ((.~.), convertLiteral, LFormula)
+import Data.Logic.ATP.Prop (PFormula, simpcnf)
+import Data.Logic.ATP.Pretty (HasFixity, Pretty, )
+import Data.Logic.ATP.Quantified (IsQuantified(VarOf))
+import Data.Logic.ATP.Skolem (HasSkolem(SVarOf), runSkolem, skolemize)
+import Data.Logic.ATP.Term (IsTerm(FunOf, TVarOf))
 import Data.Logic.Instances.PropLogic ()
 import Data.Set as Set (toList)
-import FOL (IsFirstOrder)
-import Formulas (IsFormula(AtomOf))
-import Lit ((.~.), convertLiteral, LFormula)
-import Prop (PFormula, simpcnf)
 import qualified PropLogic as PL -- ()
-import Pretty (HasFixity, Pretty, )
-import Quantified (IsQuantified(VarOf))
-import Skolem (HasSkolem(SVarOf), runSkolem, skolemize)
-import Term (IsTerm(FunOf, TVarOf))
 
 -- |Is there any variable assignment that makes the formula true?
 -- satisfiable :: forall formula atom term v f m. (Monad m, IsQuantified formula atom v, Formula atom term v, IsTerm term v f, Ord formula, IsLiteral formula atom v, Ord atom) =>

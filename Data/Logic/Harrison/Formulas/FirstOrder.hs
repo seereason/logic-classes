@@ -8,11 +8,11 @@ module Data.Logic.Harrison.Formulas.FirstOrder
     , atom_union
     ) where
 
+import Data.Logic.ATP.Formulas (IsFormula(AtomOf))
+import Data.Logic.ATP.Lit ((.~.))
+import Data.Logic.ATP.Prop (BinOp(..), binop)
+import Data.Logic.ATP.Quantified (IsQuantified(..), quant)
 import qualified Data.Set as Set
-import Formulas (IsFormula(AtomOf))
-import Lit ((.~.))
-import Prop (BinOp(..), binop)
-import Quantified (IsQuantified(..), quant)
 
 -- ------------------------------------------------------------------------- 
 -- General parsing of iterated infixes.                                      

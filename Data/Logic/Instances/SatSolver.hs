@@ -3,22 +3,22 @@
 {-# OPTIONS -fno-warn-orphans #-}
 module Data.Logic.Instances.SatSolver where
 
-import Apply (HasApply(PredOf, TermOf))
 import Control.Monad.State (get, put)
 import Control.Monad.Trans (lift)
 import Data.Boolean (Literal(Pos, Neg), CNF)
 import Data.Boolean.SatSolver (newSatSolver, assertTrue', solve)
-import qualified Data.Map as M
-import qualified Data.Set.Extra as S
+import Data.Logic.ATP.Apply (HasApply(PredOf, TermOf))
+import Data.Logic.ATP.FOL (IsFirstOrder)
+import Data.Logic.ATP.Formulas (IsAtom, IsFormula(..))
+import Data.Logic.ATP.Lit (IsLiteral(..), negated, (.~.))
+import Data.Logic.ATP.Pretty (Associativity(InfixN), HasFixity(..), Pretty)
+import Data.Logic.ATP.Quantified (IsQuantified(VarOf))
+import Data.Logic.ATP.Skolem (simpcnf')
+import Data.Logic.ATP.Term (IsTerm(FunOf, TVarOf))
 import Data.Logic.Classes.ClauseNormalForm (ClauseNormalFormula(..))
 import Data.Logic.Normal.Implicative (LiteralMapT, NormalT)
-import FOL (IsFirstOrder)
-import Formulas (IsAtom, IsFormula(..))
-import Lit (IsLiteral(..), negated, (.~.))
-import Pretty (Associativity(InfixN), HasFixity(..), Pretty)
-import Quantified (IsQuantified(VarOf))
-import Skolem (simpcnf')
-import Term (IsTerm(FunOf, TVarOf))
+import qualified Data.Map as M
+import qualified Data.Set.Extra as S
 
 instance HasFixity Literal where
     precedence _ = 0

@@ -5,7 +5,7 @@ module Data.Logic.Harrison.Formulas.Propositional
     , consequent
     ) where
 
-import Prop (BinOp((:=>:)), IsPropositional(..), JustPropositional, foldPropositional)
+import Data.Logic.ATP.Prop (BinOp((:=>:)), IsPropositional(..), JustPropositional, foldPropositional)
 
 -- ------------------------------------------------------------------------- 
 -- General parsing of iterated infixes.                                      

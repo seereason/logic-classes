@@ -12,22 +12,22 @@ module Data.Logic.Normal.Implicative
     , prettyProof
     ) where
 
-import Apply (HasApply(TermOf))
 import Control.Monad.Identity (Identity(runIdentity))
 import Control.Monad.State (StateT(runStateT), MonadPlus, msum)
 import Data.Bool (bool)
 import Data.Generics (Data, Typeable, listify)
 import Data.List as List (map)
+import Data.Logic.ATP.Apply (HasApply(TermOf))
+import Data.Logic.ATP.FOL (IsFirstOrder)
+import Data.Logic.ATP.Formulas (IsFormula(AtomOf), true)
+import Data.Logic.ATP.Lit (foldLiteral, IsLiteral, JustLiteral, LFormula)
+import Data.Logic.ATP.Pretty (Pretty(pPrint))
+import Data.Logic.ATP.Prop (IsPropositional, PFormula, simpcnf)
+import Data.Logic.ATP.Quantified (IsQuantified(VarOf))
+import Data.Logic.ATP.Skolem (HasSkolem(SVarOf, foldSkolem), runSkolem, runSkolemT, skolemize, SkolemT)
+import Data.Logic.ATP.Term (IsFunction, IsTerm(FunOf))
 import Data.Map as Map (empty, Map)
 import Data.Set.Extra as Set (empty, flatten, fold, fromList, insert, map, Set, singleton, toList)
-import FOL (IsFirstOrder)
-import Formulas (IsFormula(AtomOf), true)
-import Lit (foldLiteral, IsLiteral, JustLiteral, LFormula)
-import Pretty (Pretty(pPrint))
-import Prop (IsPropositional, PFormula, simpcnf)
-import Quantified (IsQuantified(VarOf))
-import Skolem (HasSkolem(SVarOf, foldSkolem), runSkolem, runSkolemT, skolemize, SkolemT)
-import Term (IsFunction, IsTerm(FunOf))
 import Text.PrettyPrint ((<>), Doc, brackets, comma, hsep, parens, punctuate, text, vcat)
 
 -- |Combination of Normal monad and LiteralMap monad

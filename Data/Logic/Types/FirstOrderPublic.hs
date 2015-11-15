@@ -27,20 +27,20 @@ module Data.Logic.Types.FirstOrderPublic
     , unmarkPublic
     ) where
 
-import Apply (IsPredicate)
 import Data.Data (Data)
 import Data.Generics (Typeable)
+import Data.Logic.ATP.Apply (IsPredicate)
+import Data.Logic.ATP.Formulas (IsAtom, IsFormula(..))
+import Data.Logic.ATP.FOL (IsFirstOrder)
+import Data.Logic.ATP.Lit (IsLiteral(..))
+import Data.Logic.ATP.Pretty (HasFixity(..), Pretty(..))
+import Data.Logic.ATP.Prop (IsPropositional(..))
+import Data.Logic.ATP.Quantified (IsQuantified(..))
+import Data.Logic.ATP.Skolem (simpcnf')
+import Data.Logic.ATP.Term (IsFunction, IsVariable)
 import qualified Data.Logic.Types.FirstOrder as N
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Set (Set)
-import Formulas (IsAtom, IsFormula(..))
-import FOL (IsFirstOrder)
-import Lit (IsLiteral(..))
-import Pretty (HasFixity(..), Pretty(..))
-import Prop (IsPropositional(..))
-import Quantified (IsQuantified(..))
-import Skolem (simpcnf')
-import Term (IsFunction, IsVariable)
 
 data Marked mark a = Mark {unMark' :: a} deriving (Data, Typeable, Read)
 

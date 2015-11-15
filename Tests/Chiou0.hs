@@ -3,21 +3,21 @@
 
 module Chiou0 where
 
-import Apply (pApp)
 import Common ({-instance Atom MyAtom MyTerm V-})
 import Control.Monad.Trans (MonadIO, liftIO)
+import Data.Logic.ATP.Apply (pApp)
+import Data.Logic.ATP.Lit ((.~.), IsLiteral(..), LFormula)
+import Data.Logic.ATP.Pretty (assertEqual')
+import Data.Logic.ATP.Prop (IsPropositional(..))
+import Data.Logic.ATP.Quantified (exists, for_all)
+import Data.Logic.ATP.Skolem (HasSkolem(..), SkolemT, SkAtom)
+import Data.Logic.ATP.Term (IsTerm(..))
 import Data.Logic.Instances.Test (V(..), Function(..), TFormula, TTerm)
 import Data.Logic.KnowledgeBase (ProverT, runProver', Proof(..), ProofResult(..), loadKB, theoremKB {-, askKB, showKB-})
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
 import Data.Logic.Resolution (SetOfSupport)
 import Data.Map (fromList)
 import qualified Data.Set as S
-import Lit ((.~.), IsLiteral(..), LFormula)
-import Pretty (assertEqual')
-import Prop (IsPropositional(..))
-import Quantified (exists, for_all)
-import Skolem (HasSkolem(..), SkolemT, SkAtom)
-import Term (IsTerm(..))
 import Test.HUnit
 
 tests :: Test

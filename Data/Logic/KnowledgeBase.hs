@@ -24,25 +24,25 @@ module Data.Logic.KnowledgeBase
     , showKB
     ) where
 
-import Apply (HasApply(TermOf, PredOf))
 import "mtl" Control.Monad.Identity (Identity(runIdentity))
 import "mtl" Control.Monad.State (StateT, evalStateT, MonadState(get, put))
 import "mtl" Control.Monad.Trans (lift)
 import Data.Generics (Data, Typeable)
+import Data.Logic.ATP.Apply (HasApply(TermOf, PredOf))
+import Data.Logic.ATP.Equate (HasEquate)
+import Data.Logic.ATP.FOL (IsFirstOrder)
+import Data.Logic.ATP.Formulas (IsFormula(AtomOf))
+import Data.Logic.ATP.Lit ((.~.), IsLiteral, LFormula)
+import Data.Logic.ATP.Pretty (Pretty(pPrint), text, (<>))
+import Data.Logic.ATP.Quantified (IsQuantified(VarOf))
+import Data.Logic.ATP.Skolem (SkolemT, runSkolemT, HasSkolem(SVarOf))
+import Data.Logic.ATP.Term (IsFunction, IsTerm(FunOf, TVarOf))
 import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Normal.Implicative (ImplicativeForm, implicativeNormalForm, prettyProof)
 import Data.Logic.Resolution (prove, SetOfSupport, getSetOfSupport)
 import Data.SafeCopy (deriveSafeCopy, base)
 import Data.Set.Extra as Set (Set, empty, map, minView, null, partition, union)
-import Equate (HasEquate)
-import FOL (IsFirstOrder)
-import Formulas (IsFormula(AtomOf))
-import Lit ((.~.), IsLiteral, LFormula)
 import Prelude hiding (negate)
-import Pretty (Pretty(pPrint), text, (<>))
-import Quantified (IsQuantified(VarOf))
-import Skolem (SkolemT, runSkolemT, HasSkolem(SVarOf))
-import Term (IsFunction, IsTerm(FunOf, TVarOf))
 
 type SentenceCount = Int
 

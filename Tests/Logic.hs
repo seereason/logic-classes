@@ -3,24 +3,24 @@
 {-# OPTIONS -Wall -Wwarn -fno-warn-name-shadowing -fno-warn-orphans #-}
 module Logic (tests) where
 
-import Apply (applyPredicate, HasApply(TermOf, PredOf), pApp, Predicate)
 import Common ({-instance Atom SkAtom SkTerm V-})
 import Data.List as List (map)
+import Data.Logic.ATP.Apply (applyPredicate, HasApply(TermOf, PredOf), pApp, Predicate)
+import Data.Logic.ATP.Equate ((.=.), HasEquate(equate))
+import Data.Logic.ATP.FOL (fv, subst, IsFirstOrder)
+import Data.Logic.ATP.Formulas (atomic, IsFormula(AtomOf))
+import Data.Logic.ATP.Lit ((.~.), convertLiteral, IsLiteral, LFormula)
+import Data.Logic.ATP.Pretty (assertEqual', Pretty(pPrint))
+import Data.Logic.ATP.Prop ((⇒), IsPropositional(..), list_conj, list_disj, PFormula, simpcnf, TruthTable(..), TruthTable, truthTable)
+import Data.Logic.ATP.Quantified ((∀), exists, for_all, IsQuantified(VarOf))
+import Data.Logic.ATP.Skolem (HasSkolem(..), runSkolem, skolemize, pnf, simpcnf', Function)
+import Data.Logic.ATP.Term (vt, IsTerm(FunOf), V(V), fApp)
 import Data.Logic.Classes.Atom (Atom)
 import Data.Logic.Instances.Test (Formula, SkAtom, SkTerm)
 import Data.Logic.Satisfiable (theorem, inconsistant)
 import Data.Map as Map (singleton)
 import Data.Set.Extra as Set (Set, singleton, toList, empty, fromList, map {-, minView, fold-})
 import Data.String (IsString(fromString))
-import Equate ((.=.), HasEquate(equate))
-import FOL (fv, subst, IsFirstOrder)
-import Formulas (atomic, IsFormula(AtomOf))
-import Lit ((.~.), convertLiteral, IsLiteral, LFormula)
-import Pretty (assertEqual', Pretty(pPrint))
-import Prop ((⇒), IsPropositional(..), list_conj, list_disj, PFormula, simpcnf, TruthTable(..), TruthTable, truthTable)
-import Quantified ((∀), exists, for_all, IsQuantified(VarOf))
-import Skolem (HasSkolem(..), runSkolem, skolemize, pnf, simpcnf', Function)
-import Term (vt, IsTerm(FunOf), V(V), fApp)
 import Test.HUnit
 import qualified TextDisplay as TD
 

@@ -14,12 +14,22 @@ module Common
     , doProof
     ) where
 
-import Apply (HasApply(TermOf, PredOf), Predicate)
 import Control.Monad.Identity (Identity)
 import Control.Monad.Reader (MonadPlus(..), msum)
 import qualified Data.Boolean as B (CNF, Literal)
 import Data.Generics (Data, Typeable, listify)
 import Data.List as List (map, null)
+import Data.Logic.ATP.Apply (HasApply(TermOf, PredOf), Predicate)
+import Data.Logic.ATP.Equate (HasEquate(foldEquate))
+import Data.Logic.ATP.FOL (asubst, fva, IsFirstOrder)
+import Data.Logic.ATP.Formulas (IsFormula(AtomOf))
+import Data.Logic.ATP.Lit (convertLiteral, LFormula)
+import Data.Logic.ATP.Pretty (assertEqual', Pretty(pPrint))
+import Data.Logic.ATP.Prop (convertPropositional, PFormula, satisfiable, trivial)
+import Data.Logic.ATP.Quantified (convertQuantified, IsQuantified(..))
+import Data.Logic.ATP.Skolem (Function, SkAtom, SkTerm, SkolemT, Formula, simpcnf', simpdnf', HasSkolem(SVarOf),
+                              nnf, pnf, runSkolem, simplify, skolemize, skolems)
+import Data.Logic.ATP.Term (fApp, foldTerm, IsTerm(FunOf, TVarOf), V, vt)
 import Data.Logic.Classes.Atom (Atom(..))
 import qualified Data.Logic.Instances.Chiou as Ch
 import Data.Logic.Instances.PropLogic (plSat)
@@ -29,17 +39,7 @@ import Data.Logic.KnowledgeBase (WithId, runProver', Proof, loadKB, theoremKB, g
 import Data.Logic.Normal.Implicative (ImplicativeForm, runNormal, runNormalT)
 import Data.Logic.Resolution (getSubstAtomEq, isRenameOfAtomEq, SetOfSupport)
 import Data.Set as Set
-import Equate (HasEquate(foldEquate))
-import FOL (asubst, fva, IsFirstOrder)
-import Formulas (IsFormula(AtomOf))
-import Lit (convertLiteral, LFormula)
-import Pretty (assertEqual', Pretty(pPrint))
-import Prop (convertPropositional, PFormula, satisfiable, trivial)
 import PropLogic (PropForm)
-import Quantified (convertQuantified, IsQuantified(..))
-import Skolem (Function, SkAtom, SkTerm, SkolemT, Formula, simpcnf', simpdnf', HasSkolem(SVarOf),
-               nnf, pnf, runSkolem, simplify, skolemize, skolems)
-import Term (fApp, foldTerm, IsTerm(FunOf, TVarOf), V, vt)
 import Test.HUnit
 import Text.PrettyPrint (Style(mode), renderStyle, style, Mode(OneLineMode))
 

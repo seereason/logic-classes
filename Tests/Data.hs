@@ -17,20 +17,20 @@ module Data
 
 import Common (TestFormula(..), TestProof(..), Expected(..), ProofExpected(..), doTest, doProof, TTestProof)
 import Data.Boolean (Literal(..))
+import Data.Logic.ATP.Apply (HasApply(TermOf, PredOf), pApp, Predicate)
+import Data.Logic.ATP.Equate ((.=.), HasEquate)
+import Data.Logic.ATP.Formulas (false, IsFormula(AtomOf), true)
+import Data.Logic.ATP.Lit ((.~.), IsLiteral)
+import Data.Logic.ATP.Prop (IsPropositional(..))
+import Data.Logic.ATP.Quantified (IsQuantified(..), for_all, exists)
+import Data.Logic.ATP.Skolem (HasSkolem(toSkolem), Formula, SkAtom, SkTerm, Function)
+import Data.Logic.ATP.Term (IsTerm(..), V)
 import qualified Data.Logic.Instances.Chiou as C
 import Data.Logic.KnowledgeBase (WithId(WithId, wiItem, wiIdent), Proof(..), ProofResult(..))
 import Data.Logic.Normal.Implicative (ImplicativeForm(INF), makeINF')
 import Data.Map as Map (fromList)
 import Data.Set as Set (Set, fromList, toList)
 import Data.String (IsString)
-import Apply (HasApply(TermOf, PredOf), pApp, Predicate)
-import Equate ((.=.), HasEquate)
-import Quantified (IsQuantified(..), for_all, exists)
-import Term (IsTerm(..), V)
-import Formulas (false, IsFormula(AtomOf), true)
-import Lit ((.~.), IsLiteral)
-import Prop (IsPropositional(..))
-import Skolem (HasSkolem(toSkolem), Formula, SkAtom, SkTerm, Function)
 import Test.HUnit
 import Text.PrettyPrint.HughesPJClass (prettyShow)
 
