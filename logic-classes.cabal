@@ -45,6 +45,7 @@ Library
     Data.Boolean.SatSolver
   Build-Depends:
     applicative-extras,
+    atp-haskell,
     base >= 4.3 && < 5,
     containers,
     HUnit,
@@ -58,41 +59,10 @@ Library
     set-extra,
     syb,
     template-haskell
-  if flag(local-atp-haskell)
-    Hs-Source-Dirs: ., ../atp-haskell/src
-    Build-Depends: time
-    Exposed-Modules:
-      Data.Logic.ATP
-      Data.Logic.ATP.Apply
-      Data.Logic.ATP.Lib
-      Data.Logic.ATP.Pretty
-      Data.Logic.ATP.Formulas
-      Data.Logic.ATP.Equate
-      Data.Logic.ATP.Lit
-      Data.Logic.ATP.Term
-      Data.Logic.ATP.Prop
-      Data.Logic.ATP.PropExamples
-      Data.Logic.ATP.DefCNF
-      Data.Logic.ATP.DP
-      Data.Logic.ATP.Quantified
-      Data.Logic.ATP.FOL
-      Data.Logic.ATP.Skolem
-      Data.Logic.ATP.Parser
-      Data.Logic.ATP.Herbrand
-      Data.Logic.ATP.Unif
-      Data.Logic.ATP.Tableaux
-      Data.Logic.ATP.Resolution
-      Data.Logic.ATP.Prolog
-      Data.Logic.ATP.Meson
-      Data.Logic.ATP.Equal
-  else
-    Build-Depends: atp-haskell
 
 Test-Suite logic-classes-tests
   Type: exitcode-stdio-1.0
   GHC-Options: -Wall -O2 -fno-warn-orphans
   Hs-Source-Dirs: Tests
   Main-Is: Main.hs
-  Build-Depends: applicative-extras, base, containers, HUnit, logic-classes, mtl, pretty >= 1.1.2, PropLogic, safe, set-extra, syb
-  if !flag(local-atp-haskell)
-    Build-Depends: atp-haskell
+  Build-Depends: applicative-extras, atp-haskell, base, containers, HUnit, logic-classes, mtl, pretty >= 1.1.2, PropLogic, safe, set-extra, syb
