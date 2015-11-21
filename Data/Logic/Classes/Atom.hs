@@ -8,7 +8,7 @@ module Data.Logic.Classes.Atom
     -- , Formula(..)
     ) where
 
-import Control.Applicative.Error (Failing)
+import Data.Logic.ATP (Failing)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 
