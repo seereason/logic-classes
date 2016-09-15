@@ -1,0 +1,8 @@
+:set -iTests
+:set -XOverloadedStrings
+:set -XFlexibleContexts
+:set -XFlexibleInstances
+:set -XQuasiQuotes
+:set -XTypeFamilies
+:set prompt "λ "
+:m +Data.Logic.ATP
