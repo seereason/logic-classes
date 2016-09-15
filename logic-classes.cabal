@@ -1,5 +1,5 @@
 Name:             logic-classes
-Version:          1.7
+Version:          1.7.0.1
 Synopsis:         Framework for propositional and first order logic, theorem proving
 Description:      Package to support Propositional and First Order Logic.  It includes classes
                   representing the different types of formulas and terms, some instances of
@@ -65,4 +65,18 @@ Test-Suite logic-classes-tests
   GHC-Options: -Wall -O2 -fno-warn-orphans
   Hs-Source-Dirs: Tests
   Main-Is: Main.hs
+  Other-modules: Chiou0
+                 Common
+                 Data
+                 Harrison.Common
+                 Harrison.Equal
+                 Harrison.FOL
+                 Harrison.Main
+                 Harrison.Meson
+                 Harrison.Prop
+                 Harrison.Resolution
+                 Harrison.Skolem
+                 Harrison.Unif
+                 Logic
+                 TPTP
   Build-Depends: applicative-extras, atp-haskell, base, containers, HUnit, logic-classes, mtl, pretty >= 1.1.2, PropLogic, safe, set-extra, syb
