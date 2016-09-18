@@ -1,3 +1,9 @@
+haskell-logic-classes (1.7.1) unstable; urgency=low
+
+  * Log entry to match cabal version.
+
+ -- David Fox <dsf@seereason.com>  Sun, 18 Sep 2016 08:06:40 -0700
+
 haskell-logic-classes (1.5.3) unstable; urgency=low
 
   * Make the Show instances output more general expressions
