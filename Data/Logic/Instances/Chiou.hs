@@ -78,7 +78,7 @@ instance (Eq (Sentence v p f)) => HasBoolean (Sentence v p f) where
         | True = Nothing
 -}
 
-instance (IsLiteral (Sentence  v p f),
+instance (IsPredicate p, IsLiteral (Sentence  v p f),
           IsFunction f, IsVariable v, Ord p) => IsFormula (Sentence v p f) where
     type AtomOf (Sentence v p f) = Sentence  v p f
     atomic (Connective _ _ _) = error "Logic.Instances.Chiou.atomic: unexpected"
@@ -96,7 +96,7 @@ instance (IsLiteral (Sentence  v p f),
     true = TT
     false = FF
 
-instance (IsPropositional (Sentence v p f),
+instance (IsPredicate p,  IsPropositional (Sentence v p f),
           IsVariable v, IsFunction f) => IsPropositional (Sentence v p f) where
     foldPropositional' ho co ne tf at formula =
         case formula of
@@ -186,7 +186,7 @@ instance (IsFormula (Sentence v p f), IsVariable v, IsPredicate p, IsFunction f)
     precedence = precedenceQuantified
     associativity = associativityQuantified
 
-instance (IsFormula (Sentence v p f), IsLiteral (Sentence v p f), IsVariable v, IsFunction f, Ord p
+instance (IsPredicate p, IsFormula (Sentence v p f), IsLiteral (Sentence v p f), IsVariable v, IsFunction f, Ord p
          ) => IsQuantified (Sentence v p f) where
     type (VarOf (Sentence v p f)) = v
     quant (:!:) v x = Quantifier ForAll [v] x
