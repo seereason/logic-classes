@@ -28,6 +28,7 @@ import Data.Logic.ATP.Skolem (HasSkolem(SVarOf, foldSkolem), runSkolem, runSkole
 import Data.Logic.ATP.Term (IsFunction, IsTerm(FunOf))
 import Data.Map as Map (empty, Map)
 import Data.Set.Extra as Set (empty, flatten, fold, fromList, insert, map, Set, singleton, toList)
+import Prelude hiding ((<>))
 import Text.PrettyPrint ((<>), Doc, brackets, comma, hsep, parens, punctuate, text, vcat)
 
 -- |Combination of Normal monad and LiteralMap monad
